@@ -26,6 +26,7 @@ export function useProfileStatus() {
         profileComplete: false,
         applicationStatus: null as string | null,
         needsApplication: false,
+        isPendingApproval: false,
         isAdmin: false,
       };
     }
@@ -39,6 +40,7 @@ export function useProfileStatus() {
         profileComplete: false,
         applicationStatus: null as string | null,
         needsApplication: false,
+        isPendingApproval: false,
         isAdmin: false,
       };
     }
@@ -53,6 +55,14 @@ export function useProfileStatus() {
     // Users with a completed profile (any status) don't need to re-apply
     const needsApplication = !isAdmin && !hasProfile;
 
+    // Users whose application is pending review should be redirected to the pending page
+    const isPendingApproval = !isAdmin && hasProfile && (
+      applicationStatus === "submitted" ||
+      applicationStatus === "under_review" ||
+      applicationStatus === "waitlisted" ||
+      applicationStatus === "rejected"
+    );
+
     return {
       loading: false,
       isAuthenticated: true,
@@ -60,6 +70,7 @@ export function useProfileStatus() {
       profileComplete,
       applicationStatus,
       needsApplication,
+      isPendingApproval,
       isAdmin,
     };
   }, [authLoading, isAuthenticated, user, profileQuery.isLoading, profileQuery.data]);

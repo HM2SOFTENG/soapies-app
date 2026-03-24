@@ -18,6 +18,8 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminSettings from "./pages/admin/AdminSettings";
 import Apply from "./pages/Apply";
+import JoinFlow from "./pages/JoinFlow";
+import PendingApproval from "./pages/PendingApproval";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -48,8 +50,10 @@ function Router() {
         {/* Auth routes */}
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/join" component={JoinFlow} />
         <Route path="/verify-email" component={VerifyEmail} />
         <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/pending" component={PendingApproval} />
 
         {/* Public routes */}
         <Route path="/" component={Home} />

@@ -13,17 +13,21 @@ import { motion } from "framer-motion";
  * - Users without profile: redirects to /apply
  */
 export function RequireProfile({ children }: { children: React.ReactNode }) {
-  const { loading, isAuthenticated, needsApplication, isAdmin } = useProfileStatus();
+  const { loading, isAuthenticated, needsApplication, isPendingApproval, isAdmin } = useProfileStatus();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (loading) return;
     if (!isAuthenticated) return; // Let the page handle unauthenticated state
     if (isAdmin) return; // Admins skip
-    if (needsApplication) {
-      setLocation("/apply");
+    if (isPendingApproval) {
+      setLocation("/pending");
+      return;
     }
-  }, [loading, isAuthenticated, needsApplication, isAdmin, setLocation]);
+    if (needsApplication) {
+      setLocation("/join");
+    }
+  }, [loading, isAuthenticated, needsApplication, isPendingApproval, isAdmin, setLocation]);
 
   // Show loading state while checking
   if (loading && isAuthenticated) {
@@ -45,8 +49,8 @@ export function RequireProfile({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If needs application and authenticated, don't render children (redirect is happening)
-  if (isAuthenticated && needsApplication && !isAdmin) {
+  // If needs application/pending and authenticated, don't render children (redirect is happening)
+  if (isAuthenticated && (needsApplication || isPendingApproval) && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50">
         <motion.div

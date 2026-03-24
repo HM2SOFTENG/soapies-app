@@ -27,7 +27,7 @@ export const appRouter = router({
         password: z.string().min(8),
         name: z.string().min(1),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const existing = await auth.getUserByEmail(input.email);
         if (existing) {
           throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
@@ -39,6 +39,14 @@ export const appRouter = router({
         const code = auth.generateOtp();
         await auth.saveOtp({ userId: user.id, target: input.email, code, type: "email_verify" });
         await auth.sendEmailOtp(input.email, code);
+
+        // Auto-login: create session so user stays logged in through the application flow
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
         return { success: true, userId: user.id, message: "Account created. Please verify your email." };
       }),
