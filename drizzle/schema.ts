@@ -18,6 +18,10 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  passwordHash: varchar("passwordHash", { length: 256 }),
+  phone: varchar("phone", { length: 20 }).unique(),
+  emailVerified: boolean("emailVerified").default(false),
+  phoneVerified: boolean("phoneVerified").default(false),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -27,6 +31,22 @@ export const users = mysqlTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+// ─── OTP CODES ───────────────────────────────────────────────────────────────
+
+export const otpCodes = mysqlTable("otp_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  target: varchar("target", { length: 320 }).notNull(), // email or phone
+  code: varchar("code", { length: 6 }).notNull(),
+  type: mysqlEnum("type", ["email_verify", "phone_verify", "phone_login", "password_reset"]).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type OtpCode = typeof otpCodes.$inferSelect;
+export type InsertOtpCode = typeof otpCodes.$inferInsert;
 
 // ─── PROFILES ────────────────────────────────────────────────────────────────
 

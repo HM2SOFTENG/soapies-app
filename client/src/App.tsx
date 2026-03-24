@@ -18,6 +18,10 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminSettings from "./pages/admin/AdminSettings";
 import Apply from "./pages/Apply";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
 import { AnimatePresence } from "framer-motion";
 
 /** Wraps a component with the RequireProfile guard */
@@ -41,6 +45,12 @@ function Router() {
   return (
     <AnimatePresence mode="wait">
       <Switch>
+        {/* Auth routes */}
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/verify-email" component={VerifyEmail} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+
         {/* Public routes */}
         <Route path="/" component={Home} />
         <Route path="/events" component={Events} />

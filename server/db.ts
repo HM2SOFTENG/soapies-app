@@ -6,7 +6,7 @@ import {
   conversationParticipants, messages, notifications, announcements,
   groups, appSettings, memberCredits, referralCodes, eventAddons,
   eventFeedback, expenses, adminAuditLogs, cancellationRequests,
-  applicationPhotos, applicationLogs,
+  applicationPhotos, applicationLogs, otpCodes,
   // New imports for missing features
   reservationAddons, eventPromotionalPricing, eventOperators,
   eventShifts, shiftAssignments, eventSetupChecklist,

@@ -15,6 +15,13 @@
       "when": 1774243070446,
       "tag": "0001_green_lockheed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774389015008,
+      "tag": "0002_strong_star_brand",
+      "breakpoints": true
     }
   ]
 }

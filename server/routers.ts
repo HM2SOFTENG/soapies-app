@@ -1,10 +1,13 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import * as notif from "./notifications";
+import * as auth from "./auth";
+import { sdk } from "./_core/sdk";
+import { TRPCError } from "@trpc/server";
 
 export const appRouter = router({
   system: systemRouter,
@@ -16,6 +19,190 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // Register with email
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(8),
+        name: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await auth.getUserByEmail(input.email);
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
+        }
+        const user = await auth.createUserWithEmail(input);
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
+
+        // Send verification email
+        const code = auth.generateOtp();
+        await auth.saveOtp({ userId: user.id, target: input.email, code, type: "email_verify" });
+        await auth.sendEmailOtp(input.email, code);
+
+        return { success: true, userId: user.id, message: "Account created. Please verify your email." };
+      }),
+
+    // Login with email/password
+    login: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await auth.getUserByEmail(input.email);
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        }
+        const valid = await auth.verifyPassword(input.password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        }
+
+        await auth.updateLastSignedIn(user.id);
+
+        // Create session
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: user.emailVerified } };
+      }),
+
+    // Send phone OTP (for login or registration)
+    sendPhoneOtp: publicProcedure
+      .input(z.object({
+        phone: z.string().min(10),
+      }))
+      .mutation(async ({ input }) => {
+        const code = auth.generateOtp();
+        const existing = await auth.getUserByPhone(input.phone);
+        const type = existing ? "phone_login" : "phone_verify";
+        await auth.saveOtp({ userId: existing?.id, target: input.phone, code, type });
+        await auth.sendSmsOtp(input.phone, code);
+        return { success: true, isNewUser: !existing };
+      }),
+
+    // Verify phone OTP (login or register)
+    verifyPhoneOtp: publicProcedure
+      .input(z.object({
+        phone: z.string().min(10),
+        code: z.string().length(6),
+        name: z.string().optional(), // Required for new users
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Try phone_login first, then phone_verify
+        let otp = await auth.verifyOtp({ target: input.phone, code: input.code, type: "phone_login" });
+        if (!otp) {
+          otp = await auth.verifyOtp({ target: input.phone, code: input.code, type: "phone_verify" });
+        }
+        if (!otp) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired code" });
+        }
+
+        let user = await auth.getUserByPhone(input.phone);
+        if (!user) {
+          // New user — name is required
+          if (!input.name) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Name is required for new users" });
+          }
+          user = await auth.createUserWithPhone({ phone: input.phone, name: input.name });
+        } else {
+          await auth.markPhoneVerified(user.id);
+          await auth.updateLastSignedIn(user.id);
+        }
+
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
+
+        // Create session
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        return { success: true, user: { id: user.id, name: user.name, phone: user.phone, role: user.role } };
+      }),
+
+    // Verify email with OTP
+    verifyEmail: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const otp = await auth.verifyOtp({ target: input.email, code: input.code, type: "email_verify" });
+        if (!otp) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired code" });
+        }
+
+        const user = await auth.getUserByEmail(input.email);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+
+        await auth.markEmailVerified(user.id);
+        await auth.updateLastSignedIn(user.id);
+
+        // Auto-login after verification
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+        return { success: true };
+      }),
+
+    // Resend email verification
+    resendEmailVerification: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const user = await auth.getUserByEmail(input.email);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        if (user.emailVerified) return { success: true, message: "Email already verified" };
+
+        const code = auth.generateOtp();
+        await auth.saveOtp({ userId: user.id, target: input.email, code, type: "email_verify" });
+        await auth.sendEmailOtp(input.email, code);
+        return { success: true, message: "Verification code sent" };
+      }),
+
+    // Request password reset
+    requestPasswordReset: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const user = await auth.getUserByEmail(input.email);
+        // Don't reveal if user exists
+        if (user) {
+          const code = auth.generateOtp();
+          await auth.saveOtp({ userId: user.id, target: input.email, code, type: "password_reset" });
+          await auth.sendEmailOtp(input.email, code);
+        }
+        return { success: true, message: "If an account exists, a reset code has been sent." };
+      }),
+
+    // Reset password with OTP
+    resetPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+        newPassword: z.string().min(8),
+      }))
+      .mutation(async ({ input }) => {
+        const otp = await auth.verifyOtp({ target: input.email, code: input.code, type: "password_reset" });
+        if (!otp) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired code" });
+        }
+        const user = await auth.getUserByEmail(input.email);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+
+        await auth.updatePassword(user.id, input.newPassword);
+        return { success: true };
+      }),
   }),
 
   // ─── PROFILE ─────────────────────────────────────────────────────────────
