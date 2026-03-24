@@ -211,7 +211,7 @@ export default function ForgotPassword() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5, ease: "easeOut" },
+      transition: { duration: 0.5, ease: "easeOut" as const },
     },
   };
 
@@ -292,7 +292,7 @@ export default function ForgotPassword() {
                   x: { type: "spring", stiffness: 300, damping: 30 },
                   opacity: { duration: 0.2 },
                 }}
-                custom={step === "reset" ? 1 : -1}
+                custom={-1}
               >
                 <Card className="glass glass-strong backdrop-blur-xl border border-pink-500/20 shadow-2xl">
                   <CardContent className="pt-8 pb-6 px-6">
@@ -382,7 +382,7 @@ export default function ForgotPassword() {
                   x: { type: "spring", stiffness: 300, damping: 30 },
                   opacity: { duration: 0.2 },
                 }}
-                custom={step === "reset" ? 1 : -1}
+                custom={1}
               >
                 <Card className="glass glass-strong backdrop-blur-xl border border-pink-500/20 shadow-2xl">
                   <CardContent className="pt-8 pb-6 px-6">

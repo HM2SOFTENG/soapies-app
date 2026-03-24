@@ -119,7 +119,7 @@ export default function PendingApproval() {
       y: 0,
       transition: {
         duration: 0.8,
-        ease: "easeOut",
+        ease: "easeOut" as const,
       },
     },
   };
@@ -131,7 +131,7 @@ export default function PendingApproval() {
       transition: {
         duration: 2,
         repeat: Infinity,
-        ease: "easeInOut",
+        ease: "easeInOut" as const,
       },
     },
   };
@@ -142,7 +142,7 @@ export default function PendingApproval() {
       transition: {
         duration: 3,
         repeat: Infinity,
-        ease: "linear",
+        ease: "linear" as const,
       },
     },
   };

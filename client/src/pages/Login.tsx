@@ -57,7 +57,7 @@ const shakeVariants = {
     x: [0, -10, 10, -10, 10, 0],
     transition: {
       duration: 0.4,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     },
   },
 };
@@ -89,7 +89,7 @@ const tabContentVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: "easeOut",
+      ease: "easeOut" as const,
     },
   },
   exit: {
