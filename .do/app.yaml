@@ -1,0 +1,35 @@
+name: soapies-app
+region: nyc
+
+services:
+  - name: web
+    image:
+      registry_type: DOCR
+      repository: soapies-app
+      tag: latest
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 3000
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        type: SECRET
+        value: ${db.DATABASE_URL}
+      - key: JWT_SECRET
+        type: SECRET
+      - key: OAUTH_SERVER_URL
+        type: SECRET
+      - key: VITE_APP_ID
+        type: SECRET
+      - key: OWNER_OPEN_ID
+        type: SECRET
+
+databases:
+  - name: db
+    engine: MYSQL
+    version: "8"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
