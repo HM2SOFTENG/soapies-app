@@ -972,6 +972,17 @@ export const appRouter = router({
     })).mutation(async ({ input }) => {
       return db.createIntroSlot({ ...input, scheduledAt: new Date(input.scheduledAt) });
     }),
+    bulkCreate: adminProcedure.input(z.object({
+      slots: z.array(z.object({
+        scheduledAt: z.string(),
+        duration: z.number().optional(),
+      })),
+    })).mutation(async ({ input }) => {
+      for (const slot of input.slots) {
+        await db.createIntroSlot({ ...slot, scheduledAt: new Date(slot.scheduledAt) });
+      }
+      return { created: input.slots.length };
+    }),
     book: protectedProcedure.input(z.object({ slotId: z.number() })).mutation(async ({ ctx, input }) => {
       const profile = await db.getProfileByUserId(ctx.user.id);
       if (!profile) throw new Error("Profile required to book intro call");

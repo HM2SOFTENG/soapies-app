@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Trash2, CalendarDays, Clock, CheckCircle2, XCircle,
-  User, Loader2, Calendar, Edit2, Check,
+  User, Loader2, Calendar, Edit2, Check, X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -92,69 +92,132 @@ function SlotCard({ slot, onUpdate, onDelete }: { slot: any; onUpdate: (id: numb
   );
 }
 
-function AddSlotForm({ onAdd, isPending }: { onAdd: (data: any) => void; isPending: boolean }) {
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("10:00");
-  const [duration, setDuration] = useState(30);
+/** Generate preview of slots based on form state */
+function generateSlotPreviews(startDate: string, endDate: string, times: string[], duration: number): { scheduledAt: string; label: string }[] {
+  if (!startDate || times.length === 0) return [];
+  const slots: { scheduledAt: string; label: string }[] = [];
+  const start = new Date(startDate + "T00:00:00");
+  const end = endDate ? new Date(endDate + "T00:00:00") : start;
+  const cur = new Date(start);
+  while (cur <= end) {
+    for (const t of times) {
+      const [h, m] = t.split(":").map(Number);
+      const dt = new Date(cur);
+      dt.setHours(h, m, 0, 0);
+      slots.push({
+        scheduledAt: dt.toISOString(),
+        label: dt.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+      });
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return slots;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!date || !time) { toast.error("Date and time required"); return; }
-    const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
-    onAdd({ scheduledAt, duration });
-    setDate("");
-    setTime("10:00");
+function AddSlotForm({ onBulkAdd, isPending }: { onBulkAdd: (slots: any[]) => void; isPending: boolean }) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [duration, setDuration] = useState(30);
+  const [timeInput, setTimeInput] = useState("10:00");
+  const [times, setTimes] = useState<string[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const addTime = () => {
+    if (!timeInput) return;
+    if (times.includes(timeInput)) { toast.error("Time already added"); return; }
+    setTimes(prev => [...prev, timeInput].sort());
+    setTimeInput("");
+  };
+
+  const removeTime = (t: string) => setTimes(prev => prev.filter(x => x !== t));
+
+  const previews = generateSlotPreviews(startDate, endDate, times, duration);
+
+  const handleCreate = () => {
+    if (!startDate || times.length === 0) { toast.error("Select at least one date and one time"); return; }
+    if (previews.length === 0) { toast.error("No slots to create"); return; }
+    onBulkAdd(previews.map(p => ({ scheduledAt: p.scheduledAt, duration })));
+    setStartDate(""); setEndDate(""); setTimes([]);
+    setShowPreview(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl border border-pink-100 p-5">
+    <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl border border-pink-100 p-5">
       <h3 className="font-display font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <Plus className="h-4 w-4 text-pink-500" /> Add Available Slot
+        <Plus className="h-4 w-4 text-pink-500" /> Create Interview Slots
       </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
-          <label className="text-xs font-semibold text-gray-500 mb-1 block">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
+          <label className="text-xs font-semibold text-gray-500 mb-1 block">Start Date</label>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
             min={new Date().toISOString().split("T")[0]}
-            required
-            className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
-          />
+            className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200" />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-500 mb-1 block">Time</label>
-          <input
-            type="time"
-            value={time}
-            onChange={e => setTime(e.target.value)}
-            required
-            className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-gray-500 mb-1 block">Duration (min)</label>
-          <select
-            value={duration}
-            onChange={e => setDuration(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400"
-          >
-            {[15, 20, 30, 45, 60].map(d => (
-              <option key={d} value={d}>{d} minutes</option>
-            ))}
-          </select>
+          <label className="text-xs font-semibold text-gray-500 mb-1 block">End Date <span className="text-gray-400 font-normal">(optional — for recurring)</span></label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+            min={startDate || new Date().toISOString().split("T")[0]}
+            className="w-full px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200" />
         </div>
       </div>
-      <Button
-        type="submit"
-        disabled={isPending}
-        className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl px-6 gap-2 shadow-lg shadow-pink-200/40"
-      >
+
+      <div className="mb-4">
+        <label className="text-xs font-semibold text-gray-500 mb-1 block">Add Time Slots</label>
+        <div className="flex gap-2">
+          <input type="time" value={timeInput} onChange={e => setTimeInput(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400" />
+          <Button type="button" onClick={addTime} size="sm"
+            className="rounded-xl bg-pink-500 hover:bg-pink-600 text-white gap-1">
+            <Plus className="h-3.5 w-3.5" /> Add
+          </Button>
+        </div>
+        {times.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {times.map(t => (
+              <span key={t} className="flex items-center gap-1 px-3 py-1 bg-white border border-pink-200 rounded-full text-xs font-semibold text-pink-600">
+                {t}
+                <button onClick={() => removeTime(t)} className="text-pink-400 hover:text-red-500 ml-0.5">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-4">
+        <label className="text-xs font-semibold text-gray-500 mb-1 block">Duration</label>
+        <select value={duration} onChange={e => setDuration(Number(e.target.value))}
+          className="w-full sm:w-40 px-3 py-2 rounded-xl border border-pink-200 bg-white text-sm outline-none focus:border-pink-400">
+          {[15, 20, 30, 45, 60].map(d => <option key={d} value={d}>{d} minutes</option>)}
+        </select>
+      </div>
+
+      {previews.length > 0 && (
+        <div className="mb-4">
+          <button onClick={() => setShowPreview(!showPreview)}
+            className="text-xs font-semibold text-pink-600 hover:text-pink-700 flex items-center gap-1 mb-2">
+            {showPreview ? "Hide" : "Preview"} {previews.length} slot{previews.length !== 1 ? "s" : ""}
+          </button>
+          {showPreview && (
+            <div className="max-h-40 overflow-y-auto bg-white/80 rounded-xl border border-pink-100 p-3 space-y-1">
+              {previews.map((p, i) => (
+                <p key={i} className="text-xs text-gray-600 flex items-center gap-1.5">
+                  <CalendarDays className="h-3 w-3 text-pink-400 flex-shrink-0" /> {p.label} · {duration}min
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Button onClick={handleCreate} disabled={isPending || previews.length === 0}
+        className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl px-6 gap-2 shadow-lg shadow-pink-200/40 w-full sm:w-auto">
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-        Add Slot
+        Create {previews.length > 0 ? `${previews.length} Slot${previews.length !== 1 ? "s" : ""}` : "Slots"}
       </Button>
-    </form>
+    </div>
   );
 }
 
@@ -165,6 +228,11 @@ export default function AdminInterviewSlots() {
 
   const create = trpc.introCalls.create.useMutation({
     onSuccess: () => { toast.success("Slot added!"); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkCreate = trpc.introCalls.bulkCreate.useMutation({
+    onSuccess: (data) => { toast.success(`${data.created} slot${data.created !== 1 ? "s" : ""} created! 🗓️`); refetch(); },
     onError: (e: any) => toast.error(e.message),
   });
   const update = trpc.introCalls.update.useMutation({
@@ -191,8 +259,8 @@ export default function AdminInterviewSlots() {
       {/* Add Slot Form */}
       <div className="mb-6">
         <AddSlotForm
-          onAdd={(data) => create.mutate(data)}
-          isPending={create.isPending}
+          onBulkAdd={(slots) => bulkCreate.mutate({ slots })}
+          isPending={bulkCreate.isPending}
         />
       </div>
 
