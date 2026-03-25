@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -323,15 +322,26 @@ export default function Navbar() {
                 </div>
               </>
             ) : (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={() => window.location.href = getLoginUrl()}
-                  className="btn-premium rounded-xl px-5 py-2 text-sm gap-2"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  <span>Join Now</span>
-                </Button>
-              </motion.div>
+              <div className="flex items-center gap-3">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/login")}
+                    className="rounded-xl px-5 py-2 text-sm gap-2 border-pink-200 text-pink-600 hover:bg-pink-50"
+                  >
+                    <span>Log In</span>
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    onClick={() => setLocation("/join")}
+                    className="btn-premium rounded-xl px-5 py-2 text-sm gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Join Now</span>
+                  </Button>
+                </motion.div>
+              </div>
             )}
 
             {/* Mobile hamburger */}
@@ -536,10 +546,17 @@ export default function Navbar() {
                   ) : (
                     <motion.button
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => window.location.href = getLoginUrl()}
+                      onClick={() => setLocation("/join")}
                       className="w-full btn-premium p-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
                     >
                       <Sparkles className="h-4 w-4" /> Join Soapies
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setLocation("/login")}
+                      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-pink-200 text-pink-600 font-semibold text-sm hover:bg-pink-50 transition-all"
+                    >
+                      Log In
                     </motion.button>
                   )}
                 </div>

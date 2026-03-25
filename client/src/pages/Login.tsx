@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { trpc } from "@/lib/trpc";
-import { Mail, Phone, ArrowLeft, Loader2, Sparkles, Check } from "lucide-react";
+import { Mail, Phone, ArrowLeft, Loader2, Sparkles, Check, Home } from "lucide-react";
 import { FloatingBubbles, MorphBlob, GlowOrb } from "@/components/FloatingElements";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png";
@@ -236,8 +236,22 @@ export default function Login() {
         <GlowOrb color="oklch(0.55 0.25 310 / 0.12)" className="absolute bottom-1/3 left-1/3" />
       </div>
 
+      {/* Top Navigation Bar */}
+      <div className="relative z-10 px-6 pt-6">
+        <Link href="/">
+          <motion.a
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+          >
+            <Home size={18} />
+            <span className="text-sm font-medium">Home</span>
+          </motion.a>
+        </Link>
+      </div>
+
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
+      <div className="relative z-10 min-h-[calc(100vh-60px)] flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           {/* Logo with entrance animation */}
           <motion.div

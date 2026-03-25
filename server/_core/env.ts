@@ -7,6 +7,12 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // DigitalOcean Spaces (S3-compatible)
+  spacesKey: process.env.DO_SPACES_KEY ?? "",
+  spacesSecret: process.env.DO_SPACES_SECRET ?? "",
+  spacesBucket: process.env.DO_SPACES_BUCKET ?? "soapies-uploads",
+  spacesRegion: process.env.DO_SPACES_REGION ?? "sfo3",
+  spacesEndpoint: process.env.DO_SPACES_ENDPOINT ?? "https://sfo3.digitaloceanspaces.com",
   sendgridApiKey: process.env.SENDGRID_API_KEY ?? "",
   sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapies.app",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",

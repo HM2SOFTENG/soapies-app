@@ -30,6 +30,8 @@ import {
   Phone,
   Star,
   Trash2,
+  Home,
+  LogIn,
 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
@@ -357,7 +359,7 @@ export default function JoinFlow() {
   const [relationshipStatus, setRelationshipStatus] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [bio, setBio] = useState("");
-  const [location, setLocation] = useState("");
+  const [userLocation, setUserLocation] = useState("");
   const [communityId, setCommunityId] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -449,7 +451,7 @@ export default function JoinFlow() {
 
   // Step 4: About You
   const handleAboutYouNext = async () => {
-    if (!displayName || !gender || !dateOfBirth || !bio || !location || !communityId) {
+    if (!displayName || !gender || !dateOfBirth || !bio || !userLocation || !communityId) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -462,7 +464,7 @@ export default function JoinFlow() {
         relationshipStatus: relationshipStatus || undefined,
         dateOfBirth,
         bio,
-        location,
+        location: userLocation,
         communityId,
         phone: phone || undefined,
       });
@@ -620,7 +622,31 @@ export default function JoinFlow() {
           />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
+        {/* Top Navigation Bar */}
+        <div className="relative z-10 flex items-center justify-between px-6 pt-6">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <Home size={20} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
+          <Link href="/login">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <LogIn size={18} />
+              <span className="text-sm font-medium">Log In</span>
+            </motion.a>
+          </Link>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-4">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -668,6 +694,21 @@ export default function JoinFlow() {
               <Sparkles size={20} />
             </motion.div>
           </motion.button>
+
+          {/* Already have an account link */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-8"
+          >
+            <Link href="/login">
+              <a className="text-white/60 hover:text-white transition-colors text-sm">
+                Already have an account?{" "}
+                <span className="font-semibold text-pink-400 hover:text-pink-300">Log In</span>
+              </a>
+            </Link>
+          </motion.div>
         </div>
       </motion.div>
     );
@@ -680,13 +721,37 @@ export default function JoinFlow() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
+        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-y-auto"
       >
         <div className="absolute inset-0 overflow-hidden">
           <FloatingBubbles count={3} className="absolute opacity-20" />
         </div>
 
-        <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+        {/* Top Navigation Bar */}
+        <div className="relative z-10 flex items-center justify-between px-6 pt-6">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <Home size={20} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
+          <Link href="/login">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <LogIn size={18} />
+              <span className="text-sm font-medium">Log In</span>
+            </motion.a>
+          </Link>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -796,6 +861,16 @@ export default function JoinFlow() {
                   )}
                 </button>
               </div>
+
+              {/* Already have an account link */}
+              <div className="text-center mt-6">
+                <Link href="/login">
+                  <a className="text-white/60 hover:text-white transition-colors text-sm">
+                    Already have an account?{" "}
+                    <span className="font-semibold text-pink-400 hover:text-pink-300">Log In</span>
+                  </a>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -810,13 +885,27 @@ export default function JoinFlow() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
+        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-y-auto"
       >
         <div className="absolute inset-0 overflow-hidden">
           <FloatingBubbles count={3} className="absolute opacity-20" />
         </div>
 
-        <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+        {/* Top Navigation Bar */}
+        <div className="relative z-10 flex items-center justify-between px-6 pt-6">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors cursor-pointer"
+            >
+              <Home size={20} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -951,10 +1040,24 @@ export default function JoinFlow() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-6 px-4"
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        {/* Top Navigation */}
+        <div className="relative z-10 max-w-2xl mx-auto mb-4">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+            >
+              <Home size={18} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
         </div>
 
         <div className="relative z-10 max-w-2xl mx-auto">
@@ -1078,8 +1181,8 @@ export default function JoinFlow() {
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
                   />
                   <Input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={userLocation}
+                    onChange={(e) => setUserLocation(e.target.value)}
                     placeholder="City, State or Country"
                     className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg pl-10"
                   />
@@ -1161,10 +1264,24 @@ export default function JoinFlow() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-6 px-4"
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        {/* Top Navigation */}
+        <div className="relative z-10 max-w-4xl mx-auto mb-4">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+            >
+              <Home size={18} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto">
@@ -1352,10 +1469,24 @@ export default function JoinFlow() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-6 px-4"
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        {/* Top Navigation */}
+        <div className="relative z-10 max-w-2xl mx-auto mb-4">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+            >
+              <Home size={18} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
         </div>
 
         <div className="relative z-10 max-w-2xl mx-auto">
@@ -1465,10 +1596,24 @@ export default function JoinFlow() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-6 px-4"
       >
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        {/* Top Navigation */}
+        <div className="relative z-10 max-w-4xl mx-auto mb-4">
+          <Link href="/">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+            >
+              <Home size={18} />
+              <span className="text-sm font-medium">Home</span>
+            </motion.a>
+          </Link>
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto">
@@ -1533,7 +1678,7 @@ export default function JoinFlow() {
                     </div>
                     <div>
                       <p className="text-gray-600">Location</p>
-                      <p className="font-semibold text-gray-900">{location}</p>
+                      <p className="font-semibold text-gray-900">{userLocation}</p>
                     </div>
                     <div>
                       <p className="text-gray-600">Date of Birth</p>

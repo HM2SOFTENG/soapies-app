@@ -1,6 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import {
@@ -324,7 +323,7 @@ export default function Home() {
                 <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     size="lg"
-                    onClick={() => window.location.href = getLoginUrl()}
+                    onClick={() => setLocation("/join")}
                     className="btn-premium rounded-2xl px-10 py-7 text-lg gap-2"
                   >
                     <span className="relative z-10 flex items-center gap-2">
@@ -566,7 +565,7 @@ export default function Home() {
             <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
               <Button
                 size="lg"
-                onClick={() => isAuthenticated ? setLocation("/dashboard") : window.location.href = getLoginUrl()}
+                onClick={() => isAuthenticated ? setLocation("/dashboard") : setLocation("/join")}
                 className="bg-white text-pink-600 hover:bg-white/90 rounded-2xl px-12 py-7 text-lg font-black shadow-2xl gap-2"
               >
                 <Sparkles className="h-5 w-5" /> {isAuthenticated ? "Go to Dashboard" : "Get Started Now"}
