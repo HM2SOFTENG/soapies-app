@@ -159,47 +159,47 @@ export default function CommunityTeaser() {
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 120, damping: 20, delay: 0.2 }}
-          className="relative z-10 max-w-sm w-full"
+          className="relative z-10 max-w-[280px] w-full"
         >
           {/* Glassmorphism card */}
-          <div className="backdrop-blur-xl bg-white/90 rounded-3xl p-8 shadow-2xl shadow-pink-200/30 border border-pink-100/30">
+          <div className="backdrop-blur-xl bg-white/85 rounded-2xl px-6 py-6 shadow-2xl shadow-pink-200/30 border border-pink-100/30">
             {/* Lock icon */}
             <motion.div
-              animate={{ y: [0, -6, 0] }}
+              animate={{ y: [0, -4, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="flex justify-center mb-5"
+              className="flex justify-center mb-3"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/40">
-                <Lock className="w-7 h-7 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200/40">
+                <Lock className="w-5 h-5 text-white" />
               </div>
             </motion.div>
 
             {/* Heading */}
-            <h2 className="font-display text-2xl font-black text-center mb-2 text-gradient">
+            <h2 className="font-display text-lg font-black text-center mb-1 text-gradient">
               Join the Conversation
             </h2>
 
             {/* Subtext */}
-            <p className="text-center text-gray-500 mb-6 text-sm leading-relaxed">
-              Sign in or apply for membership to connect with the Soapies community
+            <p className="text-center text-gray-500 mb-4 text-xs leading-relaxed">
+              Sign in or join to connect with the Soapies community
             </p>
 
             {/* Buttons */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
-                  size="lg"
-                  className="w-full btn-premium rounded-xl py-3 gap-2 font-bold"
+                  size="sm"
+                  className="w-full btn-premium rounded-lg py-2.5 gap-1.5 font-bold text-sm"
                   onClick={() => navigate("/join")}
                 >
-                  <Sparkles className="h-4 w-4" /> Apply to Join
+                  <Sparkles className="h-3.5 w-3.5" /> Apply to Join
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   variant="outline"
-                  size="lg"
-                  className="w-full rounded-xl py-3 border-pink-200 text-pink-600 hover:bg-pink-50 font-semibold"
+                  size="sm"
+                  className="w-full rounded-lg py-2.5 border-pink-200 text-pink-600 hover:bg-pink-50 font-semibold text-xs"
                   onClick={() => navigate("/login")}
                 >
                   Already a member? Sign In
@@ -212,7 +212,7 @@ export default function CommunityTeaser() {
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 4, repeat: Infinity }}
-            className="absolute -inset-6 bg-gradient-to-r from-pink-300/20 via-purple-300/20 to-pink-300/20 rounded-3xl blur-2xl -z-10"
+            className="absolute -inset-4 bg-gradient-to-r from-pink-300/15 via-purple-300/15 to-pink-300/15 rounded-2xl blur-2xl -z-10"
           />
         </motion.div>
       </div>

@@ -112,6 +112,11 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: pnpm db:push
 
+      - name: Seed events data (ONE-TIME — remove after first successful deploy)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm db:seed
+
   # ─── Clean Up Old Container Images ────────────────────────────────────
   cleanup:
     name: Clean Old Images

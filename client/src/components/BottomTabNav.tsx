@@ -7,6 +7,7 @@ import {
   MessageCircle,
   User,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -30,9 +31,9 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
   const loggedOutTabs: TabItem[] = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Calendar, label: "Events", path: "/events" },
-    { icon: Sparkles, label: "Join", path: "/join", isCenter: true },
+    { icon: Sparkles, label: "Join / Login", path: "/join", isCenter: true },
+    { icon: BookOpen, label: "Welcome", path: "/welcome" },
     { icon: Users, label: "Community", path: "/wall" },
-    { icon: User, label: "Login", path: "/login" },
   ];
 
   const loggedInTabs: TabItem[] = [
@@ -57,8 +58,12 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
       role="tablist"
     >
       <div
-        className="glass-strong border-t border-pink-100/30 bg-white/80 backdrop-blur-xl"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="border-t border-pink-200/40 backdrop-blur-xl"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          background: "linear-gradient(135deg, rgba(253,242,248,0.95) 0%, rgba(245,232,255,0.92) 50%, rgba(252,231,243,0.95) 100%)",
+          boxShadow: "0 -4px 30px rgba(236,72,153,0.12), 0 -1px 8px rgba(168,85,247,0.08)",
+        }}
       >
         <div className="flex items-center justify-around h-16">
           {tabs.map((tab) => {
@@ -102,7 +107,7 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
                     <Icon
                       size={22}
                       className={`transition-colors duration-200 ${
-                        active ? "text-pink-600" : "text-gray-400"
+                        active ? "text-pink-600" : "text-pink-300"
                       }`}
                       strokeWidth={active ? 2.5 : 2}
                     />
@@ -121,7 +126,7 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
 
                   <span
                     className={`text-[10px] mt-1 font-semibold transition-colors duration-200 ${
-                      active ? "text-pink-600" : "text-gray-400"
+                      active ? "text-pink-600" : "text-pink-300"
                     }`}
                   >
                     {tab.label}
@@ -131,8 +136,9 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
                   {active && (
                     <motion.div
                       layoutId="bottomtab-active"
-                      className="absolute -bottom-0.5 w-5 h-[3px] rounded-full bg-gradient-to-r from-pink-500 to-purple-500"
+                      className="absolute -bottom-0.5 w-6 h-[3px] rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-400"
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      style={{ boxShadow: "0 2px 8px rgba(236,72,153,0.4)" }}
                     />
                   )}
                 </motion.div>

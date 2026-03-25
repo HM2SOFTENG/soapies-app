@@ -19,7 +19,7 @@ export default function PageWrapper({
   withPadding?: boolean;
 }) {
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-pink-50/60 via-purple-50/30 to-pink-50/40 relative overflow-x-hidden">
       {withNavbar && <Navbar />}
       <motion.div
         variants={pageVariants}
