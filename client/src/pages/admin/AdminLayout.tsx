@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Calendar, Users, FileText, Settings, ArrowLeft,
   Menu, X, Shield, LogOut, Loader2, Sparkles, ChevronRight, Zap,
-  Share2, CalendarCheck, ScrollText, Megaphone
+  Share2, CalendarCheck, ScrollText, Megaphone, FlaskConical, CreditCard
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -20,6 +20,8 @@ const sidebarLinks = [
   { href: "/admin/referrals", label: "Referrals", icon: Share2, color: "from-emerald-400 to-teal-500" },
   { href: "/admin/interview-slots", label: "Interview Slots", icon: CalendarCheck, color: "from-blue-400 to-cyan-500" },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone, color: "from-amber-400 to-orange-500" },
+  { href: "/admin/test-results", label: "Test Results", icon: FlaskConical, color: "from-cyan-400 to-blue-500" },
+  { href: "/admin/reservations", label: "Reservations", icon: CreditCard, color: "from-green-400 to-emerald-500" },
   { href: "/admin/audit", label: "Audit Log", icon: ScrollText, color: "from-orange-400 to-amber-500" },
   { href: "/admin/settings", label: "Settings", icon: Settings, color: "from-rose-400 to-pink-500" },
 ];
