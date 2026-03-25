@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Calendar, Loader2, Edit, Trash2, X, MapPin, Users,
-  Clock, DollarSign, Eye, Search, Filter, Sparkles
+  Clock, DollarSign, Eye, Search, Filter, Sparkles, MoreVertical, Settings
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -270,6 +271,13 @@ export default function AdminEvents() {
 
                 {/* Actions */}
                 <div className="flex gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <Link href={`/admin/events/${event.id}`}>
+                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                      <Button size="sm" className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl gap-1 h-9">
+                        <Settings className="h-3 w-3" /> Manage
+                      </Button>
+                    </motion.div>
+                  </Link>
                   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                     <Button size="sm" variant="outline" className="rounded-xl border-pink-200 text-pink-600 gap-1 h-9" onClick={() => toast.info("Edit feature coming soon")}>
                       <Edit className="h-3 w-3" /> Edit

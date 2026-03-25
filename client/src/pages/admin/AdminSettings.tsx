@@ -2,204 +2,287 @@ import AdminLayout from "./AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { motion } from "framer-motion";
 import {
-  Settings, Save, Loader2, Plus, Palette, Bell, Shield,
-  Globe, Database, Key, Sparkles
+  Settings, Loader2, Globe, Bell, Shield, Database,
+  Mail, MessageSquare, Smartphone, Zap, Clock,
+  Save, AlertCircle, Activity,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
 
-const settingCategories = [
+const SETTING_CATEGORIES = [
   { key: "general", label: "General", icon: Globe, gradient: "from-pink-400 to-rose-500" },
-  { key: "appearance", label: "Appearance", icon: Palette, gradient: "from-purple-400 to-indigo-500" },
-  { key: "notifications", label: "Notifications", icon: Bell, gradient: "from-fuchsia-400 to-pink-500" },
-  { key: "security", label: "Security", icon: Shield, gradient: "from-violet-400 to-purple-500" },
+  { key: "registration", label: "Registration", icon: Zap, gradient: "from-purple-400 to-indigo-500" },
+  { key: "events", label: "Events", icon: Database, gradient: "from-fuchsia-400 to-pink-500" },
+  { key: "notifications", label: "Notifications", icon: Bell, gradient: "from-violet-400 to-purple-500" },
+  { key: "moderation", label: "Moderation", icon: Shield, gradient: "from-rose-400 to-pink-500" },
+  { key: "audit", label: "Audit Log", icon: Activity, gradient: "from-indigo-400 to-purple-500" },
 ];
 
+const SETTINGS_CONFIG: Record<string, Array<{
+  key: string;
+  label: string;
+  desc?: string;
+  type: "text" | "toggle" | "number";
+  icon?: typeof Settings;
+}>> = {
+  general: [
+    { key: "appName", label: "App Name", desc: "Display name of the application", type: "text" },
+    { key: "welcomeMessage", label: "Welcome Message", desc: "Message shown to new users", type: "text" },
+    { key: "appDescription", label: "App Description", desc: "Short description of the app", type: "text" },
+    { key: "defaultCommunity", label: "Default Community", desc: "Default community for new members", type: "text" },
+  ],
+  registration: [
+    { key: "emailVerificationRequired", label: "Require Email Verification", type: "toggle" },
+    { key: "phoneVerificationRequired", label: "Require Phone Verification", type: "toggle" },
+    { key: "autoApprove", label: "Auto-Approve New Members", type: "toggle" },
+    { key: "inviteCodeRequired", label: "Require Invite Code", type: "toggle" },
+  ],
+  events: [
+    { key: "defaultEventCapacity", label: "Default Event Capacity", type: "number" },
+    { key: "defaultEventPrice", label: "Default Event Price ($)", type: "number" },
+    { key: "requireTestResults", label: "Require Test Results", type: "toggle" },
+    { key: "requireWaiverSignature", label: "Require Waiver Signature", type: "toggle" },
+  ],
+  notifications: [
+    { key: "emailNotificationsEnabled", label: "Email Notifications", type: "toggle" },
+    { key: "smsNotificationsEnabled", label: "SMS Notifications", type: "toggle" },
+    { key: "pushNotificationsEnabled", label: "Push Notifications", type: "toggle" },
+    { key: "quietHoursStart", label: "Quiet Hours Start (HH:MM)", type: "text" },
+    { key: "quietHoursEnd", label: "Quiet Hours End (HH:MM)", type: "text" },
+  ],
+  moderation: [
+    { key: "autoModeratePhotos", label: "Auto-Moderate Photos", desc: "Automatically check photos on upload", type: "toggle" },
+    { key: "requirePhotoApproval", label: "Require Photo Approval", desc: "All photos need admin approval", type: "toggle" },
+    { key: "maxPostsPerDay", label: "Max Posts Per Day", type: "number" },
+    { key: "maxMessagesPerDay", label: "Max Messages Per Day", type: "number" },
+  ],
+};
+
 export default function AdminSettings() {
+  const [activeTab, setActiveTab] = useState("general");
+  const [editValues, setEditValues] = useState<Record<string, any>>({});
+  const [saveLoading, setSaveLoading] = useState<string | null>(null);
+
+  const utils = trpc.useUtils();
+
+  // Queries
   const { data: settings, isLoading } = trpc.admin.settings.useQuery(undefined, {
     retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
-  const utils = trpc.useUtils();
-  const updateSetting = trpc.admin.updateSetting.useMutation({
-    onSuccess: () => { toast.success("Setting saved!", { icon: "✅" }); utils.admin.settings.invalidate(); },
-    onError: (e: any) => toast.error(e.message),
+
+  const { data: auditLogs } = trpc.admin.auditLogs.useQuery(undefined, {
+    retry: false, staleTime: 30_000, refetchOnWindowFocus: false,
   });
 
-  const [editValues, setEditValues] = useState<Record<string, string>>({});
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
-  const [activeTab, setActiveTab] = useState("general");
+  // Mutations
+  const updateSetting = trpc.admin.updateSetting.useMutation({
+    onSuccess: () => {
+      toast.success("Setting saved!", { icon: "✅" });
+      utils.admin.settings.invalidate();
+      setSaveLoading(null);
+    },
+    onError: (e: any) => {
+      toast.error(e.message);
+      setSaveLoading(null);
+    },
+  });
 
   useEffect(() => {
     if (settings) {
-      const vals: Record<string, string> = {};
-      settings.forEach((s: any) => { vals[s.settingKey] = s.settingValue; });
+      const vals: Record<string, any> = {};
+      settings.forEach((s: any) => {
+        vals[s.settingKey] = s.settingValue;
+      });
       setEditValues(vals);
     }
   }, [settings]);
 
   const handleSave = (key: string) => {
-    updateSetting.mutate({ key, value: editValues[key] || "" });
+    setSaveLoading(key);
+    const value = editValues[key];
+    updateSetting.mutate({ key, value: String(value) });
   };
 
-  const handleAddNew = () => {
-    if (!newKey.trim()) return;
-    updateSetting.mutate({ key: newKey, value: newValue });
-    setNewKey("");
-    setNewValue("");
+  const getSetting = (key: string) => {
+    return editValues[key] ?? "";
   };
+
+  const categoryConfig = SETTINGS_CONFIG[activeTab] || [];
 
   return (
     <AdminLayout title="Settings">
-      {/* Category Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-1 px-1">
-        {settingCategories.map((cat, i) => (
-          <motion.button
-            key={cat.key}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab(cat.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === cat.key
-                ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-200/30"
-                : "bg-white/70 text-gray-500 border border-pink-100 hover:border-pink-200"
-            }`}
-          >
-            <cat.icon className="h-4 w-4" />
-            {cat.label}
-          </motion.button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* Tab List */}
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 bg-white/70 border border-pink-100/50 backdrop-blur-sm rounded-xl mb-6 p-1">
+          {SETTING_CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            return (
+              <TabsTrigger
+                key={cat.key}
+                value={cat.key}
+                className="gap-1.5 text-xs md:text-sm rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{cat.label}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-pink-400" />
-          <p className="text-sm text-gray-400">Loading settings...</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Current Settings */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-pink-100/50 shadow-lg"
-          >
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600">
-                <Settings className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-gray-800">Platform Settings</h3>
-                <p className="text-xs text-gray-400">Configure your community platform</p>
-              </div>
-            </div>
-
-            {settings && settings.length > 0 ? (
-              <div className="space-y-4">
-                {settings.map((setting: any, i: number) => (
-                  <motion.div
-                    key={setting.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="flex flex-col sm:flex-row gap-3 items-start sm:items-end p-4 rounded-xl bg-pink-50/30 border border-pink-100/30 hover:border-pink-200/50 transition-colors"
-                  >
-                    <div className="flex-1 w-full">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Key className="h-3 w-3 text-pink-400" />
-                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{setting.settingKey}</label>
-                      </div>
-                      <Input
-                        value={editValues[setting.settingKey] || ""}
-                        onChange={e => setEditValues(prev => ({ ...prev, [setting.settingKey]: e.target.value }))}
-                        className="rounded-xl border-pink-100 bg-white/70 focus:border-pink-300"
-                      />
-                    </div>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        onClick={() => handleSave(setting.settingKey)}
-                        disabled={updateSetting.isPending}
-                        size="sm"
-                        className="bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl gap-1.5 shadow-md"
-                      >
-                        {updateSetting.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                        Save
-                      </Button>
-                    </motion.div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-pink-400" />
+            <p className="text-sm text-gray-400">Loading settings...</p>
+          </div>
+        ) : (
+          <>
+            {/* Content Tabs */}
+            {SETTING_CATEGORIES.slice(0, 5).map((cat) => (
+              <TabsContent key={cat.key} value={cat.key} className="space-y-4 mt-6">
                 <motion.div
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="inline-flex w-14 h-14 rounded-2xl bg-pink-50 items-center justify-center mb-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-4 rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100/50"
                 >
-                  <Database className="h-7 w-7 text-pink-300" />
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    {SETTING_CATEGORIES.find(c => c.key === cat.key)?.icon &&
+                      (() => {
+                        const Icon = SETTING_CATEGORIES.find(c => c.key === cat.key)!.icon;
+                        return <Icon className="h-5 w-5 text-pink-500" />;
+                      })()
+                    }
+                    {cat.label} Settings
+                  </h3>
                 </motion.div>
-                <p className="text-gray-400 text-sm font-medium">No settings configured yet</p>
-                <p className="text-gray-300 text-xs">Add your first setting below</p>
-              </div>
-            )}
-          </motion.div>
 
-          {/* Add New Setting */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-pink-100/50 shadow-lg"
-          >
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600">
-                <Plus className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-gray-800">Add New Setting</h3>
-                <p className="text-xs text-gray-400">Create a new configuration key-value pair</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Key</label>
-                <Input
-                  value={newKey}
-                  onChange={e => setNewKey(e.target.value)}
-                  placeholder="e.g. site_name"
-                  className="rounded-xl border-pink-100 bg-white/70"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Value</label>
-                <Input
-                  value={newValue}
-                  onChange={e => setNewValue(e.target.value)}
-                  placeholder="e.g. Soapies"
-                  className="rounded-xl border-pink-100 bg-white/70"
-                />
-              </div>
-              <div className="flex items-end">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    onClick={handleAddNew}
-                    disabled={!newKey.trim() || updateSetting.isPending}
-                    className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-1.5 whitespace-nowrap shadow-lg shadow-pink-200/30"
-                  >
-                    {updateSetting.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    Add Setting
-                  </Button>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
+                <div className="space-y-3">
+                  {categoryConfig.map((setting, i) => (
+                    <motion.div
+                      key={setting.key}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-pink-100/50 space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <label className="block text-sm font-bold text-gray-800">{setting.label}</label>
+                          {setting.desc && (
+                            <p className="text-xs text-gray-500 mt-1">{setting.desc}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {setting.type === "toggle" ? (
+                        <div className="flex items-center gap-4 pt-2">
+                          <Switch
+                            checked={getSetting(setting.key) === "true" || getSetting(setting.key) === true}
+                            onCheckedChange={(checked) => {
+                              setEditValues(prev => ({
+                                ...prev,
+                                [setting.key]: checked,
+                              }));
+                              setSaveLoading(setting.key);
+                              updateSetting.mutate({
+                                key: setting.key,
+                                value: String(checked),
+                              });
+                            }}
+                            disabled={updateSetting.isPending}
+                          />
+                          <span className="text-sm text-gray-500">
+                            {getSetting(setting.key) === "true" || getSetting(setting.key) === true ? "Enabled" : "Disabled"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type={setting.type === "number" ? "number" : "text"}
+                            value={getSetting(setting.key)}
+                            onChange={(e) => setEditValues(prev => ({
+                              ...prev,
+                              [setting.key]: e.target.value,
+                            }))}
+                            placeholder={`Enter ${setting.label.toLowerCase()}...`}
+                            className="flex-1 px-4 py-2.5 rounded-lg border border-pink-100 bg-white text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50"
+                          />
+                          {getSetting(setting.key) !== (settings?.find((s: any) => s.settingKey === setting.key)?.settingValue ?? "") && (
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg px-6"
+                              onClick={() => handleSave(setting.key)}
+                              disabled={saveLoading === setting.key}
+                            >
+                              <Save className="h-4 w-4" />
+                              {saveLoading === setting.key ? "Saving..." : "Save"}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </TabsContent>
+            ))}
+
+            {/* Audit Log Tab */}
+            <TabsContent value="audit" className="space-y-4 mt-6">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-4 rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100/50"
+              >
+                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-pink-500" />
+                  Admin Activity Log ({auditLogs?.length || 0})
+                </h3>
+              </motion.div>
+
+              {!auditLogs || auditLogs.length === 0 ? (
+                <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-100/50">
+                  <AlertCircle className="h-12 w-12 text-pink-200 mx-auto mb-4" />
+                  <p className="text-gray-400">No activity logged yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {auditLogs.map((log: any, i: number) => (
+                    <motion.div
+                      key={log.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.02 }}
+                      className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-pink-100/50"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-800 text-sm capitalize">
+                            {log.action?.replace(/_/g, " ")}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            By: {log.adminName || "Admin"}
+                            {log.targetType && ` • ${log.targetType.toUpperCase()} #${log.targetId}`}
+                          </p>
+                          {log.notes && (
+                            <p className="text-xs text-gray-600 mt-2 italic">{log.notes}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                          {format(new Date(log.createdAt), "MMM d, HH:mm")}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
     </AdminLayout>
   );
 }

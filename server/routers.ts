@@ -1089,6 +1089,21 @@ export const appRouter = router({
       await db.updateCancellationRequest(id, { ...data, processedBy: ctx.user.id, processedAt: new Date() });
       return { success: true };
     }),
+    suspendUser: adminProcedure.input(z.object({ userId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.suspendUser(input.userId);
+      await db.createAuditLog({ adminId: ctx.user.id, action: "user_suspended", targetType: "user", targetId: input.userId });
+      return { success: true };
+    }),
+    unsuspendUser: adminProcedure.input(z.object({ userId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.unsuspendUser(input.userId);
+      await db.createAuditLog({ adminId: ctx.user.id, action: "user_unsuspended", targetType: "user", targetId: input.userId });
+      return { success: true };
+    }),
+    deleteUser: adminProcedure.input(z.object({ userId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.deleteUser(input.userId);
+      await db.createAuditLog({ adminId: ctx.user.id, action: "user_deleted", targetType: "user", targetId: input.userId });
+      return { success: true };
+    }),
   }),
 });
 

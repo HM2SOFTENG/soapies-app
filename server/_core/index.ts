@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic } from "./static";
+import { initializeWebSocket } from "./websocket";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -42,6 +43,14 @@ async function startServer() {
   } catch (err) {
     console.warn("[Startup] Admin seed skipped:", err);
   }
+
+  // Seed default channels
+  try {
+    const { ensureDefaultChannels } = await import("../seedChannels");
+    await ensureDefaultChannels();
+  } catch (err) {
+    console.warn("[Startup] Channel seed skipped:", err);
+  }
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // Photo upload API
@@ -76,6 +85,10 @@ async function startServer() {
       createContext,
     })
   );
+
+  // Initialize WebSocket server
+  await initializeWebSocket(server);
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     const { setupVite } = await import("./vite");

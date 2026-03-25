@@ -308,6 +308,9 @@ function CreditsReferralSection() {
   const { data: balance } = trpc.credits.balance.useQuery(undefined, {
     retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
   });
+  const { data: creditHistory } = trpc.credits.history.useQuery(undefined, {
+    retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
+  });
   const { data: referral } = trpc.referrals.myCode.useQuery(undefined, {
     retry: false, refetchOnWindowFocus: false, staleTime: 60_000, enabled: isAuthenticated,
   });
@@ -323,75 +326,110 @@ function CreditsReferralSection() {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {/* Credits Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        whileHover={{ y: -4 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-purple-600 p-6 shadow-xl"
-      >
-        <FloatingBubbles count={4} />
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
-              <CreditCard className="h-5 w-5 text-white" />
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Credits Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          whileHover={{ y: -4 }}
+          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-purple-600 p-6 shadow-xl"
+        >
+          <FloatingBubbles count={4} />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
+                <CreditCard className="h-5 w-5 text-white" />
+              </div>
+              <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
+                <Star className="h-5 w-5 text-yellow-300" />
+              </motion.div>
             </div>
-            <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
-              <Star className="h-5 w-5 text-yellow-300" />
-            </motion.div>
+            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Credit Balance</p>
+            <div className="font-display text-4xl font-black text-white">
+              <AnimatedNumber value={balance ?? 0} />
+            </div>
+            <p className="text-white/50 text-xs mt-2">Earn credits through referrals & events</p>
           </div>
-          <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Credit Balance</p>
-          <div className="font-display text-4xl font-black text-white">
-            <AnimatedNumber value={balance ?? 0} />
-          </div>
-          <p className="text-white/50 text-xs mt-2">Earn credits through referrals & events</p>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* Referral Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        whileHover={{ y: -4 }}
-        className="glass-strong rounded-2xl border border-pink-100/50 p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 shadow-md">
-            <Gift className="h-5 w-5 text-white" />
-          </div>
-          <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-            <TrendingUp className="h-4 w-4 text-pink-400" />
-          </motion.div>
-        </div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Referral Code</p>
-        {referral?.code ? (
-          <>
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              onClick={copyCode}
-              className="flex items-center gap-2 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl px-4 py-3 mt-2 cursor-pointer border border-pink-100 group"
-            >
-              <span className="font-mono text-lg font-black text-pink-600 flex-1">{referral.code}</span>
-              <Copy className="h-4 w-4 text-pink-400 group-hover:text-pink-600 transition-colors" />
+        {/* Referral Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          whileHover={{ y: -4 }}
+          className="glass-strong rounded-2xl border border-pink-100/50 p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 shadow-md">
+              <Gift className="h-5 w-5 text-white" />
+            </div>
+            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+              <TrendingUp className="h-4 w-4 text-pink-400" />
             </motion.div>
-            <p className="text-[11px] text-gray-400 mt-2">Share with friends to earn credits</p>
-          </>
-        ) : (
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              onClick={() => generate.mutate()}
-              disabled={generate.isPending}
-              className="w-full mt-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 shadow-lg"
-            >
-              {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Generate My Code
-            </Button>
-          </motion.div>
-        )}
-      </motion.div>
+          </div>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Referral Code</p>
+          {referral?.code ? (
+            <>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                onClick={copyCode}
+                className="flex items-center gap-2 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl px-4 py-3 mt-2 cursor-pointer border border-pink-100 group"
+              >
+                <span className="font-mono text-lg font-black text-pink-600 flex-1">{referral.code}</span>
+                <Copy className="h-4 w-4 text-pink-400 group-hover:text-pink-600 transition-colors" />
+              </motion.div>
+              <p className="text-[11px] text-gray-400 mt-2">Share with friends to earn credits</p>
+            </>
+          ) : (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={() => generate.mutate()}
+                disabled={generate.isPending}
+                className="w-full mt-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 shadow-lg"
+              >
+                {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Generate My Code
+              </Button>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Credit History */}
+      {creditHistory && creditHistory.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="glass-strong rounded-2xl border border-pink-100/50 p-6"
+        >
+          <h3 className="font-display text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-pink-500" /> Credit History
+          </h3>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {creditHistory.slice(0, 8).map((entry: any, i: number) => (
+              <motion.div
+                key={entry.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-pink-50/50 transition-colors"
+              >
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">{entry.reason || "Credit"}</p>
+                  <p className="text-xs text-gray-500">{entry.createdAt ? format(new Date(entry.createdAt), "MMM d, yyyy") : "Recent"}</p>
+                </div>
+                <p className={`text-sm font-bold ${entry.amount > 0 ? "text-green-600" : "text-gray-600"}`}>
+                  {entry.amount > 0 ? "+" : ""}{entry.amount}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

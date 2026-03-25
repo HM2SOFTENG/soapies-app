@@ -14,6 +14,7 @@ import Wall from "./pages/Wall";
 import Messages from "./pages/Messages";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
+import AdminEventOps from "./pages/admin/AdminEventOps";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -74,6 +75,7 @@ function Router() {
         {/* Admin routes — admins skip profile check via RequireProfile logic */}
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/events" component={AdminEvents} />
+        <Route path="/admin/events/:id" component={AdminEventOps} />
         <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/applications" component={AdminApplications} />
         <Route path="/admin/settings" component={AdminSettings} />

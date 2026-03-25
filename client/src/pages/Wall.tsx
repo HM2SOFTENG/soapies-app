@@ -4,31 +4,67 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Heart, MessageCircle, Send, Loader2, Sparkles, Image as ImageIcon,
-  Shield, MoreHorizontal, Smile, Flame, TrendingUp, Users
+  Heart, MessageCircle, Share2, Loader2, Sparkles, Image as ImageIcon,
+  MoreHorizontal, Flame, TrendingUp, Users, Pin, X, Lock, Globe, Users2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
-import { getLoginUrl } from "@/const";
-import { FloatingBubbles, GlowOrb } from "@/components/FloatingElements";
+import { formatDistanceToNow } from "date-fns";
+import { FloatingBubbles } from "@/components/FloatingElements";
 import CommunityTeaser from "@/components/CommunityTeaser";
+
+const COMMUNITIES = [
+  { id: "soapies", name: "Soapies", emoji: "🧼" },
+  { id: "groupus", name: "Groupus", emoji: "👥" },
+  { id: "gaypeez", name: "Gaypeez", emoji: "🏳️‍🌈" },
+];
 
 // ─── POST COMPOSER ─────────────────────────────────────────────────────────
 function PostComposer({ user }: { user: any }) {
   const [content, setContent] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<"public" | "members" | "community">("members");
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
 
   const createPost = trpc.wall.create.useMutation({
     onSuccess: () => {
       setContent("");
+      setMediaUrl(null);
+      setSelectedCommunity(null);
+      setVisibility("members");
       setIsFocused(false);
       utils.wall.posts.invalidate();
       toast.success("Posted!", { icon: "🎉" });
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload-photo", { method: "POST", body: formData });
+      if (!response.ok) throw new Error("Upload failed");
+      const data = await response.json();
+      setMediaUrl(data.url);
+      toast.success("Image uploaded!");
+    } catch (err) {
+      toast.error("Failed to upload image");
+    }
+  };
+
+  const autoGrowTextarea = (elem: HTMLTextAreaElement) => {
+    elem.style.height = "auto";
+    elem.style.height = Math.min(elem.scrollHeight, 200) + "px";
+  };
 
   const initials = user?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "?";
 
@@ -48,8 +84,12 @@ function PostComposer({ user }: { user: any }) {
           </motion.div>
           <div className="flex-1">
             <textarea
+              ref={textareaRef}
               value={content}
-              onChange={e => setContent(e.target.value)}
+              onChange={e => {
+                setContent(e.target.value);
+                autoGrowTextarea(e.target);
+              }}
               onFocus={() => setIsFocused(true)}
               placeholder="Share your vibe with the community... ✨"
               rows={isFocused ? 4 : 2}
@@ -60,39 +100,87 @@ function PostComposer({ user }: { user: any }) {
       </div>
 
       <AnimatePresence>
-        {(isFocused || content.trim()) && (
+        {(isFocused || content.trim() || mediaUrl) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="px-5 pb-4 flex items-center justify-between border-t border-pink-50 pt-3"
+            className="px-5 pb-4 space-y-3 border-t border-pink-50 pt-3"
           >
-            <div className="flex items-center gap-1">
-              {[
-                { icon: ImageIcon, label: "Photo" },
-                { icon: Smile, label: "Emoji" },
-              ].map(btn => (
+            {/* Image Preview */}
+            {mediaUrl && (
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative rounded-lg overflow-hidden">
+                <img src={mediaUrl} alt="" className="w-full max-h-48 object-cover rounded-lg" />
                 <motion.button
-                  key={btn.label}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => toast("Feature coming soon!", { icon: "🚀" })}
-                  className="p-2 rounded-lg hover:bg-pink-50 text-gray-400 hover:text-pink-500 transition-colors cursor-pointer"
+                  onClick={() => setMediaUrl(null)}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-lg text-white hover:bg-black/80"
                 >
-                  <btn.icon className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </motion.button>
-              ))}
+              </motion.div>
+            )}
+
+            {/* Image Upload Button */}
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-pink-200 hover:bg-pink-50 text-pink-600 text-sm font-semibold transition-colors"
+              >
+                <ImageIcon className="h-4 w-4" /> Add Photo
+              </motion.button>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-300">{content.length}/500</span>
+
+            {/* Visibility & Community Selection */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Visibility</label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-lg border border-pink-200 bg-white text-sm outline-none focus:ring-2 focus:ring-pink-200/50"
+                >
+                  <option value="members">Members Only</option>
+                  <option value="public">Public</option>
+                  <option value="community">Community</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Community</label>
+                <select
+                  value={selectedCommunity || ""}
+                  onChange={(e) => setSelectedCommunity(e.target.value || null)}
+                  className="w-full px-3 py-2 rounded-lg border border-pink-200 bg-white text-sm outline-none focus:ring-2 focus:ring-pink-200/50"
+                >
+                  <option value="">All Communities</option>
+                  {COMMUNITIES.map(c => (
+                    <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <span className="text-xs text-gray-400">{content.length}/500</span>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
-                  onClick={() => content.trim() && createPost.mutate({ content })}
+                  onClick={() => content.trim() && createPost.mutate({ content, communityId: selectedCommunity || undefined, mediaUrl: mediaUrl || undefined, mediaType: "image", visibility })}
                   disabled={!content.trim() || createPost.isPending}
                   className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 px-5 shadow-lg shadow-pink-200/30"
                   size="sm"
                 >
-                  {createPost.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {createPost.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   Post
                 </Button>
               </motion.div>
@@ -127,36 +215,60 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
   });
 
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+  const communityInfo = COMMUNITIES.find(c => c.id === post.communityId);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Link copied!");
+  };
+
+  // Generate initials from authorId for avatar
+  const getInitials = (authorId: number) => {
+    return String.fromCharCode(65 + ((authorId || 0) % 26));
+  };
+
+  // Generate gradient color from authorId
+  const getAvatarGradient = (authorId: number) => {
+    const colors = [
+      "from-pink-400 to-rose-500",
+      "from-purple-400 to-pink-500",
+      "from-blue-400 to-purple-500",
+      "from-cyan-400 to-blue-500",
+      "from-orange-400 to-pink-500",
+      "from-rose-400 to-orange-500",
+    ];
+    return colors[(authorId || 0) % colors.length];
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
+      viewport={{ once: true, margin: "-100px" }}
       transition={{ delay: index * 0.06, type: "spring", stiffness: 200 }}
       className="glass-strong rounded-2xl border border-pink-100/50 overflow-hidden hover:shadow-lg hover:shadow-pink-100/20 transition-all"
     >
       <div className="p-5">
-        {/* Author Header */}
-        <div className="flex items-center gap-3 mb-4">
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-md"
-          >
-            <span className="text-sm font-black text-white">
-              {String.fromCharCode(65 + ((post.authorId || 0) % 26))}
-            </span>
-          </motion.div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-gray-800">Soapie #{post.authorId}</p>
-            <p className="text-xs text-gray-400">{timeAgo}</p>
+        {/* Header with Author & Badges */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3 flex-1">
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              className={`w-11 h-11 rounded-xl bg-gradient-to-br ${getAvatarGradient(post.authorId)} flex items-center justify-center shadow-md`}
+            >
+              <span className="text-sm font-black text-white">{getInitials(post.authorId)}</span>
+            </motion.div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-gray-800">User #{post.authorId}</p>
+              <p className="text-xs text-gray-400">{timeAgo}</p>
+            </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            className="p-1.5 rounded-lg hover:bg-pink-50 text-gray-300 cursor-pointer"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </motion.button>
+          {post.isPinned && (
+            <motion.div whileHover={{ scale: 1.1 }} className="p-1.5 rounded-lg bg-amber-50">
+              <Pin className="h-4 w-4 text-amber-500" />
+            </motion.div>
+          )}
         </div>
 
         {/* Content */}
@@ -169,6 +281,25 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
           </motion.div>
         )}
 
+        {/* Badges */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {post.isPinned && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100/50 rounded-full text-xs font-semibold text-amber-700 border border-amber-200/50">
+              <Pin className="h-3 w-3" /> Pinned
+            </span>
+          )}
+          {communityInfo && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100/50 rounded-full text-xs font-semibold text-purple-700 border border-purple-200/50">
+              {communityInfo.emoji} {communityInfo.name}
+            </span>
+          )}
+          {post.visibility === "public" && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100/50 rounded-full text-xs font-semibold text-blue-700 border border-blue-200/50">
+              <Globe className="h-3 w-3" /> Public
+            </span>
+          )}
+        </div>
+
         {/* Engagement Stats */}
         {(localLikes > 0 || (post.commentsCount || 0) > 0) && (
           <div className="flex items-center justify-between text-xs text-gray-400 mb-3 px-1">
@@ -177,11 +308,13 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
                 <span className="w-4 h-4 rounded-full bg-gradient-to-r from-pink-500 to-red-500 flex items-center justify-center">
                   <Heart className="h-2.5 w-2.5 text-white fill-white" />
                 </span>
-                {localLikes}
+                {localLikes} {localLikes === 1 ? "love" : "loves"}
               </span>
             )}
             {(post.commentsCount || 0) > 0 && (
-              <span>{post.commentsCount} comment{post.commentsCount > 1 ? "s" : ""}</span>
+              <span className="flex items-center gap-1">
+                <MessageCircle className="h-3 w-3" /> {post.commentsCount} {post.commentsCount === 1 ? "comment" : "comments"}
+              </span>
             )}
           </div>
         )}
@@ -215,6 +348,15 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
           >
             <MessageCircle className="h-5 w-5" />
             Comment
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.85 }}
+            onClick={handleShare}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:bg-blue-50/50 hover:text-blue-400 transition-all cursor-pointer"
+          >
+            <Share2 className="h-5 w-5" />
+            Share
           </motion.button>
         </div>
       </div>
@@ -250,6 +392,22 @@ function CommentsSection({ postId }: { postId: number }) {
     },
   });
 
+  const getInitials = (authorId: number) => {
+    return String.fromCharCode(65 + ((authorId || 0) % 26));
+  };
+
+  const getAvatarGradient = (authorId: number) => {
+    const colors = [
+      "from-pink-400 to-rose-500",
+      "from-purple-400 to-pink-500",
+      "from-blue-400 to-purple-500",
+      "from-cyan-400 to-blue-500",
+      "from-orange-400 to-pink-500",
+      "from-rose-400 to-orange-500",
+    ];
+    return colors[(authorId || 0) % colors.length];
+  };
+
   return (
     <div className="bg-pink-50/30 px-5 py-4 space-y-3 border-t border-pink-50">
       {isLoading ? (
@@ -265,14 +423,12 @@ function CommentsSection({ postId }: { postId: number }) {
             transition={{ delay: i * 0.03 }}
             className="flex gap-2.5"
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-200 to-purple-300 flex items-center justify-center shrink-0 shadow-sm">
-              <span className="text-[10px] font-black text-white">
-                {String.fromCharCode(65 + ((c.authorId || 0) % 26))}
-              </span>
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getAvatarGradient(c.authorId)} flex items-center justify-center shrink-0 shadow-sm`}>
+              <span className="text-[10px] font-black text-white">{getInitials(c.authorId)}</span>
             </div>
             <div className="glass-strong rounded-xl px-3.5 py-2.5 flex-1 border border-pink-100/30">
               <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-xs font-bold text-gray-700">Soapie #{c.authorId}</p>
+                <p className="text-xs font-bold text-gray-700">User #{c.authorId}</p>
                 <span className="text-[10px] text-gray-300">
                   {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
                 </span>
@@ -301,7 +457,7 @@ function CommentsSection({ postId }: { postId: number }) {
             size="sm"
             className="bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl shadow-md"
           >
-            {addComment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+            {addComment.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
           </Button>
         </motion.div>
       </div>
@@ -312,9 +468,14 @@ function CommentsSection({ postId }: { postId: number }) {
 // ─── MAIN WALL PAGE ────────────────────────────────────────────────────────
 export default function Wall() {
   const { user, isAuthenticated } = useAuth();
-  const { data: posts, isLoading } = trpc.wall.posts.useQuery({}, {
-    enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
-  });
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"latest" | "popular">("latest");
+
+  const { data: posts, isLoading } = trpc.wall.posts.useQuery(
+    { communityId: selectedFilter || undefined },
+    { enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false }
+  );
+
   const { data: myLikes } = trpc.wall.myLikes.useQuery(undefined, {
     enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
@@ -326,6 +487,14 @@ export default function Wall() {
       </PageWrapper>
     );
   }
+
+  // Sort posts
+  const sortedPosts = posts ? [...posts].sort((a, b) => {
+    if (sortBy === "popular") {
+      return (b.likesCount || 0) - (a.likesCount || 0);
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  }) : [];
 
   return (
     <PageWrapper>
@@ -343,10 +512,10 @@ export default function Wall() {
             </div>
             <div>
               <h1 className="font-display text-2xl font-black text-white">Community Wall</h1>
-              <p className="text-white/70 text-sm">Share, connect, and vibe with fellow Soapies</p>
+              <p className="text-white/70 text-sm">Share, connect, and vibe with the community</p>
             </div>
           </div>
-          <div className="relative z-10 flex gap-3 mt-4">
+          <div className="relative z-10 flex gap-3 mt-4 flex-wrap">
             <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/15 backdrop-blur-sm rounded-full text-white text-xs font-bold border border-white/20">
               <TrendingUp className="h-3 w-3" /> Trending
             </span>
@@ -359,6 +528,61 @@ export default function Wall() {
         {/* Post Composer */}
         <PostComposer user={user} />
 
+        {/* Filter Tabs */}
+        {isLoading ? null : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mb-6"
+          >
+            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedFilter(null)}
+                className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                  selectedFilter === null
+                    ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-200/30"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                All
+              </motion.button>
+              {COMMUNITIES.map(c => (
+                <motion.button
+                  key={c.id}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedFilter(c.id)}
+                  className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                    selectedFilter === c.id
+                      ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-200/30"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {c.emoji} {c.name}
+                </motion.button>
+              ))}
+            </div>
+
+            {/* Sort Options */}
+            <div className="flex items-center justify-between">
+              <div />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-semibold">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="px-3 py-1.5 rounded-lg border border-pink-200 bg-white text-xs outline-none focus:ring-2 focus:ring-pink-200/50 font-semibold"
+                >
+                  <option value="latest">Latest</option>
+                  <option value="popular">Popular</option>
+                </select>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Posts Feed */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -367,7 +591,7 @@ export default function Wall() {
             </motion.div>
             <p className="text-sm text-gray-400">Loading the feed...</p>
           </div>
-        ) : !posts || posts.length === 0 ? (
+        ) : !sortedPosts || sortedPosts.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -381,12 +605,14 @@ export default function Wall() {
               <Sparkles className="h-10 w-10 text-pink-400" />
             </motion.div>
             <h3 className="font-display text-xl font-bold text-gray-600 mb-2">No posts yet</h3>
-            <p className="text-gray-400 text-sm">Be the first to share something with the community!</p>
+            <p className="text-gray-400 text-sm">
+              {selectedFilter ? `Be the first to share in this community!` : `Be the first to share something with the community!`}
+            </p>
           </motion.div>
         ) : (
           <div className="space-y-4">
             <AnimatePresence>
-              {posts.map((post: any, i: number) => (
+              {sortedPosts.map((post: any, i: number) => (
                 <PostCard
                   key={post.id}
                   post={post}

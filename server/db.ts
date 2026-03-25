@@ -58,6 +58,23 @@ export async function getAllUsers() {
   return db.select().from(users).orderBy(desc(users.createdAt));
 }
 
+export async function suspendUser(userId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(users).set({ isSuspended: true }).where(eq(users.id, userId));
+}
+
+export async function unsuspendUser(userId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(users).set({ isSuspended: false }).where(eq(users.id, userId));
+}
+
+export async function deleteUser(userId: number) {
+  const db = await getDb(); if (!db) return;
+  // Delete related records
+  await db.delete(profiles).where(eq(profiles.userId, userId));
+  await db.delete(users).where(eq(users.id, userId));
+}
+
 // ─── PROFILE ─────────────────────────────────────────────────────────────────
 
 export async function getProfileByUserId(userId: number) {
