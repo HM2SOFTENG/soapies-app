@@ -1,5 +1,5 @@
 # ─── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@10.4.1 --activate
 
@@ -15,7 +15,7 @@ COPY . .
 RUN pnpm build
 
 # ─── Stage 2: Production ────────────────────────────────────────────────────
-FROM node:22-alpine AS production
+FROM public.ecr.aws/docker/library/node:22-alpine AS production
 
 RUN corepack enable && corepack prepare pnpm@10.4.1 --activate
 
