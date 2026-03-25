@@ -18,6 +18,7 @@ import AdminEventOps from "./pages/admin/AdminEventOps";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminReferrals from "./pages/admin/AdminReferrals";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
 import PendingApproval from "./pages/PendingApproval";
@@ -79,6 +80,7 @@ function Router() {
         <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/applications" component={AdminApplications} />
         <Route path="/admin/settings" component={AdminSettings} />
+        <Route path="/admin/referrals" component={AdminReferrals} />
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

@@ -372,6 +372,13 @@ export default function JoinFlow() {
   const [interests, setInterests] = useState<string[]>([]);
   const [lookingFor, setLookingFor] = useState<string[]>([]);
 
+  // Referral code
+  const [referralCode, setReferralCode] = useState("");
+  const [referralVerified, setReferralVerified] = useState(false);
+  const [referralVerifying, setReferralVerifying] = useState(false);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [referralError, setReferralError] = useState<string | null>(null);
+
   // Mutations
   const registerMutation = trpc.auth.register.useMutation();
   const verifyEmailMutation = trpc.auth.verifyEmail.useMutation();
@@ -380,6 +387,7 @@ export default function JoinFlow() {
   const uploadPhotoMutation = trpc.profile.uploadPhoto.useMutation();
   const deletePhotoMutation = trpc.profile.deletePhoto.useMutation();
   const submitApplicationMutation = trpc.profile.submitApplication.useMutation();
+  const trpcUtils = trpc.useUtils();
 
   // Resend timer effect
   useEffect(() => {
@@ -450,6 +458,28 @@ export default function JoinFlow() {
     }
   };
 
+  // Referral code verify
+  const handleVerifyReferralCode = async () => {
+    if (!referralCode.trim()) return;
+    setReferralVerifying(true);
+    setReferralError(null);
+    setReferralVerified(false);
+    setReferrerName(null);
+    try {
+      const result = await trpcUtils.referrals.validate.fetch({ code: referralCode.trim().toUpperCase() });
+      if (result.valid) {
+        setReferralVerified(true);
+        setReferrerName(result.referrerName ?? null);
+      } else {
+        setReferralError("Invalid or inactive referral code");
+      }
+    } catch {
+      setReferralError("Failed to verify code. Please try again.");
+    } finally {
+      setReferralVerifying(false);
+    }
+  };
+
   // Step 4: About You
   const handleAboutYouNext = async () => {
     if (!displayName || !gender || !dateOfBirth || !bio || !userLocation || !communityId) {
@@ -467,6 +497,7 @@ export default function JoinFlow() {
         location: userLocation,
         communityId,
         phone: phone || undefined,
+        referredByCode: referralVerified && referralCode ? referralCode.trim().toUpperCase() : undefined,
       });
       setCurrentStep(5);
     } catch (error: any) {
@@ -1220,6 +1251,48 @@ export default function JoinFlow() {
                     className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg pl-10"
                   />
                 </div>
+              </FieldContainer>
+
+              {/* Referral Code */}
+              <FieldContainer delay={0.6}>
+                <Label className="text-gray-700 mb-2 block font-semibold">Referral Code (Optional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={referralCode}
+                    onChange={(e) => {
+                      setReferralCode(e.target.value.toUpperCase().slice(0, 32));
+                      setReferralVerified(false);
+                      setReferrerName(null);
+                      setReferralError(null);
+                    }}
+                    placeholder="Enter referral code"
+                    maxLength={32}
+                    className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyReferralCode}
+                    disabled={!referralCode.trim() || referralVerifying}
+                    className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold rounded-lg disabled:opacity-50 transition-all whitespace-nowrap"
+                  >
+                    {referralVerifying ? <Loader2 size={16} className="animate-spin" /> : "Verify"}
+                  </button>
+                </div>
+                {referralVerified && referrerName && (
+                  <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
+                    <Check size={16} /> Referred by <span className="font-semibold">{referrerName}</span>
+                  </p>
+                )}
+                {referralVerified && !referrerName && (
+                  <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
+                    <Check size={16} /> Valid referral code applied
+                  </p>
+                )}
+                {referralError && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <X size={16} /> {referralError}
+                  </p>
+                )}
               </FieldContainer>
 
               {/* Navigation */}
