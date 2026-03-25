@@ -9,7 +9,7 @@ import {
   Star, Minus, Plus, ShoppingCart, Sparkles, Heart, Shield,
   ChevronDown, PartyPopper, Music, Waves, X, Check, Copy, Share2,
   AlertCircle, CreditCard, DollarSign, AlertTriangle, BadgeCheck,
-  ChevronRight,
+  ChevronRight, Search, FlaskConical,
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { format, isFuture, isPast, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from "date-fns";
@@ -255,12 +255,20 @@ function ConfettiEffect() {
 }
 
 // ─── RESERVATION FLOW ───────────────────────────────────────────────────────
-type ReservationStep = "ticket" | "payment" | "confirm";
+type ReservationStep = "ticket" | "orientation" | "partner" | "testresult" | "payment" | "confirm";
 type PaymentMethod = "venmo" | "credits" | "volunteer";
 
 interface ReservationFlowProps {
   event: any;
-  onSuccess: (data: { ticketType: string; paymentMethod: string; totalAmount: string }) => void;
+  onSuccess: (data: {
+    ticketType: string;
+    paymentMethod: string;
+    totalAmount: string;
+    orientationSignal?: "straight" | "queer";
+    isQueerPlay?: boolean;
+    partnerUserId?: number;
+    testResultUrl?: string;
+  }) => void;
   isSubmitting: boolean;
 }
 
@@ -269,13 +277,22 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [volunteerAgreed, setVolunteerAgreed] = useState(false);
+  const [orientationSignal, setOrientationSignal] = useState<"straight" | "queer" | null>(null);
+  const [partnerSearch, setPartnerSearch] = useState("");
+  const [selectedPartner, setSelectedPartner] = useState<any | null>(null);
+  const [testResultUrl, setTestResultUrl] = useState("");
 
   const { data: settings } = trpc.settings.get.useQuery();
   const { isAuthenticated } = useAuth();
+  const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
   const { data: creditBalance } = trpc.credits.balance.useQuery(undefined, {
     enabled: isAuthenticated,
     retry: false,
   });
+  const { data: partnerResults } = trpc.profile.search.useQuery(
+    { query: partnerSearch },
+    { enabled: partnerSearch.length >= 2 }
+  );
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
 
@@ -302,7 +319,15 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
     setSelectedTicket(ticketId);
     setSelectedPayment(null);
     setVolunteerAgreed(false);
-    setStep("payment");
+    setOrientationSignal(null);
+    setSelectedPartner(null);
+    setTestResultUrl("");
+    // Volunteer skips orientation step
+    if (ticketId === "volunteer") {
+      setStep("payment");
+    } else {
+      setStep("orientation");
+    }
   }
 
   function handleSelectPayment(method: PaymentMethod) {
@@ -321,6 +346,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
       ticketType: selectedTicket,
       paymentMethod: selectedPayment,
       totalAmount,
+      orientationSignal: orientationSignal ?? undefined,
+      isQueerPlay: orientationSignal === "queer",
+      partnerUserId: selectedPartner?.userId ?? undefined,
+      testResultUrl: testResultUrl || undefined,
     });
   }
 
@@ -386,7 +415,225 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
     );
   }
 
-  // Step 2: Payment method
+  // Step 2: Orientation / Play Style selection
+  if (step === "orientation") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
+      >
+        <button
+          onClick={() => { setStep("ticket"); setSelectedTicket(null); }}
+          className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to ticket selection
+        </button>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <Heart className="h-6 w-6 text-pink-500" /> Play Style
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">Let us know your play orientation. This helps us assign your wristband color.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Straight */}
+          <motion.button
+            whileHover={{ scale: 1.02, y: -3 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => {
+              setOrientationSignal("straight");
+              setStep(selectedTicket === "couple" ? "partner" : "testresult");
+            }}
+            className={`relative p-6 rounded-2xl border-2 text-left transition-all w-full ${
+              orientationSignal === "straight"
+                ? "border-purple-400 bg-purple-50 shadow-md"
+                : "border-gray-100 bg-white hover:border-purple-200"
+            }`}
+          >
+            <div className="text-4xl mb-3">💜</div>
+            <h3 className="font-bold text-lg text-gray-800">Straight</h3>
+            <p className="text-sm text-gray-500 mt-1">Standard wristband</p>
+          </motion.button>
+
+          {/* Queer/Open */}
+          <motion.button
+            whileHover={{ scale: 1.02, y: -3 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => {
+              setOrientationSignal("queer");
+              setStep(selectedTicket === "couple" ? "partner" : "testresult");
+            }}
+            className={`relative p-6 rounded-2xl border-2 text-left transition-all w-full ${
+              orientationSignal === "queer"
+                ? "border-purple-400 bg-purple-50 shadow-md"
+                : "border-gray-100 bg-white hover:border-purple-200"
+            }`}
+          >
+            <div className="text-4xl mb-3">🌈</div>
+            <h3 className="font-bold text-lg text-gray-800">Queer / Open</h3>
+            <p className="text-sm text-gray-500 mt-1">Rainbow wristband 🌈</p>
+          </motion.button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 3: Partner search (couples only)
+  if (step === "partner") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
+      >
+        <button
+          onClick={() => { setStep("orientation"); setSelectedPartner(null); }}
+          className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <Users className="h-6 w-6 text-pink-500" /> Find Your Partner
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">Search for your partner by display name. Partner must be opposite gender.</p>
+
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            value={partnerSearch}
+            onChange={(e) => setPartnerSearch(e.target.value)}
+            placeholder="Search by display name..."
+            className="pl-12 rounded-xl border-pink-100"
+          />
+        </div>
+
+        {/* Results */}
+        {partnerResults && partnerResults.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {partnerResults.map((p: any) => (
+              <motion.button
+                key={p.id}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedPartner(p)}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                  selectedPartner?.id === p.id
+                    ? "border-pink-400 bg-pink-50"
+                    : "border-gray-100 bg-white hover:border-pink-200"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {p.avatarUrl ? (
+                    <img src={p.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{p.displayName?.[0] || "?"}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-gray-800">{p.displayName}</p>
+                    <p className="text-xs text-gray-500 capitalize">{p.gender || "No gender listed"}</p>
+                  </div>
+                  {selectedPartner?.id === p.id && (
+                    <Check className="h-5 w-5 text-pink-500 ml-auto" />
+                  )}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
+
+        {partnerSearch.length >= 2 && (!partnerResults || partnerResults.length === 0) && (
+          <p className="text-sm text-gray-500 text-center py-4">No members found</p>
+        )}
+
+        <div className="flex gap-3 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setStep("testresult")}
+            className="flex-1 rounded-xl border-gray-200 text-gray-600"
+          >
+            Skip
+          </Button>
+          <Button
+            onClick={() => setStep("testresult")}
+            disabled={!selectedPartner}
+            className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl"
+          >
+            Continue
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 4: Test result URL (optional)
+  if (step === "testresult") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
+      >
+        <button
+          onClick={() => setStep(selectedTicket === "couple" ? "partner" : "orientation")}
+          className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <FlaskConical className="h-6 w-6 text-blue-500" /> Upload Test Result
+          <span className="text-sm font-normal text-gray-400 ml-1">(Optional)</span>
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">
+          Submit recent STI test results for a <span className="font-bold text-blue-600">Blue Wristband 💙</span>. Results must be within 30 days of the event.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Test Result URL</label>
+            <Input
+              value={testResultUrl}
+              onChange={(e) => setTestResultUrl(e.target.value)}
+              placeholder="https://drive.google.com/... or similar"
+              className="rounded-xl border-blue-100 focus:border-blue-300"
+            />
+            <p className="text-xs text-gray-400 mt-2">Upload your test results to Google Drive, Dropbox, or similar and paste the link here.</p>
+          </div>
+
+          {testResultUrl && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 rounded-xl bg-blue-50 border border-blue-200"
+            >
+              <p className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+                <Check className="h-4 w-4" /> Test result URL added
+              </p>
+              <p className="text-xs text-blue-600 mt-1">Our team will review your submission and approve your Blue Wristband 💙</p>
+            </motion.div>
+          )}
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setStep("payment")}
+            className="flex-1 rounded-xl border-gray-200 text-gray-600"
+          >
+            Skip
+          </Button>
+          <Button
+            onClick={() => setStep("payment")}
+            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl"
+          >
+            {testResultUrl ? "Continue with Test Result" : "Continue"}
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 5: Payment method
   if (step === "payment") {
     const ticket = TICKET_TYPES.find(t => t.id === selectedTicket)!;
 
@@ -398,10 +645,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
       >
         {/* Back button */}
         <button
-          onClick={() => { setStep("ticket"); setSelectedTicket(null); }}
+          onClick={() => { isVolunteerTicket ? setStep("ticket") : setStep("testresult"); }}
           className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to ticket selection
+          <ArrowLeft className="h-4 w-4" /> {isVolunteerTicket ? "Back to ticket selection" : "Back"}
         </button>
 
         {/* Summary */}
@@ -734,7 +981,15 @@ function TicketSection({ event }: { event: any }) {
     onError: (e: any) => toast.error(e.message || "Failed to create reservation"),
   });
 
-  function handleReserve(data: { ticketType: string; paymentMethod: string; totalAmount: string }) {
+  function handleReserve(data: {
+    ticketType: string;
+    paymentMethod: string;
+    totalAmount: string;
+    orientationSignal?: "straight" | "queer";
+    isQueerPlay?: boolean;
+    partnerUserId?: number;
+    testResultUrl?: string;
+  }) {
     if (!isAuthenticated) {
       window.location.href = getLoginUrl();
       return;
@@ -750,6 +1005,10 @@ function TicketSection({ event }: { event: any }) {
       totalAmount: data.totalAmount,
       paymentMethod: data.paymentMethod as any,
       paymentStatus,
+      orientationSignal: data.orientationSignal,
+      isQueerPlay: data.isQueerPlay,
+      partnerUserId: data.partnerUserId,
+      testResultUrl: data.testResultUrl,
     });
   }
 
