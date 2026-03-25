@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Loader2, Search, Shield, User, Mail, Clock, MoreHorizontal,
   ChevronRight, Eye, Lock, Unlock, Trash2, FileText, Image as ImageIcon,
-  AlertTriangle, X, Check, Download, Plus,
+  AlertTriangle, X, Check, Download, Plus, Edit2, Sparkles,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
@@ -31,6 +31,8 @@ export default function AdminUsers() {
   const [actionType, setActionType] = useState<"suspend" | "unsuspend" | "delete" | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [editingRoleUserId, setEditingRoleUserId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -105,13 +107,48 @@ export default function AdminUsers() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Filtered users
+  const updateRoleMut = trpc.admin.updateUserRole.useMutation({
+    onSuccess: () => {
+      toast.success("Role updated", { icon: "✓" });
+      utils.admin.users.invalidate();
+      setEditingRoleUserId(null);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDeleteMut = trpc.admin.bulkDeleteUsers.useMutation({
+    onSuccess: () => {
+      toast.success(`${selectedIds.size} users deleted`, { icon: "✓" });
+      utils.admin.users.invalidate();
+      setSelectedIds(new Set());
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedUsers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedUsers.map((u: any) => u.id)));
+    }
+  };
+
+  // Filtered users — filter by memberRole (member/angel/admin), not users.role
   const filtered = useMemo(() => {
     if (!users) return [];
     return users.filter((u: any) => {
       const q = search.toLowerCase();
       const matchSearch = !search || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
-      const matchRole = roleFilter === "all" || u.role === roleFilter;
+      const memberRole = u.profile?.memberRole ?? "member";
+      const matchRole = roleFilter === "all" || memberRole === roleFilter;
       return matchSearch && matchRole;
     });
   }, [users, search, roleFilter]);
@@ -122,8 +159,9 @@ export default function AdminUsers() {
   }, [filtered, currentPage]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const adminCount = users?.filter((u: any) => u.role === "admin").length || 0;
-  const userCount = users?.filter((u: any) => u.role === "user").length || 0;
+  const adminCount = users?.filter((u: any) => u.profile?.memberRole === "admin").length || 0;
+  const angelCount = users?.filter((u: any) => u.profile?.memberRole === "angel").length || 0;
+  const memberCount = users?.filter((u: any) => u.profile?.memberRole === "member").length || 0;
 
   const handleAction = () => {
     if (!selectedUser || !actionType) return;
@@ -150,11 +188,12 @@ export default function AdminUsers() {
         {/* USERS TAB */}
         <TabsContent value="users" className="space-y-6">
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {[
               { label: "Total", value: users?.length || 0, gradient: "from-pink-400 to-rose-500" },
-              { label: "Members", value: userCount, gradient: "from-purple-400 to-indigo-500" },
-              { label: "Admins", value: adminCount, gradient: "from-fuchsia-400 to-pink-500" },
+              { label: "Members", value: memberCount, gradient: "from-purple-400 to-indigo-500" },
+              { label: "Angels", value: angelCount, gradient: "from-fuchsia-400 to-pink-500" },
+              { label: "Admins", value: adminCount, gradient: "from-violet-400 to-purple-500" },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}
@@ -180,23 +219,52 @@ export default function AdminUsers() {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-100 bg-white/70 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 placeholder:text-gray-300"
               />
             </div>
-            <div className="flex gap-1.5">
-              {["all", "user", "admin"].map(role => (
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+              {[
+                { key: "all", label: "All" },
+                { key: "member", label: "Members" },
+                { key: "angel", label: "Angels" },
+                { key: "admin", label: "Admins" },
+              ].map(({ key, label }) => (
                 <motion.button
-                  key={role}
+                  key={key}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => { setRoleFilter(role); setCurrentPage(1); }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    roleFilter === role
+                  onClick={() => { setRoleFilter(key); setCurrentPage(1); }}
+                  className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    roleFilter === key
                       ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md"
                       : "bg-white/70 text-gray-500 border border-pink-100"
                   }`}
                 >
-                  {role === "all" ? "All" : role.charAt(0).toUpperCase() + role.slice(1) + "s"}
+                  {label}
                 </motion.button>
               ))}
             </div>
+
+            {/* Bulk actions */}
+            {selectedIds.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-2"
+              >
+                <span className="text-xs text-gray-500 font-medium">{selectedIds.size} selected</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => bulkDeleteMut.mutate({ userIds: Array.from(selectedIds) })}
+                  disabled={bulkDeleteMut.isPending}
+                  className="rounded-xl border-red-200 text-red-500 hover:bg-red-50 text-xs gap-1"
+                >
+                  <Trash2 className="h-3 w-3" /> Delete Selected
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} className="rounded-xl text-xs">
+                  <X className="h-3 w-3" />
+                </Button>
+              </motion.div>
+            )}
+          
           </div>
 
           {/* Users Table/Cards */}
@@ -217,6 +285,13 @@ export default function AdminUsers() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-pink-100/50 bg-pink-50/30">
+                      <th className="px-4 py-3.5">
+                        <input type="checkbox"
+                          checked={selectedIds.size === paginatedUsers.length && paginatedUsers.length > 0}
+                          onChange={toggleSelectAll}
+                          className="rounded border-pink-200 text-pink-500 cursor-pointer"
+                        />
+                      </th>
                       <th className="text-left px-5 py-3.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">User</th>
                       <th className="text-left px-5 py-3.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email</th>
                       <th className="text-left px-5 py-3.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phone</th>
@@ -227,59 +302,87 @@ export default function AdminUsers() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedUsers.map((u: any, i: number) => (
-                      <motion.tr
-                        key={u.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.02 }}
-                        className={`border-b border-pink-50/50 hover:bg-pink-50/30 transition-colors group ${u.isSuspended ? "opacity-50" : ""}`}
-                      >
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <motion.div
-                              whileHover={{ scale: 1.1 }}
-                              className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-md"
-                            >
-                              <span className="text-xs font-black text-white">{u.name?.charAt(0)?.toUpperCase() || "?"}</span>
-                            </motion.div>
-                            <div>
-                              <span className="text-sm font-bold text-gray-800">{u.name || "Anonymous"}</span>
-                              {u.isSuspended && <span className="block text-[10px] text-red-500 font-bold">SUSPENDED</span>}
+                    {paginatedUsers.map((u: any, i: number) => {
+                      const memberRole = u.profile?.memberRole ?? "member";
+                      const roleColors: Record<string, string> = {
+                        admin: "bg-purple-50 text-purple-600 border-purple-100",
+                        angel: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
+                        member: "bg-pink-50 text-pink-600 border-pink-100",
+                      };
+                      return (
+                        <motion.tr
+                          key={u.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: i * 0.02 }}
+                          className={`border-b border-pink-50/50 hover:bg-pink-50/30 transition-colors group ${u.isSuspended ? "opacity-50" : ""} ${selectedIds.has(u.id) ? "bg-pink-50/40" : ""}`}
+                        >
+                          <td className="px-4 py-4">
+                            <input type="checkbox" checked={selectedIds.has(u.id)} onChange={() => toggleSelect(u.id)}
+                              className="rounded border-pink-200 text-pink-500 cursor-pointer" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-md">
+                                <span className="text-xs font-black text-white">{u.name?.charAt(0)?.toUpperCase() || "?"}</span>
+                              </div>
+                              <div>
+                                <span className="text-sm font-bold text-gray-800">{u.name || "Anonymous"}</span>
+                                {u.isSuspended && <span className="block text-[10px] text-red-500 font-bold">SUSPENDED</span>}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 text-sm text-gray-500">{u.email || "—"}</td>
-                        <td className="px-5 py-4 text-sm text-gray-500">{u.phone || "—"}</td>
-                        <td className="px-5 py-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                            u.role === "admin"
-                              ? "bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-600 border border-purple-100"
-                              : "bg-pink-50 text-pink-600 border border-pink-100"
-                          }`}>
-                            {u.role === "admin" ? <Shield className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-xs">
-                          {u.emailVerified ? (
-                            <span className="text-emerald-600 font-bold">Verified</span>
-                          ) : (
-                            <span className="text-amber-600 font-bold">Unverified</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-xs text-gray-400">{format(new Date(u.createdAt), "MMM d, yyyy")}</td>
-                        <td className="px-5 py-4">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            onClick={() => setSelectedUser(u.id)}
-                            className="p-1.5 rounded-lg hover:bg-pink-50 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </motion.button>
-                        </td>
-                      </motion.tr>
-                    ))}
+                          </td>
+                          <td className="px-5 py-4 text-sm text-gray-500">{u.email || "—"}</td>
+                          <td className="px-5 py-4 text-sm text-gray-500">{u.profile?.phone || u.phone || "—"}</td>
+                          <td className="px-5 py-4">
+                            {editingRoleUserId === u.id ? (
+                              <div className="flex items-center gap-1">
+                                <select
+                                  defaultValue={memberRole}
+                                  autoFocus
+                                  onChange={e => updateRoleMut.mutate({ userId: u.id, memberRole: e.target.value as any })}
+                                  className="text-xs border border-pink-200 rounded-lg px-2 py-1 outline-none focus:border-pink-400 bg-white"
+                                >
+                                  <option value="member">Member</option>
+                                  <option value="angel">Angel</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                                <button onClick={() => setEditingRoleUserId(null)} className="text-gray-400 hover:text-gray-600">
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setEditingRoleUserId(u.id)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border hover:opacity-80 transition-opacity cursor-pointer ${roleColors[memberRole] ?? roleColors.member}`}
+                                title="Click to change role"
+                              >
+                                {memberRole === "admin" ? <Shield className="h-3 w-3" /> : memberRole === "angel" ? <Sparkles className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                                {memberRole.charAt(0).toUpperCase() + memberRole.slice(1)}
+                                <Edit2 className="h-2.5 w-2.5 ml-0.5 opacity-50" />
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-5 py-4 text-xs">
+                            {u.emailVerified ? (
+                              <span className="text-emerald-600 font-bold">Verified</span>
+                            ) : (
+                              <span className="text-amber-600 font-bold">Unverified</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-4 text-xs text-gray-400">{format(new Date(u.createdAt), "MMM d, yyyy")}</td>
+                          <td className="px-5 py-4">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              onClick={() => setSelectedUser(u.id)}
+                              className="p-1.5 rounded-lg hover:bg-pink-50 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </motion.button>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

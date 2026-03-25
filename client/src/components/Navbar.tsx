@@ -29,6 +29,38 @@ function getNotificationIcon(type: string) {
   }
 }
 
+/** Map a notification to a deep-link path based on type and data */
+function getNotificationLink(n: any): string | null {
+  const data = n.data ?? {};
+  // Explicit link in data takes priority
+  if (data.link) return data.link;
+  switch (n.type) {
+    case "application_approved":
+    case "application_rejected":
+    case "application_waitlisted":
+      return "/pending";
+    case "new_application":
+      return "/admin/applications";
+    case "interview_scheduled":
+      return "/schedule-interview";
+    case "message":
+    case "new_message":
+      return data.conversationId ? `/messages?c=${data.conversationId}` : "/messages";
+    case "wall_post_like":
+    case "wall_post_comment":
+      return data.postId ? `/wall?post=${data.postId}` : "/wall";
+    case "photo_like":
+    case "photo_comment":
+      return "/profile";
+    case "event_reminder":
+      return data.eventId ? `/events/${data.eventId}` : "/events";
+    case "system":
+      return data.link ?? null;
+    default:
+      return null;
+  }
+}
+
 function timeAgo(date: Date | string): string {
   const now = new Date();
   const d = new Date(date);
@@ -248,6 +280,9 @@ export default function Navbar() {
                                 transition={{ delay: i * 0.03 }}
                                 onClick={() => {
                                   if (!n.isRead) markRead.mutate({ id: n.id });
+                                  setNotifOpen(false);
+                                  const link = getNotificationLink(n);
+                                  if (link) setLocation(link);
                                 }}
                                 className={`flex gap-3 px-5 py-3.5 cursor-pointer transition-all hover:bg-pink-50/50 border-b border-gray-50 last:border-0 ${
                                   !n.isRead ? "bg-gradient-to-r from-pink-50/50 to-transparent" : ""

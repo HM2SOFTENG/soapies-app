@@ -1251,6 +1251,19 @@ export const appRouter = router({
       await db.createAuditLog({ adminId: ctx.user.id, action: "user_deleted", targetType: "user", targetId: input.userId });
       return { success: true };
     }),
+    updateUserRole: adminProcedure.input(z.object({
+      userId: z.number(),
+      memberRole: z.enum(["member", "angel", "admin"]),
+    })).mutation(async ({ ctx, input }) => {
+      await db.updateUserMemberRole(input.userId, input.memberRole);
+      await db.createAuditLog({ adminId: ctx.user.id, action: `role_changed_to_${input.memberRole}`, targetType: "user", targetId: input.userId });
+      return { success: true };
+    }),
+    bulkDeleteUsers: adminProcedure.input(z.object({ userIds: z.array(z.number()) })).mutation(async ({ ctx, input }) => {
+      await db.bulkDeleteUsers(input.userIds);
+      await db.createAuditLog({ adminId: ctx.user.id, action: "bulk_users_deleted", targetType: "user", targetId: input.userIds[0] ?? 0 });
+      return { success: true };
+    }),
   }),
 });
 

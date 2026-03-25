@@ -55,7 +55,14 @@ export async function getUserByOpenId(openId: string) {
 
 export async function getAllUsers() {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(users).orderBy(desc(users.createdAt));
+  // Only return users with an approved profile — applicants in-progress are managed via AdminApplications
+  return db
+    .select({ user: users, profile: profiles })
+    .from(users)
+    .innerJoin(profiles, eq(profiles.userId, users.id))
+    .where(eq(profiles.applicationStatus, "approved"))
+    .orderBy(desc(users.createdAt))
+    .then(rows => rows.map(r => ({ ...r.user, profile: r.profile })));
 }
 
 export async function suspendUser(userId: number) {
@@ -73,6 +80,23 @@ export async function deleteUser(userId: number) {
   // Delete related records
   await db.delete(profiles).where(eq(profiles.userId, userId));
   await db.delete(users).where(eq(users.id, userId));
+}
+
+export async function updateUserMemberRole(userId: number, memberRole: "member" | "angel" | "admin") {
+  const db = await getDb(); if (!db) return;
+  // Update profile memberRole
+  await db.update(profiles).set({ memberRole }).where(eq(profiles.userId, userId));
+  // Also sync users.role for admin access
+  const role = memberRole === "admin" ? "admin" : "user";
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+export async function bulkDeleteUsers(userIds: number[]) {
+  const db = await getDb(); if (!db) return;
+  for (const id of userIds) {
+    await db.delete(profiles).where(eq(profiles.userId, id));
+    await db.delete(users).where(eq(users.id, id));
+  }
 }
 
 // ─── PROFILE ─────────────────────────────────────────────────────────────────
