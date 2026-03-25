@@ -40,9 +40,13 @@ function timeAgo(date: Date | string): string {
   return d.toLocaleDateString();
 }
 
+/** Pages where background protected queries should NOT fire (user is mid-auth flow) */
+const AUTH_PAGES = ["/join", "/register", "/verify-email", "/login", "/forgot-password", "/pending"];
+
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const isAuthPage = AUTH_PAGES.some(p => location.startsWith(p));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -50,13 +54,13 @@ export default function Navbar() {
   const utils = trpc.useUtils();
 
   const { data: notifList } = trpc.notifications.list.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !isAuthPage,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
   const { data: unreadCount = 0 } = trpc.notifications.unreadCount.useQuery(undefined, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !isAuthPage,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });

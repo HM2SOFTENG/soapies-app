@@ -205,3 +205,51 @@ export async function updateLastSignedIn(userId: number) {
   if (!db) return;
   await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
 }
+
+// ─── ADMIN SEED ────────────────────────────────────────────────────────────
+/**
+ * Creates a default admin account on first startup if ADMIN_PASSWORD is set
+ * and the account doesn't already exist. Safe to call multiple times.
+ */
+export async function seedAdminAccount(): Promise<void> {
+  const adminEmail = ENV.adminEmail;
+  const adminPassword = ENV.adminPassword;
+
+  if (!adminPassword) {
+    console.log("[Seed] ADMIN_PASSWORD not set, skipping admin seed.");
+    return;
+  }
+
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Seed] Database not available, skipping admin seed.");
+    return;
+  }
+
+  const existing = await getUserByEmail(adminEmail);
+  if (existing) {
+    // Ensure existing account has admin role
+    if (existing.role !== "admin") {
+      await db.update(users).set({ role: "admin" }).where(eq(users.id, existing.id));
+      console.log(`[Seed] Promoted ${adminEmail} to admin role.`);
+    } else {
+      console.log(`[Seed] Admin account ${adminEmail} already exists.`);
+    }
+    return;
+  }
+
+  // Create the admin account
+  const passwordHash = await hashPassword(adminPassword);
+  const openId = `admin_${nanoid(24)}`;
+  await db.insert(users).values({
+    openId,
+    email: adminEmail,
+    name: "Admin",
+    passwordHash,
+    loginMethod: "email",
+    emailVerified: true,
+    role: "admin",
+    lastSignedIn: new Date(),
+  });
+  console.log(`[Seed] Admin account created: ${adminEmail}`);
+}

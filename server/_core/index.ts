@@ -33,6 +33,13 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Seed default admin account if ADMIN_PASSWORD is configured
+  try {
+    const { seedAdminAccount } = await import("../auth");
+    await seedAdminAccount();
+  } catch (err) {
+    console.warn("[Startup] Admin seed skipped:", err);
+  }
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // Photo upload API
