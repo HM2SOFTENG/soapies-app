@@ -51,6 +51,19 @@ async function startServer() {
   } catch (err) {
     console.warn("[Startup] Channel seed skipped:", err);
   }
+
+  // Seed default app settings
+  try {
+    const db = await import("../db");
+    const settings = await db.getAppSettings();
+    const keys = settings.map((s: any) => s.key);
+    if (!keys.includes("venmo_handle")) {
+      await db.upsertAppSetting("venmo_handle", "@SoapiesEvents");
+      console.log("[Startup] Seeded default app setting: venmo_handle");
+    }
+  } catch (err) {
+    console.warn("[Startup] App settings seed skipped:", err);
+  }
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // Photo upload API

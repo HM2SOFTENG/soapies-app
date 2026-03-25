@@ -319,6 +319,18 @@ export async function updateReservation(id: number, data: any) {
   await db.update(reservations).set(data).where(eq(reservations.id, id));
 }
 
+export async function getPendingVenmoReservations() {
+  const db = await getDb(); if (!db) return [];
+  return db
+    .select({ reservation: reservations, user: users, event: events })
+    .from(reservations)
+    .innerJoin(users, eq(reservations.userId, users.id))
+    .innerJoin(events, eq(reservations.eventId, events.id))
+    .where(and(eq(reservations.paymentMethod, "venmo"), eq(reservations.paymentStatus, "pending")))
+    .orderBy(desc(reservations.createdAt))
+    .then(rows => rows.map(r => ({ ...r.reservation, user: r.user, event: r.event })));
+}
+
 // ─── WALL POSTS ──────────────────────────────────────────────────────────────
 
 export async function getWallPosts(communityId?: string, limit = 50) {

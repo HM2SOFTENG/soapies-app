@@ -7,13 +7,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, MapPin, Users, Clock, ArrowLeft, Loader2, Ticket,
   Star, Minus, Plus, ShoppingCart, Sparkles, Heart, Shield,
-  ChevronDown, PartyPopper, Music, Waves, X, Check, Copy, Share2, AlertCircle
+  ChevronDown, PartyPopper, Music, Waves, X, Check, Copy, Share2,
+  AlertCircle, CreditCard, DollarSign, AlertTriangle, BadgeCheck,
+  ChevronRight,
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { format, isFuture, isPast, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from "date-fns";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
 // ─── TICKET TYPES ───────────────────────────────────────────────────────────
 const TICKET_TYPES = [
@@ -46,6 +48,17 @@ const TICKET_TYPES = [
     borderColor: "border-blue-200",
     textColor: "text-blue-600",
     description: "Individual entry for men",
+  },
+  {
+    id: "volunteer",
+    label: "Staff Volunteer",
+    emoji: "⭐",
+    color: "from-amber-400 to-orange-500",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-300",
+    textColor: "text-amber-700",
+    description: "Help run the event. Volunteer duties required — funds may be withheld if duties not fulfilled.",
+    isVolunteer: true,
   },
 ];
 
@@ -204,293 +217,580 @@ function EventHero({ event }: { event: any }) {
   );
 }
 
-// ─── TICKET SELECTION ───────────────────────────────────────────────────────
-function TicketSelection({ event, onReserve }: { event: any; onReserve: (data: any) => void }) {
+// ─── CONFETTI ANIMATION ────────────────────────────────────────────────────
+function ConfettiPiece({ delay, color }: { delay: number; color: string }) {
+  const randomX = useMemo(() => Math.random() * 100, []);
+  return (
+    <motion.div
+      className={`absolute w-3 h-3 rounded-sm ${color}`}
+      style={{ left: `${randomX}%`, top: "-10px" }}
+      initial={{ y: -10, rotate: 0, opacity: 1 }}
+      animate={{
+        y: "110vh",
+        rotate: Math.random() * 720 - 360,
+        opacity: [1, 1, 0],
+        x: [0, (Math.random() - 0.5) * 200],
+      }}
+      transition={{ duration: 3 + Math.random() * 2, delay, ease: "easeIn" }}
+    />
+  );
+}
+
+function ConfettiEffect() {
+  const colors = [
+    "bg-pink-400", "bg-purple-400", "bg-yellow-400",
+    "bg-blue-400", "bg-green-400", "bg-rose-400",
+  ];
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+      {Array.from({ length: 30 }, (_, i) => (
+        <ConfettiPiece
+          key={i}
+          delay={i * 0.1}
+          color={colors[i % colors.length]}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── RESERVATION FLOW ───────────────────────────────────────────────────────
+type ReservationStep = "ticket" | "payment" | "confirm";
+type PaymentMethod = "venmo" | "credits" | "volunteer";
+
+interface ReservationFlowProps {
+  event: any;
+  onSuccess: (data: { ticketType: string; paymentMethod: string; totalAmount: string }) => void;
+  isSubmitting: boolean;
+}
+
+function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProps) {
+  const [step, setStep] = useState<ReservationStep>("ticket");
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [promoCode, setPromoCode] = useState("");
-  const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
-  const [showAddons, setShowAddons] = useState(false);
-  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [volunteerAgreed, setVolunteerAgreed] = useState(false);
 
-  const { data: addons } = trpc.eventAddons.list.useQuery({ eventId: event.id });
-  const utils = trpc.useUtils();
+  const { data: settings } = trpc.settings.get.useQuery();
+  const { isAuthenticated } = useAuth();
+  const { data: creditBalance } = trpc.credits.balance.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
+  });
 
-  const ticketPrice = useMemo(() => {
-    if (!selectedTicket) return 0;
-    if (selectedTicket === "single_female") return parseFloat(event.priceSingleFemale || "0");
-    if (selectedTicket === "single_male") return parseFloat(event.priceSingleMale || "0");
-    if (selectedTicket === "couple") return parseFloat(event.priceCouple || "0");
+  const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
+
+  const getTicketPrice = useCallback((ticketId: string) => {
+    if (ticketId === "single_female") return parseFloat(event.priceSingleFemale || "0");
+    if (ticketId === "single_male") return parseFloat(event.priceSingleMale || "0");
+    if (ticketId === "couple") return parseFloat(event.priceCouple || "0");
+    if (ticketId === "volunteer") return 0;
     return 0;
-  }, [selectedTicket, event]);
+  }, [event]);
 
-  const addonPrice = useMemo(() => {
-    return selectedAddons.reduce((sum, addonId) => {
-      const addon = addons?.find((a: any) => a.id === addonId);
-      return sum + (addon ? parseFloat(addon.price || "0") : 0);
-    }, 0);
-  }, [selectedAddons, addons]);
+  const ticketPrice = selectedTicket ? getTicketPrice(selectedTicket) : 0;
+  // For volunteer, base price is what would have been charged (for display)
+  const baseTicketPrice = useMemo(() => {
+    // Show what the "equivalent" ticket would cost (use single_female as base for volunteer)
+    return parseFloat(event.priceSingleFemale || "0");
+  }, [event]);
 
-  const subtotal = (ticketPrice + addonPrice) * quantity;
-  const discount = appliedPromo ? calculateDiscount(subtotal, appliedPromo) : 0;
-  const total = subtotal - discount;
+  const creditBalanceNum = typeof creditBalance === "number" ? creditBalance : 0;
+  const canPayWithCredits = creditBalanceNum >= ticketPrice;
+  const isVolunteerTicket = selectedTicket === "volunteer";
 
-  function calculateDiscount(amount: number, promo: any) {
-    if (promo.discountType === "percentage") {
-      return amount * (parseFloat(promo.discountValue || "0") / 100);
-    }
-    return parseFloat(promo.discountValue || "0");
+  function handleSelectTicket(ticketId: string) {
+    setSelectedTicket(ticketId);
+    setSelectedPayment(null);
+    setVolunteerAgreed(false);
+    setStep("payment");
   }
 
-  async function handleApplyPromo() {
-    if (!promoCode.trim()) {
-      toast.error("Enter a promo code");
-      return;
-    }
-    setIsApplyingPromo(true);
-    try {
-      const result = await utils.promoCodes.validate.fetch({ code: promoCode });
-      if (result.valid && result.promo) {
-        setAppliedPromo(result.promo);
-        toast.success(`Promo applied! ${result.promo.discountType === "percentage" ? result.promo.discountValue + "% off" : "$" + result.promo.discountValue + " off"}`);
-      } else {
-        toast.error(result.reason ?? "Invalid promo code");
-      }
-    } finally {
-      setIsApplyingPromo(false);
-    }
+  function handleSelectPayment(method: PaymentMethod) {
+    setSelectedPayment(method);
   }
 
-  function handleReserve() {
-    if (!selectedTicket) {
-      toast.error("Select a ticket type");
-      return;
-    }
-    onReserve({
+  function handleSubmit() {
+    if (!selectedTicket || !selectedPayment) return;
+
+    let paymentStatus: "pending" | "paid" = "pending";
+    if (selectedPayment === "credits") paymentStatus = "paid";
+
+    const totalAmount = isVolunteerTicket ? "0.00" : ticketPrice.toFixed(2);
+
+    onSuccess({
       ticketType: selectedTicket,
-      quantity,
-      totalAmount: total.toFixed(2),
-      addons: selectedAddons,
-      promoCode: appliedPromo?.code || null,
+      paymentMethod: selectedPayment,
+      totalAmount,
     });
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
-    >
-      <h2 className="font-display text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-        <Ticket className="h-6 w-6 text-pink-500" /> Select Your Ticket
-      </h2>
+  // Step 1: Ticket selection
+  if (step === "ticket") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
+      >
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+          <Ticket className="h-6 w-6 text-pink-500" /> Choose Your Ticket
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">Select the ticket type that applies to you</p>
 
-      {/* Ticket Types */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {TICKET_TYPES.map((ticket) => (
-          <motion.div
-            key={ticket.id}
-            whileHover={{ scale: 1.02, y: -4 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setSelectedTicket(ticket.id)}
-            className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${
-              selectedTicket === ticket.id
-                ? `border-pink-500 ${ticket.bgColor} shadow-lg shadow-pink-200/50`
-                : `border-gray-100 bg-white hover:border-pink-200`
-            }`}
-          >
-            {selectedTicket === ticket.id && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center"
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {TICKET_TYPES.map((ticket) => {
+            const price = getTicketPrice(ticket.id);
+            return (
+              <motion.button
+                key={ticket.id}
+                whileHover={{ scale: 1.02, y: -3 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleSelectTicket(ticket.id)}
+                className={`relative p-5 rounded-2xl border-2 text-left transition-all w-full ${
+                  ticket.isVolunteer
+                    ? "border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-400"
+                    : "border-gray-100 bg-white hover:border-pink-200 hover:shadow-md"
+                }`}
               >
-                <Check className="h-4 w-4 text-white" />
+                {ticket.isVolunteer && (
+                  <div className="absolute top-2 right-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                      ⭐ Special
+                    </span>
+                  </div>
+                )}
+                <div className="text-3xl mb-2">{ticket.emoji}</div>
+                <h3 className={`font-bold text-base ${ticket.textColor}`}>{ticket.label}</h3>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">{ticket.description}</p>
+                {ticket.isVolunteer ? (
+                  <div className="mt-3">
+                    <span className="text-2xl font-black text-green-600">Free</span>
+                    {baseTicketPrice > 0 && (
+                      <p className="text-xs text-amber-600 font-medium mt-1">
+                        ${baseTicketPrice.toFixed(2)} credited back after completion
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-2xl font-black text-gray-800 mt-3">${price.toFixed(2)}</p>
+                )}
+                <div className="mt-3 flex items-center gap-1 text-pink-500">
+                  <span className="text-xs font-semibold">Select</span>
+                  <ChevronRight className="h-3 w-3" />
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 2: Payment method
+  if (step === "payment") {
+    const ticket = TICKET_TYPES.find(t => t.id === selectedTicket)!;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
+      >
+        {/* Back button */}
+        <button
+          onClick={() => { setStep("ticket"); setSelectedTicket(null); }}
+          className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to ticket selection
+        </button>
+
+        {/* Summary */}
+        <div className={`p-4 rounded-2xl ${ticket.bgColor} border ${ticket.borderColor} mb-6`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected Ticket</p>
+              <p className="font-bold text-gray-800 mt-1">{ticket.emoji} {ticket.label}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-black text-2xl text-gray-800">
+                {isVolunteerTicket ? "Free" : `$${ticketPrice.toFixed(2)}`}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Volunteer-only flow */}
+        {isVolunteerTicket ? (
+          <div className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-5 rounded-2xl bg-gradient-to-br from-red-50 to-amber-50 border-2 border-red-200"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="h-6 w-6 text-red-500 flex-shrink-0" />
+                <h3 className="font-bold text-red-700 text-lg">Volunteer Commitment</h3>
+              </div>
+              <p className="text-red-800 text-sm font-medium mb-4 leading-relaxed">
+                By reserving a Volunteer Ticket, you agree to:
+              </p>
+              <ul className="space-y-2 mb-4">
+                {[
+                  "Fulfill all assigned volunteer duties for this event.",
+                  "Understand that failure to fulfill duties will result in forfeiture of your ticket payment.",
+                  "Acknowledge that repeated no-shows may result in suspension or removal from the Soapies community.",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-red-700">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-red-200 flex-shrink-0 flex items-center justify-center text-xs font-bold text-red-600">
+                      {i + 1}
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-red-600 font-bold uppercase tracking-wider">
+                ⚠️ This agreement is binding. Staff will contact you with your duties.
+              </p>
+            </motion.div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setStep("ticket")}
+                className="flex-1 rounded-xl border-gray-200 text-gray-600"
+              >
+                Cancel
+              </Button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  setSelectedPayment("volunteer");
+                  setVolunteerAgreed(true);
+                  handleSubmit();
+                }}
+                disabled={isSubmitting}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-200/50"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    I Understand & Agree
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </div>
+        ) : (
+          /* Normal payment options */
+          <div className="space-y-4">
+            <h3 className="font-bold text-gray-700 mb-3">Choose Payment Method</h3>
+
+            {/* Venmo */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleSelectPayment("venmo")}
+              className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
+                selectedPayment === "venmo"
+                  ? "border-blue-400 bg-blue-50 shadow-md shadow-blue-100"
+                  : "border-gray-100 bg-white hover:border-blue-200"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-gray-800">Pay via Venmo</p>
+                    {selectedPayment === "venmo" && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"
+                      >
+                        <Check className="h-4 w-4 text-white" />
+                      </motion.div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Send payment to <span className="font-bold text-blue-600">{venmoHandle}</span> and include your name + event name in the memo. Your reservation will be confirmed once payment is verified.
+                  </p>
+                </div>
+              </div>
+            </motion.button>
+
+            {/* Credits */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => canPayWithCredits ? handleSelectPayment("credits") : undefined}
+              className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
+                !canPayWithCredits ? "opacity-60 cursor-not-allowed" :
+                selectedPayment === "credits"
+                  ? "border-green-400 bg-green-50 shadow-md shadow-green-100"
+                  : "border-gray-100 bg-white hover:border-green-200"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-gray-800">Pay with Credits</p>
+                    {selectedPayment === "credits" && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"
+                      >
+                        <Check className="h-4 w-4 text-white" />
+                      </motion.div>
+                    )}
+                  </div>
+                  {canPayWithCredits ? (
+                    <p className="text-xs text-gray-500 mt-1">
+                      You have <span className="font-bold text-green-600">${creditBalanceNum.toFixed(2)}</span> in credits. Use credits to reserve instantly.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-red-500 mt-1">
+                      Insufficient credits. You have <span className="font-bold">${creditBalanceNum.toFixed(2)}</span>, need <span className="font-bold">${ticketPrice.toFixed(2)}</span>.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </motion.button>
+
+            {/* Submit button for Venmo */}
+            {selectedPayment === "venmo" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 mb-4">
+                  <p className="text-sm font-semibold text-blue-700 mb-1">📱 Venmo Instructions</p>
+                  <p className="text-xs text-blue-600">
+                    1. Open Venmo and send <strong>${ticketPrice.toFixed(2)}</strong> to <strong>{venmoHandle}</strong><br />
+                    2. In the memo write your name + "{event.title}"<br />
+                    3. Tap "I've Sent Payment" below — your spot will be reserved pending verification
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-blue-200/50"
+                >
+                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5" /> I've Sent Payment</>}
+                </motion.button>
               </motion.div>
             )}
-            <div className="text-3xl mb-2">{ticket.emoji}</div>
-            <h3 className={`font-bold ${ticket.textColor}`}>{ticket.label}</h3>
-            <p className="text-xs text-gray-400 mt-1">{ticket.description}</p>
-            <p className="text-lg font-black text-gray-800 mt-3">${ticketPrice.toFixed(2)}</p>
-          </motion.div>
-        ))}
-      </div>
 
-      {/* Quantity & Addons */}
-      {selectedTicket && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          {/* Quantity */}
-          <div className="flex items-center gap-6">
-            <label className="text-sm font-bold text-gray-600">Quantity</label>
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-pink-100 flex items-center justify-center transition-colors"
-              >
-                <Minus className="h-4 w-4 text-gray-600" />
-              </motion.button>
-              <span className="font-display font-bold text-lg text-gray-800 w-8 text-center">{quantity}</span>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setQuantity(Math.min(event.capacity || 10, quantity + 1))}
-                className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-pink-100 flex items-center justify-center transition-colors"
-              >
-                <Plus className="h-4 w-4 text-gray-600" />
-              </motion.button>
-            </div>
+            {/* Submit button for Credits */}
+            {selectedPayment === "credits" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !canPayWithCredits}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-green-200/50"
+                >
+                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Sparkles className="h-5 w-5" /> Pay with Credits</>}
+                </motion.button>
+              </motion.div>
+            )}
           </div>
+        )}
+      </motion.div>
+    );
+  }
 
-          {/* Addons */}
-          {addons && addons.length > 0 && (
-            <motion.div className="pb-6 border-b border-gray-200">
-              <button
-                onClick={() => setShowAddons(!showAddons)}
-                className="flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-pink-600 transition-colors"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Add-ons ({selectedAddons.length})
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${showAddons ? "rotate-180" : ""}`}
-                />
-              </button>
-              <AnimatePresence>
-                {showAddons && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 space-y-2"
-                  >
-                    {addons.map((addon: any) => (
-                      <label
-                        key={addon.id}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedAddons.includes(addon.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedAddons([...selectedAddons, addon.id]);
-                            } else {
-                              setSelectedAddons(selectedAddons.filter(id => id !== addon.id));
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm text-gray-700">{addon.name}</p>
-                          {addon.description && <p className="text-xs text-gray-400">{addon.description}</p>}
-                        </div>
-                        <p className="font-bold text-gray-800">${parseFloat(addon.price || "0").toFixed(2)}</p>
-                      </label>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+  return null;
+}
+
+// ─── CONFIRMATION SUCCESS ───────────────────────────────────────────────────
+interface ConfirmationProps {
+  paymentMethod: string;
+  totalAmount: string;
+  event: any;
+  venmoHandle: string;
+  userName?: string;
+}
+
+function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandle, userName }: ConfirmationProps) {
+  const [, setLocation] = useLocation();
+  const displayName = userName || "You";
+
+  return (
+    <>
+      <ConfettiEffect />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-strong rounded-3xl p-8 sm:p-10 border border-pink-100/50 mb-8 text-center"
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", delay: 0.2 }}
+          className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center shadow-2xl shadow-pink-300/50 mb-6"
+        >
+          <span className="text-5xl">🎉</span>
+        </motion.div>
+
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="font-display text-3xl font-black text-gray-800 mb-3"
+        >
+          Your spot is reserved!
+        </motion.h2>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="space-y-4"
+        >
+          {paymentMethod === "venmo" && (
+            <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 text-left">
+              <p className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                <DollarSign className="h-4 w-4" /> Next Step: Send Payment
+              </p>
+              <p className="text-sm text-blue-600 leading-relaxed">
+                Send <strong>${totalAmount}</strong> to <strong>{venmoHandle}</strong> with memo:<br />
+                <span className="font-mono text-blue-800 bg-blue-100 px-2 py-0.5 rounded mt-1 inline-block">
+                  "{displayName} - {event.title}"
+                </span>
+              </p>
+              <p className="text-xs text-blue-500 mt-3">
+                ⏳ Your reservation is pending payment confirmation. We'll notify you once verified.
+              </p>
+            </div>
           )}
 
-          {/* Promo Code */}
-          <div>
-            <label className="text-sm font-bold text-gray-600 block mb-2">Promo Code</label>
-            <div className="flex gap-2">
-              <Input
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                placeholder="Enter code"
-                disabled={appliedPromo !== null}
-                className="flex-1 rounded-xl border-pink-100"
-              />
-              {appliedPromo ? (
-                <Button
-                  onClick={() => {
-                    setAppliedPromo(null);
-                    setPromoCode("");
-                  }}
-                  className="bg-red-500 text-white rounded-xl"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleApplyPromo}
-                  disabled={isApplyingPromo}
-                  className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl"
-                >
-                  {isApplyingPromo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
-                </Button>
-              )}
+          {paymentMethod === "credits" && (
+            <div className="p-4 rounded-2xl bg-green-50 border border-green-100">
+              <p className="font-semibold text-green-700 flex items-center gap-2">
+                <Check className="h-4 w-4" /> Credits Deducted
+              </p>
+              <p className="text-sm text-green-600 mt-1">
+                Your reservation is confirmed! See you at the party 🎊
+              </p>
             </div>
-            {appliedPromo && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-xs text-green-600 font-medium mt-2"
-              >
-                ✓ {appliedPromo.code} applied
-              </motion.p>
-            )}
-          </div>
-        </motion.div>
-      )}
+          )}
 
-      {/* Order Summary */}
-      {selectedTicket && (
+          {paymentMethod === "volunteer" && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100">
+              <p className="font-semibold text-amber-700 flex items-center gap-2">
+                <Star className="h-4 w-4" /> Volunteer Reservation Submitted
+              </p>
+              <p className="text-sm text-amber-600 mt-1">
+                Staff will be in touch with your duties. Thank you for helping make this event amazing!
+              </p>
+            </div>
+          )}
+        </motion.div>
+
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-8 p-5 rounded-2xl bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-100"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
         >
-          <div className="space-y-2 text-sm mb-4">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Ticket × {quantity}</span>
-              <span className="font-semibold text-gray-800">${(ticketPrice * quantity).toFixed(2)}</span>
-            </div>
-            {addonPrice > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Add-ons</span>
-                <span className="font-semibold text-gray-800">${(addonPrice * quantity).toFixed(2)}</span>
-              </div>
-            )}
-            {discount > 0 && (
-              <div className="flex justify-between text-green-600 font-semibold">
-                <span>Discount</span>
-                <span>-${discount.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-          <div className="border-t border-pink-200 pt-2 flex justify-between">
-            <span className="font-bold text-gray-800">Total</span>
-            <span className="font-display text-2xl font-black bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">${total.toFixed(2)}</span>
-          </div>
+          <Button
+            onClick={() => setLocation("/dashboard")}
+            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 px-8"
+          >
+            <BadgeCheck className="h-4 w-4" /> View My Reservations
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLocation("/events")}
+            className="rounded-xl border-pink-200 text-pink-600 hover:bg-pink-50"
+          >
+            Browse More Events
+          </Button>
         </motion.div>
-      )}
+      </motion.div>
+    </>
+  );
+}
 
-      {/* Reserve Button */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleReserve}
-        disabled={!selectedTicket}
-        className={`w-full mt-8 py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-          selectedTicket
-            ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-xl shadow-pink-200/50 hover:shadow-pink-200/70"
-            : "bg-gray-200 text-gray-400 cursor-not-allowed"
-        }`}
+// ─── MAIN TICKET SECTION ────────────────────────────────────────────────────
+function TicketSection({ event }: { event: any }) {
+  const { isAuthenticated } = useAuth();
+  const [reserved, setReserved] = useState(false);
+  const [reservationData, setReservationData] = useState<any>(null);
+  const { data: settings } = trpc.settings.get.useQuery();
+  const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+
+  const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
+
+  const createReservation = trpc.reservations.create.useMutation({
+    onSuccess: () => {
+      setReserved(true);
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to create reservation"),
+  });
+
+  function handleReserve(data: { ticketType: string; paymentMethod: string; totalAmount: string }) {
+    if (!isAuthenticated) {
+      window.location.href = getLoginUrl();
+      return;
+    }
+
+    let paymentStatus: "pending" | "paid" = "pending";
+    if (data.paymentMethod === "credits") paymentStatus = "paid";
+
+    setReservationData(data);
+    createReservation.mutate({
+      eventId: event.id,
+      ticketType: data.ticketType as any,
+      totalAmount: data.totalAmount,
+      paymentMethod: data.paymentMethod as any,
+      paymentStatus,
+    });
+  }
+
+  if (reserved && reservationData) {
+    return (
+      <ReservationConfirmation
+        paymentMethod={reservationData.paymentMethod}
+        totalAmount={reservationData.totalAmount}
+        event={event}
+        venmoHandle={venmoHandle}
+        userName={(me as any)?.name}
+      />
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-strong rounded-3xl p-8 border border-pink-100/50 mb-8 text-center"
       >
-        <ShoppingCart className="h-5 w-5" /> Reserve Now
-      </motion.button>
-    </motion.div>
+        <div className="text-5xl mb-4">🎟️</div>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">Reserve Your Spot</h2>
+        <p className="text-gray-500 text-sm mb-6">Sign in or create an account to reserve your ticket</p>
+        <Button
+          onClick={() => { window.location.href = getLoginUrl(); }}
+          className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 px-8 py-3"
+        >
+          Sign In to Reserve
+        </Button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <ReservationFlow
+      event={event}
+      onSuccess={handleReserve}
+      isSubmitting={createReservation.isPending}
+    />
   );
 }
 
@@ -657,7 +957,7 @@ function EventDetailsCard({ event }: { event: any }) {
           <div>
             <p className="text-xs font-bold text-gray-400 uppercase">Date & Time</p>
             <p className="font-semibold text-gray-800">{format(new Date(event.startDate), "EEEE, MMMM d, yyyy")}</p>
-            <p className="text-sm text-gray-600">{format(new Date(event.startDate), "h:mm a")} - {format(new Date(event.endDate), "h:mm a")}</p>
+            <p className="text-sm text-gray-600">{format(new Date(event.startDate), "h:mm a")}{event.endDate ? ` - ${format(new Date(event.endDate), "h:mm a")}` : ""}</p>
           </div>
         </div>
 
@@ -704,13 +1004,6 @@ export default function EventDetail() {
     { id: parseInt(id || "0") },
     { retry: false }
   );
-  const createReservation = trpc.reservations.create.useMutation({
-    onSuccess: (res) => {
-      toast.success("Reservation created! ✨");
-      setLocation("/dashboard");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
 
   if (isLoading) {
     return (
@@ -763,22 +1056,8 @@ export default function EventDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {/* Ticket Selection */}
-            {!isPastEvent && (
-              <TicketSelection
-                event={event}
-                onReserve={(data) => {
-                  if (!isAuthenticated) {
-                    window.location.href = getLoginUrl();
-                    return;
-                  }
-                  createReservation.mutate({
-                    eventId: event.id,
-                    ...data,
-                  });
-                }}
-              />
-            )}
+            {/* Ticket / Reservation Flow */}
+            {!isPastEvent && <TicketSection event={event} />}
 
             {/* Event Details */}
             <EventDetailsCard event={event} />
@@ -833,6 +1112,16 @@ export default function EventDetail() {
                 <p className="text-xs font-bold text-gray-400 uppercase">Capacity</p>
                 <p className="font-semibold text-gray-800 mt-1">{event.capacity} guests</p>
               </div>
+              {event.priceSingleFemale && (
+                <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase">Pricing</p>
+                  <div className="mt-1 space-y-1 text-sm">
+                    <p className="text-gray-700">👩 Women: <span className="font-bold">${parseFloat(event.priceSingleFemale).toFixed(2)}</span></p>
+                    {event.priceCouple && <p className="text-gray-700">💑 Couple: <span className="font-bold">${parseFloat(event.priceCouple).toFixed(2)}</span></p>}
+                    {event.priceSingleMale && <p className="text-gray-700">👨 Men: <span className="font-bold">${parseFloat(event.priceSingleMale).toFixed(2)}</span></p>}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>

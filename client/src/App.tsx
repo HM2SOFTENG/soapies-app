@@ -23,6 +23,7 @@ import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminInterviewSlots from "./pages/admin/AdminInterviewSlots";
 import AdminAudit from "./pages/admin/AdminAudit";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
+import AdminReservations from "./pages/admin/AdminReservations";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
 import PendingApproval from "./pages/PendingApproval";
@@ -95,6 +96,7 @@ function Router() {
         <Route path="/admin/interview-slots" component={AdminInterviewSlots} />
         <Route path="/admin/audit" component={AdminAudit} />
         <Route path="/admin/announcements" component={AdminAnnouncements} />
+        <Route path="/admin/reservations" component={AdminReservations} />
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

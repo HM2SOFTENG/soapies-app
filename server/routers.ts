@@ -380,10 +380,11 @@ export const appRouter = router({
     }),
     create: protectedProcedure.input(z.object({
       eventId: z.number(),
-      ticketType: z.string().optional(),
+      ticketType: z.enum(["single_female", "couple", "single_male", "volunteer"]).optional(),
       quantity: z.number().optional(),
       totalAmount: z.string().optional(),
-      paymentMethod: z.string().optional(),
+      paymentMethod: z.enum(["venmo", "credits", "volunteer", "cash", "card"]).optional(),
+      paymentStatus: z.enum(["pending", "paid", "refunded", "partial", "failed"]).optional(),
     })).mutation(async ({ ctx, input }) => {
       const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending" });
       // Process referral conversion on first reservation (fires only if not already converted)
@@ -624,6 +625,16 @@ export const appRouter = router({
     }),
     adminList: adminProcedure.query(async () => {
       return db.getReferralPipeline();
+    }),
+  }),
+
+  // ─── APP SETTINGS (public) ───────────────────────────────────────────────
+  settings: router({
+    get: publicProcedure.query(async () => {
+      const rows = await db.getAppSettings();
+      const map: Record<string, string> = {};
+      for (const row of rows) { if (row.key && row.value) map[row.key] = row.value; }
+      return map;
     }),
   }),
 
@@ -1376,6 +1387,55 @@ export const appRouter = router({
     bulkDeleteUsers: adminProcedure.input(z.object({ userIds: z.array(z.number()) })).mutation(async ({ ctx, input }) => {
       await db.bulkDeleteUsers(input.userIds);
       await db.createAuditLog({ adminId: ctx.user.id, action: "bulk_users_deleted", targetType: "user", targetId: input.userIds[0] ?? 0 });
+      return { success: true };
+    }),
+    pendingVenmoReservations: adminProcedure.query(async () => {
+      return db.getPendingVenmoReservations();
+    }),
+    confirmReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.updateReservation(input.id, { paymentStatus: "paid", status: "confirmed" });
+      await db.createAuditLog({ adminId: ctx.user.id, action: "reservation_confirmed", targetType: "reservation", targetId: input.id });
+      // Notify the user
+      const resRows = await db.getReservationsByUser(0); // will query by id below
+      try {
+        const dbConn = await db.getDb();
+        if (dbConn) {
+          const { reservations: resTable } = await import("../drizzle/schema");
+          const { eq: eqOp } = await import("drizzle-orm");
+          const rows = await dbConn.select().from(resTable).where(eqOp(resTable.id, input.id)).limit(1);
+          if (rows.length > 0) {
+            const res = rows[0];
+            await notif.sendNotification({
+              userId: res.userId!,
+              type: "system",
+              title: "Payment Confirmed! 🎉",
+              body: "Your Venmo payment has been verified. Your reservation is now confirmed!",
+            }).catch(() => {});
+          }
+        }
+      } catch {}
+      return { success: true };
+    }),
+    rejectReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.updateReservation(input.id, { paymentStatus: "failed", status: "cancelled" });
+      await db.createAuditLog({ adminId: ctx.user.id, action: "reservation_rejected", targetType: "reservation", targetId: input.id });
+      try {
+        const dbConn = await db.getDb();
+        if (dbConn) {
+          const { reservations: resTable } = await import("../drizzle/schema");
+          const { eq: eqOp } = await import("drizzle-orm");
+          const rows = await dbConn.select().from(resTable).where(eqOp(resTable.id, input.id)).limit(1);
+          if (rows.length > 0) {
+            const res = rows[0];
+            await notif.sendNotification({
+              userId: res.userId!,
+              type: "system",
+              title: "Reservation Rejected",
+              body: "Unfortunately your reservation could not be confirmed. Please contact support.",
+            }).catch(() => {});
+          }
+        }
+      } catch {}
       return { success: true };
     }),
   }),
