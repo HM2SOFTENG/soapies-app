@@ -2,7 +2,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Calendar, Users, FileText, Settings, ArrowLeft,
-  Menu, X, Shield, LogOut, Loader2, Sparkles, ChevronRight, Zap
+  Menu, X, Shield, LogOut, Loader2, Sparkles, ChevronRight, Zap,
+  Share2, CalendarCheck, ScrollText, Megaphone
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -16,6 +17,10 @@ const sidebarLinks = [
   { href: "/admin/events", label: "Events", icon: Calendar, color: "from-purple-400 to-indigo-500" },
   { href: "/admin/users", label: "Users", icon: Users, color: "from-fuchsia-400 to-pink-500" },
   { href: "/admin/applications", label: "Applications", icon: FileText, color: "from-violet-400 to-purple-500" },
+  { href: "/admin/referrals", label: "Referrals", icon: Share2, color: "from-emerald-400 to-teal-500" },
+  { href: "/admin/interview-slots", label: "Interview Slots", icon: CalendarCheck, color: "from-blue-400 to-cyan-500" },
+  { href: "/admin/announcements", label: "Announcements", icon: Megaphone, color: "from-amber-400 to-orange-500" },
+  { href: "/admin/audit", label: "Audit Log", icon: ScrollText, color: "from-orange-400 to-amber-500" },
   { href: "/admin/settings", label: "Settings", icon: Settings, color: "from-rose-400 to-pink-500" },
 ];
 

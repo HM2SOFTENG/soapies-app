@@ -21,6 +21,7 @@ import AdminApplicationReview from "./pages/admin/AdminApplicationReview";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminInterviewSlots from "./pages/admin/AdminInterviewSlots";
+import AdminAudit from "./pages/admin/AdminAudit";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
 import PendingApproval from "./pages/PendingApproval";
@@ -86,6 +87,7 @@ function Router() {
         <Route path="/admin/settings" component={AdminSettings} />
         <Route path="/admin/referrals" component={AdminReferrals} />
         <Route path="/admin/interview-slots" component={AdminInterviewSlots} />
+        <Route path="/admin/audit" component={AdminAudit} />
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
