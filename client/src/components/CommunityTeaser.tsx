@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Lock, Heart, MessageCircle, Image as ImageIcon } from "lucide-react";
+import { Lock, Heart, MessageCircle, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FloatingBubbles } from "@/components/FloatingElements";
 import { useLocation } from "wouter";
@@ -68,60 +68,61 @@ interface FakePostCardProps {
 }
 
 const FakePostCard = ({ post, index }: FakePostCardProps) => {
+  const timeLabels = ["just now", "2m ago", "15m ago", "1h ago", "3h ago", "6h ago"];
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-lg p-4 shadow-sm"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div
-          className={`w-10 h-10 rounded-full bg-gradient-to-br ${post.avatarGradient} flex items-center justify-center text-white text-sm font-semibold flex-shrink-0`}
-        >
-          {post.initials}
+    <div className="glass-strong rounded-2xl border border-pink-100/50 overflow-hidden">
+      <div className="p-5">
+        {/* Author Header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className={`w-11 h-11 rounded-xl bg-gradient-to-br ${post.avatarGradient} flex items-center justify-center text-white text-sm font-black flex-shrink-0 shadow-md`}
+          >
+            {post.initials}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-gray-800">{post.username}</p>
+            <p className="text-xs text-gray-400">{timeLabels[index] || "2h ago"}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900">{post.username}</p>
-          <p className="text-xs text-gray-500">2 hours ago</p>
+
+        {/* Blurred text content — mimics real post text */}
+        <div className="mb-3 select-none" aria-hidden>
+          <div className="space-y-2 blur-sm">
+            <div className="h-3.5 bg-gray-200 rounded-full w-full" />
+            <div className="h-3.5 bg-gray-200 rounded-full w-5/6" />
+            {index % 2 === 0 && <div className="h-3.5 bg-gray-200 rounded-full w-3/4" />}
+          </div>
+        </div>
+
+        {/* Image placeholder */}
+        {post.hasImage && (
+          <div className="mb-3 w-full h-36 bg-gradient-to-br from-pink-100 to-purple-100 rounded-xl flex items-center justify-center blur-sm">
+            <ImageIcon className="w-10 h-10 text-pink-300" />
+          </div>
+        )}
+
+        {/* Engagement stats */}
+        <div className="flex items-center justify-between text-xs text-gray-400 mb-3 px-1">
+          <span className="flex items-center gap-1">
+            <span className="w-4 h-4 rounded-full bg-gradient-to-r from-pink-500 to-red-500 flex items-center justify-center">
+              <Heart className="h-2.5 w-2.5 text-white fill-white" />
+            </span>
+            {post.likes}
+          </span>
+          <span>{post.comments} comments</span>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1 pt-3 border-t border-pink-50">
+          <div className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-gray-400">
+            <Heart className="h-5 w-5" /> Love
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-gray-400">
+            <MessageCircle className="h-5 w-5" /> Comment
+          </div>
         </div>
       </div>
-
-      {/* Blurred text content */}
-      <div className="mb-3">
-        <div className="space-y-2 blur-md">
-          <div className="h-3 bg-gray-300 rounded w-full"></div>
-          <div className="h-3 bg-gray-300 rounded w-5/6"></div>
-          <div className="h-3 bg-gray-300 rounded w-4/5"></div>
-        </div>
-      </div>
-
-      {/* Image placeholder */}
-      {post.hasImage && (
-        <div className="mb-3 w-full h-32 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center blur-md">
-          <ImageIcon className="w-8 h-8 text-gray-400" />
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="flex items-center justify-between text-xs text-gray-600 mb-3 px-2 py-1 bg-gray-50 rounded">
-        <span>{post.likes} likes</span>
-        <span>{post.comments} comments</span>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button className="flex-1 flex items-center justify-center gap-2 py-2 px-3 hover:bg-gray-50 rounded-md transition-colors opacity-60">
-          <Heart className="w-4 h-4 text-gray-600" />
-          <span className="text-xs text-gray-600">Like</span>
-        </button>
-        <button className="flex-1 flex items-center justify-center gap-2 py-2 px-3 hover:bg-gray-50 rounded-md transition-colors opacity-60">
-          <MessageCircle className="w-4 h-4 text-gray-600" />
-          <span className="text-xs text-gray-600">Comment</span>
-        </button>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -130,85 +131,79 @@ export default function CommunityTeaser() {
 
   return (
     <div className="relative w-full min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 overflow-hidden">
-      {/* Floating background elements */}
-      <FloatingBubbles />
-
-      {/* Blurred fake feed container */}
-      <div className="pointer-events-none filter blur-lg absolute inset-0">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+      {/* Blurred fake feed scrolling in background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <motion.div
+          animate={{ y: [0, -200] }}
+          transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
+          className="max-w-2xl mx-auto px-4 pt-24 blur-[6px] opacity-60"
+        >
           <div className="space-y-4">
             {FAKE_POSTS.map((post, index) => (
               <FakePostCard key={post.id} post={post} index={index} />
             ))}
+            {/* Duplicate first few for seamless scroll */}
+            {FAKE_POSTS.slice(0, 3).map((post, index) => (
+              <FakePostCard key={`dup-${post.id}`} post={post} index={index + 6} />
+            ))}
           </div>
-        </div>
+        </motion.div>
       </div>
 
+      {/* Gradient overlay to fade edges */}
+      <div className="absolute inset-0 bg-gradient-to-b from-pink-50/80 via-transparent to-white/90 pointer-events-none" />
+
       {/* CTA Overlay */}
-      <div className="relative h-screen flex items-center justify-center px-4">
+      <div className="relative min-h-screen flex items-center justify-center px-4">
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          className="relative z-10 max-w-md w-full"
+          transition={{ type: "spring", stiffness: 120, damping: 20, delay: 0.2 }}
+          className="relative z-10 max-w-sm w-full"
         >
           {/* Glassmorphism card */}
-          <div className="backdrop-blur-xl bg-white/90 rounded-2xl p-8 shadow-2xl border border-white/20">
+          <div className="backdrop-blur-xl bg-white/90 rounded-3xl p-8 shadow-2xl shadow-pink-200/30 border border-pink-100/30">
             {/* Lock icon */}
             <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="flex justify-center mb-6"
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="flex justify-center mb-5"
             >
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center">
-                <Lock className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-200/40">
+                <Lock className="w-7 h-7 text-white" />
               </div>
             </motion.div>
 
             {/* Heading */}
-            <h2 className="font-display text-3xl font-bold text-center mb-3 text-gradient">
+            <h2 className="font-display text-2xl font-black text-center mb-2 text-gradient">
               Join the Conversation
             </h2>
 
             {/* Subtext */}
-            <p className="text-center text-gray-600 mb-8 text-sm leading-relaxed">
+            <p className="text-center text-gray-500 mb-6 text-sm leading-relaxed">
               Sign in or apply for membership to connect with the Soapies community
             </p>
 
             {/* Buttons */}
             <div className="flex flex-col gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={() => navigate("/login")}
-              >
-                Sign In
-              </Button>
-              <Button
-                size="lg"
-                className="w-full btn-premium"
-                onClick={() => navigate("/join")}
-              >
-                Join Now
-              </Button>
-            </div>
-
-            {/* Decorative sparkles */}
-            <div className="absolute top-4 right-4 text-pink-300 opacity-40">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles className="w-5 h-5" />
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  size="lg"
+                  className="w-full btn-premium rounded-xl py-3 gap-2 font-bold"
+                  onClick={() => navigate("/join")}
+                >
+                  <Sparkles className="h-4 w-4" /> Apply to Join
+                </Button>
               </motion.div>
-            </div>
-            <div className="absolute bottom-4 left-4 text-purple-300 opacity-40">
-              <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              >
-                <Sparkles className="w-5 h-5" />
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full rounded-xl py-3 border-pink-200 text-pink-600 hover:bg-pink-50 font-semibold"
+                  onClick={() => navigate("/login")}
+                >
+                  Already a member? Sign In
+                </Button>
               </motion.div>
             </div>
           </div>
@@ -217,7 +212,7 @@ export default function CommunityTeaser() {
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 4, repeat: Infinity }}
-            className="absolute -inset-4 bg-gradient-to-r from-pink-300/20 via-purple-300/20 to-pink-300/20 rounded-2xl blur-2xl -z-10"
+            className="absolute -inset-6 bg-gradient-to-r from-pink-300/20 via-purple-300/20 to-pink-300/20 rounded-3xl blur-2xl -z-10"
           />
         </motion.div>
       </div>
