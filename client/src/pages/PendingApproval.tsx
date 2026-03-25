@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -10,6 +10,9 @@ import {
   Clock,
   LogOut,
   Home,
+  CalendarDays,
+  BookOpen,
+  PhoneCall,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -22,6 +25,10 @@ export default function PendingApproval() {
     if (profile?.applicationStatus === "draft") {
       navigate("/join");
     }
+    // If fully approved and phase is final_approved, redirect to dashboard
+    if (profile?.applicationStatus === "approved" && !profile?.applicationPhase) {
+      navigate("/dashboard");
+    }
   }, [profile, navigate]);
 
   const handleLogout = async () => {
@@ -29,22 +36,36 @@ export default function PendingApproval() {
     navigate("/login");
   };
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case "submitted":
-      case "under_review":
+  const getStatusConfig = (status: string, phase?: string | null) => {
+    // Prefer applicationPhase if set
+    const effective = phase || status;
+
+    switch (effective) {
+      case "interview_scheduled":
         return {
-          bgGradient: "from-amber-50 via-orange-50 to-pink-50",
-          accentColor: "text-amber-600",
-          accentBg: "bg-amber-100",
-          accentBorder: "border-amber-300",
-          title: "Application Under Review",
-          icon: Clock,
-          message:
-            "We're carefully reviewing your application. This usually takes 24-48 hours. Thank you for your patience!",
-          subMessage:
-            "In the meantime, feel free to explore what Soapies has to offer.",
+          bgGradient: "from-blue-50 via-indigo-50 to-purple-50",
+          accentColor: "text-blue-600",
+          accentBg: "bg-blue-100",
+          accentBorder: "border-blue-300",
+          title: "Interview Phase 🎉",
+          icon: PhoneCall,
+          message: "Your application passed initial review! The next step is a short intro call.",
+          subMessage: "Please schedule your intro call so we can get to know you better.",
+          ctaText: "Schedule Your Call",
+          ctaLink: "/schedule-interview",
         };
+      case "interview_complete":
+        return {
+          bgGradient: "from-indigo-50 via-purple-50 to-pink-50",
+          accentColor: "text-indigo-600",
+          accentBg: "bg-indigo-100",
+          accentBorder: "border-indigo-300",
+          title: "Final Review",
+          icon: Sparkles,
+          message: "Your interview is complete — thank you! We're making our final decision.",
+          subMessage: "You'll hear from us very soon. Final decisions are made within 24-48 hours.",
+        };
+      case "final_approved":
       case "approved":
         return {
           bgGradient: "from-green-50 via-emerald-50 to-teal-50",
@@ -66,10 +87,8 @@ export default function PendingApproval() {
           accentBorder: "border-red-300",
           title: "Application Not Approved",
           icon: X,
-          message:
-            "Unfortunately, your application was not approved at this time.",
-          subMessage:
-            "You're welcome to reapply after 30 days. We'd love to have you join us then!",
+          message: "Unfortunately, your application was not approved at this time.",
+          subMessage: "You're welcome to reapply after 30 days. We'd love to have you join us then!",
         };
       case "waitlisted":
         return {
@@ -79,26 +98,27 @@ export default function PendingApproval() {
           accentBorder: "border-purple-300",
           title: "You're on the Waitlist",
           icon: Sparkles,
-          message:
-            "You're on the waitlist for Soapies! We'll notify you as soon as a spot becomes available.",
-          subMessage:
-            "Thank you for your interest. We can't wait to welcome you to our community!",
+          message: "You're on the waitlist for Soapies! We'll notify you as soon as a spot becomes available.",
+          subMessage: "Thank you for your interest. We can't wait to welcome you to our community!",
         };
+      case "submitted":
+      case "under_review":
       default:
         return {
-          bgGradient: "from-pink-50 via-purple-50 to-indigo-50",
-          accentColor: "text-pink-600",
-          accentBg: "bg-pink-100",
-          accentBorder: "border-pink-300",
-          title: "Checking Status...",
-          icon: Loader2,
-          message: "Please wait while we check your status.",
-          subMessage: "",
+          bgGradient: "from-amber-50 via-orange-50 to-pink-50",
+          accentColor: "text-amber-600",
+          accentBg: "bg-amber-100",
+          accentBorder: "border-amber-300",
+          title: "Application Under Review",
+          icon: Clock,
+          message: "We're carefully reviewing your application. This usually takes 24-48 hours. Thank you for your patience!",
+          subMessage: "In the meantime, feel free to explore what Soapies has to offer.",
         };
     }
   };
 
-  const config = getStatusConfig(profile?.applicationStatus || "");
+  const config = getStatusConfig(profile?.applicationStatus || "", (profile as any)?.applicationPhase);
+  const activeStatus = (profile as any)?.applicationPhase || profile?.applicationStatus || "";
   const IconComponent = config.icon;
 
   const containerVariants = {
@@ -177,26 +197,56 @@ export default function PendingApproval() {
         }}
       />
 
-      {/* Header with logo */}
+      {/* Header with logo + public nav */}
       <header className="relative z-10 w-full border-b border-white/20 bg-white/50 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <motion.img
             src="https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png"
             alt="Soapies Logo"
-            className="h-10"
+            className="h-9"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
           />
-          <motion.button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 hover:bg-white text-gray-700 font-medium transition-all duration-200 hover:shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </motion.button>
+          {/* Public navigation links */}
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <Link href="/">
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white text-gray-600 hover:text-pink-600 font-medium text-sm transition-all cursor-pointer"
+              >
+                <Home className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Home</span>
+              </motion.span>
+            </Link>
+            <Link href="/events">
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white text-gray-600 hover:text-pink-600 font-medium text-sm transition-all cursor-pointer"
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Events</span>
+              </motion.span>
+            </Link>
+            <Link href="/wall">
+              <motion.span
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white text-gray-600 hover:text-pink-600 font-medium text-sm transition-all cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Wall</span>
+              </motion.span>
+            </Link>
+            <motion.button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-700 font-medium text-sm transition-all duration-200 hover:shadow-md"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </motion.button>
+          </nav>
         </div>
       </header>
 
@@ -217,14 +267,12 @@ export default function PendingApproval() {
             <motion.div
               className={`w-24 h-24 mx-auto mb-8 ${config.accentBg} rounded-full flex items-center justify-center`}
               variants={
-                profile?.applicationStatus === "submitted" ||
-                profile?.applicationStatus === "under_review"
+                activeStatus === "submitted" || activeStatus === "under_review"
                   ? spinVariants
                   : pulseVariants
               }
               animate={
-                profile?.applicationStatus === "submitted" ||
-                profile?.applicationStatus === "under_review"
+                activeStatus === "submitted" || activeStatus === "under_review"
                   ? "spin"
                   : "pulse"
               }
@@ -260,8 +308,7 @@ export default function PendingApproval() {
             )}
 
             {/* Status badge for under review */}
-            {(profile?.applicationStatus === "submitted" ||
-              profile?.applicationStatus === "under_review") && (
+            {(activeStatus === "submitted" || activeStatus === "under_review") && (
               <motion.div
                 className={`mt-8 p-4 rounded-lg ${config.accentBg} border-2 ${config.accentBorder}`}
                 variants={pulseVariants}
