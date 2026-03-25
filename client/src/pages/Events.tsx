@@ -127,7 +127,7 @@ function EventCard({ event }: { event: any }) {
 
 // ─── MAIN EVENTS PAGE ────────────────────────────────────────────────────────
 export default function Events() {
-  const { data: events, isLoading } = trpc.events.all.useQuery(undefined, {
+  const { data: events, isLoading } = trpc.events.list.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
