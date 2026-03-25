@@ -10,6 +10,12 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
+/** Pages where we should NOT redirect to /login on UNAUTHORIZED errors.
+ *  These are auth/onboarding pages where the user is mid-flow and
+ *  background queries hitting protectedProcedure endpoints are expected
+ *  to fail until the session is fully established. */
+const AUTH_PAGES = ["/join", "/register", "/verify-email", "/login", "/forgot-password", "/pending"];
+
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
@@ -17,6 +23,10 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
 
   if (!isUnauthorized) return;
+
+  // Don't redirect if we're already on an auth/onboarding page
+  const currentPath = window.location.pathname;
+  if (AUTH_PAGES.some(p => currentPath.startsWith(p))) return;
 
   window.location.href = "/login";
 };
