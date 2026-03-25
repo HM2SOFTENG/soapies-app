@@ -83,10 +83,66 @@
 
 ---
 
-## Final State
+## Final State (pre-referral)
 **✅ CLEAN — 0 TypeScript errors, messaging fully functional**
 
 - All type errors resolved (commit `4a709a1`)
 - Messages inbox now auto-populates with community channels (commit `1aedbc9`)
 - Both commits deployed via CI — migrations ran clean
 - **Last updated:** 2026-03-25 ~09:40 PDT
+
+---
+
+## Referral Flow Implementation
+
+**Started:** 2026-03-25 ~10:00 PDT  
+**Triggered by:** Brian Smith — "Implement full referral code flow"
+
+### What Was Built
+
+#### 1. Schema — `drizzle/schema.ts`
+Added 4 new nullable/defaulted columns to the `profiles` table:
+- `referredByCode` — `varchar(32)` nullable — code entered by new member
+- `referredByUserId` — `int` nullable — resolved userId of the referrer
+- `referralConverted` — `boolean` default false — true once they book first event
+- `referralConvertedAt` — `timestamp` nullable — when conversion happened
+
+#### 2. DB Functions — `server/db.ts`
+Added:
+- `validateReferralCode(code)` — returns active referral record or null
+- `applyReferralToProfile(profileId, code)` — sets referredByCode + referredByUserId
+- `processReferralConversion(userId, reservationId)` — idempotent: awards 3500 credits ($35) to referrer, marks `referralConverted=true`, increments `totalReferrals` + `totalEarned` on the `referral_codes` row. Only fires when `referralConverted` is false.
+- `getReferralPipeline()` — returns full referred member list with referrer name and code stats (for admin UI)
+
+#### 3. Server Router — `server/routers.ts`
+- Added `referrals.validate` — public query, input `{ code }`, returns `{ valid, referrerName? }`
+- Added `referrals.adminList` — admin-only query returning full pipeline from `getReferralPipeline()`
+- Updated `profile.upsert` to accept optional `referredByCode` and call `applyReferralToProfile` when set
+- Hooked `processReferralConversion` into `reservations.create` after successful insert
+
+#### 4. JoinFlow — `client/src/pages/JoinFlow.tsx`
+Added referral code section to step 4 (About You):
+- Text input (uppercase, max 32 chars) with Verify button
+- Verify calls `trpcUtils.referrals.validate.fetch()`
+- Shows "✓ Referred by [Name]" on success or error message on failure
+- Verified code stored in state and passed to `profile.upsert` as `referredByCode`
+
+#### 5. Admin UI — `client/src/pages/admin/AdminReferrals.tsx`
+New page at `/admin/referrals`:
+- Table: Referrer | Code | Referred Member | Applied | Converted | Conversion Date
+- Badge indicator (green "✓ Converted" vs grey "Pending")
+- Wired into admin routes in `client/src/App.tsx`
+
+### Commits
+| Hash | Description |
+|------|-------------|
+| `87dda26` | feat(referrals): add referral tracking fields to profiles schema and DB functions |
+| `aec02f9` | feat(referrals): add referral router procedures and hook into reservation creation |
+| `836ad4c` | feat(referrals): add referral code input to JoinFlow and AdminReferrals page |
+
+### Migration Note
+These schema changes add new nullable/defaulted columns — backward compatible with existing data. A Drizzle migration (`drizzle-kit push` or `generate`+`migrate`) must be run against the database to apply the new columns.
+
+### Final State
+**✅ CLEAN — 0 TypeScript errors, all referral features implemented and pushed**
+- **Last updated:** 2026-03-25 ~10:10 PDT
