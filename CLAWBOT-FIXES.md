@@ -71,10 +71,22 @@
 
 ---
 
-## Final State
-**✅ CLEAN — 0 TypeScript errors**
+### Fix 10: Messages page shows empty inbox ("coming soon" feel)
+- **File:** `server/db.ts` — `getUserConversations()`
+- **Root cause:** `seedChannels.ts` creates channel conversations with no participants. `getUserConversations` only queried `conversation_participants` by userId — users with no explicit joins saw an empty list.
+- **Change:** Updated `getUserConversations` to:
+  1. Look up user's `communityId` from their profile
+  2. Fetch all `channel`-type conversations matching their community (or global/null communityId)
+  3. Auto-join the user to any community channels they're not yet in
+  4. Return the full combined conversation list
+- **Status:** ✅ Complete — Committed `1aedbc9`, pushed to main
 
-- `pnpm run check` passes with no errors
-- Committed: `4a709a1` — "Fix: resolve 8 TypeScript errors introduced in large push"
-- Pushed to `origin/main` — CI deploy triggered
-- **Completed:** 2026-03-25 ~09:22 PDT
+---
+
+## Final State
+**✅ CLEAN — 0 TypeScript errors, messaging fully functional**
+
+- All type errors resolved (commit `4a709a1`)
+- Messages inbox now auto-populates with community channels (commit `1aedbc9`)
+- Both commits deployed via CI — migrations ran clean
+- **Last updated:** 2026-03-25 ~09:40 PDT

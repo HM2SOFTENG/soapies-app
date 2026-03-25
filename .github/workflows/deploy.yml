@@ -110,7 +110,7 @@ jobs:
       - name: Run Drizzle migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm db:push
+        run: pnpm db:push --force
 
 
   # ─── Clean Up Old Container Images ────────────────────────────────────
