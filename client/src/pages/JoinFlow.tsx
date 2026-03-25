@@ -32,6 +32,7 @@ import {
   Trash2,
   Home,
   LogIn,
+  Clock,
 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
@@ -461,7 +462,6 @@ export default function JoinFlow() {
         displayName,
         gender,
         orientation: orientation || undefined,
-        relationshipStatus: relationshipStatus || undefined,
         dateOfBirth,
         bio,
         location: userLocation,
