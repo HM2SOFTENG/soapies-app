@@ -221,6 +221,45 @@ export default function AdminEvents() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {filtered.length > 0 && (
+        <div className="flex items-center gap-3 mb-4 px-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === filtered.length && filtered.length > 0}
+              onChange={toggleSelectAll}
+              className="rounded border-pink-200 text-pink-500"
+            />
+            <span className="text-xs text-gray-500 font-medium">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+            </span>
+          </label>
+          {selectedIds.size > 0 && (
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2">
+              <Button size="sm" onClick={() => bulkPublish.mutate({ ids: Array.from(selectedIds), status: "published" })}
+                disabled={bulkPublish.isPending}
+                className="rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs gap-1 h-7 px-3">
+                <Eye className="h-3 w-3" /> Publish
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkDraft.mutate({ ids: Array.from(selectedIds), status: "draft" })}
+                disabled={bulkDraft.isPending}
+                className="rounded-xl border-gray-200 text-gray-500 text-xs gap-1 h-7 px-3">
+                Set Draft
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkDelete.mutate({ ids: Array.from(selectedIds) })}
+                disabled={bulkDelete.isPending}
+                className="rounded-xl border-red-200 text-red-500 hover:bg-red-50 text-xs gap-1 h-7 px-3">
+                <Trash2 className="h-3 w-3" /> Delete
+              </Button>
+              <button onClick={() => setSelectedIds(new Set())} className="text-gray-400 hover:text-gray-600 ml-1">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </div>
+      )}
+
       {/* Events List */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -243,9 +282,12 @@ export default function AdminEvents() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
               whileHover={{ y: -2 }}
-              className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-pink-100/50 shadow-md hover:shadow-lg transition-all group"
+              className={`bg-white/80 backdrop-blur-sm rounded-2xl p-5 border shadow-md hover:shadow-lg transition-all group ${selectedIds.has(event.id) ? "border-pink-300 bg-pink-50/30" : "border-pink-100/50"}`}
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                {/* Checkbox */}
+                <input type="checkbox" checked={selectedIds.has(event.id)} onChange={() => toggleSelect(event.id)}
+                  className="mt-1 rounded border-pink-200 text-pink-500 cursor-pointer flex-shrink-0" />
                 {/* Date Badge */}
                 <div className="hidden sm:flex flex-col items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-100/50 shrink-0">
                   {event.startDate ? (

@@ -141,14 +141,18 @@ export default function AdminUsers() {
     }
   };
 
-  // Filtered users — filter by memberRole (member/angel/admin), not users.role
+  // Filtered users — filter by memberRole (member/angel/admin) or appStatus
   const filtered = useMemo(() => {
     if (!users) return [];
     return users.filter((u: any) => {
       const q = search.toLowerCase();
       const matchSearch = !search || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q);
       const memberRole = u.profile?.memberRole ?? "member";
-      const matchRole = roleFilter === "all" || memberRole === roleFilter;
+      const appStatus = u.profile?.applicationStatus ?? "draft";
+      const matchRole = roleFilter === "all"
+        || roleFilter === memberRole
+        || (roleFilter === "approved" && appStatus === "approved")
+        || (roleFilter === "pending" && ["submitted", "under_review"].includes(appStatus));
       return matchSearch && matchRole;
     });
   }, [users, search, roleFilter]);
@@ -222,6 +226,8 @@ export default function AdminUsers() {
             <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
               {[
                 { key: "all", label: "All" },
+                { key: "approved", label: "Approved" },
+                { key: "pending", label: "Pending" },
                 { key: "member", label: "Members" },
                 { key: "angel", label: "Angels" },
                 { key: "admin", label: "Admins" },
@@ -364,11 +370,20 @@ export default function AdminUsers() {
                             )}
                           </td>
                           <td className="px-5 py-4 text-xs">
-                            {u.emailVerified ? (
-                              <span className="text-emerald-600 font-bold">Verified</span>
-                            ) : (
-                              <span className="text-amber-600 font-bold">Unverified</span>
-                            )}
+                            <div className="flex flex-col gap-1">
+                              {u.profile?.applicationStatus && (
+                                <span className={`font-bold ${
+                                  u.profile.applicationStatus === "approved" ? "text-emerald-600" :
+                                  u.profile.applicationStatus === "rejected" ? "text-red-500" :
+                                  "text-amber-600"
+                                }`}>{u.profile.applicationStatus}</span>
+                              )}
+                              {u.emailVerified ? (
+                                <span className="text-gray-400">Verified</span>
+                              ) : (
+                                <span className="text-amber-500">Unverified</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-5 py-4 text-xs text-gray-400">{format(new Date(u.createdAt), "MMM d, yyyy")}</td>
                           <td className="px-5 py-4">
