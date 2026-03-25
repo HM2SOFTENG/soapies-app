@@ -228,10 +228,19 @@ export const appRouter = router({
       phone: z.string().optional(),
       communityId: z.string().optional(),
       dateOfBirth: z.string().optional(),
+      referredByCode: z.string().max(32).optional(),
     })).mutation(async ({ ctx, input }) => {
       const data: any = { ...input, userId: ctx.user.id };
       if (input.dateOfBirth) data.dateOfBirth = new Date(input.dateOfBirth);
-      return db.upsertProfile(data);
+      const result = await db.upsertProfile(data);
+      // Apply referral code if provided
+      if (input.referredByCode) {
+        const profile = await db.getProfileByUserId(ctx.user.id);
+        if (profile) {
+          await db.applyReferralToProfile(profile.id, input.referredByCode);
+        }
+      }
+      return result;
     }),
     submitApplication: protectedProcedure.mutation(async ({ ctx }) => {
       const profile = await db.getProfileByUserId(ctx.user.id);
@@ -353,7 +362,16 @@ export const appRouter = router({
       totalAmount: z.string().optional(),
       paymentMethod: z.string().optional(),
     })).mutation(async ({ ctx, input }) => {
-      return db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending" });
+      const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending" });
+      // Process referral conversion on first reservation (fires only if not already converted)
+      if (reservationId) {
+        try {
+          await db.processReferralConversion(ctx.user.id, reservationId as number);
+        } catch (err) {
+          console.error("[Referral] Failed to process conversion:", err);
+        }
+      }
+      return reservationId;
     }),
     updateStatus: adminProcedure.input(z.object({
       id: z.number(),
@@ -525,6 +543,19 @@ export const appRouter = router({
       const code = `SOAP${ctx.user.id}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       await db.createReferralCode({ userId: ctx.user.id, code });
       return db.getReferralCode(ctx.user.id);
+    }),
+    validate: publicProcedure.input(z.object({ code: z.string() })).query(async ({ input }) => {
+      const refCode = await db.validateReferralCode(input.code.toUpperCase());
+      if (!refCode) return { valid: false };
+      // Get the referrer's display name
+      const referrerProfile = await db.getProfileByUserId(refCode.userId);
+      return {
+        valid: true,
+        referrerName: referrerProfile?.displayName ?? undefined,
+      };
+    }),
+    adminList: adminProcedure.query(async () => {
+      return db.getReferralPipeline();
     }),
   }),
 
