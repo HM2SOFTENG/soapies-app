@@ -145,5 +145,6 @@ jobs:
             done
           fi
 
-      - name: Start garbage collection
-        run: doctl registry garbage-collection start --include-untagged-manifests --force || true
+      # NOTE: Do NOT trigger garbage collection here — it locks the registry for writes
+      # (sometimes 20-30+ minutes) which causes all subsequent pushes to fail with "unauthorized".
+      # DigitalOcean runs GC automatically. Trigger manually from the DO dashboard if needed.
