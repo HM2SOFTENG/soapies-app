@@ -347,7 +347,11 @@ export function WelcomeFlyersClient() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (currentStep) {
-        setViewedSteps((prev) => new Set([...prev, currentStep.id]))
+        setViewedSteps((prev) => {
+          const next = new Set(Array.from(prev))
+          next.add(currentStep.id)
+          return next
+        })
       }
     }, 1000)
     return () => clearTimeout(timer)
