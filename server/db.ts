@@ -1042,6 +1042,12 @@ export async function getPendingPhotos() {
   return db.select().from(applicationPhotos).where(eq(applicationPhotos.status, "pending")).orderBy(asc(applicationPhotos.createdAt));
 }
 
+export async function getApplicationPhotoById(photoId: number) {
+  const db = await getDb(); if (!db) return null;
+  const r = await db.select().from(applicationPhotos).where(eq(applicationPhotos.id, photoId)).limit(1);
+  return r[0] ?? null;
+}
+
 // ─── PROFILE CHANGE REQUESTS ───────────────────────────────────────────────
 
 export async function createProfileChangeRequest(data: any) {

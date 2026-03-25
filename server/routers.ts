@@ -382,6 +382,33 @@ export const appRouter = router({
         } catch (err) {
           console.error("[Referral] Failed to process conversion:", err);
         }
+        // Auto-post reservation to wall (only once per user+event within 24h)
+        try {
+          const event = await db.getEventById(input.eventId);
+          if (event) {
+            const profile = await db.getProfileByUserId(ctx.user.id);
+            const user = await db.getUserById(ctx.user.id);
+            const userName = profile?.displayName || user?.name || "A member";
+            const communityId = event.communityId ?? "soapies";
+            const recentPosts = await db.getWallPosts(communityId, 200);
+            const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const alreadyPosted = recentPosts.some(p =>
+              p.authorId === ctx.user.id &&
+              p.content?.includes(event.title) &&
+              new Date(p.createdAt) > cutoff
+            );
+            if (!alreadyPosted) {
+              await db.createWallPost({
+                authorId: ctx.user.id,
+                communityId,
+                content: `${userName} just reserved a spot for ${event.title}! 🎟️`,
+                visibility: "members",
+              });
+            }
+          }
+        } catch (err) {
+          console.error("[Wall] Failed to post reservation message:", err);
+        }
       }
       return reservationId;
     }),
@@ -1020,6 +1047,27 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       await db.updateApplicationPhotoStatus(input.photoId, input.status);
       await db.createAuditLog({ adminId: ctx.user.id, action: `photo_${input.status}`, targetType: "photo", targetId: input.photoId });
+      // Auto-post to wall when photo is approved
+      if (input.status === "approved") {
+        try {
+          const photo = await db.getApplicationPhotoById(input.photoId);
+          if (photo) {
+            const profile = await db.getProfileByProfileId(photo.profileId);
+            if (profile) {
+              const user = await db.getUserById(profile.userId);
+              const userName = profile.displayName || user?.name || "A member";
+              await db.createWallPost({
+                authorId: profile.userId,
+                communityId: profile.communityId ?? "soapies",
+                content: `${userName} just added new photos to their profile! 📸`,
+                visibility: "members",
+              });
+            }
+          }
+        } catch (err) {
+          console.error("[Wall] Failed to post photo approved message:", err);
+        }
+      }
       return { success: true };
     }),
   }),
@@ -1131,6 +1179,20 @@ export const appRouter = router({
         }
         await db.createApplicationLog({ profileId: input.profileId, action: "final_approved", performedBy: ctx.user.id, notes: `Approved as ${role}` });
         await db.createAuditLog({ adminId: ctx.user.id, action: "application_approved", targetType: "profile", targetId: input.profileId });
+
+        // Auto-post welcome to community wall
+        try {
+          const displayName = profile.displayName || userName;
+          const communityId = profile.communityId ?? "soapies";
+          await db.createWallPost({
+            authorId: ctx.user.id,
+            communityId,
+            content: `🎉 Please welcome ${displayName} to the Soapies community!`,
+            visibility: "members",
+          });
+        } catch (err) {
+          console.error("[Wall] Failed to post welcome message:", err);
+        }
 
         try {
           const template = notif.buildApprovalNotification(userName);
