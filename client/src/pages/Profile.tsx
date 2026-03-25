@@ -188,13 +188,13 @@ export default function Profile() {
                 {profile.displayName || user?.name || "Anonymous"}
               </h1>
               <div className="flex flex-col md:flex-row gap-3 items-center md:items-start">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border ${memberRoleBadgeColor[profile.memberRole as keyof typeof memberRoleBadgeColor] || memberRoleBadgeColor.pending}`}>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border ${memberRoleBadgeColor[(profile.memberRole ?? "pending") as keyof typeof memberRoleBadgeColor] || memberRoleBadgeColor.pending}`}>
                   {profile.memberRole === "angel" && <Heart className="h-3.5 w-3.5" />}
                   {profile.memberRole === "admin" && <Shield className="h-3.5 w-3.5" />}
-                  {profile.memberRole.charAt(0).toUpperCase() + profile.memberRole.slice(1)}
+                  {(profile.memberRole ?? "pending").charAt(0).toUpperCase() + (profile.memberRole ?? "pending").slice(1)}
                 </span>
                 <span className="text-sm text-gray-500">
-                  Member since {new Date(profile.createdAt).toLocaleDateString()}
+                  Member since {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "—"}
                 </span>
               </div>
               {profile.bio && (
