@@ -28,6 +28,7 @@ import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import WelcomeGuide from "./pages/WelcomeGuide";
+import ScheduleInterview from "./pages/ScheduleInterview";
 import { AnimatePresence } from "framer-motion";
 import BottomTabNav from "./components/BottomTabNav";
 import { FloatingBubbles } from "./components/FloatingElements";
@@ -60,6 +61,7 @@ function Router() {
         <Route path="/verify-email" component={VerifyEmail} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/pending" component={PendingApproval} />
+        <Route path="/schedule-interview" component={ScheduleInterview} />
 
         {/* Public routes */}
         <Route path="/" component={Home} />
@@ -91,7 +93,7 @@ function Router() {
 }
 
 /** Pages where bottom tab nav should be hidden */
-const HIDE_TABS_PATHS = ["/login", "/register", "/join", "/verify-email", "/forgot-password", "/pending", "/admin"];
+const HIDE_TABS_PATHS = ["/login", "/register", "/join", "/verify-email", "/forgot-password", "/pending", "/schedule-interview", "/admin"];
 
 function AppShell() {
   const [location] = useWouterLocation();
