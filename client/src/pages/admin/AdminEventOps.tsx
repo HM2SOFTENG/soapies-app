@@ -7,14 +7,32 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2, Check, X, Users, DollarSign, ClipboardList, Search,
   ChevronRight, Sparkles, AlertCircle, MapPin, Calendar, Zap,
-  RefreshCw, Eye, XCircle, Clock, TrendingUp
+  RefreshCw, Eye, XCircle, Clock, TrendingUp, FlaskConical, ExternalLink
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 // ─── TABS ───────────────────────────────────────────────────────────────
-type TabType = "reservations" | "checkin" | "staff" | "finances";
+type TabType = "reservations" | "checkin" | "staff" | "finances" | "testResults";
+
+// ─── WRISTBAND BADGE ────────────────────────────────────────────────────
+function WristbandBadge({ color, size = "sm" }: { color?: string | null; size?: "sm" | "lg" }) {
+  if (!color) return <span className="text-gray-400">—</span>;
+  const config: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
+    rainbow: { emoji: "🌈", label: "Rainbow", bg: "bg-purple-100", text: "text-purple-800" },
+    purple: { emoji: "💜", label: "Purple", bg: "bg-purple-100", text: "text-purple-700" },
+    blue: { emoji: "💙", label: "Blue", bg: "bg-blue-100", text: "text-blue-700" },
+    pink: { emoji: "🩷", label: "Pink", bg: "bg-pink-100", text: "text-pink-700" },
+  };
+  const c = config[color];
+  if (!c) return <span className="text-gray-400">—</span>;
+  return (
+    <span className={`inline-flex items-center gap-1 px-${size === "lg" ? "3" : "2"} py-${size === "lg" ? "1.5" : "0.5"} rounded-full text-${size === "lg" ? "sm" : "xs"} font-bold ${c.bg} ${c.text}`}>
+      {c.emoji} {c.label}
+    </span>
+  );
+}
 
 // ─── RESERVATIONS TAB ───────────────────────────────────────────────────
 function ReservationsTab({ eventId }: { eventId: number }) {
@@ -29,9 +47,11 @@ function ReservationsTab({ eventId }: { eventId: number }) {
 
   const filtered = useMemo(() => {
     if (!reservations) return [];
-    return reservations.filter((r: any) =>
-      !search || r.user?.name?.toLowerCase().includes(search.toLowerCase())
-    );
+    return (reservations as any[]).filter((r: any) => {
+      if (!search) return true;
+      const name = r.displayName || r.profile?.displayName || r.user?.name || "";
+      return name.toLowerCase().includes(search.toLowerCase());
+    });
   }, [reservations, search]);
 
   const statusColors: Record<string, string> = {
@@ -77,13 +97,26 @@ function ReservationsTab({ eventId }: { eventId: number }) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-800">{r.user?.name}</p>
-                  <p className="text-sm text-gray-600">{r.ticketType} × {r.quantity}</p>
+                  <p className="font-bold text-gray-800">{r.displayName || r.profile?.displayName || r.user?.name || "Unknown"}</p>
+                  <p className="text-xs text-gray-500">{r.user?.email}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="text-sm text-gray-600">{r.ticketType} × {r.quantity}</span>
+                    <WristbandBadge color={r.wristbandColor} />
+                  </div>
+                  {r.partnerUserId && (
+                    <p className="text-xs text-purple-600 mt-1 font-medium">👥 Couple ticket</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">{format(new Date(r.createdAt), "MMM d, yyyy h:mm a")}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="font-bold text-gray-800">${parseFloat(r.totalAmount || "0").toFixed(2)}</p>
                   <span className={`text-xs font-bold uppercase px-2 py-1 rounded-full ${
+                    r.paymentStatus === "paid" ? "bg-green-200 text-green-800" :
+                    r.paymentStatus === "failed" ? "bg-red-200 text-red-800" :
+                    "bg-yellow-200 text-yellow-800"
+                  }`}>{r.paymentStatus}</span>
+                  <br />
+                  <span className={`text-xs font-bold uppercase px-2 py-1 rounded-full mt-1 inline-block ${
                     r.status === "confirmed" ? "bg-green-200 text-green-800" :
                     r.status === "checked_in" ? "bg-blue-200 text-blue-800" :
                     r.status === "cancelled" ? "bg-red-200 text-red-800" :
@@ -160,11 +193,12 @@ function CheckInTab({ eventId }: { eventId: number }) {
 
   const matching = useMemo(() => {
     if (!search || !reservations) return [];
-    return reservations.filter((r: any) =>
-      r.user?.name?.toLowerCase().includes(search.toLowerCase()) &&
-      r.status !== "checked_in" &&
-      r.status !== "cancelled"
-    );
+    return (reservations as any[]).filter((r: any) => {
+      const name = r.displayName || r.profile?.displayName || r.user?.name || "";
+      return name.toLowerCase().includes(search.toLowerCase()) &&
+        r.status !== "checked_in" &&
+        r.status !== "cancelled";
+    });
   }, [search, reservations]);
 
   return (
@@ -211,8 +245,11 @@ function CheckInTab({ eventId }: { eventId: number }) {
                   onClick={() => updateStatus.mutate({ id: r.id, status: "checked_in" })}
                   className="w-full p-4 rounded-xl bg-white border border-pink-100 hover:border-pink-300 text-left transition-all"
                 >
-                  <p className="font-semibold text-gray-800">{r.user?.name}</p>
-                  <p className="text-xs text-gray-500">{r.ticketType} × {r.quantity}</p>
+                  <div>
+                    <p className="font-semibold text-gray-800">{r.displayName || r.profile?.displayName || r.user?.name}</p>
+                    <p className="text-xs text-gray-500">{r.ticketType} × {r.quantity}</p>
+                    <div className="mt-1"><WristbandBadge color={r.wristbandColor} size="lg" /></div>
+                  </div>
                 </motion.button>
               ))
             )}
@@ -234,7 +271,7 @@ function CheckInTab({ eventId }: { eventId: number }) {
               >
                 <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">{r.user?.name}</p>
+                  <p className="text-sm font-semibold text-gray-800">{r.displayName || r.profile?.displayName || r.user?.name}</p>
                   <p className="text-xs text-gray-500">{format(new Date(r.checkedInAt || Date.now()), "h:mm a")}</p>
                 </div>
               </motion.div>
@@ -449,6 +486,90 @@ function FinancesTab({ eventId }: { eventId: number }) {
   );
 }
 
+// ─── TEST RESULTS TAB ───────────────────────────────────────────────────
+function TestResultsTab({ eventId }: { eventId: number }) {
+  const utils = trpc.useUtils();
+  const { data: submissions, isLoading } = trpc.testResults.pending.useQuery({ eventId });
+  const reviewMutation = trpc.testResults.review.useMutation({
+    onSuccess: () => {
+      toast.success("Review submitted");
+      utils.testResults.pending.invalidate();
+      utils.reservations.byEvent.invalidate({ eventId });
+    },
+    onError: (e: any) => toast.error(e.message || "Failed to review"),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 text-pink-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!submissions || submissions.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <FlaskConical className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+        <p className="text-gray-500 font-medium">No pending test results</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {submissions.map((s: any, i: number) => (
+        <motion.div
+          key={s.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.05 }}
+          className="p-5 rounded-2xl border bg-cyan-50 border-cyan-200"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-gray-800">{s.user?.name || "Unknown"}</p>
+              <p className="text-xs text-gray-500">{s.user?.email}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Submitted: {format(new Date(s.submittedAt), "MMM d, yyyy h:mm a")}
+              </p>
+              <a
+                href={s.resultUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
+              >
+                <ExternalLink className="h-3 w-3" /> View Result
+              </a>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => reviewMutation.mutate({ id: s.id, status: "approved" })}
+                disabled={reviewMutation.isPending}
+                size="sm"
+                className="bg-green-500 text-white rounded-lg text-xs gap-1"
+              >
+                {reviewMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Approve 💙
+              </Button>
+              <Button
+                onClick={() => reviewMutation.mutate({ id: s.id, status: "rejected" })}
+                disabled={reviewMutation.isPending}
+                size="sm"
+                variant="outline"
+                className="border-red-200 text-red-600 rounded-lg text-xs gap-1 hover:bg-red-50"
+              >
+                {reviewMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                Reject
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────
 export default function AdminEventOps() {
   const { id } = useParams<{ id: string }>();
@@ -463,6 +584,7 @@ export default function AdminEventOps() {
   const tabs: { id: TabType; label: string; icon: any }[] = [
     { id: "reservations", label: "Reservations", icon: Users },
     { id: "checkin", label: "Check-In", icon: Eye },
+    { id: "testResults", label: "Test Results", icon: FlaskConical },
     { id: "staff", label: "Staff", icon: Sparkles },
     { id: "finances", label: "Finances", icon: DollarSign },
   ];
@@ -551,6 +673,7 @@ export default function AdminEventOps() {
         >
           {activeTab === "reservations" && <ReservationsTab eventId={eventId} />}
           {activeTab === "checkin" && <CheckInTab eventId={eventId} />}
+          {activeTab === "testResults" && <TestResultsTab eventId={eventId} />}
           {activeTab === "staff" && <StaffTab eventId={eventId} />}
           {activeTab === "finances" && <FinancesTab eventId={eventId} />}
         </motion.div>
