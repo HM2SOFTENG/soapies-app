@@ -126,17 +126,23 @@ jobs:
 
       - name: Delete old image manifests (keep latest 3)
         run: |
+          set +e
           REPO="${{ env.IMAGE_NAME }}"
-          # List all tags except 'latest', sorted oldest first
-          TAGS=$(doctl registry repository list-tags "$REPO" --format Tag,UpdatedAt --no-header | grep -v "^latest" | sort -k2 | head -n -3 | awk '{print $1}')
+          # List all tags except 'latest', sorted oldest first; || true prevents grep exit-code 1 on no match
+          ALL_TAGS=$(doctl registry repository list-tags "$REPO" --format Tag,UpdatedAt --no-header 2>/dev/null)
+          if [ -z "$ALL_TAGS" ]; then
+            echo "No tags found in repository."
+            exit 0
+          fi
+          TAGS=$(echo "$ALL_TAGS" | grep -v "^latest" | sort -k2 | head -n -3 | awk '{print $1}' || true)
           if [ -z "$TAGS" ]; then
             echo "No old tags to clean up."
           else
             for TAG in $TAGS; do
               echo "Deleting $REPO:$TAG ..."
-              doctl registry repository delete-tag "$REPO" --tag "$TAG" --force
+              doctl registry repository delete-tag "$REPO" --tag "$TAG" --force || true
             done
           fi
 
       - name: Start garbage collection
-        run: doctl registry garbage-collection start --include-untagged-manifests --force
+        run: doctl registry garbage-collection start --include-untagged-manifests --force || true
