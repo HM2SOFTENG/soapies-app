@@ -1500,8 +1500,8 @@ export function WelcomeFlyersClient() {
       </header>
 
       {/* Section indicators */}
-      <div ref={sectionNavRef} className="sticky top-[72px] z-30 bg-white/80 backdrop-blur-sm border-b border-pink-50 py-2 px-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-2 max-w-3xl mx-auto justify-start sm:justify-center">
+      <div ref={sectionNavRef} className="sticky top-[72px] z-30 bg-white/80 backdrop-blur-sm border-b border-pink-50 py-2 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-2 px-4 w-max min-w-full sm:w-auto sm:max-w-3xl sm:mx-auto sm:justify-center sm:flex-wrap sm:w-full">
           {sections.map((section) => {
             const isActive = currentSection === section.id
             const sectionSteps = steps.filter((s) => {

@@ -402,31 +402,35 @@ export default function AdminApplicationReview() {
 
   return (
     <AdminLayout title="Application Review">
-      {/* Phase Tabs */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {PHASE_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
-              activeTab === tab.key
-                ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-200"
-                : "bg-white/80 text-gray-600 border border-pink-100 hover:border-pink-300 hover:text-pink-600"
-            }`}
-          >
-            {tab.label}
-            {tabCounts[tab.key] > 0 && (
-              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                activeTab === tab.key ? "bg-white/30 text-white" : "bg-pink-100 text-pink-600"
-              }`}>
-                {tabCounts[tab.key]}
+      {/* Phase Tabs — horizontal scroll on mobile, grid on desktop */}
+      <div className="mb-6 -mx-1">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible">
+          {PHASE_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`relative flex-shrink-0 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all text-left sm:text-center ${
+                activeTab === tab.key
+                  ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-200"
+                  : "bg-white/80 text-gray-600 border border-pink-100 hover:border-pink-300 hover:text-pink-600"
+              }`}
+            >
+              <span className="flex items-center gap-1.5 whitespace-nowrap sm:justify-center">
+                {tab.label}
+                {tabCounts[tab.key] > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === tab.key ? "bg-white/30 text-white" : "bg-pink-100 text-pink-600"
+                  }`}>
+                    {tabCounts[tab.key]}
+                  </span>
+                )}
               </span>
-            )}
-            <span className={`block text-[10px] font-normal mt-0.5 ${activeTab === tab.key ? "text-white/70" : "text-gray-400"}`}>
-              {tab.desc}
-            </span>
-          </button>
-        ))}
+              <span className={`block text-[10px] font-normal mt-0.5 whitespace-nowrap ${activeTab === tab.key ? "text-white/70" : "text-gray-400"}`}>
+                {tab.desc}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}

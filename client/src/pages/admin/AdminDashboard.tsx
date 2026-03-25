@@ -76,6 +76,8 @@ export default function AdminDashboard() {
     { label: "Create Event", desc: "Schedule a new party", href: "/admin/events", icon: Calendar, gradient: "from-pink-500 to-rose-500" },
     { label: "Manage Users", desc: "View all members", href: "/admin/users", icon: Users, gradient: "from-purple-500 to-indigo-500" },
     { label: "Applications", desc: "Review new signups", href: "/admin/applications", icon: Target, gradient: "from-fuchsia-500 to-pink-500" },
+    { label: "Interview Slots", desc: "Manage call availability", href: "/admin/interview-slots", icon: Clock, gradient: "from-blue-500 to-cyan-500" },
+    { label: "Referrals", desc: "Track referral pipeline", href: "/admin/referrals", icon: Share2, gradient: "from-emerald-500 to-teal-500" },
     { label: "Settings", desc: "Configure platform", href: "/admin/settings", icon: Zap, gradient: "from-violet-500 to-purple-500" },
   ];
 

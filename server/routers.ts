@@ -908,6 +908,30 @@ export const appRouter = router({
       const profile = await db.getProfileByUserId(ctx.user.id);
       if (!profile) throw new Error("Profile required to book intro call");
       await db.bookIntroSlot(input.slotId, profile.id);
+
+      // Notify admins that a slot was booked
+      try {
+        const slot = await db.getIntroSlotById(input.slotId);
+        const applicantName = profile.displayName || ctx.user.name || "An applicant";
+        const slotTime = slot ? new Date(slot.scheduledAt).toLocaleString("en-US", {
+          weekday: "short", month: "short", day: "numeric",
+          hour: "numeric", minute: "2-digit", timeZoneName: "short"
+        }) : "a scheduled time";
+        const admins = await db.getAdminUsers();
+        for (const admin of admins) {
+          await notif.sendNotification({
+            userId: admin.id,
+            type: "system",
+            title: "Interview Slot Booked",
+            body: `${applicantName} has booked an interview slot for ${slotTime}.`,
+            email: admin.email ?? undefined,
+            data: { link: "https://soapiesplaygrp.club/admin/interview-slots" },
+          }).catch(() => {}); // non-blocking
+        }
+      } catch {
+        // Don't fail booking if notification fails
+      }
+
       return { success: true };
     }),
     update: adminProcedure.input(z.object({
@@ -1062,7 +1086,7 @@ export const appRouter = router({
 
         // Send interview scheduling email
         try {
-          const scheduleUrl = `${process.env.PUBLIC_URL || "https://soapies.app"}/schedule-interview`;
+          const scheduleUrl = `https://soapiesplaygrp.club/schedule-interview`;
           const template = notif.buildInterviewScheduleNotification(userName, scheduleUrl);
           await notif.sendNotification({
             userId: profile.userId,

@@ -923,6 +923,17 @@ export async function deleteIntroSlot(id: number) {
   await db.delete(introCallSlots).where(eq(introCallSlots.id, id));
 }
 
+export async function getIntroSlotById(id: number) {
+  const db = await getDb(); if (!db) return null;
+  const rows = await db.select().from(introCallSlots).where(eq(introCallSlots.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getAdminUsers() {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(users).where(eq(users.role, "admin"));
+}
+
 // ─── SINGLE MALE INVITE CODES ──────────────────────────────────────────────
 
 export async function createSingleMaleInviteCode(data: any) {
