@@ -27,7 +27,7 @@ export default function PageWrapper({
         animate="animate"
         exit="exit"
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        className={`${withNavbar ? "pt-16" : ""} ${withPadding ? "pb-20" : ""} ${className}`}
+        className={`${withNavbar ? "pt-16" : ""} ${withPadding ? "pb-20 md:pb-20 max-md:pb-28" : ""} ${className}`}
       >
         {children}
       </motion.div>

@@ -326,46 +326,30 @@ export default function Navbar() {
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-3">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="outline"
-                    onClick={() => setLocation("/login")}
-                    className="rounded-xl px-5 py-2 text-sm gap-2 border-pink-200 text-pink-600 hover:bg-pink-50"
-                  >
-                    <span>Log In</span>
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    onClick={() => setLocation("/join")}
-                    className="btn-premium rounded-xl px-5 py-2 text-sm gap-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span>Join Now</span>
-                  </Button>
-                </motion.div>
-              </div>
+              /* Logged-out: no header buttons — bottom tabs handle navigation on mobile, desktop shows nav links */
+              null
             )}
 
-            {/* Mobile hamburger */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2.5 rounded-xl hover:bg-pink-50 transition-colors"
-            >
-              <AnimatePresence mode="wait">
-                {mobileOpen ? (
-                  <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-                    <X className="h-5 w-5 text-gray-700" />
-                  </motion.div>
-                ) : (
-                  <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-                    <Menu className="h-5 w-5 text-gray-700" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.button>
+            {/* Mobile hamburger — only for authenticated users */}
+            {isAuthenticated && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setMobileOpen(!mobileOpen)}
+                className="md:hidden p-2.5 rounded-xl hover:bg-pink-50 transition-colors"
+              >
+                <AnimatePresence mode="wait">
+                  {mobileOpen ? (
+                    <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+                      <X className="h-5 w-5 text-gray-700" />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+                      <Menu className="h-5 w-5 text-gray-700" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            )}
           </div>
         </div>
       </motion.nav>

@@ -26,6 +26,9 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import WelcomeGuide from "./pages/WelcomeGuide";
 import { AnimatePresence } from "framer-motion";
+import BottomTabNav from "./components/BottomTabNav";
+import { FloatingBubbles } from "./components/FloatingElements";
+import { useLocation as useWouterLocation } from "wouter";
 
 /** Wraps a component with the RequireProfile guard */
 function withProfileGuard(Component: React.ComponentType<any>) {
@@ -41,7 +44,6 @@ function withProfileGuard(Component: React.ComponentType<any>) {
 // Guarded versions of protected pages
 const GuardedDashboard = withProfileGuard(Dashboard);
 const GuardedProfile = withProfileGuard(Profile);
-const GuardedWall = withProfileGuard(Wall);
 const GuardedMessages = withProfileGuard(Messages);
 
 function Router() {
@@ -66,7 +68,7 @@ function Router() {
         {/* Protected routes — require completed profile */}
         <Route path="/dashboard" component={GuardedDashboard} />
         <Route path="/profile" component={GuardedProfile} />
-        <Route path="/wall" component={GuardedWall} />
+        <Route path="/wall" component={Wall} />
         <Route path="/messages" component={GuardedMessages} />
 
         {/* Admin routes — admins skip profile check via RequireProfile logic */}
@@ -83,13 +85,32 @@ function Router() {
   );
 }
 
+/** Pages where bottom tab nav should be hidden */
+const HIDE_TABS_PATHS = ["/login", "/register", "/join", "/verify-email", "/forgot-password", "/pending", "/admin"];
+
+function AppShell() {
+  const [location] = useWouterLocation();
+  const hideTabs = HIDE_TABS_PATHS.some(p => location.startsWith(p));
+
+  return (
+    <>
+      {/* Persistent animated bubble background across the entire app */}
+      <FloatingBubbles count={12} className="fixed inset-0 z-0 pointer-events-none opacity-40" />
+      <div className="relative z-10">
+        <Router />
+      </div>
+      {!hideTabs && <BottomTabNav />}
+    </>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster richColors position="top-center" />
-          <Router />
+          <AppShell />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

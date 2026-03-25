@@ -4,17 +4,18 @@ import { trpc } from "@/lib/trpc";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import {
   Sparkles, Calendar, Users, MessageCircle, Heart, Star,
-  ArrowRight, Shield, MapPin, Clock, Ticket, ChevronRight,
+  ArrowRight, Shield, MapPin, Ticket,
   PartyPopper, Music, Waves, Zap, Crown, Lock
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { FloatingBubbles, MorphBlob, GlowOrb, GridPattern } from "@/components/FloatingElements";
 import { Link, useLocation } from "wouter";
-import { format, isFuture, differenceInDays } from "date-fns";
-import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import { format, isFuture } from "date-fns";
+import { useMemo, useRef, useState, useEffect } from "react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png";
 const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/hero-bg-WtnkLUDM6Zi7KpGbebTJq8.webp";
+
 
 // ─── ANIMATED COUNTER ────────────────────────────────────────────────────────
 function AnimatedCounter({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) {
@@ -38,60 +39,62 @@ function AnimatedCounter({ target, suffix = "", prefix = "" }: { target: number;
   return <span ref={ref}>{prefix}{count.toLocaleString()}{suffix}</span>;
 }
 
-// ─── EVENTS SHOWCASE ─────────────────────────────────────────────────────────
-function HomeEventsShowcase() {
+// ─── NEXT EVENT COUNTDOWN ────────────────────────────────────────────────────
+function NextEventCountdown() {
   const { data: events } = trpc.events.list.useQuery(undefined, {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
   const [, setLocation] = useLocation();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
-
-  const upcomingEvents = useMemo(() => {
-    if (!events) return [];
-    return [...events]
-      .filter((e: any) => isFuture(new Date(e.startDate)))
-      .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-      .slice(0, 12);
-  }, [events]);
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || upcomingEvents.length <= 2) return;
-    let animationId: number;
-    const scroll = () => {
-      if (!isPaused && el) {
-        el.scrollLeft += 0.5;
-        if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 10) el.scrollLeft = 0;
-      }
-      animationId = requestAnimationFrame(scroll);
-    };
-    animationId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationId);
-  }, [isPaused, upcomingEvents.length]);
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  if (!upcomingEvents.length) return null;
+  const nextEvent = useMemo(() => {
+    if (!events) return null;
+    return [...events]
+      .filter((e: any) => isFuture(new Date(e.startDate)))
+      .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0] || null;
+  }, [events]);
+
+  if (!nextEvent) return null;
+
+  const eventDate = new Date(nextEvent.startDate);
+  const diff = eventDate.getTime() - now.getTime();
+  const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+  const hours = Math.max(0, Math.floor((diff / (1000 * 60 * 60)) % 24));
+  const minutes = Math.max(0, Math.floor((diff / (1000 * 60)) % 60));
+  const seconds = Math.max(0, Math.floor((diff / 1000) % 60));
 
   const getTypeIcon = (title: string) => {
     const l = title.toLowerCase();
-    if (l.includes("rave") || l.includes("glow")) return <Music className="h-3 w-3" />;
-    if (l.includes("beach")) return <Waves className="h-3 w-3" />;
-    return <PartyPopper className="h-3 w-3" />;
+    if (l.includes("rave") || l.includes("glow")) return <Music className="h-5 w-5" />;
+    if (l.includes("beach")) return <Waves className="h-5 w-5" />;
+    return <PartyPopper className="h-5 w-5" />;
   };
 
-  return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-pink-50/30 via-purple-50/20 to-white" />
-      <GridPattern className="opacity-50" />
-      <GlowOrb className="-top-20 -right-20" color="oklch(0.75 0.18 340 / 0.1)" size={400} />
+  const countdownBlocks = [
+    { value: days, label: "Days" },
+    { value: hours, label: "Hours" },
+    { value: minutes, label: "Mins" },
+    { value: seconds, label: "Secs" },
+  ];
 
-      <div className="relative z-10 container px-4">
+  return (
+    <section className="py-14 md:py-20 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-purple-50/40 via-white to-pink-50/30" />
+      <GlowOrb className="top-20 -left-32" color="oklch(0.65 0.2 320 / 0.08)" size={380} />
+      <MorphBlob className="bottom-0 right-0" color="from-pink-200 to-purple-200" size="w-80 h-80" />
+
+      <div className="relative z-10 container px-4 max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="text-center mb-10"
         >
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
@@ -99,110 +102,124 @@ function HomeEventsShowcase() {
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-100 to-purple-100 text-pink-600 text-xs font-bold mb-4"
           >
-            <Calendar className="h-3.5 w-3.5" /> UPCOMING EXPERIENCES
+            <Calendar className="h-3.5 w-3.5" /> NEXT EXPERIENCE
           </motion.span>
           <h2 className="font-display text-4xl md:text-6xl font-black text-gradient">
-            Don't Miss Out
+            Coming Up Next
           </h2>
-          <p className="mt-4 text-gray-500 max-w-md mx-auto text-base">
-            Our next unforgettable experiences are waiting for you.
-          </p>
         </motion.div>
-      </div>
 
-      <div
-        ref={scrollRef}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setTimeout(() => setIsPaused(false), 3000)}
-        className="flex gap-5 overflow-x-auto px-4 pb-6 no-scrollbar"
-      >
-        {upcomingEvents.map((event: any, i: number) => {
-          const daysUntil = differenceInDays(new Date(event.startDate), new Date());
-          return (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, x: 40 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06 }}
-              whileHover={{ y: -8 }}
-              onClick={() => setLocation(`/events/${event.id}`)}
-              className="flex-shrink-0 w-[280px] sm:w-[320px] group cursor-pointer"
-            >
-              <div className="card-premium card-glow rounded-2xl overflow-hidden">
-                <div className="aspect-[16/10] overflow-hidden relative">
-                  {event.coverImageUrl ? (
-                    <img src={event.coverImageUrl} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center">
-                      <Calendar className="h-12 w-12 text-white/50" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                  {daysUntil <= 14 && (
-                    <motion.span
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="absolute top-3 right-3 px-2.5 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] font-black rounded-full shadow-lg"
-                    >
-                      {daysUntil === 0 ? "TODAY!" : daysUntil === 1 ? "TOMORROW" : `${daysUntil} DAYS`}
-                    </motion.span>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold">
-                      {getTypeIcon(event.title)}
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
+          whileHover={{ y: -4 }}
+          onClick={() => nextEvent.id && setLocation(`/events/${nextEvent.id}`)}
+          className="cursor-pointer"
+        >
+          <div className="card-premium border-animated rounded-3xl overflow-hidden shadow-2xl shadow-pink-100/30">
+            {/* Event header with cover or gradient */}
+            <div className="relative h-48 md:h-56 overflow-hidden">
+              {nextEvent.coverImageUrl ? (
+                <img
+                  src={nextEvent.coverImageUrl}
+                  alt={nextEvent.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <FloatingBubbles count={5} className="opacity-30" />
+
+              {/* Type badge */}
+              <div className="absolute top-4 left-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold border border-white/10">
+                  {getTypeIcon(nextEvent.title)}
+                  <span className="uppercase tracking-wider">{nextEvent.title.toLowerCase().includes("rave") ? "Rave" : nextEvent.title.toLowerCase().includes("beach") ? "Beach" : "House Party"}</span>
+                </span>
+              </div>
+
+              {/* Event info overlay */}
+              <div className="absolute bottom-4 left-4 right-4">
+                <h3 className="font-display text-2xl md:text-3xl font-black text-white mb-1 leading-tight">
+                  {nextEvent.title}
+                </h3>
+                <div className="flex items-center gap-4 text-white/80 text-sm">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {format(eventDate, "EEEE, MMMM d")}
+                  </span>
+                  {nextEvent.venue && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {nextEvent.venue}
                     </span>
-                  </div>
-                  <div className="absolute bottom-3 left-3 text-white">
-                    <p className="text-xl font-black leading-tight">{format(new Date(event.startDate), "MMM d")}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{format(new Date(event.startDate), "EEEE")}</p>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-display text-sm font-bold text-gray-800 mb-2 group-hover:text-pink-600 transition-colors line-clamp-1">
-                    {event.title}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
-                    <MapPin className="h-3 w-3 text-purple-400" />
-                    <span className="truncate">{event.venue}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-1">
-                      <span className="px-2 py-0.5 bg-pink-50 text-pink-600 text-[10px] font-bold rounded-full">$40</span>
-                      <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-full">$130</span>
-                    </div>
-                    <span className="btn-premium px-3 py-1 text-[10px] font-black rounded-full inline-flex items-center gap-1">
-                      <Ticket className="h-3 w-3" /> TICKETS
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
-            </motion.div>
-          );
-        })}
-      </div>
+            </div>
 
-      <div className="relative z-10 container px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mt-10"
-        >
-          <Link href="/events">
-            <motion.div whileHover={{ scale: 1.05, x: 4 }} whileTap={{ scale: 0.95 }} className="inline-block">
-              <Button size="lg" variant="outline" className="rounded-2xl px-8 border-pink-200 text-pink-600 hover:bg-pink-50 gap-2 font-bold">
-                View All Events <ArrowRight className="h-5 w-5" />
-              </Button>
-            </motion.div>
-          </Link>
+            {/* Countdown timer */}
+            <div className="bg-white p-6 md:p-8">
+              <div className="grid grid-cols-4 gap-3 md:gap-6 max-w-lg mx-auto">
+                {countdownBlocks.map((block, i) => (
+                  <motion.div
+                    key={block.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 + i * 0.08 }}
+                    className="text-center"
+                  >
+                    <div className="relative">
+                      <div className="glass-pink rounded-2xl px-2 py-3 md:py-4">
+                        <motion.span
+                          key={block.value}
+                          initial={{ y: -5, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          className="font-display text-3xl md:text-5xl font-black text-gradient-static block"
+                        >
+                          {String(block.value).padStart(2, "0")}
+                        </motion.span>
+                      </div>
+                      {i < 3 && (
+                        <div className="absolute top-1/2 -right-2 md:-right-4 -translate-y-1/2 flex flex-col gap-1">
+                          <div className="w-1 h-1 rounded-full bg-pink-300" />
+                          <div className="w-1 h-1 rounded-full bg-pink-300" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mt-2 block">
+                      {block.label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button className="btn-premium rounded-2xl px-8 py-3 text-sm gap-2 font-bold">
+                    <Ticket className="h-4 w-4" /> Get Tickets
+                  </Button>
+                </motion.div>
+                <Link href="/events">
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button variant="outline" className="rounded-2xl px-6 py-3 text-sm border-pink-200 text-pink-600 hover:bg-pink-50 gap-2 font-bold">
+                      All Events <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </motion.div>
+                </Link>
+              </div>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
   );
 }
+
 
 // ─── MAIN HOME PAGE ──────────────────────────────────────────────────────────
 export default function Home() {
@@ -224,13 +241,51 @@ export default function Home() {
         <motion.div className="absolute inset-0" style={{ y: heroY, scale: heroScale }}>
           <img src={HERO_BG} alt="" className="w-full h-full object-cover" />
         </motion.div>
+
+        {/* Animated gradient overlay */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{
+            background: [
+              "radial-gradient(ellipse at 20% 50%, oklch(0.7 0.2 340 / 0.15) 0%, transparent 50%)",
+              "radial-gradient(ellipse at 80% 50%, oklch(0.65 0.22 310 / 0.15) 0%, transparent 50%)",
+              "radial-gradient(ellipse at 50% 80%, oklch(0.7 0.2 340 / 0.15) 0%, transparent 50%)",
+              "radial-gradient(ellipse at 20% 50%, oklch(0.7 0.2 340 / 0.15) 0%, transparent 50%)",
+            ],
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        />
+
         <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-white" />
         <div className="absolute inset-0 bg-gradient-to-r from-pink-900/10 to-purple-900/10" />
 
         {/* Floating elements */}
-        <FloatingBubbles count={10} />
+        <FloatingBubbles count={12} />
         <MorphBlob className="-top-32 -left-32" color="from-pink-300 to-rose-400" size="w-96 h-96" />
         <MorphBlob className="-bottom-32 -right-32" color="from-purple-300 to-indigo-400" size="w-80 h-80" />
+
+        {/* Animated sparkles */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <motion.div
+            key={`sparkle-${i}`}
+            className="absolute w-1 h-1 rounded-full bg-pink-300 pointer-events-none"
+            initial={{
+              opacity: 0,
+              x: Math.cos((i / 8) * Math.PI * 2) * 150,
+              y: Math.sin((i / 8) * Math.PI * 2) * 150,
+            }}
+            animate={{
+              opacity: [0, 1, 0],
+              x: Math.cos((i / 8) * Math.PI * 2) * 300,
+              y: Math.sin((i / 8) * Math.PI * 2) * 300,
+            }}
+            transition={{
+              duration: 3,
+              delay: i * 0.3,
+              repeat: Infinity,
+            }}
+          />
+        ))}
 
         <motion.div style={{ opacity: heroOpacity }} className="relative z-10 container text-center px-4">
           {/* Logo entrance */}
@@ -255,9 +310,29 @@ export default function Home() {
             transition={{ delay: 0.5, duration: 0.8 }}
             className="font-display text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] tracking-tight"
           >
-            <span className="text-gradient">Where Fun</span>
+            {["Where", "Fun"].map((word, i) => (
+              <motion.span
+                key={`word-${i}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + i * 0.15 }}
+                className="text-gradient inline-block"
+              >
+                {word}{" "}
+              </motion.span>
+            ))}
             <br />
-            <span className="text-gradient">Meets </span>
+            {["Meets"].map((word, i) => (
+              <motion.span
+                key={`word-meets-${i}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="text-gradient inline-block"
+              >
+                {word}{" "}
+              </motion.span>
+            ))}
             <motion.span
               className="relative inline-block text-gray-800"
               initial={{ opacity: 0, x: -20 }}
@@ -306,7 +381,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1 }}
-            className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
+            className="mt-8 flex flex-col sm:flex-row gap-4 justify-center"
           >
             {isAuthenticated ? (
               <Link href="/dashboard">
@@ -319,26 +394,17 @@ export default function Home() {
                 </motion.div>
               </Link>
             ) : (
-              <>
-                <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    size="lg"
-                    onClick={() => setLocation("/join")}
-                    className="btn-premium rounded-2xl px-10 py-7 text-lg gap-2"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Sparkles className="h-5 w-5" /> Apply for Membership
-                    </span>
-                  </Button>
-                </motion.div>
-                <Link href="/events">
-                  <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
-                    <Button size="lg" variant="outline" className="rounded-2xl px-10 py-7 text-lg border-pink-200 text-pink-600 hover:bg-pink-50 gap-2 font-bold bg-white/80 backdrop-blur-sm">
-                      Browse Events <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </motion.div>
-                </Link>
-              </>
+              <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  size="lg"
+                  onClick={() => setLocation("/join")}
+                  className="btn-premium rounded-2xl px-10 py-7 text-lg gap-2"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" /> Apply for Membership
+                  </span>
+                </Button>
+              </motion.div>
             )}
           </motion.div>
 
@@ -347,7 +413,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.3 }}
-            className="mt-14 flex flex-wrap items-center justify-center gap-6 text-sm"
+            className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm"
           >
             {[
               { icon: Shield, text: "Vetted Members", color: "text-pink-500" },
@@ -391,7 +457,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="glass-strong rounded-3xl p-8 md:p-10 shadow-xl shadow-pink-100/30 border-animated"
+            className="border-animated glass-strong rounded-3xl p-8 md:p-12 shadow-xl shadow-pink-100/30"
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               {[
@@ -406,15 +472,20 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="space-y-1"
+                  className="space-y-2"
                 >
-                  <div className="inline-flex p-2.5 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 mb-2">
-                    <stat.icon className="h-5 w-5 text-pink-500" />
-                  </div>
-                  <p className="font-display text-3xl md:text-4xl font-black text-gradient-static">
+                  <motion.div
+                    whileInView={{ scale: [1, 1.2, 1] }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 + 0.5, duration: 0.6 }}
+                    className="inline-flex p-3 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 mb-2"
+                  >
+                    <stat.icon className="h-6 w-6 text-pink-500" />
+                  </motion.div>
+                  <p className="font-display text-4xl md:text-5xl font-black text-gradient-static">
                     <AnimatedCounter target={stat.value} suffix={stat.suffix} />
                   </p>
-                  <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -423,7 +494,7 @@ export default function Home() {
       </section>
 
       {/* ─── FEATURES ──────────────────────────────────────────────── */}
-      <section className="py-28 relative overflow-hidden">
+      <section className="py-16 md:py-20 relative overflow-hidden">
         <GridPattern />
         <GlowOrb className="-bottom-20 -left-20" color="oklch(0.55 0.2 310 / 0.08)" size={350} />
 
@@ -456,14 +527,14 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.12, type: "spring", stiffness: 200 }}
-                whileHover={{ y: -10, scale: 1.02 }}
+                whileHover={{ y: -12, scale: 1.03 }}
                 className="group"
               >
-                <div className={`card-premium card-glow rounded-2xl p-6 h-full ${feat.glow}`}>
+                <div className={`card-premium card-glow rounded-2xl p-6 h-full ${feat.glow} transition-all duration-300`}>
                   <motion.div
-                    whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
-                    transition={{ duration: 0.5 }}
-                    className={`inline-flex p-3.5 rounded-2xl bg-gradient-to-br ${feat.color} shadow-lg mb-5`}
+                    whileHover={{ rotate: [0, -8, 8, 0], scale: 1.15 }}
+                    transition={{ duration: 0.6 }}
+                    className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${feat.color} shadow-lg mb-5`}
                   >
                     <feat.icon className="h-6 w-6 text-white" />
                   </motion.div>
@@ -476,11 +547,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── EVENTS SHOWCASE ───────────────────────────────────────── */}
-      <HomeEventsShowcase />
+      {/* ─── NEXT EVENT COUNTDOWN ────────────────────────────────────── */}
+      <NextEventCountdown />
 
       {/* ─── HOW IT WORKS ──────────────────────────────────────────── */}
-      <section className="py-28 relative overflow-hidden">
+      <section className="py-16 md:py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-pink-50/30 to-white" />
         <MorphBlob className="top-20 right-0" color="from-purple-200 to-pink-200" size="w-72 h-72" />
 
@@ -514,12 +585,19 @@ export default function Home() {
                 transition={{ delay: i * 0.15, type: "spring" }}
                 className="relative flex items-start gap-6 py-8"
               >
-                {/* Connector line */}
+                {/* Animated connector line */}
                 {i < 3 && (
-                  <div className="absolute left-[27px] top-[72px] w-0.5 h-[calc(100%-40px)] bg-gradient-to-b from-pink-200 to-purple-200" />
+                  <motion.div
+                    initial={{ scaleY: 0 }}
+                    whileInView={{ scaleY: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.15 + 0.3, duration: 0.6 }}
+                    className="absolute left-[27px] top-[72px] w-0.5 h-[calc(100%-40px)] bg-gradient-to-b from-pink-200 to-purple-200 origin-top"
+                  />
                 )}
                 <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileHover={{ scale: 1.15, rotate: 8 }}
+                  transition={{ type: "spring", stiffness: 300 }}
                   className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-lg shadow-pink-200/40 relative z-10"
                 >
                   <item.icon className="h-6 w-6 text-white" />
@@ -536,8 +614,13 @@ export default function Home() {
       </section>
 
       {/* ─── CTA ───────────────────────────────────────────────────── */}
-      <section className="py-28 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 bg-[length:200%_auto]" style={{ animation: "gradient 6s ease infinite" }} />
+      <section className="py-16 md:py-20 relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500"
+          animate={{ backgroundPosition: ["0% center", "100% center", "0% center"] }}
+          transition={{ duration: 8, repeat: Infinity }}
+          style={{ backgroundSize: "200% auto" }}
+        />
         <div className="absolute inset-0 noise-overlay" />
         <FloatingBubbles count={12} className="opacity-30" />
 
@@ -548,7 +631,7 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
+              animate={{ rotate: [0, 8, -8, 0], y: [0, -8, 0] }}
               transition={{ duration: 4, repeat: Infinity }}
               className="inline-block mb-6"
             >
@@ -557,16 +640,24 @@ export default function Home() {
               </div>
             </motion.div>
             <h2 className="font-display text-4xl md:text-6xl font-black text-white mb-6 leading-tight">
-              Ready to Join<br />the Fun?
+              Ready to Join
+              <br />
+              <motion.span
+                animate={{ backgroundPosition: ["0% center", "100% center"] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="text-gradient-static bg-gradient-to-r from-white via-pink-200 to-white bg-[length:200%_auto]"
+              >
+                the Fun?
+              </motion.span>
             </h2>
             <p className="text-white/80 text-lg max-w-md mx-auto mb-10 leading-relaxed">
               Apply for membership today and unlock a world of exclusive experiences and genuine connections.
             </p>
-            <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
+            <motion.div whileHover={{ scale: 1.08, y: -4 }} whileTap={{ scale: 0.95 }}>
               <Button
                 size="lg"
                 onClick={() => isAuthenticated ? setLocation("/dashboard") : setLocation("/join")}
-                className="bg-white text-pink-600 hover:bg-white/90 rounded-2xl px-12 py-7 text-lg font-black shadow-2xl gap-2"
+                className="bg-white text-pink-600 hover:bg-white/90 rounded-2xl px-12 py-7 text-lg font-black shadow-2xl shadow-pink-500/40 gap-2"
               >
                 <Sparkles className="h-5 w-5" /> {isAuthenticated ? "Go to Dashboard" : "Get Started Now"}
               </Button>
@@ -576,7 +667,7 @@ export default function Home() {
       </section>
 
       {/* ─── FOOTER ────────────────────────────────────────────────── */}
-      <footer className="bg-gray-950 text-gray-400 py-16 relative overflow-hidden">
+      <footer className="bg-gray-950 text-gray-400 py-16 max-md:pb-28 relative overflow-hidden">
         <GridPattern className="opacity-20" />
         <div className="relative z-10 container px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">

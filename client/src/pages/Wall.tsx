@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { getLoginUrl } from "@/const";
 import { FloatingBubbles, GlowOrb } from "@/components/FloatingElements";
+import CommunityTeaser from "@/components/CommunityTeaser";
 
 // ─── POST COMPOSER ─────────────────────────────────────────────────────────
 function PostComposer({ user }: { user: any }) {
@@ -320,21 +321,8 @@ export default function Wall() {
 
   if (!isAuthenticated) {
     return (
-      <PageWrapper>
-        <div className="container px-4 py-20 text-center max-w-md mx-auto">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}
-            className="inline-flex w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 items-center justify-center mb-6">
-            <Shield className="h-10 w-10 text-pink-400" />
-          </motion.div>
-          <h2 className="font-display text-2xl font-bold text-gray-700 mb-3">Join the Conversation</h2>
-          <p className="text-gray-400 text-sm mb-6">Sign in to share, connect, and vibe with the community.</p>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button onClick={() => window.location.href = getLoginUrl()}
-              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl px-8 py-3 shadow-xl gap-2">
-              <Sparkles className="h-4 w-4" /> Sign In
-            </Button>
-          </motion.div>
-        </div>
+      <PageWrapper withPadding={false}>
+        <CommunityTeaser />
       </PageWrapper>
     );
   }
