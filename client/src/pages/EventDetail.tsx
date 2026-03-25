@@ -215,7 +215,7 @@ function TicketSelection({ event, onReserve }: { event: any; onReserve: (data: a
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
 
   const { data: addons } = trpc.eventAddons.list.useQuery({ eventId: event.id });
-  const validatePromo = trpc.promoCodes.validate.useMutation();
+  const utils = trpc.useUtils();
 
   const ticketPrice = useMemo(() => {
     if (!selectedTicket) return 0;
@@ -250,12 +250,12 @@ function TicketSelection({ event, onReserve }: { event: any; onReserve: (data: a
     }
     setIsApplyingPromo(true);
     try {
-      const result = await validatePromo.mutateAsync({ code: promoCode });
-      if (result.valid) {
+      const result = await utils.promoCodes.validate.fetch({ code: promoCode });
+      if (result.valid && result.promo) {
         setAppliedPromo(result.promo);
         toast.success(`Promo applied! ${result.promo.discountType === "percentage" ? result.promo.discountValue + "% off" : "$" + result.promo.discountValue + " off"}`);
       } else {
-        toast.error(result.reason);
+        toast.error(result.reason ?? "Invalid promo code");
       }
     } finally {
       setIsApplyingPromo(false);

@@ -96,7 +96,7 @@ export default function AdminSettings() {
     if (settings) {
       const vals: Record<string, any> = {};
       settings.forEach((s: any) => {
-        vals[s.settingKey] = s.settingValue;
+        vals[s.key] = s.value;
       });
       setEditValues(vals);
     }
@@ -211,7 +211,7 @@ export default function AdminSettings() {
                             placeholder={`Enter ${setting.label.toLowerCase()}...`}
                             className="flex-1 px-4 py-2.5 rounded-lg border border-pink-100 bg-white text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50"
                           />
-                          {getSetting(setting.key) !== (settings?.find((s: any) => s.settingKey === setting.key)?.settingValue ?? "") && (
+                          {getSetting(setting.key) !== (settings?.find((s: any) => s.key === setting.key)?.value ?? "") && (
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg px-6"

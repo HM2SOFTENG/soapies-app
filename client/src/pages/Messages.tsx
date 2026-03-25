@@ -175,7 +175,7 @@ function ChatView({ conversationId, userId, onBack }: {
   const [scrolledUp, setScrolledUp] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const { sendMessage, isConnected, subscribe } = useWebSocket();
 
@@ -269,7 +269,7 @@ function ChatView({ conversationId, userId, onBack }: {
         <div className="flex-1">
           <h3 className="font-display font-bold text-gray-800 text-sm">{conv?.name || `Chat #${conversationId}`}</h3>
           <p className="text-[10px] text-emerald-500 font-semibold">
-            {conv?.type === "channel" ? `Channel • ${conv?.participantCount || 0} members` : "Online"}
+            {conv?.type === "channel" ? `Channel • members` : "Online"}
           </p>
         </div>
         <div className="flex items-center gap-1">
