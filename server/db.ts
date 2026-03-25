@@ -336,10 +336,28 @@ export async function getPendingVenmoReservations() {
 
 export async function getWallPosts(communityId?: string, limit = 50) {
   const db = await getDb(); if (!db) return [];
-  if (communityId) {
-    return db.select().from(wallPosts).where(eq(wallPosts.communityId, communityId)).orderBy(desc(wallPosts.createdAt)).limit(limit);
-  }
-  return db.select().from(wallPosts).orderBy(desc(wallPosts.createdAt)).limit(limit);
+  const rows = await db
+    .select({
+      post: wallPosts,
+      profile: {
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+        memberRole: profiles.memberRole,
+      },
+    })
+    .from(wallPosts)
+    .leftJoin(profiles, eq(profiles.userId, wallPosts.authorId))
+    .where(communityId ? eq(wallPosts.communityId, communityId) : undefined)
+    .orderBy(desc(wallPosts.createdAt))
+    .limit(limit);
+
+  return rows.map(r => ({
+    ...r.post,
+    // authorName field takes priority, then profile displayName, then "Soapies Team" for null authorId
+    resolvedAuthorName: r.post.authorName ?? r.profile?.displayName ?? (r.post.authorId ? undefined : "Soapies Team"),
+    resolvedAvatarUrl: r.profile?.avatarUrl ?? null,
+    resolvedMemberRole: r.profile?.memberRole ?? null,
+  }));
 }
 
 export async function createWallPost(data: any) {
@@ -350,7 +368,13 @@ export async function createWallPost(data: any) {
 
 export async function getWallPostComments(postId: number) {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(wallPostComments).where(eq(wallPostComments.postId, postId)).orderBy(asc(wallPostComments.createdAt));
+  const rows = await db
+    .select({ comment: wallPostComments, profile: { displayName: profiles.displayName, avatarUrl: profiles.avatarUrl } })
+    .from(wallPostComments)
+    .leftJoin(profiles, eq(profiles.userId, wallPostComments.authorId))
+    .where(eq(wallPostComments.postId, postId))
+    .orderBy(asc(wallPostComments.createdAt));
+  return rows.map(r => ({ ...r.comment, resolvedAuthorName: r.profile?.displayName ?? "Member", resolvedAvatarUrl: r.profile?.avatarUrl ?? null }));
 }
 
 export async function createWallPostComment(data: any) {

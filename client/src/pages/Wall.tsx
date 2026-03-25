@@ -222,13 +222,12 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
     toast.success("Link copied!");
   };
 
-  // Generate initials from authorId for avatar
-  const getInitials = (authorId: number) => {
-    return String.fromCharCode(65 + ((authorId || 0) % 26));
-  };
+  const authorName = (post as any).resolvedAuthorName ?? (post.authorId ? `Member` : "Soapies Team");
+  const authorAvatar = (post as any).resolvedAvatarUrl;
+  const isSystemPost = !post.authorId;
 
-  // Generate gradient color from authorId
-  const getAvatarGradient = (authorId: number) => {
+  const getInitials = (name: string) => name.charAt(0).toUpperCase();
+  const getAvatarGradient = (id: number | null) => {
     const colors = [
       "from-pink-400 to-rose-500",
       "from-purple-400 to-pink-500",
@@ -237,7 +236,8 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
       "from-orange-400 to-pink-500",
       "from-rose-400 to-orange-500",
     ];
-    return colors[(authorId || 0) % colors.length];
+    if (!id) return "from-fuchsia-500 to-pink-600"; // Soapies Team gradient
+    return colors[id % colors.length];
   };
 
   return (
@@ -255,12 +255,21 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
           <div className="flex items-center gap-3 flex-1">
             <motion.div
               whileHover={{ scale: 1.1 }}
-              className={`w-11 h-11 rounded-xl bg-gradient-to-br ${getAvatarGradient(post.authorId)} flex items-center justify-center shadow-md`}
+              className={`w-11 h-11 rounded-xl bg-gradient-to-br ${getAvatarGradient(post.authorId)} flex items-center justify-center shadow-md overflow-hidden flex-shrink-0`}
             >
-              <span className="text-sm font-black text-white">{getInitials(post.authorId)}</span>
+              {authorAvatar ? (
+                <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-black text-white">{getInitials(authorName)}</span>
+              )}
             </motion.div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-gray-800">User #{post.authorId}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-bold text-gray-800">{authorName}</p>
+                {isSystemPost && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-600 uppercase tracking-wide">Official</span>
+                )}
+              </div>
               <p className="text-xs text-gray-400">{timeAgo}</p>
             </div>
           </div>
@@ -392,20 +401,10 @@ function CommentsSection({ postId }: { postId: number }) {
     },
   });
 
-  const getInitials = (authorId: number) => {
-    return String.fromCharCode(65 + ((authorId || 0) % 26));
-  };
-
-  const getAvatarGradient = (authorId: number) => {
-    const colors = [
-      "from-pink-400 to-rose-500",
-      "from-purple-400 to-pink-500",
-      "from-blue-400 to-purple-500",
-      "from-cyan-400 to-blue-500",
-      "from-orange-400 to-pink-500",
-      "from-rose-400 to-orange-500",
-    ];
-    return colors[(authorId || 0) % colors.length];
+  const getAvatarGradient = (authorId: number | null) => {
+    const colors = ["from-pink-400 to-rose-500","from-purple-400 to-pink-500","from-blue-400 to-purple-500","from-cyan-400 to-blue-500","from-orange-400 to-pink-500","from-rose-400 to-orange-500"];
+    if (!authorId) return "from-gray-300 to-gray-400";
+    return colors[authorId % colors.length];
   };
 
   return (
@@ -423,12 +422,16 @@ function CommentsSection({ postId }: { postId: number }) {
             transition={{ delay: i * 0.03 }}
             className="flex gap-2.5"
           >
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getAvatarGradient(c.authorId)} flex items-center justify-center shrink-0 shadow-sm`}>
-              <span className="text-[10px] font-black text-white">{getInitials(c.authorId)}</span>
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getAvatarGradient(c.authorId)} flex items-center justify-center shrink-0 shadow-sm overflow-hidden`}>
+              {c.resolvedAvatarUrl ? (
+                <img src={c.resolvedAvatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] font-black text-white">{(c.resolvedAuthorName ?? "M").charAt(0).toUpperCase()}</span>
+              )}
             </div>
             <div className="glass-strong rounded-xl px-3.5 py-2.5 flex-1 border border-pink-100/30">
               <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-xs font-bold text-gray-700">User #{c.authorId}</p>
+                <p className="text-xs font-bold text-gray-700">{c.resolvedAuthorName ?? "Member"}</p>
                 <span className="text-[10px] text-gray-300">
                   {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
                 </span>

@@ -453,7 +453,8 @@ export const blockedUsers = mysqlTable("blocked_users", {
 
 export const wallPosts = mysqlTable("wall_posts", {
   id: int("id").autoincrement().primaryKey(),
-  authorId: int("authorId").notNull(),
+  authorId: int("authorId"),  // nullable for system posts
+  authorName: varchar("authorName", { length: 128 }),  // override display name (e.g. "Soapies Team")
   communityId: varchar("communityId", { length: 32 }),
   content: text("content"),
   mediaUrl: text("mediaUrl"),

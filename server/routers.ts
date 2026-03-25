@@ -448,7 +448,8 @@ export const appRouter = router({
             );
             if (!alreadyPosted) {
               await db.createWallPost({
-                authorId: ctx.user.id,
+                authorId: null,
+                authorName: "Soapies Team",
                 communityId,
                 content: `${userName} just reserved a spot for ${event.title}! 🎟️`,
                 visibility: "members",
@@ -1145,7 +1146,8 @@ export const appRouter = router({
               const user = await db.getUserById(profile.userId);
               const userName = profile.displayName || user?.name || "A member";
               await db.createWallPost({
-                authorId: profile.userId,
+                authorId: null,
+                authorName: "Soapies Team",
                 communityId: profile.communityId ?? "soapies",
                 content: `${userName} just added new photos to their profile! 📸`,
                 visibility: "members",
@@ -1313,7 +1315,8 @@ export const appRouter = router({
           const displayName = profile.displayName || userName;
           const communityId = profile.communityId ?? "soapies";
           await db.createWallPost({
-            authorId: ctx.user.id,
+            authorId: null,
+            authorName: "Soapies Team",
             communityId,
             content: `🎉 Please welcome ${displayName} to the Soapies community!`,
             visibility: "members",
