@@ -2,8 +2,9 @@ import AdminLayout from "./AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import {
-  Users, Calendar, CreditCard, TrendingUp, Activity, Zap,
-  ArrowUpRight, BarChart3, Clock, Sparkles, Target, Eye
+  Users, Calendar, CreditCard, Activity, Zap,
+  ArrowUpRight, BarChart3, Clock, Sparkles, Target,
+  FileText, Share2, ClipboardList, ScrollText, ChevronRight,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
@@ -51,12 +52,24 @@ export default function AdminDashboard() {
   const { data: stats } = trpc.admin.stats.useQuery(undefined, {
     retry: false, staleTime: 30_000, refetchOnWindowFocus: false,
   });
+  const { data: pendingApps } = trpc.admin.pendingApplications.useQuery(undefined, {
+    retry: false, staleTime: 30_000, refetchOnWindowFocus: false,
+  });
+
+  const pendingCount = pendingApps?.length ?? 0;
 
   const statCards = [
     { label: "Total Members", value: stats?.totalUsers ?? 0, icon: Users, gradient: "from-pink-400 to-rose-500", sparkColor: "#ec4899", change: "+12%" },
     { label: "Total Events", value: stats?.totalEvents ?? 0, icon: Calendar, gradient: "from-purple-400 to-indigo-500", sparkColor: "#a855f7", change: "+8%" },
     { label: "Reservations", value: stats?.totalReservations ?? 0, icon: CreditCard, gradient: "from-fuchsia-400 to-pink-500", sparkColor: "#d946ef", change: "+24%" },
     { label: "Pending Apps", value: stats?.pendingApplications ?? 0, icon: Clock, gradient: "from-violet-400 to-purple-500", sparkColor: "#8b5cf6", change: "Review" },
+  ];
+
+  const quickLinks = [
+    { label: "Applications", desc: "Review applicants", href: "/admin/applications", icon: FileText, gradient: "from-pink-500 to-rose-500", badge: pendingCount },
+    { label: "Referrals", desc: "Referral pipeline", href: "/admin/referrals", icon: Share2, gradient: "from-purple-500 to-indigo-500" },
+    { label: "Event Ops", desc: "Manage operations", href: "/admin/events", icon: ClipboardList, gradient: "from-fuchsia-500 to-pink-500" },
+    { label: "Audit Log", desc: "Admin activity", href: "/admin/settings", icon: ScrollText, gradient: "from-violet-500 to-purple-500" },
   ];
 
   const quickActions = [
@@ -133,9 +146,35 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        {quickLinks.map((link, i) => (
+          <Link key={link.label} href={link.href}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 + i * 0.06, type: "spring", stiffness: 200 }}
+              whileHover={{ y: -3, scale: 1.02 }}
+              className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-pink-100/50 shadow-md hover:shadow-lg transition-all cursor-pointer group overflow-hidden"
+            >
+              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${link.gradient} shadow-md w-fit mb-3`}>
+                <link.icon className="h-4 w-4 text-white" />
+              </div>
+              <p className="text-sm font-bold text-gray-800">{link.label}</p>
+              <p className="text-[11px] text-gray-400">{link.desc}</p>
+              {link.badge && link.badge > 0 && (
+                <span className="absolute top-3 right-3 bg-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {link.badge > 9 ? "9+" : link.badge}
+                </span>
+              )}
+            </motion.div>
+          </Link>
+        ))}
+      </div>
+
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-6">
-        {/* Recent Activity - Wider */}
+        {/* Pending Applications */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -144,44 +183,56 @@ export default function AdminDashboard() {
         >
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-display text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-pink-500" /> Recent Activity
+              <Activity className="h-5 w-5 text-pink-500" /> Pending Applications
             </h3>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              <Eye className="h-3 w-3" /> Live
-            </span>
+            <Link href="/admin/applications">
+              <span className="text-xs text-pink-500 hover:text-pink-700 font-semibold flex items-center gap-1 cursor-pointer">
+                View All <ChevronRight className="h-3 w-3" />
+              </span>
+            </Link>
           </div>
-          <div className="space-y-3">
-            {[
-              { text: "New member signed up", time: "2m ago", color: "from-pink-300 to-rose-400" },
-              { text: "Event reservation confirmed", time: "15m ago", color: "from-purple-300 to-indigo-400" },
-              { text: "New wall post created", time: "1h ago", color: "from-fuchsia-300 to-pink-400" },
-              { text: "Application submitted", time: "2h ago", color: "from-violet-300 to-purple-400" },
-              { text: "Profile updated", time: "3h ago", color: "from-rose-300 to-pink-400" },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.06 }}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-pink-50/50 transition-colors group"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.2 }}
-                  className={`w-9 h-9 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-sm`}
-                >
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                </motion.div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">{item.text}</p>
-                  <p className="text-[10px] text-gray-400">{item.time}</p>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-gray-300 group-hover:text-pink-400 transition-colors" />
-              </motion.div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-300 text-center pt-4 border-t border-pink-50 mt-4">
-            Activity feed populates as members interact with the platform
-          </p>
+          {!pendingApps || pendingApps.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No pending applications</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingApps.slice(0, 3).map((app: any, i: number) => {
+                const name = app.displayName || "Anonymous";
+                const initials = name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+                const phase = app.applicationPhase;
+                const phaseLabel = phase ? phase.replace(/_/g, " ") : app.applicationStatus;
+                return (
+                  <motion.div
+                    key={app.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + i * 0.06 }}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-pink-50/50 transition-colors group"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center shadow-sm text-white text-xs font-bold flex-shrink-0">
+                      {initials || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-700 truncate">{name}</p>
+                      <p className="text-[10px] text-gray-400 capitalize">{phaseLabel} · {new Date(app.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <Link href="/admin/applications">
+                      <span className="text-xs text-pink-500 font-semibold hover:text-pink-700 cursor-pointer whitespace-nowrap">Review →</span>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+          {pendingApps && pendingApps.length > 3 && (
+            <Link href="/admin/applications">
+              <p className="text-xs text-center text-pink-400 hover:text-pink-600 pt-4 border-t border-pink-50 mt-4 cursor-pointer font-medium">
+                +{pendingApps.length - 3} more applications → Review All
+              </p>
+            </Link>
+          )}
         </motion.div>
 
         {/* Quick Actions */}
