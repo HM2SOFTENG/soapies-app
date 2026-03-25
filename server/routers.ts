@@ -285,6 +285,9 @@ export const appRouter = router({
       await db.completeProfileSetup(ctx.user.id);
       return { success: true };
     }),
+    search: protectedProcedure.input(z.object({ query: z.string() })).query(async ({ input }) => {
+      return db.searchProfiles(input.query);
+    }),
   }),
 
   // ─── EVENTS ──────────────────────────────────────────────────────────────
@@ -376,7 +379,7 @@ export const appRouter = router({
       return db.getReservationsByUser(ctx.user.id);
     }),
     byEvent: adminProcedure.input(z.object({ eventId: z.number() })).query(async ({ input }) => {
-      return db.getReservationsByEvent(input.eventId);
+      return db.getReservationsByEventWithUsers(input.eventId);
     }),
     create: protectedProcedure.input(z.object({
       eventId: z.number(),
@@ -385,10 +388,44 @@ export const appRouter = router({
       totalAmount: z.string().optional(),
       paymentMethod: z.enum(["venmo", "credits", "volunteer", "cash", "card"]).optional(),
       paymentStatus: z.enum(["pending", "paid", "refunded", "partial", "failed"]).optional(),
+      orientationSignal: z.enum(["straight", "queer"]).optional(),
+      isQueerPlay: z.boolean().optional(),
+      partnerUserId: z.number().optional(),
+      testResultUrl: z.string().optional(),
     })).mutation(async ({ ctx, input }) => {
       const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending" });
       // Process referral conversion on first reservation (fires only if not already converted)
       if (reservationId) {
+        // Update wristband color based on reservation data
+        try {
+          await db.updateReservationWristband(reservationId as number);
+        } catch (err) {
+          console.error("[Wristband] Failed to update wristband:", err);
+        }
+
+        // Auto-assign volunteer to shift if volunteer ticket
+        if (input.ticketType === "volunteer") {
+          try {
+            const shifts = await db.getEventShifts(input.eventId);
+            let resolvedShiftId: number | undefined = shifts[0]?.id;
+            if (!resolvedShiftId) {
+              const newShift = await db.createEventShift({
+                eventId: input.eventId,
+                name: "General Volunteer",
+                startTime: new Date(),
+                endTime: new Date(),
+                maxVolunteers: 99,
+              });
+              resolvedShiftId = typeof newShift === "number" ? newShift : undefined;
+            }
+            if (typeof resolvedShiftId === "number") {
+              await db.createShiftAssignment({ shiftId: resolvedShiftId, userId: ctx.user.id, status: "confirmed" });
+            }
+          } catch (err) {
+            console.error("[Volunteer] Failed to auto-assign shift:", err);
+          }
+        }
+
         try {
           await db.processReferralConversion(ctx.user.id, reservationId as number);
         } catch (err) {
@@ -1159,6 +1196,46 @@ export const appRouter = router({
       status: z.enum(["approved", "denied"]),
     })).mutation(async ({ ctx, input }) => {
       await db.reviewGroupChangeRequest(input.id, input.status, ctx.user.id);
+      return { success: true };
+    }),
+  }),
+
+  // ─── TEST RESULTS ────────────────────────────────────────────────────────
+  testResults: router({
+    submit: protectedProcedure.input(z.object({
+      reservationId: z.number(),
+      eventId: z.number(),
+      resultUrl: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.submitTestResult({ ...input, userId: ctx.user.id });
+      await db.updateReservation(input.reservationId, {
+        testResultSubmitted: true,
+        testResultSubmittedAt: new Date(),
+        testResultUrl: input.resultUrl,
+      });
+      // Notify admins
+      const admins = await db.getAdminUsers();
+      for (const admin of admins) {
+        await notif.sendNotification({
+          userId: admin.id,
+          type: "system",
+          title: "New Test Result Submission",
+          body: "A member has submitted a test result for review.",
+          email: admin.email ?? undefined,
+          data: { link: "https://soapiesplaygrp.club/admin/test-results" },
+        }).catch(() => {});
+      }
+      return { success: true };
+    }),
+    pending: adminProcedure.input(z.object({ eventId: z.number().optional() })).query(async ({ input }) => {
+      return db.getPendingTestResults(input.eventId);
+    }),
+    review: adminProcedure.input(z.object({
+      id: z.number(),
+      status: z.enum(["approved", "rejected"]),
+      notes: z.string().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.reviewTestResult(input.id, input.status, ctx.user.id, input.notes);
       return { success: true };
     }),
   }),

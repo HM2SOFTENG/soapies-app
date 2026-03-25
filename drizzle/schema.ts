@@ -204,6 +204,16 @@ export const reservations = mysqlTable("reservations", {
   checkedInAt: timestamp("checkedInAt"),
   checkedInBy: int("checkedInBy"),
   notes: text("notes"),
+  // ─── Wristband & orientation ────────────────────────────────────────────
+  wristbandColor: varchar("wristbandColor", { length: 16 }),
+  orientationSignal: varchar("orientationSignal", { length: 16 }),
+  isQueerPlay: boolean("isQueerPlay").default(false),
+  partnerUserId: int("partnerUserId"),
+  partnerProfileId: int("partnerProfileId"),
+  testResultSubmitted: boolean("testResultSubmitted").default(false),
+  testResultApproved: boolean("testResultApproved").default(false),
+  testResultSubmittedAt: timestamp("testResultSubmittedAt"),
+  testResultUrl: text("testResultUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -762,6 +772,23 @@ export const expenses = mysqlTable("expenses", {
   status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+// ─── TEST RESULT SUBMISSIONS ─────────────────────────────────────────────────
+
+export const testResultSubmissions = mysqlTable("test_result_submissions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  reservationId: int("reservationId").notNull(),
+  eventId: int("eventId").notNull(),
+  resultUrl: text("resultUrl").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: int("reviewedBy"),
+  notes: text("notes"),
+});
+
+export type TestResultSubmission = typeof testResultSubmissions.$inferSelect;
 
 // ─── RESOURCE ACKNOWLEDGMENTS ────────────────────────────────────────────────
 

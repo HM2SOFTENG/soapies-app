@@ -15,6 +15,7 @@ import {
   introCallSlots, singleMaleInviteCodes, preApprovedPhones,
   profileChangeRequests, groupChangeRequests,
   signedWaivers, resourceAcknowledgments,
+  testResultSubmissions,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1137,4 +1138,181 @@ export async function getPendingGroupChangeRequests() {
 export async function reviewGroupChangeRequest(id: number, status: string, reviewedBy: number) {
   const db = await getDb(); if (!db) return;
   await db.update(groupChangeRequests).set({ status: status as any, reviewedBy, reviewedAt: new Date() }).where(eq(groupChangeRequests.id, id));
+}
+
+// ─── ENRICHED RESERVATIONS ────────────────────────────────────────────────
+
+export async function getReservationsByEventWithUsers(eventId: number) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db
+    .select({
+      reservation: reservations,
+      user: users,
+      profile: profiles,
+    })
+    .from(reservations)
+    .innerJoin(users, eq(reservations.userId, users.id))
+    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .where(eq(reservations.eventId, eventId))
+    .orderBy(desc(reservations.createdAt));
+
+  return rows.map(r => ({
+    ...r.reservation,
+    user: {
+      id: r.user.id,
+      name: r.user.name,
+      email: r.user.email,
+    },
+    profile: r.profile ? {
+      id: r.profile.id,
+      displayName: r.profile.displayName,
+      memberRole: r.profile.memberRole,
+      gender: r.profile.gender,
+      orientation: r.profile.orientation,
+      avatarUrl: r.profile.avatarUrl,
+    } : null,
+    displayName: r.profile?.displayName || r.user.name || "Unknown",
+  }));
+}
+
+// ─── TEST RESULTS ────────────────────────────────────────────────────────────
+
+export async function submitTestResult(data: {
+  userId: number;
+  reservationId: number;
+  eventId: number;
+  resultUrl: string;
+}) {
+  const db = await getDb(); if (!db) return;
+  const r = await db.insert(testResultSubmissions).values({
+    ...data,
+    status: "pending",
+    submittedAt: new Date(),
+  });
+  return r[0].insertId;
+}
+
+export async function getPendingTestResults(eventId?: number) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db
+    .select({
+      submission: testResultSubmissions,
+      user: users,
+      event: events,
+    })
+    .from(testResultSubmissions)
+    .innerJoin(users, eq(testResultSubmissions.userId, users.id))
+    .innerJoin(events, eq(testResultSubmissions.eventId, events.id))
+    .where(
+      eventId
+        ? and(eq(testResultSubmissions.status, "pending"), eq(testResultSubmissions.eventId, eventId))
+        : eq(testResultSubmissions.status, "pending")
+    )
+    .orderBy(desc(testResultSubmissions.submittedAt));
+
+  return rows.map(r => ({
+    ...r.submission,
+    user: { id: r.user.id, name: r.user.name, email: r.user.email },
+    event: { id: r.event.id, title: r.event.title },
+  }));
+}
+
+export async function reviewTestResult(
+  id: number,
+  status: "approved" | "rejected",
+  reviewedBy: number,
+  notes?: string
+) {
+  const db = await getDb(); if (!db) return;
+  await db.update(testResultSubmissions).set({
+    status,
+    reviewedAt: new Date(),
+    reviewedBy,
+    notes: notes ?? null,
+  }).where(eq(testResultSubmissions.id, id));
+
+  if (status === "approved") {
+    // Find the reservation and update testResultApproved
+    const rows = await db.select().from(testResultSubmissions).where(eq(testResultSubmissions.id, id)).limit(1);
+    if (rows.length > 0) {
+      const sub = rows[0];
+      await db.update(reservations).set({ testResultApproved: true }).where(eq(reservations.id, sub.reservationId));
+      await updateReservationWristband(sub.reservationId);
+    }
+  }
+}
+
+export async function updateReservationWristband(reservationId: number) {
+  const db = await getDb(); if (!db) return;
+
+  // Get reservation with profile
+  const rows = await db
+    .select({ reservation: reservations, profile: profiles, event: events })
+    .from(reservations)
+    .leftJoin(profiles, eq(profiles.userId, reservations.userId))
+    .leftJoin(events, eq(events.id, reservations.eventId))
+    .where(eq(reservations.id, reservationId))
+    .limit(1);
+
+  if (rows.length === 0) return;
+  const { reservation, profile, event } = rows[0];
+
+  let wristbandColor: string | null = null;
+
+  // Priority 1: queer play or orientation
+  if (reservation.isQueerPlay || reservation.orientationSignal === "queer") {
+    wristbandColor = "rainbow";
+  }
+  // Priority 2: angel member role
+  else if (profile?.memberRole === "angel") {
+    wristbandColor = "pink";
+  }
+  // Priority 3: test result approved within 30 days of event
+  else if (reservation.testResultApproved) {
+    const testSub = await db
+      .select()
+      .from(testResultSubmissions)
+      .where(and(eq(testResultSubmissions.reservationId, reservationId), eq(testResultSubmissions.status, "approved")))
+      .limit(1);
+
+    if (testSub.length > 0 && event) {
+      const eventDate = new Date(event.startDate);
+      const submittedAt = new Date(testSub[0].submittedAt);
+      const daysDiff = Math.abs((eventDate.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff <= 30) {
+        wristbandColor = "blue";
+      }
+    }
+  }
+  // Priority 4: paid
+  else if (reservation.paymentStatus === "paid") {
+    wristbandColor = "purple";
+  }
+
+  await db.update(reservations).set({ wristbandColor }).where(eq(reservations.id, reservationId));
+}
+
+// ─── PROFILE SEARCH ──────────────────────────────────────────────────────────
+
+export async function searchProfiles(query: string) {
+  const db = await getDb(); if (!db) return [];
+  return db.select({
+    id: profiles.id,
+    userId: profiles.userId,
+    displayName: profiles.displayName,
+    gender: profiles.gender,
+    avatarUrl: profiles.avatarUrl,
+  })
+  .from(profiles)
+  .where(and(
+    sql`${profiles.displayName} LIKE ${`%${query}%`}`,
+    eq(profiles.applicationStatus, "approved")
+  ))
+  .limit(10);
+}
+
+export async function createShiftAssignment(data: { shiftId: number; userId: number; status: string }) {
+  const db = await getDb(); if (!db) return;
+  const r = await db.insert(shiftAssignments).values(data as any);
+  return r[0].insertId;
 }
