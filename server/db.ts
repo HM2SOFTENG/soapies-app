@@ -399,6 +399,91 @@ export async function createReferralCode(data: any) {
   return r[0].insertId;
 }
 
+export async function validateReferralCode(code: string) {
+  const db = await getDb(); if (!db) return null;
+  const r = await db.select().from(referralCodes).where(and(eq(referralCodes.code, code), eq(referralCodes.isActive, true))).limit(1);
+  return r[0] ?? null;
+}
+
+export async function applyReferralToProfile(profileId: number, code: string) {
+  const db = await getDb(); if (!db) return;
+  const refCode = await validateReferralCode(code);
+  if (!refCode) return;
+  await db.update(profiles).set({ referredByCode: code, referredByUserId: refCode.userId }).where(eq(profiles.id, profileId));
+}
+
+export async function processReferralConversion(userId: number, reservationId: number) {
+  const db = await getDb(); if (!db) return;
+  // Get the user's profile
+  const profileRows = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
+  const profile = profileRows[0];
+  if (!profile) return;
+  // Only process if not already converted and has a referral code
+  if (profile.referralConverted || !profile.referredByCode) return;
+
+  // Get current balance of referrer to compute new balance
+  const referrerId = profile.referredByUserId;
+  if (!referrerId) return;
+
+  const balanceRows = await db.select().from(memberCredits).where(eq(memberCredits.userId, referrerId)).orderBy(desc(memberCredits.createdAt)).limit(1);
+  const currentBalance = balanceRows.length > 0 ? Number(balanceRows[0].balance) : 0;
+  const newBalance = currentBalance + 3500;
+
+  // Award 3500 credits ($35) to referrer
+  await db.insert(memberCredits).values({
+    userId: referrerId,
+    amount: "3500",
+    type: "referral",
+    description: `Referral bonus — ${profile.displayName || "a member"} made their first reservation`,
+    referenceId: reservationId,
+    balance: String(newBalance),
+  });
+
+  // Mark profile as converted
+  await db.update(profiles).set({ referralConverted: true, referralConvertedAt: new Date() }).where(eq(profiles.id, profile.id));
+
+  // Increment referral_codes stats
+  const refCodeRows = await db.select().from(referralCodes).where(eq(referralCodes.code, profile.referredByCode)).limit(1);
+  if (refCodeRows.length > 0) {
+    const refCode = refCodeRows[0];
+    await db.update(referralCodes).set({
+      totalReferrals: sql`${referralCodes.totalReferrals} + 1`,
+      totalEarned: sql`${referralCodes.totalEarned} + 3500`,
+    }).where(eq(referralCodes.id, refCode.id));
+  }
+}
+
+export async function getReferralPipeline() {
+  const db = await getDb(); if (!db) return [];
+  // Join profiles (referred members) with referral_codes and the referrer's profile
+  const referred = await db
+    .select({
+      referredProfileId: profiles.id,
+      referredDisplayName: profiles.displayName,
+      referredAppliedAt: profiles.createdAt,
+      referralConverted: profiles.referralConverted,
+      referralConvertedAt: profiles.referralConvertedAt,
+      referredByCode: profiles.referredByCode,
+      referredByUserId: profiles.referredByUserId,
+    })
+    .from(profiles)
+    .where(sql`${profiles.referredByCode} IS NOT NULL`);
+
+  // For each referred member, get the referrer's display name and code stats
+  const result = await Promise.all(referred.map(async (row) => {
+    const db2 = await getDb();
+    if (!db2 || !row.referredByUserId) return { ...row, referrerName: null, codeStats: null };
+    const referrerProfile = await db2.select({ displayName: profiles.displayName }).from(profiles).where(eq(profiles.userId, row.referredByUserId)).limit(1);
+    const codeRows = await db2.select().from(referralCodes).where(eq(referralCodes.code, row.referredByCode!)).limit(1);
+    return {
+      ...row,
+      referrerName: referrerProfile[0]?.displayName ?? null,
+      codeStats: codeRows[0] ?? null,
+    };
+  }));
+  return result;
+}
+
 export async function getCreditBalance(userId: number) {
   const db = await getDb(); if (!db) return 0;
   const r = await db.select().from(memberCredits).where(eq(memberCredits.userId, userId)).orderBy(desc(memberCredits.createdAt)).limit(1);

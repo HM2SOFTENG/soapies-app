@@ -69,6 +69,11 @@ export const profiles = mysqlTable("profiles", {
   isProfileComplete: boolean("isProfileComplete").default(false),
   approvedAt: timestamp("approvedAt"),
   approvedBy: int("approvedBy"),
+  // ─── Referral tracking ───────────────────────────────────────────────────
+  referredByCode: varchar("referredByCode", { length: 32 }),
+  referredByUserId: int("referredByUserId"),
+  referralConverted: boolean("referralConverted").default(false),
+  referralConvertedAt: timestamp("referralConvertedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
