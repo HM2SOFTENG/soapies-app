@@ -14,6 +14,7 @@ import {
   messageReactions, pinnedMessages, blockedUsers,
   introCallSlots, singleMaleInviteCodes, preApprovedPhones,
   profileChangeRequests, groupChangeRequests,
+  signedWaivers, resourceAcknowledgments,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -220,6 +221,27 @@ export async function getApplicationLogs(profileId: number) {
 export async function markProfileComplete(profileId: number) {
   const db = await getDb(); if (!db) return;
   await db.update(profiles).set({ isProfileComplete: true, applicationStatus: "submitted" }).where(eq(profiles.id, profileId));
+}
+
+export async function signWaiver(userId: number, version: string, signature: string, ip?: string) {
+  const db = await getDb(); if (!db) return;
+  await db.insert(signedWaivers).values({
+    userId,
+    waiverType: "community",
+    waiverVersion: version,
+    signature,
+    ipAddress: ip ?? null,
+    signedAt: new Date(),
+  });
+  await db.update(profiles).set({
+    waiverSignedAt: new Date(),
+    waiverVersion: version,
+  }).where(eq(profiles.userId, userId));
+}
+
+export async function completeProfileSetup(userId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(profiles).set({ profileSetupComplete: true }).where(eq(profiles.userId, userId));
 }
 
 // ─── EVENTS ──────────────────────────────────────────────────────────────────

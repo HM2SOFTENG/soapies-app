@@ -273,6 +273,18 @@ export const appRouter = router({
       await db.deleteApplicationPhoto(input.photoId, profile.id);
       return { success: true };
     }),
+    signWaiver: protectedProcedure.input(z.object({
+      signature: z.string().min(1),
+      version: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      const ip = (ctx.req as any).ip ?? undefined;
+      await db.signWaiver(ctx.user.id, input.version, input.signature, ip);
+      return { success: true };
+    }),
+    completeProfileSetup: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.completeProfileSetup(ctx.user.id);
+      return { success: true };
+    }),
   }),
 
   // ─── EVENTS ──────────────────────────────────────────────────────────────

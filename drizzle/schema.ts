@@ -70,6 +70,10 @@ export const profiles = mysqlTable("profiles", {
   isProfileComplete: boolean("isProfileComplete").default(false),
   approvedAt: timestamp("approvedAt"),
   approvedBy: int("approvedBy"),
+  // ─── Waiver & profile setup ──────────────────────────────────────────────
+  waiverSignedAt: timestamp("waiverSignedAt"),
+  waiverVersion: varchar("waiverVersion", { length: 16 }),
+  profileSetupComplete: boolean("profileSetupComplete").default(false),
   // ─── Referral tracking ───────────────────────────────────────────────────
   referredByCode: varchar("referredByCode", { length: 32 }),
   referredByUserId: int("referredByUserId"),

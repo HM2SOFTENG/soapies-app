@@ -31,6 +31,8 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import WelcomeGuide from "./pages/WelcomeGuide";
 import ScheduleInterview from "./pages/ScheduleInterview";
+import Waiver from "./pages/Waiver";
+import ProfileSetup from "./pages/ProfileSetup";
 import { AnimatePresence } from "framer-motion";
 import BottomTabNav from "./components/BottomTabNav";
 import { FloatingBubbles } from "./components/FloatingElements";
@@ -64,6 +66,8 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/pending" component={PendingApproval} />
         <Route path="/schedule-interview" component={ScheduleInterview} />
+        <Route path="/waiver" component={Waiver} />
+        <Route path="/profile-setup" component={ProfileSetup} />
 
         {/* Public routes */}
         <Route path="/" component={Home} />

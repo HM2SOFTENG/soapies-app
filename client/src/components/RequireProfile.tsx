@@ -1,4 +1,6 @@
 import { useProfileStatus } from "@/hooks/useProfileStatus";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
@@ -13,11 +15,15 @@ import { motion } from "framer-motion";
  * - Users without profile: redirects to /apply
  */
 export function RequireProfile({ children }: { children: React.ReactNode }) {
-  const { loading, isAuthenticated, needsApplication, isPendingApproval, isAdmin } = useProfileStatus();
+  const { loading, isAuthenticated, needsApplication, isPendingApproval, isAdmin, applicationStatus } = useProfileStatus();
+  const { isAuthenticated: authd } = useAuth();
+  const profileQuery = trpc.profile.me.useQuery(undefined, { enabled: authd, staleTime: 5 * 60 * 1000 });
   const [, setLocation] = useLocation();
 
+  const profile = profileQuery.data;
+
   useEffect(() => {
-    if (loading) return;
+    if (loading || profileQuery.isLoading) return;
     if (!isAuthenticated) return; // Let the page handle unauthenticated state
     if (isAdmin) return; // Admins skip
     if (isPendingApproval) {
@@ -26,11 +32,23 @@ export function RequireProfile({ children }: { children: React.ReactNode }) {
     }
     if (needsApplication) {
       setLocation("/join");
+      return;
     }
-  }, [loading, isAuthenticated, needsApplication, isPendingApproval, isAdmin, setLocation]);
+    // Post-approval onboarding flow
+    if (applicationStatus === "approved") {
+      if (!profile?.waiverSignedAt) {
+        setLocation("/waiver");
+        return;
+      }
+      if (!profile?.profileSetupComplete) {
+        setLocation("/profile-setup");
+        return;
+      }
+    }
+  }, [loading, profileQuery.isLoading, isAuthenticated, needsApplication, isPendingApproval, isAdmin, applicationStatus, profile, setLocation]);
 
   // Show loading state while checking
-  if (loading && isAuthenticated) {
+  if ((loading || profileQuery.isLoading) && isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50">
         <motion.div
