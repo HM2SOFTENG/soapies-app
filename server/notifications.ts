@@ -411,6 +411,53 @@ export function buildWaitlistNotification(userName: string): NotificationTemplat
   };
 }
 
+export function buildInterviewScheduleNotification(userName: string, scheduleUrl: string): NotificationTemplate {
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fdf2f8; }
+    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+    .card { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 24px rgba(236, 72, 153, 0.1); }
+    .brand { text-align: center; font-size: 28px; font-weight: 800; color: #7c3aed; margin-bottom: 8px; }
+    .divider { height: 3px; background: linear-gradient(to right, #ec4899, #7c3aed); border-radius: 2px; margin: 24px 0; }
+    h1 { color: #1f2937; font-size: 22px; margin: 0 0 16px 0; text-align: center; }
+    p { color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0; }
+    .cta { display: block; text-align: center; background: linear-gradient(135deg, #ec4899, #7c3aed); color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 24px auto; max-width: 280px; }
+    .footer { text-align: center; color: #9ca3af; font-size: 13px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="brand">Soapies</div>
+      <div class="divider"></div>
+      <h1>🎉 Great News, ${userName}!</h1>
+      <p>Your application passed our initial review! The next step is a short intro call so we can get to know you better.</p>
+      <p>Please click the button below to schedule your intro call at a time that works for you:</p>
+      <a href="${scheduleUrl}" class="cta">Schedule My Call</a>
+      <p style="font-size: 14px; color: #9ca3af;">The call is quick (about 15-30 minutes) and gives us a chance to answer any questions you might have about the community.</p>
+      <div class="divider"></div>
+      <div class="footer"><p>Questions? Reply to this email. We're excited to meet you! 💖</p></div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  return {
+    type: "interview_scheduled",
+    title: "Schedule Your Soapies Interview 🎉",
+    body: `Great news ${userName}! Your application passed initial review. Please schedule your intro call to move to the next step.`,
+    emailSubject: "Schedule Your Soapies Interview",
+    emailHtml,
+    smsMessage: `🎉 ${userName}, your Soapies app passed initial review! Schedule your intro call: ${scheduleUrl}`,
+    data: { phase: "interview_scheduled", scheduleUrl },
+  };
+}
+
 function buildApprovalEmailHtml(userName: string): string {
   return `
 <!DOCTYPE html>

@@ -64,6 +64,7 @@ export const profiles = mysqlTable("profiles", {
   phone: varchar("phone", { length: 20 }),
   memberRole: mysqlEnum("memberRole", ["pending", "member", "angel", "admin"]).default("pending").notNull(),
   applicationStatus: mysqlEnum("applicationStatus", ["draft", "submitted", "under_review", "approved", "rejected", "waitlisted"]).default("draft").notNull(),
+  applicationPhase: varchar("applicationPhase", { length: 32 }),
   communityId: varchar("communityId", { length: 32 }),
   preferences: json("preferences"),
   isProfileComplete: boolean("isProfileComplete").default(false),

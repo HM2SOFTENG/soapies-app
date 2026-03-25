@@ -108,7 +108,19 @@ export async function upsertProfile(data: any) {
 
 export async function getPendingApplications() {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(profiles).where(eq(profiles.applicationStatus, "submitted")).orderBy(asc(profiles.createdAt));
+  // Return submitted + under_review + interview phases with photos
+  const rows = await db.select().from(profiles)
+    .where(sql`${profiles.applicationStatus} IN ('submitted', 'under_review') OR ${profiles.applicationPhase} IN ('interview_scheduled', 'interview_complete')`)
+    .orderBy(asc(profiles.createdAt));
+
+  // Attach photos to each profile
+  const result = await Promise.all(rows.map(async (p) => {
+    const photos = await db!.select({ photoUrl: applicationPhotos.photoUrl })
+      .from(applicationPhotos).where(eq(applicationPhotos.profileId, p.id))
+      .orderBy(asc(applicationPhotos.sortOrder));
+    return { ...p, applicationPhotos: photos.map(ph => ph.photoUrl) };
+  }));
+  return result;
 }
 
 export async function getAllProfiles() {
@@ -121,6 +133,36 @@ export async function updateProfileStatus(profileId: number, status: string, app
   const data: any = { applicationStatus: status };
   if (status === "approved") { data.memberRole = "member"; data.approvedAt = new Date(); data.approvedBy = approvedBy; }
   await db.update(profiles).set(data).where(eq(profiles.id, profileId));
+}
+
+export async function updateProfilePhase(profileId: number, phase: string) {
+  const db = await getDb(); if (!db) return;
+  await db.update(profiles).set({ applicationPhase: phase }).where(eq(profiles.id, profileId));
+}
+
+export async function getApplicationDetail(profileId: number) {
+  const db = await getDb(); if (!db) return null;
+
+  const profileRows = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
+  if (!profileRows.length) return null;
+  const profile = profileRows[0];
+
+  const user = await getUserById(profile.userId);
+  const photos = await db.select({ photoUrl: applicationPhotos.photoUrl })
+    .from(applicationPhotos).where(eq(applicationPhotos.profileId, profileId))
+    .orderBy(asc(applicationPhotos.sortOrder));
+  const logs = await db.select().from(applicationLogs)
+    .where(eq(applicationLogs.profileId, profileId)).orderBy(desc(applicationLogs.createdAt));
+  const slots = await db.select().from(introCallSlots)
+    .where(eq(introCallSlots.profileId, profileId));
+
+  return {
+    ...profile,
+    email: user?.email ?? null,
+    applicationPhotos: photos.map(p => p.photoUrl),
+    applicationLogs: logs,
+    introCallSlots: slots,
+  };
 }
 
 // ─── APPLICATION PHOTOS ──────────────────────────────────────────────────────

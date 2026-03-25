@@ -1042,6 +1042,98 @@ export const appRouter = router({
     pendingApplications: adminProcedure.query(async () => {
       return db.getPendingApplications();
     }),
+    getApplicationDetail: adminProcedure.input(z.object({ profileId: z.number() })).query(async ({ input }) => {
+      return db.getApplicationDetail(input.profileId);
+    }),
+    advanceApplication: adminProcedure.input(z.object({
+      profileId: z.number(),
+      phase: z.enum(["initial_review", "interview_scheduled", "interview_complete", "final_approved", "rejected"]),
+      memberRole: z.enum(["member", "angel", "admin"]).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const profile = await db.getProfileByProfileId(input.profileId);
+      if (!profile) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+      const user = await db.getUserById(profile.userId);
+      const userName = profile.displayName || user?.name || "Member";
+
+      if (input.phase === "interview_scheduled") {
+        await db.updateProfilePhase(input.profileId, "interview_scheduled");
+        await db.createApplicationLog({ profileId: input.profileId, action: "interview_scheduled", performedBy: ctx.user.id, notes: "Moved to interview phase" });
+        await db.createAuditLog({ adminId: ctx.user.id, action: "interview_scheduled", targetType: "profile", targetId: input.profileId });
+
+        // Send interview scheduling email
+        try {
+          const scheduleUrl = `${process.env.PUBLIC_URL || "https://soapies.app"}/schedule-interview`;
+          const template = notif.buildInterviewScheduleNotification(userName, scheduleUrl);
+          await notif.sendNotification({
+            userId: profile.userId,
+            type: template.type,
+            title: template.title,
+            body: template.body,
+            email: user?.email ?? undefined,
+            phone: profile.phone ?? undefined,
+            data: { ...template.data, emailSubject: template.emailSubject, emailHtml: template.emailHtml, smsMessage: template.smsMessage },
+          });
+        } catch (err) {
+          console.error("[Notification] Failed to send interview notification:", err);
+        }
+
+      } else if (input.phase === "interview_complete") {
+        await db.updateProfilePhase(input.profileId, "interview_complete");
+        await db.createApplicationLog({ profileId: input.profileId, action: "interview_complete", performedBy: ctx.user.id, notes: "Interview completed" });
+        await db.createAuditLog({ adminId: ctx.user.id, action: "interview_complete", targetType: "profile", targetId: input.profileId });
+
+      } else if (input.phase === "final_approved") {
+        const role = input.memberRole || "member";
+        await db.updateProfileStatus(input.profileId, "approved", ctx.user.id);
+        await db.updateProfilePhase(input.profileId, "final_approved");
+        // Set the member role
+        const dbConn = await db.getDb();
+        if (dbConn) {
+          const { profiles: profilesTable } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await dbConn.update(profilesTable).set({ memberRole: role as any }).where(eq(profilesTable.id, input.profileId));
+        }
+        await db.createApplicationLog({ profileId: input.profileId, action: "final_approved", performedBy: ctx.user.id, notes: `Approved as ${role}` });
+        await db.createAuditLog({ adminId: ctx.user.id, action: "application_approved", targetType: "profile", targetId: input.profileId });
+
+        try {
+          const template = notif.buildApprovalNotification(userName);
+          await notif.sendNotification({
+            userId: profile.userId,
+            type: template.type,
+            title: template.title,
+            body: template.body,
+            email: user?.email ?? undefined,
+            phone: profile.phone ?? undefined,
+            data: { ...template.data, emailSubject: template.emailSubject, emailHtml: template.emailHtml, smsMessage: template.smsMessage },
+          });
+        } catch (err) {
+          console.error("[Notification] Failed to send approval notification:", err);
+        }
+
+      } else if (input.phase === "rejected") {
+        await db.updateProfileStatus(input.profileId, "rejected", ctx.user.id);
+        await db.createApplicationLog({ profileId: input.profileId, action: "rejected", performedBy: ctx.user.id });
+        await db.createAuditLog({ adminId: ctx.user.id, action: "application_rejected", targetType: "profile", targetId: input.profileId });
+
+        try {
+          const template = notif.buildRejectionNotification(userName);
+          await notif.sendNotification({
+            userId: profile.userId,
+            type: template.type,
+            title: template.title,
+            body: template.body,
+            email: user?.email ?? undefined,
+            phone: profile.phone ?? undefined,
+            data: { ...template.data, emailSubject: template.emailSubject, emailHtml: template.emailHtml, smsMessage: template.smsMessage },
+          });
+        } catch (err) {
+          console.error("[Notification] Failed to send rejection notification:", err);
+        }
+      }
+
+      return { success: true };
+    }),
     reviewApplication: adminProcedure.input(z.object({
       profileId: z.number(),
       status: z.enum(["approved", "rejected", "waitlisted"]),
