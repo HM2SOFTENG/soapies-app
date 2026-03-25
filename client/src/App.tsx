@@ -24,6 +24,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
+import WelcomeGuide from "./pages/WelcomeGuide";
 import { AnimatePresence } from "framer-motion";
 
 /** Wraps a component with the RequireProfile guard */
@@ -57,6 +58,7 @@ function Router() {
 
         {/* Public routes */}
         <Route path="/" component={Home} />
+        <Route path="/welcome" component={WelcomeGuide} />
         <Route path="/events" component={Events} />
         <Route path="/events/:id" component={EventDetail} />
         <Route path="/apply" component={Apply} />

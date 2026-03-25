@@ -1,14 +1,11 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { FloatingBubbles, MorphBlob, GlowOrb } from "@/components/FloatingElements";
@@ -29,23 +26,95 @@ import {
   EyeOff,
   Upload,
   CheckCircle2,
-  Clock,
+  MapPin,
+  Phone,
+  Star,
+  Trash2,
 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png";
 
 const INTERESTS = [
-  "House Parties", "Raves", "Beach Events", "Pool Parties",
-  "Dance", "Music", "Socializing", "Networking",
-  "Fitness", "Travel", "Art", "Photography",
-  "Cooking", "Gaming", "Yoga", "Meditation",
+  "House Parties",
+  "Raves",
+  "Beach Events",
+  "Pool Parties",
+  "Dance",
+  "Music",
+  "Socializing",
+  "Networking",
+  "Fitness",
+  "Travel",
+  "Art",
+  "Photography",
+  "Cooking",
+  "Gaming",
+  "Yoga",
+  "Meditation",
 ];
 
 const LOOKING_FOR = [
-  "New Friends", "Social Events", "Couples Community",
-  "Dating", "Networking", "Adventure", "Fun Nights Out",
+  "New Friends",
+  "Social Events",
+  "Couples Community",
+  "Dating",
+  "Networking",
+  "Adventure",
+  "Fun Nights Out",
   "Like-minded People",
+];
+
+const GENDER_OPTIONS = [
+  { label: "Male", icon: "♂️" },
+  { label: "Female", icon: "♀️" },
+  { label: "Non-binary", icon: "⚧" },
+  { label: "Trans Male", icon: "🏳️‍⚧️" },
+  { label: "Trans Female", icon: "🏳️‍⚧️" },
+  { label: "Other", icon: "◆" },
+  { label: "Prefer not to say", icon: "?" },
+];
+
+const ORIENTATION_OPTIONS = [
+  { label: "Straight", icon: "↔️" },
+  { label: "Gay", icon: "🏳️‍🌈" },
+  { label: "Lesbian", icon: "🏳️‍🌈" },
+  { label: "Bisexual", icon: "🏳️‍🌈" },
+  { label: "Pansexual", icon: "🏳️‍🌈" },
+  { label: "Queer", icon: "🏳️‍🌈" },
+  { label: "Asexual", icon: "🏳️‍🌈" },
+  { label: "Other", icon: "◆" },
+  { label: "Prefer not to say", icon: "?" },
+];
+
+const RELATIONSHIP_STATUS_OPTIONS = [
+  { label: "Single", icon: "💫" },
+  { label: "In a Relationship", icon: "💕" },
+  { label: "Married", icon: "💍" },
+  { label: "Open Relationship", icon: "🔗" },
+  { label: "It's Complicated", icon: "❓" },
+  { label: "Prefer not to say", icon: "?" },
+];
+
+const COMMUNITY_OPTIONS = [
+  {
+    id: "soapies",
+    name: "Soapies",
+    subtitle: "Main Community",
+    description: "The original lifestyle community",
+  },
+  {
+    id: "groupies",
+    name: "Groupies",
+    subtitle: "For couples and groups",
+    description: "For couples and groups",
+  },
+  {
+    id: "gaypeez",
+    name: "Gaypeez",
+    subtitle: "LGBTQ+ friendly community",
+    description: "LGBTQ+ friendly community",
+  },
 ];
 
 const STEPS = [
@@ -58,7 +127,9 @@ const STEPS = [
   { id: 7, title: "Review & Submit", icon: Shield },
 ];
 
-const getPasswordStrength = (password: string): { strength: "weak" | "medium" | "strong"; percentage: number } => {
+const getPasswordStrength = (
+  password: string
+): { strength: "weak" | "medium" | "strong"; percentage: number } => {
   if (password.length < 8) return { strength: "weak", percentage: 20 };
   if (password.length < 12) return { strength: "medium", percentage: 60 };
   if (/[A-Z]/.test(password) && /[0-9!@#$%^&*]/.test(password)) {
@@ -92,331 +163,382 @@ const PasswordStrengthIndicator = ({ password }: { password: string }) => {
     >
       <div className="flex justify-between items-center">
         <span className="text-xs font-medium text-gray-400">Password Strength</span>
-        <span className={`text-xs font-semibold ${
-          strength === "weak" ? "text-red-400" :
-          strength === "medium" ? "text-yellow-400" :
-          "text-green-400"
-        }`}>
+        <span
+          className={`text-xs font-semibold ${
+            strength === "weak"
+              ? "text-red-400"
+              : strength === "medium"
+                ? "text-yellow-400"
+                : "text-green-400"
+          }`}
+        >
           {strengthLabel[strength]}
         </span>
       </div>
-      <motion.div
-        className="h-1.5 bg-gray-700 rounded-full overflow-hidden"
-        layoutId="strength-bar"
-      >
+      <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
         <motion.div
           className={`h-full ${strengthColor[strength]}`}
-          initial={{ width: "0%" }}
+          initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         />
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
 
-const ConfettiPiece = ({ delay }: { delay: number }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 1, y: 0, x: 0, rotate: 0 }}
-      animate={{ opacity: 0, y: 100, x: (Math.random() - 0.5) * 100, rotate: 360 }}
-      transition={{ duration: 1, delay, ease: "easeIn" }}
-      className="absolute w-2 h-2 pointer-events-none"
-      style={{
-        left: `${Math.random() * 100}%`,
-        top: "50%",
-        background: Math.random() > 0.5 ? "#ec4899" : "#a855f7",
-        borderRadius: Math.random() > 0.5 ? "50%" : "0%",
-      }}
-    />
-  );
-};
+interface PhotoUploadState {
+  id: string;
+  file: File;
+  preview: string;
+  uploading: boolean;
+  error?: string;
+  photoId?: number;
+}
 
-const SuccessOverlay = () => {
+type ChipType = "gender" | "orientation" | "relationshipStatus" | "interests" | "lookingFor";
+
+const AnimatedChip = ({
+  label,
+  selected,
+  onClick,
+  icon,
+  chipType,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  icon?: string;
+  chipType?: ChipType;
+}) => {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center"
+    <motion.button
+      type="button"
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className={`relative px-4 py-2 rounded-full font-medium text-sm transition-all ${
+        selected
+          ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/50"
+          : "bg-white/10 border border-white/20 text-gray-700 hover:bg-white/20 hover:border-white/40"
+      }`}
     >
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="relative"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 opacity-75 blur-xl"
-        />
-        <div className="relative bg-gray-950 rounded-full p-8 flex items-center justify-center border border-pink-500/50">
+      <div className="flex items-center gap-2">
+        {icon && <span>{icon}</span>}
+        <span>{label}</span>
+        {selected && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.3, type: "spring" }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring" as const, stiffness: 400, damping: 15 }}
           >
-            <Check className="w-12 h-12 text-green-400" />
+            <Check size={16} />
           </motion.div>
-        </div>
-      </motion.div>
+        )}
+      </div>
+    </motion.button>
+  );
+};
 
-      {Array.from({ length: 12 }).map((_, i) => (
-        <ConfettiPiece key={i} delay={i * 0.1} />
-      ))}
+const CommunityCard = ({
+  option,
+  selected,
+  onClick,
+}: {
+  option: (typeof COMMUNITY_OPTIONS)[0];
+  selected: boolean;
+  onClick: () => void;
+}) => {
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ scale: 1.02, translateY: -4 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`relative p-6 rounded-xl border-2 transition-all text-left ${
+        selected
+          ? "bg-gradient-to-br from-pink-100 to-purple-100 border-pink-400 shadow-xl"
+          : "bg-white border-gray-200 hover:border-pink-300 hover:shadow-lg"
+      }`}
+    >
+      <div className="absolute top-4 right-4">
+        <motion.div
+          animate={selected ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+          transition={{ type: "spring" as const, stiffness: 400, damping: 15 }}
+        >
+          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center">
+            <Check size={16} className="text-white" />
+          </div>
+        </motion.div>
+      </div>
+      <h3 className="font-bold text-lg text-gray-900">{option.name}</h3>
+      <p className="text-xs font-medium text-pink-600 mt-1">{option.subtitle}</p>
+      <p className="text-sm text-gray-600 mt-2">{option.description}</p>
+    </motion.button>
+  );
+};
+
+const FieldContainer = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{
+        type: "spring" as const,
+        stiffness: 400,
+        damping: 30,
+        delay,
+      }}
+    >
+      {children}
     </motion.div>
   );
 };
 
-interface PhotoUpload {
-  id?: number;
-  url: string;
-  uploading?: boolean;
-}
+const ApplicationStatus = () => {
+  const [, setLocation] = useLocation();
 
-interface JoinFormState {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  termsAccepted: boolean;
-  displayName: string;
-  gender: string;
-  dateOfBirth: string;
-  bio: string;
-  orientation: string;
-  relationshipStatus: string;
-  location: string;
-  community: string;
-  phone: string;
-  interests: string[];
-  lookingFor: string[];
-  agreeGuidelines: boolean;
-  agreeWaiver: boolean;
-}
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLocation("/pending");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [setLocation]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="fixed inset-0 bg-gradient-to-br from-pink-500/20 to-purple-500/20 backdrop-blur-lg flex items-center justify-center"
+    >
+      <div className="bg-white rounded-2xl p-12 text-center max-w-md shadow-2xl">
+        <motion.div
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="mb-6 flex justify-center"
+        >
+          <CheckCircle2 size={64} className="text-green-500" />
+        </motion.div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Application Submitted!</h2>
+        <p className="text-gray-600 mb-8">We'll review your profile and get back to you soon.</p>
+        <button
+          onClick={() => setLocation("/pending")}
+          className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold rounded-lg hover:shadow-lg transition-shadow"
+        >
+          View Application Status
+        </button>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function JoinFlow() {
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
-  const [step, setStep] = useState(1);
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showApplicationStatus, setShowApplicationStatus] = useState(false);
+
+  // Step 2: Account Creation
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [canResend, setCanResend] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Step 3: Email Verification
+  const [verificationCode, setVerificationCode] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
+
+  // Step 4: About You
+  const [displayName, setDisplayName] = useState("");
+  const [gender, setGender] = useState("");
+  const [orientation, setOrientation] = useState("");
+  const [relationshipStatus, setRelationshipStatus] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const [communityId, setCommunityId] = useState("");
+  const [phone, setPhone] = useState("");
+
+  // Step 5: Photos
+  const [photos, setPhotos] = useState<PhotoUploadState[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState<JoinFormState>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    termsAccepted: false,
-    displayName: "",
-    gender: "",
-    dateOfBirth: "",
-    bio: "",
-    orientation: "",
-    relationshipStatus: "",
-    location: "",
-    community: "",
-    phone: "",
-    interests: [],
-    lookingFor: [],
-    agreeGuidelines: false,
-    agreeWaiver: false,
-  });
+  // Step 6: Preferences
+  const [interests, setInterests] = useState<string[]>([]);
+  const [lookingFor, setLookingFor] = useState<string[]>([]);
 
-  const [photos, setPhotos] = useState<PhotoUpload[]>([]);
-
-  // tRPC mutations
+  // Mutations
   const registerMutation = trpc.auth.register.useMutation();
   const verifyEmailMutation = trpc.auth.verifyEmail.useMutation();
-  const resendEmailMutation = trpc.auth.resendEmailVerification.useMutation();
-  const upsertProfile = trpc.profile.upsert.useMutation();
+  const resendVerificationMutation = trpc.auth.resendEmailVerification.useMutation();
+  const upsertProfileMutation = trpc.profile.upsert.useMutation();
   const uploadPhotoMutation = trpc.profile.uploadPhoto.useMutation();
   const deletePhotoMutation = trpc.profile.deletePhoto.useMutation();
-  const submitApplication = trpc.profile.submitApplication.useMutation();
+  const submitApplicationMutation = trpc.profile.submitApplication.useMutation();
 
-  // Resend countdown timer
+  // Resend timer effect
   useEffect(() => {
-    if (resendCountdown > 0) {
-      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (resendCountdown === 0 && !canResend && userEmail) {
-      setCanResend(true);
+    if (resendTimer > 0) {
+      const interval = setInterval(() => setResendTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
     }
-  }, [resendCountdown, canResend, userEmail]);
-
-  // Step navigation
-  const handleNext = useCallback(() => {
-    setDirection("forward");
-    setStep(prev => Math.min(prev + 1, 7));
-  }, []);
-
-  const handleBack = useCallback(() => {
-    setDirection("backward");
-    setStep(prev => Math.max(prev - 1, 1));
-  }, []);
-
-  const handleFormChange = useCallback((field: keyof JoinFormState, value: any) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-  }, []);
+  }, [resendTimer]);
 
   // Step 1: Welcome
-  const handleWelcome = () => {
-    handleNext();
+  const handleBeginJourney = () => {
+    setCurrentStep(2);
   };
 
-  // Step 2: Create Account
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!form.name.trim()) {
-      toast.error("Name is required");
+  // Step 2: Register
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword) {
+      toast.error("Please fill in all fields");
       return;
     }
-    if (!form.email.trim()) {
-      toast.error("Email is required");
-      return;
-    }
-    if (form.password.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
-    if (form.password !== form.confirmPassword) {
+    if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
-    if (!form.termsAccepted) {
-      toast.error("You must agree to the terms");
+    if (!agreedToTerms) {
+      toast.error("Please agree to the terms and conditions");
       return;
     }
 
     try {
       await registerMutation.mutateAsync({
-        name: form.name,
-        email: form.email,
-        password: form.password,
+        email,
+        password,
+        name: email.split("@")[0],
       });
-      setUserEmail(form.email);
-      handleNext();
+      setCurrentStep(3);
+      setResendTimer(60);
     } catch (error: any) {
       toast.error(error.message || "Registration failed");
     }
   };
 
   // Step 3: Verify Email
-  const handleVerifyEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.length < 6) {
-      toast.error("Please enter a valid 6-digit code");
+  const handleVerifyEmail = async () => {
+    if (verificationCode.length !== 6) {
+      toast.error("Please enter the complete verification code");
       return;
     }
 
     try {
-      await verifyEmailMutation.mutateAsync({ email: userEmail, code: otpCode });
-      setEmailVerified(true);
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        handleNext();
-      }, 1500);
+      await verifyEmailMutation.mutateAsync({
+        email,
+        code: verificationCode,
+      });
+      setCurrentStep(4);
     } catch (error: any) {
       toast.error(error.message || "Verification failed");
     }
   };
 
-  const handleResendCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResendCode = async () => {
     try {
-      await resendEmailMutation.mutateAsync({ email: userEmail });
-      toast.success("Verification code sent!");
-      setCanResend(false);
-      setResendCountdown(60);
+      await resendVerificationMutation.mutateAsync({ email });
+      setResendTimer(60);
+      toast.success("Verification code sent");
     } catch (error: any) {
       toast.error(error.message || "Failed to resend code");
     }
   };
 
   // Step 4: About You
-  const handleAboutYouNext = () => {
-    if (!form.displayName.trim()) {
-      toast.error("Display name is required");
+  const handleAboutYouNext = async () => {
+    if (!displayName || !gender || !dateOfBirth || !bio || !location || !communityId) {
+      toast.error("Please fill in all required fields");
       return;
     }
-    if (!form.gender) {
-      toast.error("Please select your gender");
-      return;
+
+    try {
+      await upsertProfileMutation.mutateAsync({
+        displayName,
+        gender,
+        orientation: orientation || undefined,
+        relationshipStatus: relationshipStatus || undefined,
+        dateOfBirth,
+        bio,
+        location,
+        communityId,
+        phone: phone || undefined,
+      });
+      setCurrentStep(5);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save profile");
     }
-    if (!form.dateOfBirth) {
-      toast.error("Date of birth is required");
-      return;
-    }
-    if (!form.orientation) {
-      toast.error("Please select your orientation");
-      return;
-    }
-    if (!form.relationshipStatus) {
-      toast.error("Please select your relationship status");
-      return;
-    }
-    if (!form.location.trim()) {
-      toast.error("Location is required");
-      return;
-    }
-    if (!form.community) {
-      toast.error("Please select a community");
-      return;
-    }
-    handleNext();
   };
 
   // Step 5: Photos
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    if (photos.length >= 6) {
-      toast.error("Maximum 6 photos allowed");
-      return;
-    }
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.currentTarget.files;
+    if (!files) return;
 
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      setPhotos(prev => [...prev, { url: "", uploading: true }]);
-
-      const response = await fetch("/api/upload-photo", {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select valid image files");
+        continue;
       }
 
-      const data = await response.json();
-      const photoUrl = data.url;
+      const id = Math.random().toString(36).substr(2, 9);
+      const preview = URL.createObjectURL(file);
 
-      const photoRecord = await uploadPhotoMutation.mutateAsync({ photoUrl, sortOrder: photos.length - 1 });
+      const newPhoto: PhotoUploadState = {
+        id,
+        file,
+        preview,
+        uploading: true,
+      };
 
-      setPhotos(prev => [
-        ...prev.slice(0, -1),
-        { id: photoRecord.photoId ?? undefined, url: photoUrl, uploading: false }
-      ]);
+      setPhotos((prev) => [...prev, newPhoto]);
 
-      toast.success("Photo uploaded!");
-    } catch (error: any) {
-      toast.error(error.message || "Photo upload failed");
-      setPhotos(prev => prev.filter(p => p.uploading !== true));
+      // Upload the photo
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload-photo", {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({ error: "Upload failed" }));
+          throw new Error(errData.error || "Upload failed");
+        }
+
+        const { url } = await response.json();
+
+        // Save photo metadata
+        const result = await uploadPhotoMutation.mutateAsync({
+          photoUrl: url,
+          sortOrder: photos.length,
+        });
+
+        setPhotos((prev) =>
+          prev.map((p) =>
+            p.id === id
+              ? { ...p, uploading: false, photoId: result.photoId ?? undefined }
+              : p
+          )
+        );
+
+        toast.success("Photo uploaded successfully");
+      } catch (error: any) {
+        const errorMsg =
+          error instanceof Error ? error.message : "Photo upload failed";
+        setPhotos((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, uploading: false, error: errorMsg } : p
+          )
+        );
+        toast.error(errorMsg);
+      }
     }
 
     if (fileInputRef.current) {
@@ -424,1290 +546,1133 @@ export default function JoinFlow() {
     }
   };
 
-  const handleRemovePhoto = async (index: number) => {
-    const photo = photos[index];
-    if (photo.id) {
-      try {
-        await deletePhotoMutation.mutateAsync({ photoId: photo.id });
-      } catch (error: any) {
-        toast.error(error.message || "Failed to remove photo");
-        return;
-      }
+  const handleDeletePhoto = async (id: string) => {
+    const photo = photos.find((p) => p.id === id);
+    if (!photo?.photoId) return;
+
+    try {
+      await deletePhotoMutation.mutateAsync({ photoId: photo.photoId });
+      setPhotos((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Photo deleted");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete photo");
     }
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePhotosNext = () => {
+    const uploadedPhotos = photos.filter((p) => p.photoId);
+    if (uploadedPhotos.length < 3) {
+      toast.error("Please upload at least 3 photos");
+      return;
+    }
+    setCurrentStep(6);
   };
 
   // Step 6: Preferences
-  const toggleInterest = (interest: string) => {
-    setForm(prev => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter(i => i !== interest)
-        : [...prev.interests, interest]
-    }));
-  };
-
-  const toggleLookingFor = (tag: string) => {
-    setForm(prev => ({
-      ...prev,
-      lookingFor: prev.lookingFor.includes(tag)
-        ? prev.lookingFor.filter(t => t !== tag)
-        : [...prev.lookingFor, tag]
-    }));
-  };
-
   const handlePreferencesNext = () => {
-    if (form.interests.length === 0) {
-      toast.error("Please select at least one interest");
+    if (interests.length === 0 || lookingFor.length === 0) {
+      toast.error("Please select at least one interest and one thing you're looking for");
       return;
     }
-    if (form.lookingFor.length === 0) {
-      toast.error("Please select at least one thing you're looking for");
-      return;
-    }
-    handleNext();
+    setCurrentStep(7);
   };
 
   // Step 7: Review & Submit
-  const handleSubmitApplication = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!form.agreeGuidelines || !form.agreeWaiver) {
-      toast.error("You must agree to the guidelines and waiver");
-      return;
-    }
-
-    setSubmitting(true);
-
+  const handleSubmitApplication = async () => {
     try {
-      await upsertProfile.mutateAsync({
-        displayName: form.displayName,
-        gender: form.gender,
-        dateOfBirth: form.dateOfBirth,
-        bio: form.bio,
-        orientation: form.orientation,
-        location: form.location,
-        phone: form.phone,
-        communityId: form.community,
-      });
-
-      await submitApplication.mutateAsync();
-
-      setSubmitted(true);
-      toast.success("Application submitted successfully!");
+      await submitApplicationMutation.mutateAsync();
+      setShowApplicationStatus(true);
     } catch (error: any) {
-      setSubmitting(false);
       toast.error(error.message || "Failed to submit application");
     }
   };
 
-  // Determine theme
-  const isDarkTheme = step <= 3;
-
-  // Slide transition variants
-  const slideVariants = {
-    enter: (dir: "forward" | "backward") => ({
-      x: dir === "forward" ? 1000 : -1000,
-      opacity: 0,
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1,
-    },
-    exit: (dir: "forward" | "backward") => ({
-      zIndex: 0,
-      x: dir === "forward" ? -1000 : 1000,
-      opacity: 0,
-    }),
-  };
-
-  // Show application submitted state
-  if (submitted) {
+  if (showApplicationStatus) {
     return <ApplicationStatus />;
   }
 
-  return (
-    <div className={`relative min-h-screen overflow-hidden transition-colors duration-700 ${
-      isDarkTheme
-        ? "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
-        : "bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50"
-    }`}>
-      {/* Background elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        {isDarkTheme ? (
-          <>
-            <FloatingBubbles />
-            <MorphBlob className="absolute top-20 right-10 opacity-40" />
-            <MorphBlob color="from-purple-400 to-pink-300" className="absolute bottom-20 left-10 opacity-30" />
-            <GlowOrb className="absolute top-1/3 right-1/4 opacity-20" />
-            <GlowOrb color="oklch(0.55 0.25 310 / 0.15)" className="absolute bottom-1/3 left-1/3 opacity-15" />
-          </>
-        ) : (
-          <>
-            <motion.div
-              className="absolute top-0 left-0 w-96 h-96 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 opacity-20 blur-3xl"
-              animate={{
-                y: [0, 50, 0],
-                x: [0, 30, 0],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-            <motion.div
-              className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-gradient-to-br from-purple-300 to-pink-300 opacity-20 blur-3xl"
-              animate={{
-                y: [0, -50, 0],
-                x: [0, -30, 0],
-              }}
-              transition={{
-                duration: 10,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </>
-        )}
-      </div>
+  const isDarkTheme = currentStep <= 3;
+  const cardClasses = isDarkTheme
+    ? "bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.08]"
+    : "bg-gradient-to-br from-white/80 via-white/60 to-pink-50/40 border border-white/60";
 
-      {/* Progress Bar */}
-      <div className="relative z-20 w-full bg-white/5 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            {STEPS.map((s, idx) => {
-              const Icon = s.icon;
-              const isCompleted = idx < step - 1;
-              const isCurrent = idx === step - 1;
-
-              return (
-                <motion.div
-                  key={s.id}
-                  className="flex flex-col items-center flex-1"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <motion.div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all duration-300 ${
-                      isCurrent
-                        ? isDarkTheme
-                          ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/50"
-                          : "bg-gradient-to-r from-pink-400 to-purple-400 text-white shadow-lg shadow-pink-400/50"
-                        : isCompleted
-                          ? "bg-green-500 text-white"
-                          : isDarkTheme
-                            ? "bg-gray-700/50 text-gray-400"
-                            : "bg-gray-300/50 text-gray-600"
-                    }`}
-                    animate={isCurrent ? { scale: [1, 1.1, 1] } : {}}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {isCompleted ? (
-                      <Check className="w-5 h-5" />
-                    ) : (
-                      <Icon className="w-5 h-5" />
-                    )}
-                  </motion.div>
-                  <span className={`text-xs font-medium hidden sm:block text-center ${
-                    isCurrent
-                      ? isDarkTheme ? "text-pink-400" : "text-pink-600"
-                      : isDarkTheme ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    {s.title}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Progress line */}
-          <div className={`h-1 bg-gray-700/30 rounded-full overflow-hidden ${isDarkTheme ? "" : "bg-gray-300/30"}`}>
-            <motion.div
-              className={`h-full bg-gradient-to-r from-pink-500 to-purple-500`}
-              initial={{ width: "0%" }}
-              animate={{ width: `${((step - 1) / 6) * 100}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="relative z-10 min-h-[calc(100vh-120px)] flex items-center justify-center p-4 py-12">
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 },
-            }}
-            className="w-full max-w-2xl"
-          >
-            {/* Step 1: Welcome */}
-            {step === 1 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center"
-              >
-                <motion.div
-                  animate={{ y: [0, -20, 0] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="mb-8"
-                >
-                  <img src={LOGO_URL} alt="Soapies" className="h-24 mx-auto" />
-                </motion.div>
-
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-5xl sm:text-6xl font-display font-bold text-center mb-4"
-                  style={{
-                    background: "linear-gradient(135deg, rgb(236, 72, 153), rgb(168, 85, 247))",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
-                  }}
-                >
-                  Join Soapies
-                </motion.h1>
-
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-xl sm:text-2xl text-gray-300 text-center mb-12 max-w-md"
-                >
-                  The adult party and social community you've been looking for
-                </motion.p>
-
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  onClick={handleWelcome}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="btn-premium px-12 py-4 text-lg font-bold mb-8"
-                >
-                  Join Now
-                </motion.button>
-
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-sm text-gray-400 text-center"
-                >
-                  <p>Already have an account?{" "}
-                    <Link href="/login">
-                      <span className="text-pink-400 hover:text-pink-300 cursor-pointer font-semibold">
-                        Log in
-                      </span>
-                    </Link>
-                  </p>
-                </motion.div>
-              </motion.div>
-            )}
-
-            {/* Step 2: Create Account */}
-            {step === 2 && (
-              <div className="max-w-md mx-auto">
-                <Card className="glass glass-strong backdrop-blur-xl border border-pink-500/20 shadow-2xl">
-                  <CardContent className="pt-8 pb-6 px-6">
-                    <motion.h2
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-3xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400"
-                    >
-                      Create Account
-                    </motion.h2>
-                    <motion.p
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-sm text-gray-400 text-center mb-8"
-                    >
-                      Let's get you started
-                    </motion.p>
-
-                    <form onSubmit={handleRegister} className="space-y-4">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                      >
-                        <Label className="text-gray-300 text-sm font-medium mb-2 block">Full Name</Label>
-                        <Input
-                          type="text"
-                          placeholder="John Doe"
-                          value={form.name}
-                          onChange={(e) => handleFormChange("name", e.target.value)}
-                          className="bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-500 focus:border-pink-500/80 h-11"
-                        />
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        <Label className="text-gray-300 text-sm font-medium mb-2 block">Email</Label>
-                        <Input
-                          type="email"
-                          placeholder="you@example.com"
-                          value={form.email}
-                          onChange={(e) => handleFormChange("email", e.target.value)}
-                          className="bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-500 focus:border-pink-500/80 h-11"
-                        />
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
-                      >
-                        <Label className="text-gray-300 text-sm font-medium mb-2 block">Password</Label>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            value={form.password}
-                            onChange={(e) => handleFormChange("password", e.target.value)}
-                            className="bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-500 focus:border-pink-500/80 h-11 pr-10"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </motion.div>
-
-                      {form.password && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                        >
-                          <PasswordStrengthIndicator password={form.password} />
-                        </motion.div>
-                      )}
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35 }}
-                      >
-                        <Label className="text-gray-300 text-sm font-medium mb-2 block">Confirm Password</Label>
-                        <div className="relative">
-                          <Input
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            value={form.confirmPassword}
-                            onChange={(e) => handleFormChange("confirmPassword", e.target.value)}
-                            className="bg-gray-800/50 border border-gray-700/50 text-white placeholder-gray-500 focus:border-pink-500/80 h-11 pr-10"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="flex items-start gap-3 pt-2"
-                      >
-                        <Checkbox
-                          id="terms"
-                          checked={form.termsAccepted}
-                          onCheckedChange={(checked) => handleFormChange("termsAccepted", checked)}
-                          className="mt-1"
-                        />
-                        <Label htmlFor="terms" className="text-xs text-gray-300 font-normal cursor-pointer">
-                          I agree to the{" "}
-                          <Link href="/terms">
-                            <span className="text-pink-400 hover:text-pink-300">Terms of Service</span>
-                          </Link>
-                          {" "}and{" "}
-                          <Link href="/privacy">
-                            <span className="text-pink-400 hover:text-pink-300">Privacy Policy</span>
-                          </Link>
-                        </Label>
-                      </motion.div>
-
-                      <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.45 }}
-                        type="submit"
-                        disabled={registerMutation.isPending}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="btn-premium w-full mt-6 h-11 relative overflow-hidden group"
-                      >
-                        <span className="relative z-10 flex items-center justify-center gap-2 font-medium">
-                          {registerMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Creating Account...
-                            </>
-                          ) : (
-                            <>
-                              Continue
-                              <ArrowRight className="w-4 h-4" />
-                            </>
-                          )}
-                        </span>
-                      </motion.button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 3: Verify Email */}
-            {step === 3 && (
-              <div className="max-w-md mx-auto">
-                <Card className="glass glass-strong backdrop-blur-xl border border-pink-500/20 shadow-2xl">
-                  <CardContent className="pt-8 pb-6 px-6">
-                    <motion.h2
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-3xl font-bold text-center mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400"
-                    >
-                      Verify Email
-                    </motion.h2>
-                    <motion.p
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-sm text-gray-400 text-center mb-8"
-                    >
-                      We sent a code to {userEmail}
-                    </motion.p>
-
-                    <form onSubmit={handleVerifyEmail} className="space-y-6">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="flex justify-center"
-                      >
-                        <motion.div
-                          animate={{
-                            boxShadow: otpCode.length > 0
-                              ? ["0 0 0 0px rgba(236, 72, 153, 0.2)", "0 0 20px 8px rgba(236, 72, 153, 0.1)", "0 0 0 0px rgba(236, 72, 153, 0.2)"]
-                              : "0 0 0 0px rgba(236, 72, 153, 0)"
-                          }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className="rounded-lg"
-                        >
-                          <InputOTP
-                            maxLength={6}
-                            value={otpCode}
-                            onChange={setOtpCode}
-                            disabled={verifyEmailMutation.isPending}
-                          >
-                            <InputOTPGroup>
-                              {[0, 1, 2, 3, 4, 5].map((i) => (
-                                <InputOTPSlot key={i} index={i} />
-                              ))}
-                            </InputOTPGroup>
-                          </InputOTP>
-                        </motion.div>
-                      </motion.div>
-
-                      <motion.button
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        type="submit"
-                        disabled={verifyEmailMutation.isPending}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="btn-premium w-full h-11 relative overflow-hidden group"
-                      >
-                        <span className="relative z-10 flex items-center justify-center gap-2 font-medium">
-                          {verifyEmailMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Verifying...
-                            </>
-                          ) : (
-                            <>
-                              Verify Email
-                              <Check className="w-4 h-4" />
-                            </>
-                          )}
-                        </span>
-                      </motion.button>
-                    </form>
-
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3, duration: 0.5 }}
-                      className="mt-6 space-y-3 border-t border-gray-700/50 pt-6"
-                    >
-                      <p className="text-sm text-gray-400 text-center">Didn't receive a code?</p>
-                      <motion.button
-                        type="button"
-                        onClick={handleResendCode}
-                        disabled={!canResend || resendEmailMutation.isPending}
-                        whileHover={{ scale: !canResend ? 1 : 1.02 }}
-                        whileTap={{ scale: !canResend ? 1 : 0.98 }}
-                        className="w-full px-4 py-2 rounded-lg border border-pink-500/30 text-pink-400 hover:text-pink-300 hover:border-pink-500/60 hover:bg-pink-500/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm"
-                      >
-                        {resendEmailMutation.isPending
-                          ? "Sending..."
-                          : canResend
-                            ? "Resend Code"
-                            : (
-                                <motion.span
-                                  animate={{ opacity: [1, 0.5, 1] }}
-                                  transition={{ duration: 1, repeat: Infinity }}
-                                >
-                                  Resend in {resendCountdown}s
-                                </motion.span>
-                              )}
-                      </motion.button>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 4: About You */}
-            {step === 4 && (
-              <div className="max-w-2xl mx-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6"
-                >
-                  <h2 className="text-4xl font-bold text-gray-900 mb-2">Tell us about yourself</h2>
-                  <p className="text-gray-600">Help us get to know you better</p>
-                </motion.div>
-
-                <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                  <CardContent className="pt-8 pb-6 px-8">
-                    <form className="space-y-6">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Display Name</Label>
-                        <Input
-                          type="text"
-                          placeholder="How should we call you?"
-                          value={form.displayName}
-                          onChange={(e) => handleFormChange("displayName", e.target.value)}
-                          className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base"
-                        />
-                      </motion.div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15 }}
-                        >
-                          <Label className="text-gray-700 text-sm font-semibold mb-2 block">Gender</Label>
-                          <Select value={form.gender} onValueChange={(value) => handleFormChange("gender", value)}>
-                            <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base">
-                              <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {["male", "female", "non-binary", "trans-male", "trans-female", "other", "prefer-not-to-say"].map(opt => (
-                                <SelectItem key={opt} value={opt}>
-                                  {opt.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </motion.div>
-
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          <Label className="text-gray-700 text-sm font-semibold mb-2 block">Date of Birth</Label>
-                          <Input
-                            type="date"
-                            value={form.dateOfBirth}
-                            onChange={(e) => handleFormChange("dateOfBirth", e.target.value)}
-                            className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base"
-                          />
-                        </motion.div>
-                      </div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Bio</Label>
-                        <Textarea
-                          placeholder="Tell us what makes you special..."
-                          value={form.bio}
-                          onChange={(e) => handleFormChange("bio", e.target.value)}
-                          className="rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base min-h-24"
-                        />
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Orientation</Label>
-                        <Select value={form.orientation} onValueChange={(value) => handleFormChange("orientation", value)}>
-                          <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base">
-                            <SelectValue placeholder="Select..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {["straight", "gay", "lesbian", "bisexual", "pansexual", "queer", "asexual", "other", "prefer-not-to-say"].map(opt => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Relationship Status</Label>
-                        <Select value={form.relationshipStatus} onValueChange={(value) => handleFormChange("relationshipStatus", value)}>
-                          <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base">
-                            <SelectValue placeholder="Select..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {["single", "in-a-relationship", "married", "open-relationship", "its-complicated", "prefer-not-to-say"].map(opt => (
-                              <SelectItem key={opt} value={opt}>
-                                {opt.replace("-", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Location</Label>
-                        <Input
-                          type="text"
-                          placeholder="City, State"
-                          value={form.location}
-                          onChange={(e) => handleFormChange("location", e.target.value)}
-                          className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base"
-                        />
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.45 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Community</Label>
-                        <Select value={form.community} onValueChange={(value) => handleFormChange("community", value)}>
-                          <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base">
-                            <SelectValue placeholder="Select..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="soapies">Soapies Main Community</SelectItem>
-                            <SelectItem value="groupies">Groupies</SelectItem>
-                            <SelectItem value="gaypeez">Gaypeez</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        <Label className="text-gray-700 text-sm font-semibold mb-2 block">Phone (Optional)</Label>
-                        <Input
-                          type="tel"
-                          placeholder="(555) 123-4567"
-                          value={form.phone}
-                          onChange={(e) => handleFormChange("phone", e.target.value)}
-                          className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20 text-base"
-                        />
-                      </motion.div>
-                    </form>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 5: Photos */}
-            {step === 5 && (
-              <div className="max-w-2xl mx-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6"
-                >
-                  <h2 className="text-4xl font-bold text-gray-900 mb-2">Add some photos</h2>
-                  <p className="text-gray-600">Upload 1-6 photos to showcase your best self</p>
-                </motion.div>
-
-                <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                  <CardContent className="pt-8 pb-6 px-8">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-
-                    <motion.button
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={photos.length >= 6 || uploadPhotoMutation.isPending}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full py-8 rounded-xl border-2 border-dashed transition-all duration-200 ${
-                        photos.length >= 6
-                          ? "border-gray-300 bg-gray-100/50 cursor-not-allowed opacity-50"
-                          : "border-pink-300 hover:border-pink-500 hover:bg-pink-50/50 cursor-pointer"
-                      }`}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className={`w-8 h-8 ${photos.length >= 6 ? "text-gray-400" : "text-pink-500"}`} />
-                        <span className={`font-semibold ${photos.length >= 6 ? "text-gray-600" : "text-gray-700"}`}>
-                          {photos.length >= 6 ? "Maximum photos reached" : "Click to upload photos"}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          {photos.length}/6 photos
-                        </span>
-                      </div>
-                    </motion.button>
-
-                    {photos.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6"
-                      >
-                        {photos.map((photo, idx) => (
-                          <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="relative group"
-                          >
-                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-200">
-                              <img
-                                src={photo.url}
-                                alt={`Photo ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                              {photo.uploading && (
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                  <Loader2 className="w-6 h-6 text-white animate-spin" />
-                                </div>
-                              )}
-                            </div>
-                            <motion.button
-                              type="button"
-                              onClick={() => handleRemovePhoto(idx)}
-                              disabled={photo.uploading}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                            >
-                              <X className="w-4 h-4" />
-                            </motion.button>
-                          </motion.div>
-                        ))}
-                      </motion.div>
-                    )}
-
-                    <motion.p
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-xs text-gray-500 mt-6 text-center"
-                    >
-                      Photos should be clear, recent, and appropriate
-                    </motion.p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 6: Preferences */}
-            {step === 6 && (
-              <div className="max-w-2xl mx-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6"
-                >
-                  <h2 className="text-4xl font-bold text-gray-900 mb-2">Your preferences</h2>
-                  <p className="text-gray-600">What are you interested in?</p>
-                </motion.div>
-
-                <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                  <CardContent className="pt-8 pb-6 px-8 space-y-8">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Interests</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {INTERESTS.map(interest => (
-                          <motion.button
-                            key={interest}
-                            type="button"
-                            onClick={() => toggleInterest(interest)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ${
-                              form.interests.includes(interest)
-                                ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-                                : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                            }`}
-                          >
-                            {interest}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Looking for</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {LOOKING_FOR.map(tag => (
-                          <motion.button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleLookingFor(tag)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 ${
-                              form.lookingFor.includes(tag)
-                                ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-                                : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                            }`}
-                          >
-                            {tag}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Step 7: Review & Submit */}
-            {step === 7 && (
-              <div className="max-w-2xl mx-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6"
-                >
-                  <h2 className="text-4xl font-bold text-gray-900 mb-2">Review & Submit</h2>
-                  <p className="text-gray-600">Make sure everything looks good</p>
-                </motion.div>
-
-                <div className="space-y-4">
-                  {/* Account Summary */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                      <CardContent className="pt-6 pb-6 px-8">
-                        <h3 className="font-bold text-lg text-gray-900 mb-4">Account</h3>
-                        <div className="space-y-3 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Name:</span>
-                            <span className="font-semibold text-gray-900">{form.name}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Email:</span>
-                            <span className="font-semibold text-gray-900">{form.email}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-
-                  {/* Profile Summary */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                  >
-                    <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                      <CardContent className="pt-6 pb-6 px-8">
-                        <h3 className="font-bold text-lg text-gray-900 mb-4">Profile</h3>
-                        <div className="space-y-3 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Display Name:</span>
-                            <span className="font-semibold text-gray-900">{form.displayName}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Gender:</span>
-                            <span className="font-semibold text-gray-900 capitalize">{form.gender.replace("-", " ")}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Orientation:</span>
-                            <span className="font-semibold text-gray-900 capitalize">{form.orientation.replace("-", " ")}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Location:</span>
-                            <span className="font-semibold text-gray-900">{form.location}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Community:</span>
-                            <span className="font-semibold text-gray-900 capitalize">{form.community}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-
-                  {/* Photos Summary */}
-                  {photos.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                        <CardContent className="pt-6 pb-6 px-8">
-                          <h3 className="font-bold text-lg text-gray-900 mb-4">Photos ({photos.length})</h3>
-                          <div className="grid grid-cols-3 gap-2">
-                            {photos.map((photo, idx) => (
-                              <div key={idx} className="aspect-square rounded-lg overflow-hidden bg-gray-200">
-                                <img src={photo.url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  )}
-
-                  {/* Preferences Summary */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                  >
-                    <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                      <CardContent className="pt-6 pb-6 px-8">
-                        <h3 className="font-bold text-lg text-gray-900 mb-4">Preferences</h3>
-                        <div className="space-y-4">
-                          <div>
-                            <h4 className="font-semibold text-gray-700 text-sm mb-2">Interests</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {form.interests.map(interest => (
-                                <span key={interest} className="px-3 py-1 rounded-full bg-pink-100 text-pink-700 text-xs font-medium">
-                                  {interest}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-700 text-sm mb-2">Looking for</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {form.lookingFor.map(tag => (
-                                <span key={tag} className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-
-                  {/* Agreements */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <Card className="border-gray-200 bg-white/70 backdrop-blur-sm shadow-lg">
-                      <CardContent className="pt-6 pb-6 px-8 space-y-4">
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            id="guidelines"
-                            checked={form.agreeGuidelines}
-                            onCheckedChange={(checked) => handleFormChange("agreeGuidelines", checked)}
-                            className="mt-1"
-                          />
-                          <Label htmlFor="guidelines" className="text-sm text-gray-700 font-normal cursor-pointer flex-1">
-                            I agree to follow the{" "}
-                            <Link href="/guidelines">
-                              <span className="text-pink-600 hover:text-pink-700 font-semibold">Community Guidelines</span>
-                            </Link>
-                          </Label>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            id="waiver"
-                            checked={form.agreeWaiver}
-                            onCheckedChange={(checked) => handleFormChange("agreeWaiver", checked)}
-                            className="mt-1"
-                          />
-                          <Label htmlFor="waiver" className="text-sm text-gray-700 font-normal cursor-pointer flex-1">
-                            I understand and agree to the{" "}
-                            <Link href="/waiver">
-                              <span className="text-pink-600 hover:text-pink-700 font-semibold">Liability Waiver</span>
-                            </Link>
-                          </Label>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Navigation Footer */}
-      {!submitted && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`relative z-20 w-full border-t transition-colors duration-700 ${
-            isDarkTheme
-              ? "border-gray-700/50 bg-gray-900/80 backdrop-blur-sm"
-              : "border-gray-200/50 bg-white/80 backdrop-blur-sm"
-          }`}
-        >
-          <div className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleBack}
-              disabled={step === 1}
-              className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200 ${
-                step === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : isDarkTheme
-                    ? "text-gray-300 hover:text-gray-100 hover:bg-gray-800/50 border border-gray-700/50"
-                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100/50 border border-gray-200/50"
-              }`}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back</span>
-            </motion.button>
-
-            <div className={`text-sm font-medium ${isDarkTheme ? "text-gray-400" : "text-gray-600"}`}>
-              Step {step} of {STEPS.length}
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                if (step === 2) handleRegister(new Event("submit") as any);
-                else if (step === 3) handleVerifyEmail(new Event("submit") as any);
-                else if (step === 4) handleAboutYouNext();
-                else if (step === 5) handleNext();
-                else if (step === 6) handlePreferencesNext();
-                else if (step === 7) handleSubmitApplication(new Event("submit") as any);
-                else handleNext();
-              }}
-              disabled={submitting || (step === 2 && registerMutation.isPending) || (step === 3 && verifyEmailMutation.isPending)}
-              className={`btn-premium px-8 py-2 font-medium flex items-center gap-2 relative overflow-hidden group ${
-                step === 7 && !submitting ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600" : ""
-              }`}
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : step === 7 ? (
-                  <>
-                    Submit Application
-                    <Check className="w-4 h-4" />
-                  </>
-                ) : (
-                  <>
-                    <span className="hidden sm:inline">Continue</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </span>
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
-
-      <AnimatePresence>
-        {showSuccess && <SuccessOverlay />}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// Application Status Component
-function ApplicationStatus() {
-  const [, navigate] = useLocation();
-
-  useEffect(() => {
-    // Redirect to the pending approval page after a delay
-    const timer = setTimeout(() => {
-      navigate("/pending");
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [navigate]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 relative overflow-hidden flex items-center justify-center">
-      {/* Animated background blobs */}
+  // Step 1: Welcome
+  if (currentStep === 1) {
+    return (
       <motion.div
-        className="absolute top-0 left-0 w-96 h-96 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 opacity-20 blur-3xl"
-        animate={{ y: [0, 50, 0], x: [0, 30, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-gradient-to-br from-purple-300 to-pink-300 opacity-20 blur-3xl"
-        animate={{ y: [0, -50, 0], x: [0, -30, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 max-w-md w-full mx-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
       >
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 sm:p-12 border border-white/50 text-center">
-          {/* Animated icon */}
+        {/* Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <FloatingBubbles count={5} className="absolute opacity-30" />
+          <MorphBlob
+            className="absolute top-20 left-10 opacity-20"
+            color="from-pink-600 to-purple-600"
+            size="w-96 h-96"
+          />
+          <MorphBlob
+            className="absolute bottom-20 right-10 opacity-20"
+            color="from-purple-600 to-pink-600"
+            size="w-96 h-96"
+          />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4">
           <motion.div
-            className="w-24 h-24 mx-auto mb-8 bg-amber-100 rounded-full flex items-center justify-center"
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring" as const, stiffness: 400, damping: 40 }}
+            className="mb-8"
           >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            >
-              <Clock className="w-12 h-12 text-amber-600" />
-            </motion.div>
+            <img
+              src={LOGO_URL}
+              alt="Soapies"
+              className="h-32 w-auto drop-shadow-lg"
+            />
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-3xl sm:text-4xl font-bold text-amber-600 mb-4"
-            style={{ fontFamily: "Fredoka, sans-serif" }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-5xl md:text-6xl font-bold text-white text-center mb-4"
           >
-            Application Submitted!
+            Welcome to Soapies
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-lg text-gray-700 mb-4 leading-relaxed"
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="text-xl md:text-2xl text-gray-300 text-center max-w-2xl mb-12"
           >
-            We're carefully reviewing your application. This usually takes 24-48 hours.
+            Join the hottest lifestyle community
           </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="text-base text-gray-500 mb-8"
-          >
-            Thank you for your patience!
-          </motion.p>
-
-          {/* Confetti */}
-          {Array.from({ length: 12 }).map((_, i) => (
-            <ConfettiPiece key={i} delay={i * 0.1} />
-          ))}
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="mt-4"
-          >
-            <motion.button
-              onClick={() => navigate("/pending")}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold shadow-lg"
-            >
-              View Application Status
-            </motion.button>
-          </motion.div>
 
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-            onClick={() => navigate("/")}
-            className="block mx-auto mt-4 text-sm font-semibold text-gray-500 hover:text-pink-500 transition-colors"
+            type="button"
+            whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(236, 72, 153, 0.4)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleBeginJourney}
+            className="px-12 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold text-lg rounded-full shadow-xl hover:shadow-2xl transition-shadow"
           >
-            Back to Home
+            <motion.div
+              animate={{ y: [0, 2, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="flex items-center gap-2"
+            >
+              <span>Begin Your Journey</span>
+              <Sparkles size={20} />
+            </motion.div>
           </motion.button>
         </div>
       </motion.div>
-    </div>
-  );
+    );
+  }
+
+  // Step 2: Create Account
+  if (currentStep === 2) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
+      >
+        <div className="absolute inset-0 overflow-hidden">
+          <FloatingBubbles count={3} className="absolute opacity-20" />
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 400,
+              damping: 30,
+            }}
+            className={`w-full max-w-md ${cardClasses} backdrop-blur-2xl rounded-2xl p-8`}
+          >
+            {/* Step Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
+              <p className="text-gray-400">Step 2 of 7</p>
+            </motion.div>
+
+            <div className="space-y-6">
+              {/* Email Field */}
+              <FieldContainer delay={0.15}>
+                <Label className="text-white/80 mb-2 block">Email Address</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-lg"
+                />
+              </FieldContainer>
+
+              {/* Password Field */}
+              <FieldContainer delay={0.2}>
+                <Label className="text-white/80 mb-2 block">Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter a strong password"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-lg pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white/70"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {password && <PasswordStrengthIndicator password={password} />}
+              </FieldContainer>
+
+              {/* Confirm Password Field */}
+              <FieldContainer delay={0.25}>
+                <Label className="text-white/80 mb-2 block">Confirm Password</Label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/40 rounded-lg"
+                />
+              </FieldContainer>
+
+              {/* Terms Checkbox */}
+              <FieldContainer delay={0.3}>
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={agreedToTerms}
+                    onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                    className="mt-1"
+                  />
+                  <label className="text-sm text-white/70">
+                    I agree to the Terms & Conditions and Privacy Policy
+                  </label>
+                </div>
+              </FieldContainer>
+
+              {/* Navigation */}
+              <div className="flex gap-4 mt-8 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(1)}
+                  className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft size={20} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRegister}
+                  disabled={registerMutation.isPending}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {registerMutation.isPending ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight size={20} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 3: Verify Email
+  if (currentStep === 3) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black overflow-hidden"
+      >
+        <div className="absolute inset-0 overflow-hidden">
+          <FloatingBubbles count={3} className="absolute opacity-20" />
+        </div>
+
+        <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 400,
+              damping: 30,
+            }}
+            className={`w-full max-w-md ${cardClasses} backdrop-blur-2xl rounded-2xl p-8`}
+          >
+            {/* Step Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl font-bold text-white mb-2">Verify Your Email</h2>
+              <p className="text-gray-400">Step 3 of 7</p>
+            </motion.div>
+
+            <div className="space-y-6">
+              {/* Mail Icon Animation */}
+              <FieldContainer delay={0.15}>
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="flex justify-center"
+                >
+                  <Mail size={48} className="text-pink-400" />
+                </motion.div>
+              </FieldContainer>
+
+              {/* Instructions */}
+              <FieldContainer delay={0.2}>
+                <p className="text-center text-white/70 text-sm">
+                  We've sent a 6-digit code to <span className="font-semibold">{email}</span>
+                </p>
+              </FieldContainer>
+
+              {/* OTP Input */}
+              <FieldContainer delay={0.25}>
+                <Label className="text-white/80 mb-4 block text-center">
+                  Enter Code
+                </Label>
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={setVerificationCode}
+                  >
+                    <InputOTPGroup className="gap-2">
+                      {[...Array(6)].map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <InputOTPSlot
+                            index={i}
+                            className="w-12 h-12 text-2xl bg-white/10 border-white/20 text-white rounded-lg"
+                          />
+                        </motion.div>
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+              </FieldContainer>
+
+              {/* Resend Code */}
+              <FieldContainer delay={0.3}>
+                <div className="text-center">
+                  {resendTimer > 0 ? (
+                    <p className="text-white/60 text-sm flex items-center justify-center gap-2">
+                      <Clock size={16} />
+                      Resend code in {resendTimer}s
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={resendVerificationMutation.isPending}
+                      className="text-pink-400 hover:text-pink-300 font-semibold text-sm transition-colors disabled:opacity-50"
+                    >
+                      {resendVerificationMutation.isPending
+                        ? "Sending..."
+                        : "Resend Code"}
+                    </button>
+                  )}
+                </div>
+              </FieldContainer>
+
+              {/* Navigation */}
+              <div className="flex gap-4 mt-8 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(2)}
+                  className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft size={20} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleVerifyEmail}
+                  disabled={verifyEmailMutation.isPending || verificationCode.length !== 6}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {verifyEmailMutation.isPending ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      Verify
+                      <ArrowRight size={20} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 4: About You
+  if (currentStep === 4) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+      >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        <div className="relative z-10 max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 400,
+              damping: 30,
+            }}
+            className={`${cardClasses} backdrop-blur-2xl rounded-2xl p-8`}
+          >
+            {/* Step Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Tell Us About Yourself</h2>
+              <p className="text-gray-600">Step 4 of 7</p>
+            </motion.div>
+
+            <div className="space-y-8">
+              {/* Display Name */}
+              <FieldContainer delay={0.15}>
+                <Label className="text-gray-700 mb-2 block font-semibold">Display Name</Label>
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="How should we call you?"
+                  className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg"
+                />
+              </FieldContainer>
+
+              {/* Gender */}
+              <FieldContainer delay={0.2}>
+                <Label className="text-gray-700 mb-4 block font-semibold">Gender</Label>
+                <div className="flex flex-wrap gap-2">
+                  {GENDER_OPTIONS.map((option) => (
+                    <AnimatedChip
+                      key={option.label}
+                      label={option.label}
+                      icon={option.icon}
+                      selected={gender === option.label}
+                      onClick={() => setGender(option.label)}
+                      chipType="gender"
+                    />
+                  ))}
+                </div>
+              </FieldContainer>
+
+              {/* Date of Birth */}
+              <FieldContainer delay={0.25}>
+                <Label className="text-gray-700 mb-2 block font-semibold">Date of Birth</Label>
+                <Input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="bg-white/60 border-gray-200 text-gray-900 rounded-lg"
+                />
+              </FieldContainer>
+
+              {/* Bio */}
+              <FieldContainer delay={0.3}>
+                <Label className="text-gray-700 mb-2 block font-semibold">
+                  Bio ({bio.length}/500)
+                </Label>
+                <Textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value.slice(0, 500))}
+                  placeholder="Tell us about yourself, your interests, and what you're looking for..."
+                  className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg min-h-24"
+                />
+              </FieldContainer>
+
+              {/* Orientation */}
+              <FieldContainer delay={0.35}>
+                <Label className="text-gray-700 mb-4 block font-semibold">Orientation</Label>
+                <div className="flex flex-wrap gap-2">
+                  {ORIENTATION_OPTIONS.map((option) => (
+                    <AnimatedChip
+                      key={option.label}
+                      label={option.label}
+                      icon={option.icon}
+                      selected={orientation === option.label}
+                      onClick={() => setOrientation(option.label)}
+                      chipType="orientation"
+                    />
+                  ))}
+                </div>
+              </FieldContainer>
+
+              {/* Relationship Status */}
+              <FieldContainer delay={0.4}>
+                <Label className="text-gray-700 mb-4 block font-semibold">
+                  Relationship Status
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {RELATIONSHIP_STATUS_OPTIONS.map((option) => (
+                    <AnimatedChip
+                      key={option.label}
+                      label={option.label}
+                      icon={option.icon}
+                      selected={relationshipStatus === option.label}
+                      onClick={() => setRelationshipStatus(option.label)}
+                      chipType="relationshipStatus"
+                    />
+                  ))}
+                </div>
+              </FieldContainer>
+
+              {/* Location */}
+              <FieldContainer delay={0.45}>
+                <Label className="text-gray-700 mb-2 block font-semibold">Location</Label>
+                <div className="relative">
+                  <MapPin
+                    size={20}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                  />
+                  <Input
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="City, State or Country"
+                    className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg pl-10"
+                  />
+                </div>
+              </FieldContainer>
+
+              {/* Community */}
+              <FieldContainer delay={0.5}>
+                <Label className="text-gray-700 mb-4 block font-semibold">Community</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {COMMUNITY_OPTIONS.map((option) => (
+                    <CommunityCard
+                      key={option.id}
+                      option={option}
+                      selected={communityId === option.id}
+                      onClick={() => setCommunityId(option.id)}
+                    />
+                  ))}
+                </div>
+              </FieldContainer>
+
+              {/* Phone */}
+              <FieldContainer delay={0.55}>
+                <Label className="text-gray-700 mb-2 block font-semibold">Phone (Optional)</Label>
+                <div className="relative">
+                  <Phone
+                    size={20}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                  />
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="bg-white/60 border-gray-200 text-gray-900 placeholder:text-gray-500 rounded-lg pl-10"
+                  />
+                </div>
+              </FieldContainer>
+
+              {/* Navigation */}
+              <div className="flex gap-4 mt-8 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(3)}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft size={20} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAboutYouNext}
+                  disabled={upsertProfileMutation.isPending}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {upsertProfileMutation.isPending ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight size={20} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 5: Photos
+  if (currentStep === 5) {
+    const uploadedPhotos = photos.filter((p) => p.photoId);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+      >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 400,
+              damping: 30,
+            }}
+            className={`${cardClasses} backdrop-blur-2xl rounded-2xl p-8`}
+          >
+            {/* Step Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Upload Your Photos</h2>
+              <p className="text-gray-600 mb-4">Step 5 of 7</p>
+              <p className="text-sm text-gray-700 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                Photos are used for application review and will be managed after approval. Your
+                first photo will be your profile picture.
+              </p>
+            </motion.div>
+
+            {/* Photo Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-8"
+            >
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                {/* Upload Slot (First slot is featured on mobile) */}
+                <div className="col-span-3 md:col-span-1 md:row-span-2">
+                  <motion.label
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full h-48 md:h-full min-h-96 border-2 border-dashed border-gray-300 hover:border-pink-400 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors bg-white/40 hover:bg-white/60"
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                    />
+                    <Upload size={32} className="text-gray-400 mb-2" />
+                    <span className="text-gray-700 font-semibold text-center px-2">
+                      Click or drag photos
+                    </span>
+                    <span className="text-xs text-gray-500 mt-1">JPG, PNG (Max 10MB)</span>
+                  </motion.label>
+                </div>
+
+                {/* Uploaded Photos */}
+                {photos.map((photo, idx) => (
+                  <motion.div
+                    key={photo.id}
+                    initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, rotate: 5 }}
+                    transition={{
+                      type: "spring" as const,
+                      stiffness: 400,
+                      damping: 25,
+                    }}
+                    className="relative group"
+                  >
+                    <div className="relative w-full h-48 bg-gray-200 rounded-lg overflow-hidden">
+                      <img
+                        src={photo.preview}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Profile Photo Badge */}
+                      {idx === 0 && uploadedPhotos.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute top-2 left-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1"
+                        >
+                          <Star size={12} />
+                          PROFILE PHOTO
+                        </motion.div>
+                      )}
+
+                      {/* Loading/Error State */}
+                      {(photo.uploading || photo.error) && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          {photo.uploading ? (
+                            <Loader2 size={32} className="text-white animate-spin" />
+                          ) : (
+                            <div className="text-center">
+                              <X size={32} className="text-red-400 mx-auto mb-2" />
+                              <p className="text-white text-xs">{photo.error}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Delete Button */}
+                      {photo.photoId && (
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeletePhoto(photo.id)}
+                          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 size={16} />
+                        </motion.button>
+                      )}
+
+                      {/* Success Checkmark */}
+                      {photo.photoId && !photo.uploading && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute bottom-2 right-2 bg-green-500 text-white p-1 rounded-full"
+                        >
+                          <Check size={16} />
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Photo Count Info */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-sm text-gray-600 mb-4"
+              >
+                <p>
+                  Uploaded: <span className="font-semibold">{uploadedPhotos.length}</span> of 3-6
+                  photos
+                  {uploadedPhotos.length < 3 && (
+                    <span className="text-red-600 ml-2">
+                      (Minimum 3 photos required)
+                    </span>
+                  )}
+                </p>
+              </motion.div>
+            </motion.div>
+
+            {/* Navigation */}
+            <div className="flex gap-4 mt-8 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(4)}
+                className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <ArrowLeft size={20} />
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handlePhotosNext}
+                disabled={uploadedPhotos.length < 3}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                Next
+                <ArrowRight size={20} />
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 6: Preferences
+  if (currentStep === 6) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+      >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        <div className="relative z-10 max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 400,
+              damping: 30,
+            }}
+            className={`${cardClasses} backdrop-blur-2xl rounded-2xl p-8`}
+          >
+            {/* Step Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Your Preferences</h2>
+              <p className="text-gray-600">Step 6 of 7</p>
+            </motion.div>
+
+            <div className="space-y-8">
+              {/* Interests */}
+              <FieldContainer delay={0.15}>
+                <Label className="text-gray-700 mb-4 block font-semibold">
+                  What are you interested in?
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {INTERESTS.map((interest) => (
+                    <AnimatedChip
+                      key={interest}
+                      label={interest}
+                      selected={interests.includes(interest)}
+                      onClick={() => {
+                        if (interests.includes(interest)) {
+                          setInterests(interests.filter((i) => i !== interest));
+                        } else {
+                          setInterests([...interests, interest]);
+                        }
+                      }}
+                      chipType="interests"
+                    />
+                  ))}
+                </div>
+              </FieldContainer>
+
+              {/* Looking For */}
+              <FieldContainer delay={0.2}>
+                <Label className="text-gray-700 mb-4 block font-semibold">
+                  What are you looking for?
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {LOOKING_FOR.map((item) => (
+                    <AnimatedChip
+                      key={item}
+                      label={item}
+                      selected={lookingFor.includes(item)}
+                      onClick={() => {
+                        if (lookingFor.includes(item)) {
+                          setLookingFor(lookingFor.filter((i) => i !== item));
+                        } else {
+                          setLookingFor([...lookingFor, item]);
+                        }
+                      }}
+                      chipType="lookingFor"
+                    />
+                  ))}
+                </div>
+              </FieldContainer>
+
+              {/* Navigation */}
+              <div className="flex gap-4 mt-8 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(5)}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft size={20} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePreferencesNext}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  Next
+                  <ArrowRight size={20} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Step 7: Review & Submit
+  if (currentStep === 7) {
+    const uploadedPhotos = photos.filter((p) => p.photoId);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50 to-purple-50 overflow-y-auto py-12 px-4"
+      >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <FloatingBubbles count={2} className="absolute opacity-10" />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{
+              type: "spring" as const,
+              stiffness: 400,
+              damping: 30,
+            }}
+            className={`${cardClasses} backdrop-blur-2xl rounded-2xl p-8`}
+          >
+            {/* Step Header */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Review Your Application</h2>
+              <p className="text-gray-600">Step 7 of 7</p>
+            </motion.div>
+
+            <div className="space-y-8">
+              {/* Account Info */}
+              <FieldContainer delay={0.15}>
+                <div className="bg-white/50 rounded-lg p-6 border border-gray-200">
+                  <h3 className="font-bold text-gray-900 mb-4">Account Information</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Email</p>
+                      <p className="font-semibold text-gray-900">{email}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Display Name</p>
+                      <p className="font-semibold text-gray-900">{displayName}</p>
+                    </div>
+                  </div>
+                </div>
+              </FieldContainer>
+
+              {/* Profile Info */}
+              <FieldContainer delay={0.2}>
+                <div className="bg-white/50 rounded-lg p-6 border border-gray-200">
+                  <h3 className="font-bold text-gray-900 mb-4">Profile Information</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Gender</p>
+                      <p className="font-semibold text-gray-900">{gender}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Orientation</p>
+                      <p className="font-semibold text-gray-900">{orientation || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Relationship Status</p>
+                      <p className="font-semibold text-gray-900">
+                        {relationshipStatus || "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Location</p>
+                      <p className="font-semibold text-gray-900">{location}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Date of Birth</p>
+                      <p className="font-semibold text-gray-900">{dateOfBirth}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Community</p>
+                      <p className="font-semibold text-gray-900">
+                        {COMMUNITY_OPTIONS.find((c) => c.id === communityId)?.name}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-gray-600 text-xs mb-2">Bio</p>
+                    <p className="text-gray-900 whitespace-pre-wrap">{bio}</p>
+                  </div>
+                </div>
+              </FieldContainer>
+
+              {/* Photos */}
+              <FieldContainer delay={0.25}>
+                <div className="bg-white/50 rounded-lg p-6 border border-gray-200">
+                  <h3 className="font-bold text-gray-900 mb-4">Your Photos</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {uploadedPhotos.map((photo, idx) => (
+                      <motion.div
+                        key={photo.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.25 + idx * 0.05 }}
+                        className="flex-shrink-0"
+                      >
+                        <img
+                          src={photo.preview}
+                          alt={`Photo ${idx + 1}`}
+                          className="w-24 h-24 object-cover rounded-lg border-2 border-pink-300"
+                        />
+                        {idx === 0 && (
+                          <p className="text-xs font-semibold text-pink-600 mt-1 text-center">
+                            Profile
+                          </p>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </FieldContainer>
+
+              {/* Preferences */}
+              <FieldContainer delay={0.3}>
+                <div className="bg-white/50 rounded-lg p-6 border border-gray-200">
+                  <h3 className="font-bold text-gray-900 mb-4">Preferences</h3>
+                  <div className="mb-4">
+                    <p className="text-gray-600 text-sm mb-2">Interests</p>
+                    <div className="flex flex-wrap gap-2">
+                      {interests.map((interest) => (
+                        <span
+                          key={interest}
+                          className="bg-gradient-to-r from-pink-100 to-purple-100 text-gray-900 text-xs font-semibold px-3 py-1 rounded-full"
+                        >
+                          {interest}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-sm mb-2">Looking For</p>
+                    <div className="flex flex-wrap gap-2">
+                      {lookingFor.map((item) => (
+                        <span
+                          key={item}
+                          className="bg-gradient-to-r from-pink-100 to-purple-100 text-gray-900 text-xs font-semibold px-3 py-1 rounded-full"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </FieldContainer>
+
+              {/* Guidelines & Waiver */}
+              <FieldContainer delay={0.35}>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="guidelines"
+                      defaultChecked
+                      className="mt-1"
+                    />
+                    <label htmlFor="guidelines" className="text-sm text-gray-700">
+                      I agree to follow the Community Guidelines and code of conduct
+                    </label>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="waiver"
+                      defaultChecked
+                      className="mt-1"
+                    />
+                    <label htmlFor="waiver" className="text-sm text-gray-700">
+                      I understand and accept the Waiver and Terms of Service
+                    </label>
+                  </div>
+                </div>
+              </FieldContainer>
+
+              {/* Navigation */}
+              <div className="flex gap-4 mt-8 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(6)}
+                  className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft size={20} />
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitApplication}
+                  disabled={submitApplicationMutation.isPending}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:shadow-lg text-white font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {submitApplicationMutation.isPending ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      Submit Application
+                      <CheckCircle2 size={20} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return null;
 }
