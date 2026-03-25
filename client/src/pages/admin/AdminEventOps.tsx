@@ -172,96 +172,245 @@ function ReservationsTab({ eventId }: { eventId: number }) {
 }
 
 // ─── CHECK-IN TAB ───────────────────────────────────────────────────────
+// ─── GUEST DETAIL MODAL ─────────────────────────────────────────────────────
+function GuestModal({ guest, onCheckIn, onClose, isLoading }: {
+  guest: any; onCheckIn: () => void; onClose: () => void; isLoading: boolean;
+}) {
+  const name = guest.displayName || guest.profile?.displayName || guest.user?.name || "Guest";
+  const avatarUrl = guest.profile?.avatarUrl;
+  const isCheckedIn = guest.status === "checked_in";
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: "100%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "100%", opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          onClick={e => e.stopPropagation()}
+          className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl"
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1 sm:hidden">
+            <div className="w-10 h-1 rounded-full bg-gray-200" />
+          </div>
+
+          {/* Header gradient */}
+          <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-5 relative">
+            <button onClick={onClose} className="absolute top-4 right-4 text-white/80 hover:text-white">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className="w-16 h-16 rounded-2xl bg-white/20 flex-shrink-0 overflow-hidden border-2 border-white/40">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-2xl font-black text-white">{name.charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="font-display text-xl font-black text-white">{name}</h3>
+                {guest.profile?.memberRole && (
+                  <span className="text-white/70 text-xs font-semibold capitalize">{guest.profile.memberRole}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="px-6 py-5 space-y-4">
+            {/* Wristband — prominent */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+              <span className="text-sm font-bold text-gray-600">Wristband</span>
+              {guest.wristbandColor ? (
+                <WristbandBadge color={guest.wristbandColor} size="lg" />
+              ) : (
+                <span className="text-gray-400 text-sm">Not assigned</span>
+              )}
+            </div>
+
+            {/* Ticket details */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-pink-50 border border-pink-100">
+                <p className="text-[10px] font-bold text-pink-500 uppercase mb-1">Ticket</p>
+                <p className="text-sm font-bold text-gray-800 capitalize">{(guest.ticketType || "—").replace("_", " ")}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-purple-50 border border-purple-100">
+                <p className="text-[10px] font-bold text-purple-500 uppercase mb-1">Payment</p>
+                <p className="text-sm font-bold text-gray-800 capitalize">{guest.paymentStatus || "—"}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                <p className="text-[10px] font-bold text-blue-500 uppercase mb-1">Orientation</p>
+                <p className="text-sm font-bold text-gray-800 capitalize">{guest.orientationSignal || "—"}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                <p className="text-[10px] font-bold text-emerald-500 uppercase mb-1">Amount</p>
+                <p className="text-sm font-bold text-gray-800">${parseFloat(guest.totalAmount || "0").toFixed(2)}</p>
+              </div>
+            </div>
+
+            {/* Partner */}
+            {guest.partnerUserId && (
+              <div className="p-3 rounded-xl bg-fuchsia-50 border border-fuchsia-100">
+                <p className="text-[10px] font-bold text-fuchsia-500 uppercase mb-1">Couple Partner</p>
+                <p className="text-sm font-bold text-gray-800">{guest.partnerName || `User #${guest.partnerUserId}`}</p>
+              </div>
+            )}
+
+            {/* Test result */}
+            {guest.testResultSubmitted && (
+              <div className={`p-3 rounded-xl border ${guest.testResultApproved ? "bg-blue-50 border-blue-200" : "bg-amber-50 border-amber-200"}`}>
+                <p className={`text-[10px] font-bold uppercase mb-1 ${guest.testResultApproved ? "text-blue-600" : "text-amber-600"}`}>Test Result</p>
+                <p className="text-sm font-bold text-gray-800">{guest.testResultApproved ? "✅ Approved" : "⏳ Pending review"}</p>
+              </div>
+            )}
+
+            {/* Check In Button */}
+            {!isCheckedIn ? (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={onCheckIn}
+                disabled={isLoading}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 text-white font-display font-bold text-lg shadow-lg shadow-emerald-200/50 flex items-center justify-center gap-2"
+              >
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+                Check In Guest
+              </motion.button>
+            ) : (
+              <div className="w-full py-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+                <p className="text-emerald-600 font-bold flex items-center justify-center gap-2">
+                  <Check className="h-5 w-5" /> Already Checked In
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function CheckInTab({ eventId }: { eventId: number }) {
   const [search, setSearch] = useState("");
+  const [selectedGuest, setSelectedGuest] = useState<any | null>(null);
   const [recentCheckIns, setRecentCheckIns] = useState<any[]>([]);
-  const { data: reservations } = trpc.reservations.byEvent.useQuery({ eventId });
+  const { data: reservations, refetch } = trpc.reservations.byEvent.useQuery({ eventId });
   const updateStatus = trpc.reservations.updateStatus.useMutation({
     onSuccess: (_, variables) => {
       const res = reservations?.find((r: any) => r.id === variables.id);
-      if (res) {
-        setRecentCheckIns(prev => [{ ...res, checkedInAt: new Date() }, ...prev.slice(0, 9)]);
-      }
-      toast.success("Guest checked in!");
+      if (res) setRecentCheckIns(prev => [{ ...res, checkedInAt: new Date() }, ...prev.slice(0, 9)]);
+      toast.success("✅ Guest checked in!");
+      setSelectedGuest(null);
+      refetch();
     },
   });
 
-  const attendees = useMemo(() => {
-    if (!reservations) return [];
-    return reservations.filter((r: any) => r.status === "checked_in").length;
+  const checkedInCount = useMemo(() => {
+    if (!reservations) return 0;
+    return (reservations as any[]).filter((r: any) => r.status === "checked_in").length;
   }, [reservations]);
 
-  const matching = useMemo(() => {
-    if (!search || !reservations) return [];
-    return (reservations as any[]).filter((r: any) => {
+  // All non-cancelled reservations for the full list
+  const allGuests = useMemo(() => {
+    if (!reservations) return [];
+    return (reservations as any[]).filter((r: any) => r.status !== "cancelled");
+  }, [reservations]);
+
+  const filtered = useMemo(() => {
+    if (!search) return allGuests;
+    return allGuests.filter((r: any) => {
       const name = r.displayName || r.profile?.displayName || r.user?.name || "";
-      return name.toLowerCase().includes(search.toLowerCase()) &&
-        r.status !== "checked_in" &&
-        r.status !== "cancelled";
+      return name.toLowerCase().includes(search.toLowerCase());
     });
-  }, [search, reservations]);
+  }, [search, allGuests]);
 
   return (
-    <div className="space-y-6">
-      {/* Live Attendee Count */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200"
-      >
-        <p className="text-sm font-bold text-blue-600 uppercase mb-1">Live Attendee Count</p>
-        <div className="flex items-baseline gap-2">
-          <span className="font-display text-4xl font-black text-blue-700">{attendees}</span>
-          <span className="text-blue-600 font-semibold">guests checked in</span>
+    <div className="space-y-5">
+      {/* Live Count */}
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-bold text-blue-600 uppercase">Checked In</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-display text-3xl font-black text-blue-700">{checkedInCount}</span>
+            <span className="text-blue-500 text-sm">/ {allGuests.length}</span>
+          </div>
         </div>
-      </motion.div>
+        <motion.button onClick={() => refetch()} whileTap={{ scale: 0.9 }}
+          className="p-2 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200">
+          <RefreshCw className="h-4 w-4" />
+        </motion.button>
+      </div>
 
-      {/* Search & Check In */}
-      <div className="space-y-3">
-        <label className="block text-sm font-bold text-gray-700">Quick Check In</label>
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Type guest name..."
-            className="pl-12 rounded-xl border-pink-100"
-            autoComplete="off"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search guest name..." className="pl-11 rounded-xl border-pink-100" autoComplete="off" />
+      </div>
 
-        {/* Matching Guests */}
-        {search && (
-          <motion.div className="space-y-2">
-            {matching.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No matching guests</p>
-            ) : (
-              matching.map((r: any, i: number) => (
-                <motion.button
-                  key={r.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => updateStatus.mutate({ id: r.id, status: "checked_in" })}
-                  className="w-full p-4 rounded-xl bg-white border border-pink-100 hover:border-pink-300 text-left transition-all"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-800">{r.displayName || r.profile?.displayName || r.user?.name}</p>
-                    <p className="text-xs text-gray-500">{r.ticketType} × {r.quantity}</p>
-                    <div className="mt-1"><WristbandBadge color={r.wristbandColor} size="lg" /></div>
+      {/* Full guest list */}
+      <div className="space-y-2">
+        {filtered.length === 0 ? (
+          <p className="text-center text-gray-400 py-8 text-sm">No guests found</p>
+        ) : (
+          filtered.map((r: any, i: number) => {
+            const name = r.displayName || r.profile?.displayName || r.user?.name || "Guest";
+            const isCheckedIn = r.status === "checked_in";
+            return (
+              <motion.button
+                key={r.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                onClick={() => setSelectedGuest(r)}
+                className={`w-full p-4 rounded-2xl border text-left transition-all ${
+                  isCheckedIn ? "bg-emerald-50 border-emerald-200" : "bg-white border-pink-100 hover:border-pink-300"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Avatar */}
+                  <div className={`w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden ${isCheckedIn ? "bg-emerald-200" : "bg-gradient-to-br from-pink-300 to-purple-400"}`}>
+                    {r.profile?.avatarUrl ? (
+                      <img src={r.profile.avatarUrl} alt={name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
-                </motion.button>
-              ))
-            )}
-          </motion.div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-gray-800 text-sm">{name}</p>
+                      {isCheckedIn && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">✓ IN</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 capitalize">{(r.ticketType || "—").replace("_", " ")} · {r.paymentStatus}</p>
+                  </div>
+                  {/* Wristband */}
+                  <div className="flex-shrink-0">
+                    <WristbandBadge color={r.wristbandColor} />
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })
         )}
       </div>
 
       {/* Recent Check Ins */}
       {recentCheckIns.length > 0 && (
-        <div className="pt-6 border-t border-gray-200">
-          <h3 className="font-bold text-gray-800 mb-3">Recent Check Ins</h3>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
+        <div className="pt-4 border-t border-gray-100">
+          <h3 className="font-bold text-gray-700 text-sm mb-3">Recent Check-Ins This Session</h3>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {recentCheckIns.map((r: any, i: number) => (
               <motion.div
                 key={`${r.id}-${i}`}
@@ -278,6 +427,16 @@ function CheckInTab({ eventId }: { eventId: number }) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Guest Detail Modal */}
+      {selectedGuest && (
+        <GuestModal
+          guest={selectedGuest}
+          onClose={() => setSelectedGuest(null)}
+          onCheckIn={() => updateStatus.mutate({ id: selectedGuest.id, status: "checked_in" })}
+          isLoading={updateStatus.isPending}
+        />
       )}
     </div>
   );
@@ -615,46 +774,47 @@ export default function AdminEventOps() {
   return (
     <AdminLayout title={`${event.title} - Operations`}>
       {/* Event Header */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-          <div className="flex-1">
-            <h1 className="font-display text-3xl font-bold text-gray-800">{event.title}</h1>
-            <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4 text-pink-500" />
-                {format(new Date(event.startDate), "MMM d, yyyy")}
-              </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4 text-pink-500" />
-                {event.venue}
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4 text-pink-500" />
-                {event.capacity} capacity
-              </div>
-            </div>
-          </div>
+      <div className="mb-5">
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-gray-800 mb-2">{event.title}</h1>
+        <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+          {event.startDate && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5 text-pink-500 flex-shrink-0" />
+              {format(new Date(event.startDate), "MMM d, yyyy")}
+            </span>
+          )}
+          {event.venue && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-pink-500 flex-shrink-0" />
+              {event.venue}
+            </span>
+          )}
+          {event.capacity && (
+            <span className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5 text-pink-500 flex-shrink-0" />
+              {event.capacity} capacity
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-8">
-        <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
+      {/* Tabs — scrollable on mobile */}
+      <div className="mb-6 -mx-4 sm:mx-0">
+        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-hide px-4 sm:px-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <motion.button
                 key={tab.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 font-semibold text-sm whitespace-nowrap transition-all border-b-2 ${
+                className={`flex items-center gap-1.5 px-3 py-3 font-semibold text-xs sm:text-sm whitespace-nowrap transition-all border-b-2 flex-shrink-0 ${
                   activeTab === tab.id
                     ? "border-pink-500 text-pink-600"
-                    : "border-transparent text-gray-600 hover:text-gray-800"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 {tab.label}
               </motion.button>
             );
