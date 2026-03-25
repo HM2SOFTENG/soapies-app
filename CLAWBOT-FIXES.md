@@ -36,24 +36,45 @@
 ### Fix 1-4: tsconfig.json — Add ES2020 target
 - **File:** `tsconfig.json`
 - **Change:** Added `"target": "ES2020"` to compilerOptions
+- **Root cause:** Default TS target is ES3 — `for...of` on `Map` and `Set` requires ES2015+
 - **Status:** ✅ Complete
 
-### Fix 5: EventDetail.tsx — useMutation on a query
+### Fix 5: EventDetail.tsx — useMutation on a query endpoint
 - **File:** `client/src/pages/EventDetail.tsx`
-- **Change:** Replaced `trpc.promoCodes.validate.useMutation()` with `trpc.useUtils()` imperative fetch pattern
-- **Status:** ⏳ Pending
+- **Change:** Replaced `trpc.promoCodes.validate.useMutation()` with `trpc.useUtils()` + `utils.promoCodes.validate.fetch()` imperative pattern
+- **Root cause:** Server registered `validate` as `.query()` but client called `.useMutation()` — API mismatch
+- **Status:** ✅ Complete
 
-### Fix 6-7: Messages.tsx — subscribe args + participantCount
-- **File:** `client/src/pages/Messages.tsx`
-- **Change:** TBD after reading full context
-- **Status:** ⏳ Pending
+### Fix 6: EventDetail.tsx — result.promo possibly undefined
+- **File:** `client/src/pages/EventDetail.tsx` line 256
+- **Change:** Added `&& result.promo` guard in the if condition; added `?? "Invalid promo code"` fallback for reason
+- **Root cause:** Return type union has one branch without `promo` field
+- **Status:** ✅ Complete
 
-### Fix 8: AdminSettings.tsx — settingValue → value
-- **File:** `client/src/pages/admin/AdminSettings.tsx`
-- **Change:** `s.settingValue` → `s.value` and `s.settingKey` → `s.key`
-- **Status:** ⏳ Pending
+### Fix 7: Messages.tsx — NodeJS.Timeout type incompatibility
+- **File:** `client/src/pages/Messages.tsx` line 178
+- **Change:** `useRef<NodeJS.Timeout>()` → `useRef<ReturnType<typeof setTimeout> | undefined>(undefined)`
+- **Root cause:** `NodeJS.Timeout` requires strict `@types/node` context; browser env mismatch. TS strict mode requires explicit initial value or undefined type.
+- **Status:** ✅ Complete
+
+### Fix 8: Messages.tsx — participantCount not in schema
+- **File:** `client/src/pages/Messages.tsx` line 272
+- **Change:** Removed `conv?.participantCount` reference; replaced with plain "Channel • members" label
+- **Root cause:** `participantCount` not a column on the `conversations` table in Drizzle schema
+- **Status:** ✅ Complete
+
+### Fix 9: AdminSettings.tsx — settingValue/settingKey field names
+- **File:** `client/src/pages/admin/AdminSettings.tsx` lines 99 & 214
+- **Change:** `s.settingKey` → `s.key`, `s.settingValue` → `s.value`
+- **Root cause:** Drizzle schema column aliases differ — TS type exposes `.key` and `.value`, not the DB column names
+- **Status:** ✅ Complete
 
 ---
 
 ## Final State
-_Will be updated after all fixes verified clean._
+**✅ CLEAN — 0 TypeScript errors**
+
+- `pnpm run check` passes with no errors
+- Committed: `4a709a1` — "Fix: resolve 8 TypeScript errors introduced in large push"
+- Pushed to `origin/main` — CI deploy triggered
+- **Completed:** 2026-03-25 ~09:22 PDT

@@ -271,11 +271,39 @@ export async function getUserLikedPosts(userId: number) {
 
 export async function getUserConversations(userId: number) {
   const db = await getDb(); if (!db) return [];
+
+  // Get conversations the user is explicitly a participant of
   const parts = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
-  if (parts.length === 0) return [];
-  const ids = parts.map(p => p.conversationId);
+  const participantIds = new Set(parts.map(p => p.conversationId));
+
+  // Get the user's communityId from their profile
+  const profile = await db.select({ communityId: profiles.communityId }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
+  const communityId = profile[0]?.communityId ?? null;
+
+  // Fetch all channels (type = 'channel') that match the user's community or are global (null communityId)
+  const channelConditions = communityId
+    ? sql`(${conversations.type} = 'channel' AND (${conversations.communityId} = ${communityId} OR ${conversations.communityId} IS NULL))`
+    : sql`(${conversations.type} = 'channel' AND ${conversations.communityId} IS NULL)`;
+
+  const communityChannels = await db.select().from(conversations).where(channelConditions);
+
+  // Auto-join user to any community channels they're not yet in
+  for (const channel of communityChannels) {
+    if (!participantIds.has(channel.id)) {
+      try {
+        await db.insert(conversationParticipants).values({ conversationId: channel.id, userId });
+        participantIds.add(channel.id);
+      } catch {
+        // Ignore duplicate key errors (already joined via race condition)
+      }
+    }
+  }
+
+  // Return all conversations the user participates in
+  const allIds = Array.from(participantIds);
+  if (allIds.length === 0) return [];
   return db.select().from(conversations)
-    .where(sql`${conversations.id} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`)
+    .where(sql`${conversations.id} IN (${sql.join(allIds.map(id => sql`${id}`), sql`, `)})`)
     .orderBy(desc(conversations.updatedAt));
 }
 
