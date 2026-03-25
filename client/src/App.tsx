@@ -22,6 +22,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminInterviewSlots from "./pages/admin/AdminInterviewSlots";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
 import PendingApproval from "./pages/PendingApproval";
@@ -36,6 +37,7 @@ import ProfileSetup from "./pages/ProfileSetup";
 import { AnimatePresence } from "framer-motion";
 import BottomTabNav from "./components/BottomTabNav";
 import { FloatingBubbles } from "./components/FloatingElements";
+import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { useLocation as useWouterLocation } from "wouter";
 
 /** Wraps a component with the RequireProfile guard */
@@ -92,6 +94,7 @@ function Router() {
         <Route path="/admin/referrals" component={AdminReferrals} />
         <Route path="/admin/interview-slots" component={AdminInterviewSlots} />
         <Route path="/admin/audit" component={AdminAudit} />
+        <Route path="/admin/announcements" component={AdminAnnouncements} />
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
@@ -109,6 +112,7 @@ function AppShell() {
 
   return (
     <>
+      <AnnouncementBanner />
       {/* Persistent animated bubble background across the entire app */}
       <FloatingBubbles count={12} className="fixed inset-0 z-0 pointer-events-none opacity-40" />
       <div className="relative z-10">

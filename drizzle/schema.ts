@@ -488,8 +488,11 @@ export const announcements = mysqlTable("announcements", {
   communityId: varchar("communityId", { length: 32 }),
   authorId: int("authorId").notNull(),
   isPinned: boolean("isPinned").default(false),
+  isActive: boolean("isActive").default(true),
   publishedAt: timestamp("publishedAt"),
   expiresAt: timestamp("expiresAt"),
+  targetAudience: varchar("targetAudience", { length: 32 }).default("all"),
+  dismissible: boolean("dismissible").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

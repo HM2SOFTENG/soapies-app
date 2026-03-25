@@ -56,7 +56,17 @@ export async function getUserByOpenId(openId: string) {
 
 export async function getAllUsers() {
   const db = await getDb(); if (!db) return [];
-  // Only return users with an approved profile — applicants in-progress are managed via AdminApplications
+  // Return all users with profile data (includes application status for filtering in UI)
+  return db
+    .select({ user: users, profile: profiles })
+    .from(users)
+    .leftJoin(profiles, eq(profiles.userId, users.id))
+    .orderBy(desc(users.createdAt))
+    .then(rows => rows.map(r => ({ ...r.user, profile: r.profile })));
+}
+
+export async function getApprovedUsers() {
+  const db = await getDb(); if (!db) return [];
   return db
     .select({ user: users, profile: profiles })
     .from(users)
@@ -448,10 +458,43 @@ export async function getAnnouncements(communityId?: string) {
   return db.select().from(announcements).orderBy(desc(announcements.createdAt));
 }
 
+export async function getActiveAnnouncements(userId?: number) {
+  const db = await getDb(); if (!db) return [];
+  const now = new Date();
+  const rows = await db.select().from(announcements)
+    .where(and(
+      eq(announcements.isActive, true),
+      sql`(${announcements.expiresAt} IS NULL OR ${announcements.expiresAt} > ${now})`
+    ))
+    .orderBy(desc(announcements.createdAt));
+
+  if (!userId) return rows;
+
+  // Filter out acknowledged ones
+  const acks = await db.select().from(resourceAcknowledgments)
+    .where(and(eq(resourceAcknowledgments.userId, userId)));
+  const ackedIds = new Set(acks.filter(a => a.resourceId?.startsWith('ann_')).map(a => parseInt(a.resourceId.replace('ann_', ''))));
+  return rows.filter(r => !ackedIds.has(r.id));
+}
+
 export async function createAnnouncement(data: any) {
   const db = await getDb(); if (!db) return;
   const r = await db.insert(announcements).values(data);
   return r[0].insertId;
+}
+
+export async function deactivateAnnouncement(id: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(announcements).set({ isActive: false }).where(eq(announcements.id, id));
+}
+
+export async function dismissAnnouncement(userId: number, announcementId: number) {
+  const db = await getDb(); if (!db) return;
+  const resourceId = `ann_${announcementId}`;
+  const existing = await db.select().from(resourceAcknowledgments)
+    .where(and(eq(resourceAcknowledgments.userId, userId), eq(resourceAcknowledgments.resourceId, resourceId))).limit(1);
+  if (existing.length > 0) return;
+  await db.insert(resourceAcknowledgments).values({ userId, resourceId, acknowledgedAt: new Date() });
 }
 
 // ─── GROUPS ──────────────────────────────────────────────────────────────────

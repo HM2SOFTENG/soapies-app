@@ -20,6 +20,15 @@ export default function AdminEvents() {
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const toggleSelect = (id: number) => setSelectedIds(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map((e: any) => e.id)));
+  };
   const [form, setForm] = useState({
     title: "", description: "", venue: "", address: "", startDate: "", endDate: "",
     capacity: "", priceSingleFemale: "", priceSingleMale: "", priceCouple: "", eventType: "party",
@@ -37,6 +46,21 @@ export default function AdminEvents() {
 
   const deleteEvent = trpc.events.delete.useMutation({
     onSuccess: () => { toast.success("Event deleted"); utils.events.all.invalidate(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDelete = trpc.events.bulkDelete.useMutation({
+    onSuccess: () => { toast.success(`${selectedIds.size} events deleted`); utils.events.all.invalidate(); setSelectedIds(new Set()); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkPublish = trpc.events.bulkUpdateStatus.useMutation({
+    onSuccess: () => { toast.success(`${selectedIds.size} events published`); utils.events.all.invalidate(); setSelectedIds(new Set()); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const bulkDraft = trpc.events.bulkUpdateStatus.useMutation({
+    onSuccess: () => { toast.success(`${selectedIds.size} events set to draft`); utils.events.all.invalidate(); setSelectedIds(new Set()); },
     onError: (e: any) => toast.error(e.message),
   });
 

@@ -343,6 +343,17 @@ export const appRouter = router({
       await db.deleteEvent(input.id);
       return { success: true };
     }),
+    bulkDelete: adminProcedure.input(z.object({ ids: z.array(z.number()) })).mutation(async ({ input }) => {
+      for (const id of input.ids) await db.deleteEvent(id);
+      return { success: true };
+    }),
+    bulkUpdateStatus: adminProcedure.input(z.object({
+      ids: z.array(z.number()),
+      status: z.enum(["draft", "published", "cancelled", "completed"]),
+    })).mutation(async ({ input }) => {
+      for (const id of input.ids) await db.updateEvent(id, { status: input.status });
+      return { success: true };
+    }),
     addons: publicProcedure.input(z.object({ eventId: z.number() })).query(async ({ input }) => {
       return db.getEventAddons(input.eventId);
     }),
@@ -561,13 +572,31 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ communityId: z.string().optional() }).optional()).query(async ({ input }) => {
       return db.getAnnouncements(input?.communityId);
     }),
+    active: publicProcedure.query(async ({ ctx }) => {
+      const userId = ctx.user?.id;
+      return db.getActiveAnnouncements(userId);
+    }),
+    dismiss: protectedProcedure.input(z.object({ announcementId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.dismissAnnouncement(ctx.user.id, input.announcementId);
+      return { success: true };
+    }),
     create: adminProcedure.input(z.object({
       title: z.string(),
       content: z.string(),
       communityId: z.string().optional(),
       isPinned: z.boolean().optional(),
+      isActive: z.boolean().optional(),
+      expiresAt: z.string().optional(),
+      targetAudience: z.string().optional(),
+      dismissible: z.boolean().optional(),
     })).mutation(async ({ ctx, input }) => {
-      return db.createAnnouncement({ ...input, authorId: ctx.user.id, publishedAt: new Date() });
+      const data: any = { ...input, authorId: ctx.user.id, publishedAt: new Date() };
+      if (input.expiresAt) data.expiresAt = new Date(input.expiresAt);
+      return db.createAnnouncement(data);
+    }),
+    deactivate: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      await db.deactivateAnnouncement(input.id);
+      return { success: true };
     }),
   }),
 
