@@ -544,20 +544,22 @@ export default function Navbar() {
                       <LogOut className="h-4 w-4" /> Sign Out
                     </motion.button>
                   ) : (
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setLocation("/join")}
-                      className="w-full btn-premium p-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
-                    >
-                      <Sparkles className="h-4 w-4" /> Join Soapies
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setLocation("/login")}
-                      className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-pink-200 text-pink-600 font-semibold text-sm hover:bg-pink-50 transition-all"
-                    >
-                      Log In
-                    </motion.button>
+                    <>
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setLocation("/join")}
+                        className="w-full btn-premium p-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="h-4 w-4" /> Join Soapies
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setLocation("/login")}
+                        className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border border-pink-200 text-pink-600 font-semibold text-sm hover:bg-pink-50 transition-all"
+                      >
+                        Log In
+                      </motion.button>
+                    </>
                   )}
                 </div>
               </div>
