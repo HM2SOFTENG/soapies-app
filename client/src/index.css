@@ -455,15 +455,7 @@ html {
    Applied via class on <html>: .light (default) | .dark | .soapies | .midnight
    ═══════════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════════════════════
-   SMOOTH THEME TRANSITIONS — only on the root element's CSS vars,
-   NOT on every child (that breaks framer-motion animations)
-   ═══════════════════════════════════════════════════════════════ */
-:root, html {
-  transition:
-    background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Theme transitions intentionally removed — caused scroll/interaction lag */
 
 /* ─── DARK THEME ─────────────────────────────────────────────── */
 /* Warm deep plum/mauve — not black, think velvet at 2am            */
