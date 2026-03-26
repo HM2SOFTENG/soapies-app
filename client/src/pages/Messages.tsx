@@ -28,7 +28,7 @@ function ReactionBar({ onReact }: { onReact: (emoji: string) => void }) {
       initial={{ opacity: 0, scale: 0.8, y: 4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 4 }}
-      className="flex items-center gap-1 bg-white rounded-full border border-pink-100 shadow-lg px-2 py-1"
+      className="flex items-center gap-1 bg-[var(--card)] rounded-full border border-[var(--border)] shadow-lg px-2 py-1"
     >
       {REACTION_EMOJIS.map(emoji => (
         <button
@@ -68,16 +68,16 @@ function MessageMenu({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="absolute z-30 bg-white rounded-2xl shadow-xl border border-pink-50 py-1 min-w-[160px]"
+      className="absolute z-30 bg-[var(--popover)] rounded-2xl shadow-xl border border-pink-50 py-1 min-w-[160px]"
       style={isMine ? { right: 0, bottom: "100%" } : { left: 0, bottom: "100%" }}
     >
-      <button onClick={() => { onReply(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50">
+      <button onClick={() => { onReply(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--accent)]">
         <Reply className="h-4 w-4 text-gray-400" /> Reply
       </button>
-      <button onClick={() => { onCopy(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50">
+      <button onClick={() => { onCopy(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--accent)]">
         <Copy className="h-4 w-4 text-gray-400" /> Copy
       </button>
-      <button onClick={() => { onPin(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50">
+      <button onClick={() => { onPin(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--accent)]">
         <Pin className="h-4 w-4 text-gray-400" /> Pin Message
       </button>
       {isMine ? (
@@ -343,7 +343,7 @@ function NewChatModal({ onClose, onConversationCreated }: {
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-[var(--popover)] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-pink-50 flex items-center justify-between">
@@ -431,7 +431,7 @@ function NewChatModal({ onClose, onConversationCreated }: {
                     onClick={() => handleSelectMember(member)}
                     disabled={createConversation.isPending}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                      isSelected ? "bg-pink-50 border border-pink-200" : "hover:bg-gray-50"
+                      isSelected ? "bg-pink-50 border border-pink-200" : "hover:bg-[var(--accent)]"
                     }`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center flex-shrink-0 shadow-md">
@@ -533,7 +533,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-100 bg-white/50 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 placeholder:text-gray-300"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-100 bg-[var(--input)] text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 placeholder:text-[var(--muted-foreground)]"
           />
         </div>
       </div>
@@ -565,7 +565,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
 
               return (
                 <div key={section}>
-                  <div className="px-4 sm:px-5 py-2.5 bg-gray-50 sticky top-0 z-10">
+                  <div className="px-4 sm:px-5 py-2.5 bg-[var(--muted)] sticky top-0 z-10">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{section}</p>
                   </div>
 
@@ -960,7 +960,7 @@ function ChatView({ conversationId, userId, onBack }: {
                   setScrolledUp(false);
                   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="sticky top-4 left-1/2 -translate-x-1/2 z-20 bg-white border border-pink-200 text-pink-600 px-4 py-2 rounded-full text-xs font-semibold shadow-md hover:bg-pink-50 transition-colors"
+                className="sticky top-4 left-1/2 -translate-x-1/2 z-20 bg-[var(--card)] border border-[var(--border)] text-pink-500 px-4 py-2 rounded-full text-xs font-semibold shadow-md hover:bg-pink-50 transition-colors"
               >
                 New messages ↓
               </motion.button>
@@ -1076,7 +1076,7 @@ function ChatView({ conversationId, userId, onBack }: {
                             <button
                               key={emoji}
                               onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }}
-                              className="inline-flex items-center gap-0.5 bg-white border border-pink-100 rounded-full px-2 py-0.5 text-xs shadow-sm hover:border-pink-300 transition-colors"
+                              className="inline-flex items-center gap-0.5 bg-[var(--card)] border border-[var(--border)] rounded-full px-2 py-0.5 text-xs shadow-sm hover:border-pink-300 transition-colors"
                             >
                               {emoji} <span className="text-gray-500 font-medium">{count}</span>
                             </button>
@@ -1105,13 +1105,13 @@ function ChatView({ conversationId, userId, onBack }: {
                           >
                             <button
                               onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveMenu(null); }}
-                              className="p-1.5 rounded-full bg-white border border-pink-100 text-gray-400 hover:text-pink-500 shadow-sm"
+                              className="p-1.5 rounded-full bg-[var(--card)] border border-[var(--border)] text-gray-400 hover:text-pink-500 shadow-sm"
                             >
                               <Reply className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setActiveReactionBar(activeReactionBar === msg.id ? null : msg.id); setActiveMenu(null); }}
-                              className="p-1.5 rounded-full bg-white border border-pink-100 text-gray-400 hover:text-pink-500 shadow-sm"
+                              className="p-1.5 rounded-full bg-[var(--card)] border border-[var(--border)] text-gray-400 hover:text-pink-500 shadow-sm"
                             >
                               <Smile className="h-3.5 w-3.5" />
                             </button>
@@ -1310,7 +1310,7 @@ function ChatView({ conversationId, userId, onBack }: {
               }}
               placeholder="Type a message..."
               rows={1}
-              className="w-full px-4 py-3 rounded-xl border border-pink-100 bg-white/70 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 placeholder:text-gray-300 resize-none max-h-30"
+              className="w-full px-4 py-3 rounded-xl border border-pink-100 bg-[var(--input)] text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 placeholder:text-[var(--muted-foreground)] resize-none max-h-30"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && text.trim()) {
                   e.preventDefault();
