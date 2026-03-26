@@ -11,7 +11,7 @@ import {
   reservationAddons, eventPromotionalPricing, eventOperators,
   eventShifts, shiftAssignments, eventSetupChecklist,
   relationshipGroups, relationshipGroupMembers, partnerInvitations,
-  messageReactions, pinnedMessages, blockedUsers,
+  messageReactions, pinnedMessages, blockedUsers, userPresence,
   introCallSlots, singleMaleInviteCodes, preApprovedPhones,
   profileChangeRequests, groupChangeRequests,
   signedWaivers, resourceAcknowledgments,
@@ -1003,6 +1003,71 @@ export async function isUserBlocked(blockerId: number, blockedId: number) {
   const db = await getDb(); if (!db) return false;
   const r = await db.select().from(blockedUsers).where(and(eq(blockedUsers.blockerId, blockerId), eq(blockedUsers.blockedId, blockedId))).limit(1);
   return r.length > 0;
+}
+
+// ─── MARK CONVERSATION READ ─────────────────────────────────────────────────
+
+export async function markConversationRead(conversationId: number, userId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(conversationParticipants)
+    .set({ lastReadAt: new Date() })
+    .where(and(
+      eq(conversationParticipants.conversationId, conversationId),
+      eq(conversationParticipants.userId, userId),
+    ));
+}
+
+// ─── SOFT DELETE MESSAGE ─────────────────────────────────────────────────────
+
+export async function softDeleteMessage(messageId: number, userId: number) {
+  const db = await getDb(); if (!db) return;
+  // Only allow sender to delete their own message
+  await db.update(messages)
+    .set({ isDeleted: true, content: null })
+    .where(and(eq(messages.id, messageId), eq(messages.senderId, userId)));
+}
+
+// ─── UNREAD COUNTS ───────────────────────────────────────────────────────────
+
+export async function getUnreadCounts(userId: number): Promise<Record<number, number>> {
+  const db = await getDb(); if (!db) return {};
+  // Get user's participant records with lastReadAt
+  const parts = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
+  const result: Record<number, number> = {};
+  for (const part of parts) {
+    const lastRead = part.lastReadAt;
+    const count = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(messages)
+      .where(and(
+        eq(messages.conversationId, part.conversationId),
+        sql`${messages.senderId} != ${userId}`,
+        sql`${messages.isDeleted} = false`,
+        lastRead
+          ? sql`${messages.createdAt} > ${lastRead}`
+          : sql`1=1`,
+      ));
+    result[part.conversationId] = Number(count[0]?.count ?? 0);
+  }
+  return result;
+}
+
+// ─── CONVERSATION PRESENCE ──────────────────────────────────────────────────
+
+export async function getConversationPresence(conversationId: number) {
+  const db = await getDb(); if (!db) return [];
+  const parts = await db.select({ userId: conversationParticipants.userId })
+    .from(conversationParticipants)
+    .where(eq(conversationParticipants.conversationId, conversationId));
+  const userIds = parts.map(p => p.userId);
+  if (userIds.length === 0) return [];
+  const rows = await db.select({
+    userId: userPresence.userId,
+    status: userPresence.status,
+    lastSeenAt: userPresence.lastSeenAt,
+  }).from(userPresence)
+    .where(sql`${userPresence.userId} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`);
+  return rows;
 }
 
 // ─── MESSAGE REACTIONS ──────────────────────────────────────────────────────

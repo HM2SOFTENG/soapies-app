@@ -9,7 +9,7 @@ import * as auth from "./auth";
 import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
 import { createCheckoutSession } from "./services/stripe";
-import { notifyMessageCreated, broadcastToUser } from "./_core/websocket";
+import { notifyMessageCreated, broadcastToUser, broadcastToConversation } from "./_core/websocket";
 import { ENV } from "./_core/env";
 
 export const appRouter = router({
@@ -613,6 +613,72 @@ export const appRouter = router({
       const { participantIds, ...data } = input;
       const allParticipants = Array.from(new Set([ctx.user.id, ...participantIds]));
       return db.createConversation({ ...data, createdBy: ctx.user.id }, allParticipants);
+    }),
+
+    addReaction: protectedProcedure.input(z.object({
+      messageId: z.number(),
+      emoji: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      const added = await db.toggleMessageReaction(input.messageId, ctx.user.id, input.emoji);
+      return { added };
+    }),
+
+    removeReaction: protectedProcedure.input(z.object({
+      messageId: z.number(),
+      emoji: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.toggleMessageReaction(input.messageId, ctx.user.id, input.emoji);
+      return { success: true };
+    }),
+
+    markRead: protectedProcedure.input(z.object({
+      conversationId: z.number(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.markConversationRead(input.conversationId, ctx.user.id);
+      broadcastToConversation(input.conversationId, "message_read", {
+        userId: ctx.user.id,
+        conversationId: input.conversationId,
+      });
+      return { success: true };
+    }),
+
+    deleteMessage: protectedProcedure.input(z.object({
+      messageId: z.number(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.softDeleteMessage(input.messageId, ctx.user.id);
+      return { success: true };
+    }),
+
+    pinMessage: protectedProcedure.input(z.object({
+      conversationId: z.number(),
+      messageId: z.number(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.pinMessage({ conversationId: input.conversationId, messageId: input.messageId, pinnedBy: ctx.user.id });
+      return { success: true };
+    }),
+
+    unpinMessage: protectedProcedure.input(z.object({
+      conversationId: z.number(),
+      messageId: z.number(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.unpinMessage(input.conversationId, input.messageId);
+      return { success: true };
+    }),
+
+    messageReactions: protectedProcedure.input(z.object({
+      messageId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getMessageReactions(input.messageId);
+    }),
+
+    unreadCounts: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUnreadCounts(ctx.user.id);
+    }),
+
+    presence: protectedProcedure.input(z.object({
+      conversationId: z.number(),
+    })).query(async ({ input }) => {
+      return db.getConversationPresence(input.conversationId);
     }),
   }),
 

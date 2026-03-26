@@ -6,14 +6,278 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, Send, Loader2, ArrowLeft, Plus, Shield,
   Sparkles, Search, Phone, Video, MoreVertical, Smile, Image as ImageIcon,
-  Check, CheckCheck, Circle, Users, Pin, Lock, X, UserPlus
+  Check, CheckCheck, Circle, Users, Pin, Lock, X, UserPlus,
+  Reply, Trash2, Flag, Copy, MicOff, Mic, VideoOff, PhoneOff,
+  ZoomIn,
 } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isToday, isYesterday, isSameDay } from "date-fns";
 import { getLoginUrl } from "@/const";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useLocation } from "wouter";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
+
+// ─── REACTION BAR ──────────────────────────────────────────────────────────
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
+function ReactionBar({ onReact }: { onReact: (emoji: string) => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8, y: 4 }}
+      className="flex items-center gap-1 bg-white rounded-full border border-pink-100 shadow-lg px-2 py-1"
+    >
+      {REACTION_EMOJIS.map(emoji => (
+        <button
+          key={emoji}
+          onClick={() => onReact(emoji)}
+          className="text-lg hover:scale-125 transition-transform"
+        >
+          {emoji}
+        </button>
+      ))}
+    </motion.div>
+  );
+}
+
+// ─── MESSAGE MENU ──────────────────────────────────────────────────────────
+function MessageMenu({
+  isMine,
+  msg,
+  onReply,
+  onPin,
+  onCopy,
+  onDelete,
+  onReport,
+  onClose,
+}: {
+  isMine: boolean;
+  msg: any;
+  onReply: () => void;
+  onPin: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
+  onReport: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="absolute z-30 bg-white rounded-2xl shadow-xl border border-pink-50 py-1 min-w-[160px]"
+      style={isMine ? { right: 0, bottom: "100%" } : { left: 0, bottom: "100%" }}
+    >
+      <button onClick={() => { onReply(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50">
+        <Reply className="h-4 w-4 text-gray-400" /> Reply
+      </button>
+      <button onClick={() => { onCopy(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50">
+        <Copy className="h-4 w-4 text-gray-400" /> Copy
+      </button>
+      <button onClick={() => { onPin(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50">
+        <Pin className="h-4 w-4 text-gray-400" /> Pin Message
+      </button>
+      {isMine ? (
+        <button onClick={() => { onDelete(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">
+          <Trash2 className="h-4 w-4" /> Delete
+        </button>
+      ) : (
+        <button onClick={() => { onReport(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-orange-500 hover:bg-orange-50">
+          <Flag className="h-4 w-4" /> Report
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── IMAGE FULLSCREEN ─────────────────────────────────────────────────────
+function ImageFullscreen({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+      onClick={onClose}
+    >
+      <img src={url} alt="fullscreen" className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl" />
+      <button onClick={onClose} className="absolute top-4 right-4 text-white bg-black/40 rounded-full p-2">
+        <X className="h-6 w-6" />
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── CALL UI ───────────────────────────────────────────────────────────────
+function CallUI({
+  conversationId,
+  convName,
+  isVideo,
+  userId,
+  sendMessage: wsSend,
+  onClose,
+}: {
+  conversationId: number;
+  convName: string;
+  isVideo: boolean;
+  userId: number;
+  sendMessage: (type: string, data: any) => void;
+  onClose: () => void;
+}) {
+  const [callState, setCallState] = useState<"calling" | "connected" | "ended">("calling");
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function startCall() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: isVideo,
+        });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        localStreamRef.current = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        pcRef.current = pc;
+
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+        pc.onicecandidate = (e) => {
+          if (e.candidate) {
+            wsSend("call_ice", { conversationId, candidate: e.candidate, userId });
+          }
+        };
+
+        pc.ontrack = (e) => {
+          if (remoteVideoRef.current && e.streams[0]) {
+            remoteVideoRef.current.srcObject = e.streams[0];
+            setCallState("connected");
+          }
+        };
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        wsSend("call_offer", { conversationId, offer, userId, isVideo });
+      } catch (err) {
+        console.error("Call setup error:", err);
+        toast.error("Could not access camera/microphone");
+        onClose();
+      }
+    }
+
+    startCall();
+    // Notify other participant
+    wsSend("call_initiated", { conversationId, userId, isVideo });
+
+    return () => {
+      cancelled = true;
+      localStreamRef.current?.getTracks().forEach(t => t.stop());
+      pcRef.current?.close();
+    };
+  }, []);
+
+  const endCall = () => {
+    wsSend("call_ended", { conversationId, userId });
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    pcRef.current?.close();
+    setCallState("ended");
+    onClose();
+  };
+
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = isMuted; });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(t => { t.enabled = isVideoOff; });
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-900"
+    >
+      <div className="text-white text-center mb-8">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center mx-auto mb-4 shadow-2xl">
+          <span className="text-4xl font-bold">{convName.charAt(0).toUpperCase()}</span>
+        </div>
+        <h2 className="text-2xl font-bold">{convName}</h2>
+        <p className="text-gray-400 text-sm mt-1">
+          {callState === "calling" ? "Calling..." : callState === "connected" ? "Connected" : "Call ended"}
+        </p>
+      </div>
+
+      {isVideo && (
+        <div className="relative w-full max-w-sm aspect-video mb-8">
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover rounded-2xl bg-gray-800" />
+          <video ref={localVideoRef} autoPlay playsInline muted className="absolute bottom-2 right-2 w-24 aspect-video object-cover rounded-xl border-2 border-white" />
+        </div>
+      )}
+
+      <div className="flex items-center gap-4">
+        <button
+          onClick={toggleMute}
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${isMuted ? "bg-red-500" : "bg-gray-700"}`}
+        >
+          {isMuted ? <MicOff className="h-6 w-6 text-white" /> : <Mic className="h-6 w-6 text-white" />}
+        </button>
+
+        {isVideo && (
+          <button
+            onClick={toggleVideo}
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg ${isVideoOff ? "bg-red-500" : "bg-gray-700"}`}
+          >
+            {isVideoOff ? <VideoOff className="h-6 w-6 text-white" /> : <Video className="h-6 w-6 text-white" />}
+          </button>
+        )}
+
+        <button
+          onClick={endCall}
+          className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-xl"
+        >
+          <PhoneOff className="h-7 w-7 text-white" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── DATE DIVIDER ─────────────────────────────────────────────────────────
+function DateDivider({ date }: { date: Date }) {
+  let label: string;
+  if (isToday(date)) label = "Today";
+  else if (isYesterday(date)) label = "Yesterday";
+  else label = format(date, "MMMM d, yyyy");
+
+  return (
+    <div className="flex items-center gap-3 my-4">
+      <div className="flex-1 h-px bg-pink-100" />
+      <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide px-2">{label}</span>
+      <div className="flex-1 h-px bg-pink-100" />
+    </div>
+  );
+}
 
 // ─── NEW CHAT MODAL ────────────────────────────────────────────────────────
 function NewChatModal({ onClose, onConversationCreated }: {
@@ -42,16 +306,14 @@ function NewChatModal({ onClose, onConversationCreated }: {
 
   const handleSelectMember = (member: any) => {
     if (activeTab === "dm") {
-      // For DM: immediately create/open conversation with this person
       createConversation.mutate({
         type: "dm",
-        participantIds: [member.userId],
+        participantIds: [member.id],
       });
     } else {
-      // For group: toggle selection
       setSelectedMembers(prev =>
-        prev.find(m => m.userId === member.userId)
-          ? prev.filter(m => m.userId !== member.userId)
+        prev.find(m => m.id === member.id)
+          ? prev.filter(m => m.id !== member.id)
           : [...prev, member]
       );
     }
@@ -65,7 +327,7 @@ function NewChatModal({ onClose, onConversationCreated }: {
     createConversation.mutate({
       type: "group",
       name: groupName || `Group Chat`,
-      participantIds: selectedMembers.map(m => m.userId),
+      participantIds: selectedMembers.map(m => m.id),
     });
   };
 
@@ -140,9 +402,9 @@ function NewChatModal({ onClose, onConversationCreated }: {
         {activeTab === "group" && selectedMembers.length > 0 && (
           <div className="px-4 pt-2 flex flex-wrap gap-2">
             {selectedMembers.map(m => (
-              <span key={m.userId} className="inline-flex items-center gap-1 bg-pink-100 text-pink-700 rounded-full px-3 py-1 text-xs font-semibold">
+              <span key={m.id} className="inline-flex items-center gap-1 bg-pink-100 text-pink-700 rounded-full px-3 py-1 text-xs font-semibold">
                 {m.displayName || m.name || "Member"}
-                <button onClick={() => setSelectedMembers(prev => prev.filter(x => x.userId !== m.userId))}>
+                <button onClick={() => setSelectedMembers(prev => prev.filter(x => x.id !== m.id))}>
                   <X className="h-3 w-3" />
                 </button>
               </span>
@@ -161,10 +423,10 @@ function NewChatModal({ onClose, onConversationCreated }: {
           ) : (
             <div className="space-y-1">
               {members.map((member: any) => {
-                const isSelected = selectedMembers.some(m => m.userId === member.userId);
+                const isSelected = selectedMembers.some(m => m.id === member.id);
                 return (
                   <motion.button
-                    key={member.userId}
+                    key={member.id}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleSelectMember(member)}
                     disabled={createConversation.isPending}
@@ -172,7 +434,6 @@ function NewChatModal({ onClose, onConversationCreated }: {
                       isSelected ? "bg-pink-50 border border-pink-200" : "hover:bg-gray-50"
                     }`}
                   >
-                    {/* Avatar */}
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center flex-shrink-0 shadow-md">
                       {member.avatarUrl ? (
                         <img src={member.avatarUrl} alt="" className="w-full h-full object-cover rounded-xl" />
@@ -228,8 +489,11 @@ function NewChatModal({ onClose, onConversationCreated }: {
 }
 
 // ─── CONVERSATION LIST ─────────────────────────────────────────────────────
-function ConversationList({ conversations, isLoading, onSelect }: {
-  conversations: any[] | undefined; isLoading: boolean; onSelect: (id: number) => void;
+function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: {
+  conversations: any[] | undefined;
+  isLoading: boolean;
+  onSelect: (id: number) => void;
+  unreadCounts: Record<number, number>;
 }) {
   const [search, setSearch] = useState("");
   const [showNewChat, setShowNewChat] = useState(false);
@@ -263,7 +527,6 @@ function ConversationList({ conversations, isLoading, onSelect }: {
             </Button>
           </motion.div>
         </div>
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
           <input
@@ -302,73 +565,79 @@ function ConversationList({ conversations, isLoading, onSelect }: {
 
               return (
                 <div key={section}>
-                  {/* Section Header */}
                   <div className="px-4 sm:px-5 py-2.5 bg-gray-50 sticky top-0 z-10">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{section}</p>
                   </div>
 
-                  {/* Items */}
-                  {items.map((conv: any, i: number) => (
-                    <motion.div
-                      key={conv.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      whileHover={{ backgroundColor: "rgba(236, 72, 153, 0.04)" }}
-                      onClick={() => onSelect(conv.id)}
-                      className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-pink-50/50 transition-colors"
-                    >
-                      {/* Avatar */}
-                      <div className="relative flex-shrink-0">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md ${
-                          conv.type === "channel"
-                            ? "bg-gradient-to-br from-blue-300 to-blue-500"
-                            : "bg-gradient-to-br from-pink-300 to-purple-400"
-                        }`}>
-                          {conv.type === "channel" ? (
-                            <Lock className="h-5 w-5 text-white" />
-                          ) : (
-                            <MessageCircle className="h-5 w-5 text-white" />
+                  {items.map((conv: any, i: number) => {
+                    const unread = unreadCounts[conv.id] || 0;
+                    return (
+                      <motion.div
+                        key={conv.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        whileHover={{ backgroundColor: "rgba(236, 72, 153, 0.04)" }}
+                        onClick={() => onSelect(conv.id)}
+                        className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-pink-50/50 transition-colors"
+                      >
+                        <div className="relative flex-shrink-0">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md ${
+                            conv.type === "channel"
+                              ? "bg-gradient-to-br from-blue-300 to-blue-500"
+                              : "bg-gradient-to-br from-pink-300 to-purple-400"
+                          }`}>
+                            {conv.type === "channel" ? (
+                              <Lock className="h-5 w-5 text-white" />
+                            ) : (
+                              <MessageCircle className="h-5 w-5 text-white" />
+                            )}
+                          </div>
+                          {conv.type !== "channel" && (
+                            <motion.div
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white"
+                            />
                           )}
                         </div>
-                        {/* Online indicator */}
-                        {conv.type !== "channel" && (
-                          <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white"
-                          />
-                        )}
-                      </div>
 
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <p className="text-sm font-bold text-gray-800 truncate">{conv.name || `Chat #${conv.id}`}</p>
-                            {conv.type === "channel" && <Users className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className={`text-sm truncate ${unread > 0 ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}>
+                                {conv.name || `Chat #${conv.id}`}
+                              </p>
+                              {conv.type === "channel" && <Users className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                              <span className="text-[10px] text-gray-400">
+                                {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
+                              </span>
+                              {unread > 0 && (
+                                <span className="min-w-[18px] h-[18px] rounded-full bg-pink-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                                  {unread > 99 ? "99+" : unread}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
-                            {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
-                          </span>
+                          <p className="text-xs text-gray-400 truncate">
+                            {conv.type === "channel"
+                              ? `Channel • ${conv.participantCount || 0} members`
+                              : conv.type === "group"
+                                ? `Group • ${conv.participantCount || 0} members`
+                                : "Direct Message"}
+                          </p>
                         </div>
-                        <p className="text-xs text-gray-400 truncate">
-                          {conv.type === "channel"
-                            ? `Channel • ${conv.participantCount || 0} members`
-                            : conv.type === "group"
-                              ? `Group • ${conv.participantCount || 0} members`
-                              : "Direct Message"}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               );
             })}
           </div>
         )}
       </div>
-      {/* New Chat Modal */}
       <AnimatePresence>
         {showNewChat && (
           <NewChatModal
@@ -398,18 +667,45 @@ function ChatView({ conversationId, userId, onBack }: {
   const utils = trpc.useUtils();
   const [text, setText] = useState("");
   const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set());
+  const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
   const [scrolledUp, setScrolledUp] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [activeReactionBar, setActiveReactionBar] = useState<number | null>(null);
+  const [hoverMsg, setHoverMsg] = useState<number | null>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [callState, setCallState] = useState<{ isVideo: boolean } | null>(null);
+  const [inChatSearch, setInChatSearch] = useState("");
+  const [showInChatSearch, setShowInChatSearch] = useState(false);
+
+  // Local reactions state: msgId → { emoji: count }
+  const [localReactions, setLocalReactions] = useState<Record<number, Record<string, number>>>({});
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const { sendMessage, isConnected, subscribe } = useWebSocket();
+  const { sendMessage: wsSend, isConnected, subscribe } = useWebSocket();
+
+  const addReaction = trpc.messages.addReaction.useMutation();
+  const markRead = trpc.messages.markRead.useMutation();
+  const deleteMessage = trpc.messages.deleteMessage.useMutation({
+    onSuccess: () => utils.messages.messages.invalidate({ conversationId }),
+  });
+  const pinMessage = trpc.messages.pinMessage.useMutation();
 
   // Subscribe to WebSocket messages
   useEffect(() => {
     const unsubscribe = subscribe((msg) => {
       if (msg.type === "new_message" && msg.data?.conversationId === conversationId) {
         refetch();
+        // Auto mark read if not scrolled up
+        if (!scrolledUp) {
+          markRead.mutate({ conversationId });
+        }
       } else if (msg.type === "typing_start" && msg.data?.conversationId === conversationId) {
         setTypingUsers(prev => new Set(prev).add(msg.data.userId));
       } else if (msg.type === "typing_stop" && msg.data?.conversationId === conversationId) {
@@ -418,28 +714,38 @@ function ChatView({ conversationId, userId, onBack }: {
           next.delete(msg.data.userId);
           return next;
         });
+      } else if (msg.type === "presence_update" && msg.data?.conversationId === conversationId) {
+        if (msg.data.status === "online") {
+          setOnlineUsers(prev => new Set(prev).add(msg.data.userId));
+        } else {
+          setOnlineUsers(prev => {
+            const next = new Set(prev);
+            next.delete(msg.data.userId);
+            return next;
+          });
+        }
       }
     });
 
     return unsubscribe;
-  }, [conversationId, subscribe, refetch]);
+  }, [conversationId, subscribe, refetch, scrolledUp]);
 
-  // Subscribe to conversation on mount
+  // Subscribe to conversation on mount + mark as read
   useEffect(() => {
-    sendMessage("presence_update", { conversationId });
-
-    return () => {
-      // Unsubscribe when leaving conversation
-    };
-  }, [conversationId, sendMessage]);
+    wsSend("presence_update", { conversationId });
+    markRead.mutate({ conversationId });
+  }, [conversationId]);
 
   const sendMsg = trpc.messages.send.useMutation({
     onSuccess: () => {
       setText("");
+      setReplyingTo(null);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
       utils.messages.messages.invalidate({ conversationId });
-      // Notify via WebSocket
       if (isConnected) {
-        sendMessage("typing_stop", { conversationId });
+        wsSend("typing_stop", { conversationId });
       }
     },
   });
@@ -449,6 +755,9 @@ function ChatView({ conversationId, userId, onBack }: {
       const { scrollHeight, scrollTop, clientHeight } = messagesContainerRef.current;
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       setScrolledUp(!isAtBottom);
+      if (isAtBottom) {
+        markRead.mutate({ conversationId });
+      }
     }
   };
 
@@ -458,7 +767,41 @@ function ChatView({ conversationId, userId, onBack }: {
     }
   }, [msgs, scrolledUp]);
 
+  const handleSend = () => {
+    if (!text.trim()) return;
+    sendMsg.mutate({
+      conversationId,
+      content: text,
+      replyToId: replyingTo?.id,
+    });
+  };
+
+  const handleReact = (msgId: number, emoji: string) => {
+    addReaction.mutate({ messageId: msgId, emoji });
+    setLocalReactions(prev => {
+      const msgReactions = { ...(prev[msgId] || {}) };
+      msgReactions[emoji] = (msgReactions[emoji] || 0) + 1;
+      return { ...prev, [msgId]: msgReactions };
+    });
+    setActiveReactionBar(null);
+  };
+
+  const handleLongPress = (msgId: number) => {
+    setActiveReactionBar(msgId);
+    setActiveMenu(null);
+  };
+
   const conv = conversation?.find((c: any) => c.id === conversationId);
+  const convName = conv?.name || `Chat #${conversationId}`;
+
+  // Filter messages by in-chat search
+  const displayedMsgs = useMemo(() => {
+    if (!msgs) return [];
+    if (!inChatSearch.trim()) return msgs;
+    return msgs.filter((m: any) =>
+      m.content?.toLowerCase().includes(inChatSearch.toLowerCase())
+    );
+  }, [msgs, inChatSearch]);
 
   return (
     <motion.div
@@ -466,7 +809,29 @@ function ChatView({ conversationId, userId, onBack }: {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className="flex flex-col h-full"
+      onClick={() => { setActiveMenu(null); setActiveReactionBar(null); setShowEmojiPicker(false); }}
     >
+      {/* Call UI */}
+      <AnimatePresence>
+        {callState && (
+          <CallUI
+            conversationId={conversationId}
+            convName={convName}
+            isVideo={callState.isVideo}
+            userId={userId}
+            sendMessage={wsSend}
+            onClose={() => setCallState(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Image Fullscreen */}
+      <AnimatePresence>
+        {fullscreenImage && (
+          <ImageFullscreen url={fullscreenImage} onClose={() => setFullscreenImage(null)} />
+        )}
+      </AnimatePresence>
+
       {/* Chat Header */}
       <div className="px-4 sm:px-5 py-3 border-b border-pink-50 flex items-center gap-3 glass-strong">
         <motion.button
@@ -492,39 +857,98 @@ function ChatView({ conversationId, userId, onBack }: {
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
           )}
         </div>
-        <div className="flex-1">
-          <h3 className="font-display font-bold text-gray-800 text-sm">{conv?.name || `Chat #${conversationId}`}</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-display font-bold text-gray-800 text-sm truncate">{convName}</h3>
           <p className="text-[10px] text-emerald-500 font-semibold">
             {conv?.type === "channel" ? `Channel • members` : "Online"}
           </p>
         </div>
         <div className="flex items-center gap-1">
-          {[Phone, Video, MoreVertical].map((Icon, i) => (
-            <motion.button
-              key={i}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => toast("Feature coming soon!", { icon: "🚀" })}
-              className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
-            >
-              <Icon className="h-4 w-4" />
-            </motion.button>
-          ))}
+          {/* In-chat search */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => { e.stopPropagation(); setShowInChatSearch(v => !v); }}
+            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+          >
+            <Search className="h-4 w-4" />
+          </motion.button>
+          {/* Phone call */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => { e.stopPropagation(); setCallState({ isVideo: false }); }}
+            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+          >
+            <Phone className="h-4 w-4" />
+          </motion.button>
+          {/* Video call */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => { e.stopPropagation(); setCallState({ isVideo: true }); }}
+            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+          >
+            <Video className="h-4 w-4" />
+          </motion.button>
+          {/* More menu — handled per-message now, so no-op globally */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => { e.stopPropagation(); toast("Right-click or long-press a message for options", { icon: "ℹ️" }); }}
+            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </motion.button>
         </div>
       </div>
+
+      {/* In-chat search bar */}
+      <AnimatePresence>
+        {showInChatSearch && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 py-2 border-b border-pink-50 overflow-hidden"
+          >
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+              <input
+                autoFocus
+                value={inChatSearch}
+                onChange={e => setInChatSearch(e.target.value)}
+                placeholder="Search in chat..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-gray-300"
+              />
+              {inChatSearch && (
+                <button onClick={() => setInChatSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {inChatSearch && (
+              <p className="text-xs text-gray-400 mt-1 ml-1">
+                {displayedMsgs.length} result{displayedMsgs.length !== 1 ? "s" : ""}
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-3 bg-gradient-to-b from-pink-50/30 to-transparent"
+        className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 bg-gradient-to-b from-pink-50/30 to-transparent"
+        onClick={() => { setActiveMenu(null); setActiveReactionBar(null); setShowEmojiPicker(false); }}
       >
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-pink-300" />
             <p className="text-xs text-gray-400">Loading messages...</p>
           </div>
-        ) : msgs && msgs.length > 0 ? (
+        ) : displayedMsgs && displayedMsgs.length > 0 ? (
           <>
             {scrolledUp && (
               <motion.button
@@ -540,56 +964,191 @@ function ChatView({ conversationId, userId, onBack }: {
               </motion.button>
             )}
 
-            {msgs.map((msg: any, i: number) => {
+            {displayedMsgs.map((msg: any, i: number) => {
               const isMine = msg.senderId === userId;
-              const showTime = i === 0 || (
-                new Date(msg.createdAt).getTime() - new Date(msgs[i - 1].createdAt).getTime() > 300000
+              const prevMsg = displayedMsgs[i - 1];
+              const nextMsg = displayedMsgs[i + 1];
+
+              // Date divider
+              const showDateDivider = !prevMsg || !isSameDay(new Date(msg.createdAt), new Date(prevMsg.createdAt));
+
+              // Time group: show time if >5 min gap or different sender
+              const showTime = !prevMsg || (
+                new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime() > 300000
               );
-              const showSenderName = !isMine && (i === 0 || msgs[i - 1].senderId !== msg.senderId);
+              const showSenderName = !isMine && (
+                !prevMsg || prevMsg.senderId !== msg.senderId || showTime
+              );
               const senderInitial = (msg.senderName || "?").charAt(0).toUpperCase();
+
+              // Highlight if in search mode
+              const isHighlighted = inChatSearch && msg.content?.toLowerCase().includes(inChatSearch.toLowerCase());
+
+              const msgReactions = localReactions[msg.id] || {};
+
+              const isDeleted = msg.isDeleted;
+
               return (
                 <div key={msg.id}>
-                  {showTime && (
+                  {showDateDivider && <DateDivider date={new Date(msg.createdAt)} />}
+
+                  {showTime && !showDateDivider && (
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-center text-[10px] text-gray-300 font-medium my-4"
+                      className="text-center text-[10px] text-gray-300 font-medium my-2"
                     >
-                      {format(new Date(msg.createdAt), "MMM d, h:mm a")}
+                      {format(new Date(msg.createdAt), "h:mm a")}
                     </motion.p>
                   )}
+
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ delay: i * 0.02, type: "spring", stiffness: 300 }}
-                    className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}
+                    transition={{ delay: Math.min(i * 0.02, 0.3), type: "spring", stiffness: 300 }}
+                    className={`flex items-end gap-2 mb-1 ${isMine ? "justify-end" : "justify-start"}`}
+                    onMouseEnter={() => setHoverMsg(msg.id)}
+                    onMouseLeave={() => setHoverMsg(null)}
+                    onTouchStart={() => {
+                      longPressTimerRef.current = setTimeout(() => handleLongPress(msg.id), 500);
+                    }}
+                    onTouchEnd={() => clearTimeout(longPressTimerRef.current)}
                   >
-                    {/* Sender avatar (others only) */}
                     {!isMine && (
                       <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-sm mb-1">
                         <span className="text-white text-[10px] font-bold">{senderInitial}</span>
                       </div>
                     )}
+
                     <div className={`max-w-[75%] sm:max-w-[65%] relative group ${isMine ? "order-1" : ""}`}>
-                      {/* Sender name label */}
-                      {showSenderName && !isMine && (
+                      {showSenderName && (
                         <p className="text-[10px] text-gray-400 font-semibold mb-1 ml-1">{msg.senderName}</p>
                       )}
-                      <div className={`px-4 py-3 text-sm leading-relaxed break-words ${
-                        isMine
-                          ? "bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-pink-200/30"
-                          : "glass-strong border border-pink-100/50 text-gray-700 rounded-2xl rounded-bl-md"
-                      }`}>
-                        {msg.content}
+
+                      {/* Reply-to preview */}
+                      {msg.replyToId && msgs && (
+                        (() => {
+                          const parent = (msgs as any[]).find((m: any) => m.id === msg.replyToId);
+                          if (!parent) return null;
+                          return (
+                            <div className={`mb-1 px-3 py-1.5 rounded-xl border-l-4 border-pink-400 bg-pink-50/70 text-xs text-gray-500 truncate ${isMine ? "bg-purple-50/70 border-purple-400" : ""}`}>
+                              <span className="font-semibold">{parent.senderName}:</span>{" "}
+                              {parent.isDeleted ? "[deleted]" : parent.content || (parent.attachmentUrl ? "[Image]" : "")}
+                            </div>
+                          );
+                        })()
+                      )}
+
+                      {/* Message bubble */}
+                      <div
+                        onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === msg.id ? null : msg.id); setActiveReactionBar(null); }}
+                        className={`px-4 py-3 text-sm leading-relaxed break-words cursor-pointer select-text ${
+                          isHighlighted ? "ring-2 ring-yellow-400" : ""
+                        } ${
+                          isMine
+                            ? "bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-pink-200/30"
+                            : "glass-strong border border-pink-100/50 text-gray-700 rounded-2xl rounded-bl-md"
+                        }`}
+                      >
+                        {isDeleted ? (
+                          <span className="italic opacity-60">This message was deleted</span>
+                        ) : msg.attachmentUrl && msg.attachmentType === "image" ? (
+                          <div className="space-y-2">
+                            <img
+                              src={msg.attachmentUrl}
+                              alt="attachment"
+                              className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={(e) => { e.stopPropagation(); setFullscreenImage(msg.attachmentUrl); }}
+                            />
+                            {msg.content && msg.content !== "[Image]" && <p>{msg.content}</p>}
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
                       </div>
+
+                      {/* Reactions display */}
+                      {Object.keys(msgReactions).length > 0 && (
+                        <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
+                          {Object.entries(msgReactions).map(([emoji, count]) => (
+                            <button
+                              key={emoji}
+                              onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }}
+                              className="inline-flex items-center gap-0.5 bg-white border border-pink-100 rounded-full px-2 py-0.5 text-xs shadow-sm hover:border-pink-300 transition-colors"
+                            >
+                              {emoji} <span className="text-gray-500 font-medium">{count}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Time + read receipt */}
                       <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
                         <span className="text-[10px] text-gray-300">
                           {format(new Date(msg.createdAt), "h:mm a")}
                         </span>
-                        {isMine && (
+                        {isMine && !isDeleted && (
                           <CheckCheck className="h-3 w-3 text-pink-300" />
                         )}
                       </div>
+
+                      {/* Hover quick actions */}
+                      <AnimatePresence>
+                        {hoverMsg === msg.id && !isDeleted && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className={`absolute top-0 ${isMine ? "left-0 -translate-x-full pr-2" : "right-0 translate-x-full pl-2"} flex items-center gap-1`}
+                          >
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveMenu(null); }}
+                              className="p-1.5 rounded-full bg-white border border-pink-100 text-gray-400 hover:text-pink-500 shadow-sm"
+                            >
+                              <Reply className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setActiveReactionBar(activeReactionBar === msg.id ? null : msg.id); setActiveMenu(null); }}
+                              className="p-1.5 rounded-full bg-white border border-pink-100 text-gray-400 hover:text-pink-500 shadow-sm"
+                            >
+                              <Smile className="h-3.5 w-3.5" />
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Reaction bar */}
+                      <AnimatePresence>
+                        {activeReactionBar === msg.id && (
+                          <div className={`absolute z-20 ${isMine ? "right-0 bottom-full mb-2" : "left-0 bottom-full mb-2"}`}>
+                            <ReactionBar onReact={(emoji) => handleReact(msg.id, emoji)} />
+                          </div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Message context menu */}
+                      <AnimatePresence>
+                        {activeMenu === msg.id && (
+                          <MessageMenu
+                            isMine={isMine}
+                            msg={msg}
+                            onReply={() => setReplyingTo(msg)}
+                            onPin={() => {
+                              pinMessage.mutate({ conversationId, messageId: msg.id });
+                              toast.success("Message pinned");
+                            }}
+                            onCopy={() => {
+                              navigator.clipboard.writeText(msg.content || "");
+                              toast.success("Copied to clipboard");
+                            }}
+                            onDelete={() => {
+                              deleteMessage.mutate({ messageId: msg.id });
+                            }}
+                            onReport={() => toast("Report submitted", { icon: "📩" })}
+                            onClose={() => setActiveMenu(null)}
+                          />
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.div>
                 </div>
@@ -600,7 +1159,7 @@ function ChatView({ conversationId, userId, onBack }: {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 text-xs text-gray-400"
+                className="flex items-center gap-2 text-xs text-gray-400 mt-2"
               >
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
@@ -629,79 +1188,121 @@ function ChatView({ conversationId, userId, onBack }: {
             >
               <Sparkles className="h-7 w-7 text-pink-300" />
             </motion.div>
-            <p className="text-sm text-gray-400 font-medium">No messages yet</p>
-            <p className="text-xs text-gray-300">Say hi and start the conversation!</p>
+            <p className="text-sm text-gray-400 font-medium">{inChatSearch ? "No matching messages" : "No messages yet"}</p>
+            {!inChatSearch && <p className="text-xs text-gray-300">Say hi and start the conversation!</p>}
           </div>
         )}
       </div>
 
+      {/* Reply preview strip */}
+      <AnimatePresence>
+        {replyingTo && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 py-2 border-t border-pink-50 bg-pink-50/50 flex items-center gap-2 overflow-hidden"
+          >
+            <div className="flex-1 min-w-0 border-l-4 border-pink-400 pl-2">
+              <p className="text-[10px] text-pink-500 font-bold">Replying to {replyingTo.senderName}</p>
+              <p className="text-xs text-gray-600 truncate">{replyingTo.content || "[Image]"}</p>
+            </div>
+            <button onClick={() => setReplyingTo(null)} className="text-gray-400 p-1">
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Message Input */}
-      <div className="px-4 sm:px-5 py-3 border-t border-pink-50 glass-strong">
+      <div className="px-4 sm:px-5 py-3 border-t border-pink-50 glass-strong relative">
+        {/* Emoji Picker */}
+        <AnimatePresence>
+          {showEmojiPicker && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-full left-4 mb-2 z-50 shadow-xl rounded-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <Picker
+                data={data}
+                onEmojiSelect={(emoji: any) => {
+                  const native = emoji.native || emoji.skins?.[0]?.native || emoji.id;
+                  setText(prev => prev + native);
+                  textareaRef.current?.focus();
+                }}
+                theme="light"
+                previewPosition="none"
+                skinTonePosition="none"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-end gap-2">
           <div className="flex gap-1">
-            {[ImageIcon, Smile].map((Icon, i) => (
-              <motion.button
-                key={i}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => {
-                  if (Icon === ImageIcon) {
-                    // Handle image upload
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = "image/*";
-                    input.onchange = async (e: any) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        try {
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          const res = await fetch("/api/upload-photo", {
-                            method: "POST",
-                            body: file,
-                            headers: {
-                              "Content-Type": file.type,
-                            },
-                          });
-                          const { url } = await res.json();
-                          sendMsg.mutate({
-                            conversationId,
-                            content: "[Image]",
-                            attachmentUrl: url,
-                            attachmentType: "image",
-                          });
-                        } catch (err) {
-                          toast.error("Failed to upload image");
-                        }
-                      }
-                    };
-                    input.click();
-                  } else {
-                    toast("Emoji picker coming soon!", { icon: "🚀" });
+            {/* Image upload */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*";
+                input.onchange = async (e: any) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    try {
+                      const res = await fetch("/api/upload-photo", {
+                        method: "POST",
+                        body: file,
+                        headers: { "Content-Type": file.type },
+                      });
+                      const { url } = await res.json();
+                      sendMsg.mutate({
+                        conversationId,
+                        content: "",
+                        attachmentUrl: url,
+                        attachmentType: "image",
+                      });
+                    } catch (err) {
+                      toast.error("Failed to upload image");
+                    }
                   }
-                }}
-                className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
-              >
-                <Icon className="h-5 w-5" />
-              </motion.button>
-            ))}
+                };
+                input.click();
+              }}
+              className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+            >
+              <ImageIcon className="h-5 w-5" />
+            </motion.button>
+
+            {/* Emoji picker toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(v => !v); }}
+              className={`p-2 rounded-xl hover:bg-pink-50 cursor-pointer transition-colors ${showEmojiPicker ? "text-pink-500 bg-pink-50" : "text-gray-400"}`}
+            >
+              <Smile className="h-5 w-5" />
+            </motion.button>
           </div>
+
           <div className="flex-1 relative">
             <textarea
+              ref={textareaRef}
               value={text}
               onChange={(e) => {
                 setText(e.target.value);
-                // Auto-grow textarea
-                if (e.target.parentElement) {
-                  e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-                }
-                // Send typing indicator
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
                 if (isConnected) {
-                  sendMessage("typing_start", { conversationId });
+                  wsSend("typing_start", { conversationId });
                   clearTimeout(typingTimeoutRef.current);
                   typingTimeoutRef.current = setTimeout(() => {
-                    sendMessage("typing_stop", { conversationId });
+                    wsSend("typing_stop", { conversationId });
                   }, 2000);
                 }
               }}
@@ -711,14 +1312,17 @@ function ChatView({ conversationId, userId, onBack }: {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && text.trim()) {
                   e.preventDefault();
-                  sendMsg.mutate({ conversationId, content: text });
+                  handleSend();
+                }
+                if (e.key === "Escape" && replyingTo) {
+                  setReplyingTo(null);
                 }
               }}
             />
           </div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
             <Button
-              onClick={() => text.trim() && sendMsg.mutate({ conversationId, content: text })}
+              onClick={handleSend}
               disabled={!text.trim() || sendMsg.isPending}
               className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl shadow-lg shadow-pink-200/30 h-11 w-11 p-0"
             >
@@ -737,6 +1341,9 @@ export default function Messages() {
   const [selectedConv, setSelectedConv] = useState<number | null>(null);
   const { data: conversations, isLoading } = trpc.messages.conversations.useQuery(undefined, {
     enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
+  });
+  const { data: unreadCounts } = trpc.messages.unreadCounts.useQuery(undefined, {
+    enabled: isAuthenticated, refetchInterval: 30_000,
   });
 
   if (!isAuthenticated) {
@@ -775,6 +1382,7 @@ export default function Messages() {
               conversations={conversations}
               isLoading={isLoading}
               onSelect={setSelectedConv}
+              unreadCounts={unreadCounts || {}}
             />
             <div className="border-l border-pink-50">
               {selectedConv ? (
@@ -817,6 +1425,7 @@ export default function Messages() {
                   conversations={conversations}
                   isLoading={isLoading}
                   onSelect={setSelectedConv}
+                  unreadCounts={unreadCounts || {}}
                 />
               )}
             </AnimatePresence>
