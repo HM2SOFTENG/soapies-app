@@ -73,10 +73,12 @@ export async function storagePut(
     return forgeUpload(forgeConfig, key, data, contentType);
   }
 
-  throw new Error(
-    "No storage backend configured. Set DO_SPACES_KEY/DO_SPACES_SECRET/DO_SPACES_BUCKET " +
-    "or BUILT_IN_FORGE_API_URL/BUILT_IN_FORGE_API_KEY environment variables."
-  );
+  // Last resort fallback: convert to base64 data URL so uploads don't hard-fail
+  // This works for small images but is not ideal for production
+  console.warn("[Storage] No storage backend configured — storing as data URL. Configure DO_SPACES_* or S3_* env vars for production.");
+  const buf = typeof data === "string" ? Buffer.from(data) : Buffer.from(data as any);
+  const dataUrl = `data:${contentType};base64,${buf.toString("base64")}`;
+  return { key, url: dataUrl };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {

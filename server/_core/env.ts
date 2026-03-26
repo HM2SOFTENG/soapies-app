@@ -7,12 +7,13 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  // DigitalOcean Spaces (S3-compatible)
-  spacesKey: process.env.DO_SPACES_KEY ?? "",
-  spacesSecret: process.env.DO_SPACES_SECRET ?? "",
-  spacesBucket: process.env.DO_SPACES_BUCKET ?? "soapies-uploads",
-  spacesRegion: process.env.DO_SPACES_REGION ?? "sfo3",
-  spacesEndpoint: process.env.DO_SPACES_ENDPOINT ?? "https://sfo3.digitaloceanspaces.com",
+  // DigitalOcean Spaces / S3-compatible storage
+  // Accepts both DO_SPACES_* and generic S3_* env var names
+  spacesKey: process.env.DO_SPACES_KEY ?? process.env.S3_ACCESS_KEY_ID ?? "",
+  spacesSecret: process.env.DO_SPACES_SECRET ?? process.env.S3_SECRET_ACCESS_KEY ?? "",
+  spacesBucket: process.env.DO_SPACES_BUCKET ?? process.env.S3_BUCKET ?? "soapies-uploads",
+  spacesRegion: process.env.DO_SPACES_REGION ?? process.env.S3_REGION ?? "sfo3",
+  spacesEndpoint: process.env.DO_SPACES_ENDPOINT ?? process.env.S3_ENDPOINT ?? "https://sfo3.digitaloceanspaces.com",
   sendgridApiKey: process.env.SENDGRID_API_KEY ?? "",
   sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapiesplaygrp.club",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
