@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { FloatingBubbles } from "@/components/FloatingElements";
 import CommunityTeaser from "@/components/CommunityTeaser";
+import { useLocation } from "wouter";
+import UserProfilePreview from "@/components/UserProfilePreview";
 
 const COMMUNITIES = [
   { id: "soapies", name: "Soapies", emoji: "🧼" },
@@ -193,7 +195,7 @@ function PostComposer({ user }: { user: any }) {
 }
 
 // ─── POST CARD ─────────────────────────────────────────────────────────────
-function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index: number }) {
+function PostCard({ post, isLiked, index, onAuthorClick }: { post: any; isLiked: boolean; index: number; onAuthorClick?: (authorId: number, displayName: string, avatarUrl?: string | null) => void }) {
   const [showComments, setShowComments] = useState(false);
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikes, setLocalLikes] = useState(post.likesCount || 0);
@@ -255,7 +257,8 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
           <div className="flex items-center gap-3 flex-1">
             <motion.div
               whileHover={{ scale: 1.1 }}
-              className={`w-11 h-11 rounded-xl bg-gradient-to-br ${getAvatarGradient(post.authorId)} flex items-center justify-center shadow-md overflow-hidden flex-shrink-0`}
+              onClick={() => !isSystemPost && post.authorId && onAuthorClick?.(post.authorId, authorName, authorAvatar)}
+              className={`w-11 h-11 rounded-xl bg-gradient-to-br ${getAvatarGradient(post.authorId)} flex items-center justify-center shadow-md overflow-hidden flex-shrink-0 ${!isSystemPost && post.authorId ? "cursor-pointer" : ""}`}
             >
               {authorAvatar ? (
                 <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
@@ -265,7 +268,12 @@ function PostCard({ post, isLiked, index }: { post: any; isLiked: boolean; index
             </motion.div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-gray-800">{authorName}</p>
+                <p
+                  className={`text-sm font-bold text-gray-800 ${!isSystemPost && post.authorId ? "cursor-pointer hover:text-pink-600 transition-colors" : ""}`}
+                  onClick={() => !isSystemPost && post.authorId && onAuthorClick?.(post.authorId, authorName, authorAvatar)}
+                >
+                  {authorName}
+                </p>
                 {isSystemPost && (
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-600 uppercase tracking-wide">Official</span>
                 )}
@@ -471,8 +479,31 @@ function CommentsSection({ postId }: { postId: number }) {
 // ─── MAIN WALL PAGE ────────────────────────────────────────────────────────
 export default function Wall() {
   const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"latest" | "popular">("latest");
+  const [profilePreview, setProfilePreview] = useState<{ userId: number; displayName: string; avatarUrl?: string | null } | null>(null);
+
+  const createConversation = trpc.messages.createConversation.useMutation({
+    onSuccess: () => {
+      setProfilePreview(null);
+      navigate("/messages");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  function handleAuthorClick(authorId: number, displayName: string, avatarUrl?: string | null) {
+    setProfilePreview({ userId: authorId, displayName, avatarUrl });
+  }
+
+  function handleSendMessage(userId: number, displayName: string) {
+    createConversation.mutate({ participantIds: [userId] });
+  }
+
+  function handleViewProfile(userId: number) {
+    setProfilePreview(null);
+    navigate(`/u/${userId}`);
+  }
 
   const { data: posts, isLoading } = trpc.wall.posts.useQuery(
     { communityId: selectedFilter || undefined },
@@ -621,12 +652,25 @@ export default function Wall() {
                   post={post}
                   isLiked={myLikes?.includes(post.id) ?? false}
                   index={i}
+                  onAuthorClick={handleAuthorClick}
                 />
               ))}
             </AnimatePresence>
           </div>
         )}
       </div>
+
+      {/* Profile Preview Modal */}
+      {profilePreview && (
+        <UserProfilePreview
+          userId={profilePreview.userId}
+          displayName={profilePreview.displayName}
+          avatarUrl={profilePreview.avatarUrl}
+          onClose={() => setProfilePreview(null)}
+          onSendMessage={handleSendMessage}
+          onViewProfile={handleViewProfile}
+        />
+      )}
     </PageWrapper>
   );
 }

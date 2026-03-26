@@ -1379,6 +1379,16 @@ export const appRouter = router({
     })).query(async ({ ctx, input }) => {
       return db.browseMembers({ userId: ctx.user.id, ...input });
     }),
+    byId: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getPublicProfile(input.userId);
+      }),
+    wall: protectedProcedure
+      .input(z.object({ userId: z.number(), limit: z.number().optional() }))
+      .query(async ({ input }) => {
+        return db.getUserWallPosts(input.userId, input.limit ?? 20);
+      }),
   }),
   communities: router({
     landing: publicProcedure.input(z.object({ communityId: z.string() })).query(async ({ input }) => {

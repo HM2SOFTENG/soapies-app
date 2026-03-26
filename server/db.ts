@@ -398,6 +398,65 @@ export async function toggleWallPostLike(postId: number, userId: number) {
   return true;
 }
 
+export async function getPublicProfile(userId: number) {
+  const db = await getDb(); if (!db) return null;
+  const rows = await db
+    .select({
+      id: profiles.id,
+      userId: profiles.userId,
+      displayName: profiles.displayName,
+      bio: profiles.bio,
+      avatarUrl: profiles.avatarUrl,
+      location: profiles.location,
+      orientation: profiles.orientation,
+      memberRole: profiles.memberRole,
+      communityId: profiles.communityId,
+      createdAt: profiles.createdAt,
+      applicationStatus: profiles.applicationStatus,
+    })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .limit(1);
+
+  const profile = rows[0];
+  if (!profile) return null;
+  // Only return approved profiles (or profiles with no status set for safety)
+  if (profile.applicationStatus && profile.applicationStatus !== 'approved') return null;
+
+  // Count posts
+  const postCountResult = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(wallPosts)
+    .where(eq(wallPosts.authorId, userId));
+  const photoCount = Number(postCountResult[0]?.count ?? 0);
+
+  const { applicationStatus, ...safeProfile } = profile;
+  return { ...safeProfile, photoCount };
+}
+
+export async function getUserWallPosts(userId: number, limit = 20) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db
+    .select({
+      post: wallPosts,
+      profile: {
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+      },
+    })
+    .from(wallPosts)
+    .leftJoin(profiles, eq(profiles.userId, wallPosts.authorId))
+    .where(eq(wallPosts.authorId, userId))
+    .orderBy(desc(wallPosts.createdAt))
+    .limit(limit);
+
+  return rows.map(r => ({
+    ...r.post,
+    resolvedAuthorName: r.post.authorName ?? r.profile?.displayName ?? "Member",
+    resolvedAvatarUrl: r.profile?.avatarUrl ?? null,
+  }));
+}
+
 export async function getUserLikedPosts(userId: number) {
   const db = await getDb(); if (!db) return [];
   const likes = await db.select().from(wallPostLikes).where(eq(wallPostLikes.userId, userId));

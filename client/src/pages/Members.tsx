@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/_core/hooks/useAuth";
 import CommunityTeaser from "@/components/CommunityTeaser";
+import { useLocation } from "wouter";
+import { toast } from "sonner";
 
 // ─── ORIENTATION BADGE ────────────────────────────────────────────────────────
 
@@ -109,7 +111,7 @@ function MemberCard({ member, onClick, index }: { member: any; onClick: () => vo
 
 // ─── MEMBER MODAL ────────────────────────────────────────────────────────────
 
-function MemberModal({ member, onClose }: { member: any; onClose: () => void }) {
+function MemberModal({ member, onClose, onMessage, onViewProfile }: { member: any; onClose: () => void; onMessage: (member: any) => void; onViewProfile: (member: any) => void }) {
   return (
     <AnimatePresence>
       <motion.div
@@ -190,6 +192,27 @@ function MemberModal({ member, onClose }: { member: any; onClose: () => void }) 
                   </p>
                 </div>
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-4">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onMessage(member)}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-md"
+                  style={{ background: "linear-gradient(135deg, #f000bc, #8b5cf6)" }}
+                >
+                  💬 Message
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onViewProfile(member)}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-semibold border-2 border-pink-200 text-pink-600 bg-white/60 hover:bg-pink-50 transition-colors"
+                >
+                  👤 View Profile
+                </motion.button>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -240,6 +263,7 @@ const COMMUNITY_FILTERS = [
 
 export default function Members() {
   const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [orientation, setOrientation] = useState("");
@@ -247,6 +271,23 @@ export default function Members() {
   const [page, setPage] = useState(0);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<any | null>(null);
+
+  const createConversation = trpc.messages.createConversation.useMutation({
+    onSuccess: () => {
+      setSelectedMember(null);
+      navigate("/messages");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  function handleMessage(member: any) {
+    createConversation.mutate({ participantIds: [member.id] });
+  }
+
+  function handleViewProfile(member: any) {
+    setSelectedMember(null);
+    navigate(`/u/${member.id}`);
+  }
 
   const { data, isLoading, isFetching } = trpc.members.browse.useQuery(
     { page, search: debouncedSearch || undefined, orientation: orientation || undefined, community: community || undefined },
@@ -404,7 +445,12 @@ export default function Members() {
 
       {/* Member detail modal */}
       {selectedMember && (
-        <MemberModal member={selectedMember} onClose={() => setSelectedMember(null)} />
+        <MemberModal
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+          onMessage={handleMessage}
+          onViewProfile={handleViewProfile}
+        />
       )}
     </PageWrapper>
   );
