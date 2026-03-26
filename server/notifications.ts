@@ -9,6 +9,7 @@
 
 import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "./db";
+import { broadcastToUser } from "./_core/websocket";
 import {
   notifications,
   notificationQueue,
@@ -90,6 +91,17 @@ export async function createInAppNotification(input: {
     notificationId: notifId,
     channel: "in_app",
     status: "sent",
+  });
+
+  // Push real-time notification via WebSocket so the bell updates instantly
+  broadcastToUser(input.userId, "notification", {
+    id: notifId,
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    data: input.data ?? null,
+    isRead: false,
+    createdAt: new Date().toISOString(),
   });
 
   return notifId;
@@ -279,6 +291,28 @@ export async function sendNotification(input: SendNotificationInput): Promise<{
         status: results.sms ? "sent" : "failed",
       });
     }
+  }
+
+  // Web push notifications
+  try {
+    const { sendPushNotification } = await import("./services/webpush");
+    const dbInstance = await getDb();
+    if (dbInstance) {
+      const { getPushSubscriptions, deletePushSubscription } = await import("./db");
+      const subs = await getPushSubscriptions(input.userId);
+      for (const sub of subs) {
+        if (!sub.p256dh || !sub.auth) continue;
+        try {
+          await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, input.title, input.body);
+        } catch (err: any) {
+          if (err.message === 'SUBSCRIPTION_EXPIRED') {
+            await deletePushSubscription(sub.endpoint);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Notification] Web push failed:", err);
   }
 
   return results;

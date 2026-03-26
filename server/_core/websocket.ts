@@ -5,7 +5,7 @@ import { sdk } from "./sdk";
 import { getUserByOpenId } from "../db";
 
 interface WebSocketMessage {
-  type: "new_message" | "typing_start" | "typing_stop" | "message_read" | "presence_update" | "auth";
+  type: "new_message" | "typing_start" | "typing_stop" | "message_read" | "presence_update" | "auth" | "watch_conversation";
   data?: any;
   token?: string;
 }
@@ -163,6 +163,18 @@ function handleWebSocketMessage(
           conversationId: msg.data.conversationId,
           status: "online",
         });
+      }
+      break;
+
+    case "watch_conversation":
+      // Register user as a watcher of this conversation for real-time updates
+      if (msg.data?.conversationId && ws.isAuthenticated) {
+        const convId: number = msg.data.conversationId;
+        if (!conversationWatchers.has(convId)) {
+          conversationWatchers.set(convId, new Set());
+        }
+        conversationWatchers.get(convId)!.add(userId);
+        console.log(`[WebSocket] User ${userId} watching conversation ${convId}`);
       }
       break;
   }

@@ -16,6 +16,8 @@ import {
   profileChangeRequests, groupChangeRequests,
   signedWaivers, resourceAcknowledgments,
   testResultSubmissions,
+  waitlist as waitlistTable,
+  pushSubscriptions,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1506,4 +1508,52 @@ export async function getAllReservations({ eventId, status, page = 0 }: { eventI
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(reservations.createdAt))
     .limit(20).offset(page * 20);
+}
+
+// ─── EVENT CAPACITY & WAITLIST ────────────────────────────────────────────────
+
+export async function getEventCapacity(eventId: number) {
+  const db = await getDb(); if (!db) return null;
+  const r = await db.select({ capacity: events.capacity, currentAttendees: events.currentAttendees }).from(events).where(eq(events.id, eventId)).limit(1);
+  return r[0] ?? null;
+}
+
+export async function incrementEventAttendees(eventId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(events).set({ currentAttendees: sql`${events.currentAttendees} + 1` }).where(eq(events.id, eventId));
+}
+
+export async function joinWaitlist(eventId: number, userId: number) {
+  const db = await getDb(); if (!db) return null;
+  const existing = await db.select().from(waitlistTable).where(and(eq(waitlistTable.eventId, eventId), eq(waitlistTable.userId, userId))).limit(1);
+  if (existing.length > 0) return existing[0];
+  const count = await db.select({ count: sql<number>`COUNT(*)` }).from(waitlistTable).where(and(eq(waitlistTable.eventId, eventId), eq(waitlistTable.status, 'waiting')));
+  const position = Number(count[0]?.count ?? 0) + 1;
+  await db.insert(waitlistTable).values({ eventId, userId, position });
+  return { position };
+}
+
+export async function getWaitlistPosition(eventId: number, userId: number) {
+  const db = await getDb(); if (!db) return null;
+  const r = await db.select().from(waitlistTable).where(and(eq(waitlistTable.eventId, eventId), eq(waitlistTable.userId, userId))).limit(1);
+  return r[0] ?? null;
+}
+
+// ─── PUSH SUBSCRIPTIONS ───────────────────────────────────────────────────────
+
+export async function getPushSubscriptions(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+}
+
+export async function savePushSubscription(userId: number, endpoint: string, p256dh: string, auth: string) {
+  const db = await getDb(); if (!db) return;
+  const existing = await db.select().from(pushSubscriptions).where(and(eq(pushSubscriptions.userId, userId), sql`${pushSubscriptions.endpoint} = ${endpoint}`)).limit(1);
+  if (existing.length > 0) return;
+  await db.insert(pushSubscriptions).values({ userId, endpoint, p256dh, auth });
+}
+
+export async function deletePushSubscription(endpoint: string) {
+  const db = await getDb(); if (!db) return;
+  await db.delete(pushSubscriptions).where(sql`${pushSubscriptions.endpoint} = ${endpoint}`);
 }

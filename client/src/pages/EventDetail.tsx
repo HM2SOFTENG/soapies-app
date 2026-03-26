@@ -258,7 +258,7 @@ function ConfettiEffect() {
 
 // ─── RESERVATION FLOW ───────────────────────────────────────────────────────
 type ReservationStep = "ticket" | "orientation" | "partner" | "testresult" | "payment" | "confirm";
-type PaymentMethod = "venmo" | "credits" | "volunteer";
+type PaymentMethod = "stripe" | "venmo" | "credits" | "volunteer";
 
 interface ReservationFlowProps {
   event: any;
@@ -737,6 +737,42 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
           <div className="space-y-4">
             <h3 className="font-bold text-gray-700 mb-3">Choose Payment Method</h3>
 
+            {/* Stripe — primary card payment */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleSelectPayment("stripe")}
+              className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
+                selectedPayment === "stripe"
+                  ? "border-purple-400 bg-purple-50 shadow-md shadow-purple-100"
+                  : "border-gray-100 bg-white hover:border-purple-200"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-gray-800">💳 Pay by Card</p>
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Recommended</span>
+                    </div>
+                    {selectedPayment === "stripe" && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center"
+                      >
+                        <Check className="h-4 w-4 text-white" />
+                      </motion.div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Secure payment via Stripe. Your reservation is confirmed instantly after payment.
+                  </p>
+                </div>
+              </div>
+            </motion.button>
+
             {/* Venmo */}
             <motion.button
               whileHover={{ scale: 1.01 }}
@@ -847,6 +883,21 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                 </motion.button>
               </motion.div>
             )}
+
+            {/* Submit button for Stripe */}
+            {selectedPayment === "stripe" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-purple-200/50"
+                >
+                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><CreditCard className="h-5 w-5" /> Pay ${ticketPrice.toFixed(2)} with Card</>}
+                </motion.button>
+              </motion.div>
+            )}
           </div>
         )}
       </motion.div>
@@ -901,6 +952,17 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
           transition={{ delay: 0.4 }}
           className="space-y-4"
         >
+          {paymentMethod === "stripe" && (
+            <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100">
+              <p className="font-semibold text-purple-700 flex items-center gap-2">
+                <CreditCard className="h-4 w-4" /> Redirecting to Stripe…
+              </p>
+              <p className="text-sm text-purple-600 mt-1">
+                Complete your card payment on Stripe's secure checkout page.
+              </p>
+            </div>
+          )}
+
           {paymentMethod === "venmo" && (
             <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100 text-left">
               <p className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
@@ -979,10 +1041,24 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
 
+  const [pendingStripeReservationId, setPendingStripeReservationId] = useState<number | null>(null);
+
+  const checkoutSession = trpc.reservations.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: (e: any) => toast.error(e.message || "Payment failed"),
+  });
+
   const createReservation = trpc.reservations.create.useMutation({
-    onSuccess: () => {
-      setReserved(true);
+    onSuccess: (reservationId) => {
       utils.events.byId.invalidate({ id: event.id });
+      // If payment is stripe, redirect to Stripe Checkout
+      if (reservationData?.paymentMethod === "stripe" && typeof reservationId === "number") {
+        checkoutSession.mutate({ reservationId });
+      } else {
+        setReserved(true);
+      }
     },
     onError: (e: any) => {
       if ((e as any)?.data?.code === "PRECONDITION_FAILED" || e.message === "This event is at capacity.") {
@@ -991,6 +1067,14 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
         toast.error(e.message || "Failed to create reservation");
       }
     },
+  });
+
+  const joinWaitlistMut = trpc.reservations.joinWaitlist.useMutation({
+    onSuccess: (data) => {
+      setJoinedWaitlist(true);
+      toast.success(`You're on the waitlist! Position: #${(data as any)?.position ?? '?'}`);
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to join waitlist'),
   });
 
   function handleReserve(data: {
@@ -1075,11 +1159,11 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           <>
             <p className="text-yellow-700 text-sm mb-4">Join the waitlist? We'll notify you if a spot opens up.</p>
             <Button
-              onClick={() => toast.info("Waitlist feature coming soon!")}
-              
+              onClick={() => joinWaitlistMut.mutate({ eventId: event.id })}
+              disabled={joinWaitlistMut.isPending}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl gap-2"
             >
-              "Join Waitlist"
+              {joinWaitlistMut.isPending ? 'Joining...' : 'Join Waitlist'}
             </Button>
           </>
         )}
@@ -1399,8 +1483,14 @@ function downloadIcs(event: any) {
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+
+  // Detect Stripe payment success/cancel from query params
+  const searchParams = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
+  );
+  const paymentResult = searchParams.get("payment"); // "success" | "cancelled" | null
   const { data: event, isLoading, error } = trpc.events.byId.useQuery(
     { id: parseInt(id || "0") },
     { retry: false }
@@ -1452,6 +1542,38 @@ export default function EventDetail() {
             </button>
           </Link>
         </motion.div>
+
+        {/* Stripe payment success banner */}
+        {paymentResult === "success" && (
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 flex items-start gap-4"
+          >
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-2xl">🎉</div>
+            <div className="flex-1">
+              <p className="font-bold text-green-800 text-lg">Payment confirmed!</p>
+              <p className="text-sm text-green-700 mt-1">Your ticket is reserved. Check your email for confirmation details.</p>
+              <Link href="/tickets">
+                <Button className="mt-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl gap-2 px-6 text-sm">
+                  <BadgeCheck className="h-4 w-4" /> View My Tickets
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Stripe payment cancelled banner */}
+        {paymentResult === "cancelled" && (
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center gap-3"
+          >
+            <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <p className="text-sm text-amber-700">Payment was cancelled. You can try again below.</p>
+          </motion.div>
+        )}
 
         {/* Hero */}
         <EventHero event={event} />
