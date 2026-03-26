@@ -45,6 +45,7 @@ import Members from "./pages/Members";
 import CommunityPage from "./pages/CommunityPage";
 import { AnimatePresence } from "framer-motion";
 import BottomTabNav from "./components/BottomTabNav";
+import IOSInstallBanner from "./components/IOSInstallBanner";
 import { FloatingBubbles } from "./components/FloatingElements";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { useLocation as useWouterLocation } from "wouter";
@@ -142,6 +143,7 @@ function AppShell() {
         <Router />
       </div>
       {!hideTabs && <BottomTabNav />}
+      <IOSInstallBanner />
     </>
   );
 }

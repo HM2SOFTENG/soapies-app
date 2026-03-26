@@ -1,0 +1,18 @@
+{
+  "name": "Soapies",
+  "short_name": "Soapies",
+  "description": "Soapies — Private Lifestyle Community",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0010",
+  "theme_color": "#f000bc",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
