@@ -21,4 +21,12 @@ export const ENV = {
   // Admin seed account (auto-created on first startup)
   adminEmail: process.env.ADMIN_EMAIL ?? "admin@soapiesplaygrp.club",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",
+  // Stripe
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? "",
+  // Web Push (VAPID)
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
+  vapidEmail: process.env.VAPID_EMAIL ?? "admin@soapies.app",
 };

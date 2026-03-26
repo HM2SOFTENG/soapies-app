@@ -8,6 +8,8 @@ import * as notif from "./notifications";
 import * as auth from "./auth";
 import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
+import { createCheckoutSession } from "./services/stripe";
+import { notifyMessageCreated, broadcastToUser } from "./_core/websocket";
 
 export const appRouter = router({
   system: systemRouter,
@@ -389,14 +391,23 @@ export const appRouter = router({
       ticketType: z.enum(["single_female", "couple", "single_male", "volunteer"]).optional(),
       quantity: z.number().optional(),
       totalAmount: z.string().optional(),
-      paymentMethod: z.enum(["venmo", "credits", "volunteer", "cash", "card"]).optional(),
+      paymentMethod: z.enum(["venmo", "credits", "volunteer", "cash", "card", "stripe"]).optional(),
       paymentStatus: z.enum(["pending", "paid", "refunded", "partial", "failed"]).optional(),
       orientationSignal: z.enum(["straight", "queer"]).optional(),
       isQueerPlay: z.boolean().optional(),
       partnerUserId: z.number().optional(),
       testResultUrl: z.string().optional(),
     })).mutation(async ({ ctx, input }) => {
+      // Check capacity before creating reservation
+      const cap = await db.getEventCapacity(input.eventId);
+      if (cap && cap.capacity && cap.capacity > 0 && (cap.currentAttendees ?? 0) >= cap.capacity) {
+        throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `This event is at capacity (${cap.capacity} attendees).` });
+      }
       const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending" });
+      // Increment attendee count after successful reservation
+      if (reservationId) {
+        try { await db.incrementEventAttendees(input.eventId); } catch (err) { console.error("[Capacity] Failed to increment attendees:", err); }
+      }
       // Process referral conversion on first reservation (fires only if not already converted)
       if (reservationId) {
         // Update wristband color based on reservation data
@@ -474,6 +485,61 @@ export const appRouter = router({
       await db.updateReservation(id, data);
       return { success: true };
     }),
+
+    createCheckoutSession: protectedProcedure
+      .input(z.object({ reservationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const dbConn = await db.getDb();
+        if (!dbConn)
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB unavailable" });
+
+        const { reservations: resTable, events: evTable } = await import("../drizzle/schema");
+        const { eq: eqOp } = await import("drizzle-orm");
+
+        const rows = await dbConn
+          .select({ res: resTable, event: evTable })
+          .from(resTable)
+          .innerJoin(evTable, eqOp(resTable.eventId, evTable.id))
+          .where(eqOp(resTable.id, input.reservationId))
+          .limit(1);
+
+        if (!rows.length) throw new TRPCError({ code: "NOT_FOUND" });
+        const { res, event } = rows[0];
+
+        // Ticket price mapping (in cents)
+        const amounts: Record<string, number> = {
+          single_female: Math.round(parseFloat(event.priceSingleFemale ?? "40") * 100),
+          couple: Math.round(parseFloat(event.priceCouple ?? "130") * 100),
+          single_male: Math.round(parseFloat(event.priceSingleMale ?? "145") * 100),
+          volunteer: 0,
+        };
+        const amount = amounts[res.ticketType ?? ""] ?? 0;
+        if (amount === 0)
+          throw new TRPCError({ code: "BAD_REQUEST", message: "No payment required for this ticket type" });
+
+        const baseUrl = process.env.APP_URL ?? "https://soapies.app";
+        const result = await createCheckoutSession({
+          reservationId: input.reservationId,
+          eventTitle: event.title,
+          ticketType: res.ticketType ?? "",
+          amount,
+          userId: ctx.user.id,
+          successUrl: `${baseUrl}/tickets?payment=success`,
+          cancelUrl: `${baseUrl}/events/${event.id}?payment=cancelled`,
+        });
+
+        if (!result)
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe not configured" });
+        return result;
+      }),
+
+    joinWaitlist: protectedProcedure.input(z.object({ eventId: z.number() })).mutation(async ({ ctx, input }) => {
+      return db.joinWaitlist(input.eventId, ctx.user.id);
+    }),
+
+    getWaitlistPosition: protectedProcedure.input(z.object({ eventId: z.number() })).query(async ({ ctx, input }) => {
+      return db.getWaitlistPosition(input.eventId, ctx.user.id);
+    }),
   }),
 
   // ─── WALL POSTS ──────────────────────────────────────────────────────────
@@ -524,7 +590,18 @@ export const appRouter = router({
       attachmentType: z.string().optional(),
       replyToId: z.number().optional(),
     })).mutation(async ({ ctx, input }) => {
-      return db.createMessage({ ...input, senderId: ctx.user.id });
+      const msgId = await db.createMessage({ ...input, senderId: ctx.user.id });
+      // Broadcast new message to all conversation watchers via WebSocket
+      notifyMessageCreated(input.conversationId, {
+        id: msgId,
+        conversationId: input.conversationId,
+        senderId: ctx.user.id,
+        content: input.content,
+        attachmentUrl: input.attachmentUrl ?? null,
+        attachmentType: input.attachmentType ?? null,
+        createdAt: new Date().toISOString(),
+      });
+      return msgId;
     }),
     createConversation: protectedProcedure.input(z.object({
       type: z.enum(["dm", "group", "channel"]).optional(),
@@ -586,6 +663,19 @@ export const appRouter = router({
         push: input.push,
       });
       return { success: true };
+    }),
+
+    savePushSubscription: protectedProcedure.input(z.object({
+      endpoint: z.string(),
+      p256dh: z.string(),
+      auth: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.savePushSubscription(ctx.user.id, input.endpoint, input.p256dh, input.auth);
+      return { success: true };
+    }),
+
+    getVapidPublicKey: publicProcedure.query(() => {
+      return ENV.vapidPublicKey || null;
     }),
   }),
 

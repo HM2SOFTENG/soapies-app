@@ -791,6 +791,19 @@ export const testResultSubmissions = mysqlTable("test_result_submissions", {
 
 export type TestResultSubmission = typeof testResultSubmissions.$inferSelect;
 
+// ─── WAITLIST ────────────────────────────────────────────────────────────────
+
+export const waitlist = mysqlTable("waitlist", {
+  id: int("id").primaryKey().autoincrement(),
+  eventId: int("eventId").notNull(),
+  userId: int("userId").notNull(),
+  status: mysqlEnum("status", ["waiting", "promoted", "cancelled"]).default("waiting").notNull(),
+  position: int("position").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Waitlist = typeof waitlist.$inferSelect;
+
 // ─── RESOURCE ACKNOWLEDGMENTS ────────────────────────────────────────────────
 
 export const resourceAcknowledgments = mysqlTable("resource_acknowledgments", {
