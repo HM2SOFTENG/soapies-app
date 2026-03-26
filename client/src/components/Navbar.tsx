@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,6 +78,7 @@ const AUTH_PAGES = ["/join", "/register", "/verify-email", "/login", "/forgot-pa
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
   const isAuthPage = AUTH_PAGES.some(p => location.startsWith(p));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -203,6 +205,17 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl hover:bg-pink-50 transition-colors"
+              title="Toggle theme"
+            >
+              <span className="text-base leading-none">{theme === 'dark' ? '☀️' : '🌙'}</span>
+            </motion.button>
+
             {isAuthenticated ? (
               <>
                 {/* Notification Bell with Dropdown */}
