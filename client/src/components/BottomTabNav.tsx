@@ -9,7 +9,6 @@ import {
   Sparkles,
   BookOpen,
   Ticket,
-  Settings,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -43,7 +42,7 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: MessageCircle, label: "Messages", path: "/messages", badge: unreadMessages || undefined },
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: Users, label: "Community", path: "/wall" },
   ];
 
   const tabs = isAuthenticated ? loggedInTabs : loggedOutTabs;

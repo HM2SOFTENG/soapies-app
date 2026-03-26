@@ -1,11 +1,12 @@
 import PageWrapper from "@/components/PageWrapper";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Loader2, Heart, Users } from "lucide-react";
+import { ArrowLeft, MapPin, Loader2, Heart, Users, Edit3 } from "lucide-react";
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { Link } from "wouter";
 
 // ─── ORIENTATION BADGE ────────────────────────────────────────────────────────
 
@@ -154,12 +155,17 @@ function WallPostCard({ post, profileUserId }: { post: any; profileUserId: numbe
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
-export default function MemberProfile() {
+interface MemberProfileProps {
+  userId?: number;
+  isOwnProfile?: boolean;
+}
+
+export default function MemberProfile({ userId: propUserId, isOwnProfile = false }: MemberProfileProps = {}) {
   const params = useParams<{ userId: string }>();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"wall" | "about">("wall");
 
-  const userId = parseInt(params.userId ?? "0", 10);
+  const userId = propUserId ?? parseInt(params.userId ?? "0", 10);
 
   const { data: profile, isLoading: profileLoading } = trpc.members.byId.useQuery(
     { userId },
@@ -262,20 +268,34 @@ export default function MemberProfile() {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 justify-center mb-5">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleMessage}
-              disabled={createConversation.isPending}
-              className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-md flex items-center gap-2"
-              style={{ background: "linear-gradient(135deg, #f000bc, #8b5cf6)" }}
-            >
-              {createConversation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : "💬"}
-              Message
-            </motion.button>
+          <div className="flex gap-3 justify-center mb-5 flex-wrap">
+            {isOwnProfile ? (
+              <Link href="/profile/edit">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-md flex items-center gap-2"
+                  style={{ background: "linear-gradient(135deg, #f000bc, #8b5cf6)" }}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  ✏️ Edit Profile
+                </motion.button>
+              </Link>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleMessage}
+                disabled={createConversation.isPending}
+                className="px-5 py-2.5 rounded-2xl text-sm font-semibold text-white shadow-md flex items-center gap-2"
+                style={{ background: "linear-gradient(135deg, #f000bc, #8b5cf6)" }}
+              >
+                {createConversation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : "💬"}
+                Message
+              </motion.button>
+            )}
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}

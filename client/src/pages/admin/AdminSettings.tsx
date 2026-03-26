@@ -104,7 +104,7 @@ export default function AdminSettings() {
 
   const handleSave = (key: string) => {
     setSaveLoading(key);
-    const value = editValues[key];
+    const value = editValues[key] ?? "";
     updateSetting.mutate({ key, value: String(value) });
   };
 
@@ -211,7 +211,8 @@ export default function AdminSettings() {
                             placeholder={`Enter ${setting.label.toLowerCase()}...`}
                             className="flex-1 px-4 py-2.5 rounded-lg border border-pink-100 bg-white text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50"
                           />
-                          {getSetting(setting.key) !== (settings?.find((s: any) => s.key === setting.key)?.value ?? "") && (
+                          {(editValues[setting.key] !== undefined &&
+                            String(editValues[setting.key]) !== (settings?.find((s: any) => s.key === setting.key)?.value ?? "")) && (
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg px-6"

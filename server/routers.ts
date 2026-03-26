@@ -603,6 +603,29 @@ export const appRouter = router({
         attachmentType: input.attachmentType ?? null,
         createdAt: new Date().toISOString(),
       });
+      // Send push + in-app notification to all conversation participants except sender
+      try {
+        const participants = await db.getConversationParticipants(input.conversationId);
+        const recipients = participants.filter((p: any) => p.userId !== ctx.user.id);
+        // Get sender display name
+        const senderProfile = await db.getProfileByUserId(ctx.user.id);
+        const senderUser = await db.getUserById(ctx.user.id);
+        const senderName = (senderProfile as any)?.displayName || (senderUser as any)?.name || "Someone";
+        for (const recipient of recipients) {
+          await notif.sendNotification({
+            userId: recipient.userId,
+            type: "message",
+            title: `New message from ${senderName}`,
+            body: input.content.length > 100 ? input.content.slice(0, 97) + "..." : input.content,
+            data: {
+              conversationId: input.conversationId,
+              link: "/messages",
+            },
+          });
+        }
+      } catch (err) {
+        console.error("[Notification] Failed to send message notification:", err);
+      }
       return msgId;
     }),
     createConversation: protectedProcedure.input(z.object({

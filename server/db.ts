@@ -1111,6 +1111,13 @@ export async function getUnreadCounts(userId: number): Promise<Record<number, nu
   return result;
 }
 
+// ─── CONVERSATION PARTICIPANTS ──────────────────────────────────────────────
+
+export async function getConversationParticipants(conversationId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(conversationParticipants).where(eq(conversationParticipants.conversationId, conversationId));
+}
+
 // ─── CONVERSATION PRESENCE ──────────────────────────────────────────────────
 
 export async function getConversationPresence(conversationId: number) {

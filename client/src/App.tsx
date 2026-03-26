@@ -10,6 +10,7 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import ProfileEdit from "./pages/ProfileEdit";
 import Wall from "./pages/Wall";
 import Messages from "./pages/Messages";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -66,6 +67,7 @@ function withProfileGuard(Component: React.ComponentType<any>) {
 // Guarded versions of protected pages
 const GuardedDashboard = withProfileGuard(Dashboard);
 const GuardedProfile = withProfileGuard(Profile);
+const GuardedProfileEdit = withProfileGuard(ProfileEdit);
 const GuardedMessages = withProfileGuard(Messages);
 const GuardedTickets = withProfileGuard(Tickets);
 const GuardedSettings = withProfileGuard(UserSettings);
@@ -98,6 +100,7 @@ function Router() {
         {/* Protected routes — require completed profile */}
         <Route path="/dashboard" component={GuardedDashboard} />
         <Route path="/profile" component={GuardedProfile} />
+        <Route path="/profile/edit" component={GuardedProfileEdit} />
         <Route path="/wall" component={Wall} />
         <Route path="/messages" component={GuardedMessages} />
         <Route path="/tickets" component={GuardedTickets} />
