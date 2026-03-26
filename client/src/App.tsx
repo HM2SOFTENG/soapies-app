@@ -27,6 +27,7 @@ import AdminReservations from "./pages/admin/AdminReservations";
 import AdminTestResults from "./pages/admin/AdminTestResults";
 import ToS from "./pages/ToS";
 import Privacy from "./pages/Privacy";
+import AcceptInvite from "./pages/AcceptInvite";
 import Tickets from "./pages/Tickets";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
@@ -84,6 +85,7 @@ function Router() {
         <Route path="/apply" component={Apply} />
         <Route path="/tos" component={ToS} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/invite/:token" component={AcceptInvite} />
 
         {/* Protected routes — require completed profile */}
         <Route path="/dashboard" component={GuardedDashboard} />
