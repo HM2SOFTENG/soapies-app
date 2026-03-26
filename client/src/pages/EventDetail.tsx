@@ -1,3 +1,4 @@
+import { createEvent } from 'ics';
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -1255,6 +1256,31 @@ function EventDetailsCard({ event }: { event: any }) {
 }
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
+function downloadIcs(event: any) {
+  const start = new Date(event.eventDate);
+  createEvent(
+    {
+      title: event.title,
+      start: [start.getFullYear(), start.getMonth() + 1, start.getDate(), start.getHours(), start.getMinutes()],
+      duration: { hours: 4 },
+      location: event.venue || '',
+      description: event.description || '',
+      url: window.location.href,
+    },
+    (error: any, value: string) => {
+      if (!error) {
+        const blob = new Blob([value], { type: 'text/calendar' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${event.title.replace(/\s+/g, '-')}.ics`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+  );
+}
+
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -1354,6 +1380,34 @@ export default function EventDetail() {
               >
                 <Share2 className="h-4 w-4" /> Share with Friends
               </Button>
+            </motion.div>
+
+            {/* Calendar Export Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="glass-strong rounded-3xl p-6 border border-pink-100/50"
+            >
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-pink-500" /> Add to Calendar
+              </h3>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => downloadIcs(event)}
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-pink-100/50 text-gray-700 hover:text-pink-600 text-sm px-4 py-2.5 rounded-xl transition w-full justify-center font-medium"
+                >
+                  📅 Add to iCal
+                </button>
+                <a
+                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${new Date(event.eventDate).toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${new Date(new Date(event.eventDate).getTime() + 4 * 3600000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(event.venue || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-pink-100/50 text-gray-700 hover:text-pink-600 text-sm px-4 py-2.5 rounded-xl transition w-full justify-center font-medium"
+                >
+                  📅 Google Calendar
+                </a>
+              </div>
             </motion.div>
 
             {/* Info Card */}
