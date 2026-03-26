@@ -219,81 +219,52 @@ export default function ProfileEdit() {
           className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100/50 p-8 shadow-lg"
         >
           <div className="flex flex-col md:flex-row items-center gap-6">
-            {/* Avatar with menu */}
-            <div className="relative">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden"
-                onClick={() => setShowAvatarMenu(v => !v)}
+            {/* Avatar — label wraps input directly, works on all mobile browsers */}
+            <div className="relative flex-shrink-0">
+              <label
+                htmlFor="avatar-upload"
+                className="block w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-pink-300 to-purple-400 shadow-lg cursor-pointer overflow-hidden relative group"
               >
-                {uploadingAvatar ? (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 text-white animate-spin" />
-                  </div>
-                ) : null}
                 {profile.avatarUrl ? (
                   <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-4xl md:text-5xl font-black text-white">
+                  <span className="w-full h-full flex items-center justify-center text-4xl md:text-5xl font-black text-white">
                     {profile.displayName?.charAt(0)?.toUpperCase() || user?.name?.charAt(0)?.toUpperCase() || "?"}
                   </span>
                 )}
-              </motion.div>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowAvatarMenu(v => !v)}
-                className="absolute bottom-0 right-0 bg-gradient-to-r from-pink-500 to-purple-600 p-3 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow"
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </div>
+              </label>
+
+              {/* Camera badge */}
+              <label
+                htmlFor="avatar-upload"
+                className="absolute -bottom-2 -right-2 bg-gradient-to-r from-pink-500 to-purple-600 p-2.5 rounded-full text-white shadow-lg cursor-pointer hover:shadow-xl transition-shadow z-10"
               >
-                <Camera className="h-5 w-5" />
-              </motion.button>
-              {/* Hidden file inputs */}
+                <Camera className="h-4 w-4" />
+              </label>
+
+              {/* The actual file input — bound to the label via id */}
               <input
-                ref={avatarFileInputRef}
+                id="avatar-upload"
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleAvatarUpload}
-                className="hidden"
+                className="sr-only"
                 disabled={uploadingAvatar}
               />
-              <input
-                ref={galleryFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleGalleryPhotoUpload}
-                className="hidden"
-                disabled={uploadingPhoto}
-              />
 
-              {/* Avatar menu popover */}
-              <AnimatePresence>
-                {showAvatarMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 8 }}
-                    className="absolute top-full mt-2 left-0 z-20 bg-white rounded-xl shadow-xl border border-pink-100 min-w-[200px] overflow-hidden"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <button
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
-                      onClick={() => { setShowAvatarMenu(false); avatarFileInputRef.current?.click(); }}
-                    >
-                      <Camera className="h-4 w-4 text-pink-500" />
-                      Upload new photo
-                    </button>
-                    {approvedPhotos.length > 0 && (
-                      <button
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-pink-50 transition-colors border-t border-pink-50"
-                        onClick={() => { setShowAvatarMenu(false); setShowGalleryPicker(true); }}
-                      >
-                        <ImageIcon className="h-4 w-4 text-purple-500" />
-                        Choose from gallery
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Upload status text below avatar */}
+              {uploadingAvatar && (
+                <p className="text-xs text-pink-500 text-center mt-2 font-medium">Uploading…</p>
+              )}
             </div>
 
             {/* Info */}
@@ -461,10 +432,10 @@ export default function ProfileEdit() {
           <TabsContent value="photos" className="space-y-6 mt-6">
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-800">My Photos</h3>
-              <Button
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl h-12 gap-2"
-                onClick={() => galleryFileInputRef.current?.click()}
-                disabled={uploadingPhoto}
+              <label
+                htmlFor="gallery-upload"
+                className={`w-full flex items-center justify-center gap-2 h-12 rounded-xl text-white font-medium cursor-pointer transition-opacity ${uploadingPhoto ? "opacity-60 pointer-events-none" : ""}`}
+                style={{ background: "linear-gradient(135deg, #ec4899, #a855f7)" }}
               >
                 {uploadingPhoto ? (
                   <>
@@ -474,10 +445,18 @@ export default function ProfileEdit() {
                 ) : (
                   <>
                     <Plus className="h-5 w-5" />
-                    Add Photo
+                    Add Photo from Album
                   </>
                 )}
-              </Button>
+              </label>
+              <input
+                id="gallery-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleGalleryPhotoUpload}
+                className="sr-only"
+                disabled={uploadingPhoto}
+              />
 
               {!photos || photos.length === 0 ? (
                 <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-100/50">
@@ -650,11 +629,6 @@ export default function ProfileEdit() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Dismiss avatar menu on outside click */}
-      {showAvatarMenu && (
-        <div className="fixed inset-0 z-10" onClick={() => setShowAvatarMenu(false)} />
-      )}
 
       {/* Gallery Picker Modal */}
       <AnimatePresence>

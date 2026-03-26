@@ -35,7 +35,7 @@ export function FloatingBubbles({ count = 8, className = "" }: { count?: number;
             height: b.size,
             left: `${b.x}%`,
             top: `${b.y}%`,
-            background: `radial-gradient(circle at 30% 30%, oklch(0.85 0.15 ${330 + Math.random() * 30} / ${b.opacity + 0.1}), oklch(0.65 0.2 ${300 + Math.random() * 40} / ${b.opacity}))`,
+            background: `radial-gradient(circle at 30% 30%, oklch(0.72 0.25 ${330 + Math.random() * 30} / ${b.opacity + 0.3}), oklch(0.52 0.30 ${295 + Math.random() * 40} / ${b.opacity + 0.15}))`,
             filter: "blur(1px)",
           }}
           animate={{

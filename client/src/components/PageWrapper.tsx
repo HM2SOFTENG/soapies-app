@@ -46,7 +46,7 @@ export default function PageWrapper({
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50/60 via-purple-50/30 to-pink-50/40 relative overflow-x-hidden">
       {/* Persistent floating bubbles across all app pages */}
-      <FloatingBubbles count={14} className="fixed inset-0 z-0 pointer-events-none opacity-50" />
+      <FloatingBubbles count={16} className="fixed inset-0 z-0 pointer-events-none opacity-70" />
       {withNavbar && <Navbar />}
       {withNavbar && !isTopLevel(location) && (
         <div className="absolute top-[68px] left-4 z-50">
