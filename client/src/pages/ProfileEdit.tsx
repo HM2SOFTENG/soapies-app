@@ -2,19 +2,17 @@ import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Loader2, Camera, Sparkles, Mail, MapPin, Phone, Copy, Shield,
+  User, Loader2, Camera, Sparkles, Mail, MapPin, Phone, Shield,
   Edit3, AlertCircle, FileText, Image as ImageIcon, LogOut, Trash2,
-  Check, ChevronRight, Heart, Compass, Smile, Lock, Eye, Key, Plus, X,
-  Download, Bell
+  Check, Heart, Compass, Smile, Lock, Eye, Key, Plus, X,
+  Bell, Star
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
-import { Link } from "wouter";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const EDITABLE_FIELDS = [
@@ -39,7 +37,14 @@ export default function ProfileEdit() {
   const [requestChangeField, setRequestChangeField] = useState<string | null>(null);
   const [requestChangeValue, setRequestChangeValue] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false);
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [savedField, setSavedField] = useState<string | null>(null);
+
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
 
@@ -59,19 +64,19 @@ export default function ProfileEdit() {
   // Mutations
   const upsertProfile = trpc.profile.upsert.useMutation({
     onSuccess: () => {
-      toast.success("Profile updated!", { icon: "✓" });
       utils.profile.me.invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e.message || "Failed to save"),
   });
 
   const uploadPhoto = trpc.profile.uploadPhoto.useMutation({
     onSuccess: () => {
-      toast.success("Photo uploaded!", { icon: "📸" });
-      setUploadingPhoto(false);
       utils.profile.photos.invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      toast.error(e.message || "Upload failed");
+      setUploadingPhoto(false);
+    },
   });
 
   const deletePhoto = trpc.profile.deletePhoto.useMutation({
@@ -97,6 +102,81 @@ export default function ProfileEdit() {
       window.location.href = getLoginUrl();
     },
   });
+
+  // Upload raw binary to /api/upload-photo, returns CDN url
+  const uploadToCdn = async (file: File): Promise<string> => {
+    const response = await fetch("/api/upload-photo", {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "Upload failed");
+    }
+    const { url } = await response.json();
+    return url;
+  };
+
+  // Upload avatar photo
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setShowAvatarMenu(false);
+    try {
+      const url = await uploadToCdn(file);
+      await upsertProfile.mutateAsync({ avatarUrl: url });
+      toast.success("Profile photo updated! 🎉");
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message}`);
+    } finally {
+      setUploadingAvatar(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  // Upload gallery photo
+  const handleGalleryPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadToCdn(file);
+      await uploadPhoto.mutateAsync({ photoUrl: url });
+      toast.success("Photo added! 📸");
+    } catch (err: any) {
+      toast.error(`Upload failed: ${err.message}`);
+    } finally {
+      setUploadingPhoto(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  // Set an existing gallery photo as avatar
+  const handleSetAsAvatar = async (photoUrl: string) => {
+    try {
+      await upsertProfile.mutateAsync({ avatarUrl: photoUrl });
+      toast.success("Profile photo updated! 🎉");
+      setShowGalleryPicker(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update avatar");
+    }
+  };
+
+  // Save an editable field
+  const handleSaveField = async (fieldKey: string, value: string) => {
+    setSavingField(fieldKey);
+    try {
+      await upsertProfile.mutateAsync({ [fieldKey]: value });
+      setSavedField(fieldKey);
+      setTimeout(() => setSavedField(null), 2000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save");
+    } finally {
+      setSavingField(null);
+    }
+  };
 
   if (loading || profileLoading) {
     return (
@@ -127,18 +207,7 @@ export default function ProfileEdit() {
     admin: "bg-indigo-50 text-indigo-600 border-indigo-100",
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingPhoto(true);
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      uploadPhoto.mutate({ photoUrl: base64 });
-    };
-    reader.readAsDataURL(file);
-  };
+  const approvedPhotos = (photos || []).filter((p: any) => p.status === "approved");
 
   return (
     <PageWrapper>
@@ -150,13 +219,18 @@ export default function ProfileEdit() {
           className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100/50 p-8 shadow-lg"
         >
           <div className="flex flex-col md:flex-row items-center gap-6">
-            {/* Avatar */}
+            {/* Avatar with menu */}
             <div className="relative">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setShowAvatarMenu(v => !v)}
               >
+                {uploadingAvatar ? (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                  </div>
+                ) : null}
                 {profile.avatarUrl ? (
                   <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -168,19 +242,58 @@ export default function ProfileEdit() {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setShowAvatarMenu(v => !v)}
                 className="absolute bottom-0 right-0 bg-gradient-to-r from-pink-500 to-purple-600 p-3 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow"
               >
                 <Camera className="h-5 w-5" />
               </motion.button>
+              {/* Hidden file inputs */}
               <input
-                ref={fileInputRef}
+                ref={avatarFileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handlePhotoUpload}
+                onChange={handleAvatarUpload}
+                className="hidden"
+                disabled={uploadingAvatar}
+              />
+              <input
+                ref={galleryFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleGalleryPhotoUpload}
                 className="hidden"
                 disabled={uploadingPhoto}
               />
+
+              {/* Avatar menu popover */}
+              <AnimatePresence>
+                {showAvatarMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 8 }}
+                    className="absolute top-full mt-2 left-0 z-20 bg-white rounded-xl shadow-xl border border-pink-100 min-w-[200px] overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <button
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+                      onClick={() => { setShowAvatarMenu(false); avatarFileInputRef.current?.click(); }}
+                    >
+                      <Camera className="h-4 w-4 text-pink-500" />
+                      Upload new photo
+                    </button>
+                    {approvedPhotos.length > 0 && (
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-pink-50 transition-colors border-t border-pink-50"
+                        onClick={() => { setShowAvatarMenu(false); setShowGalleryPicker(true); }}
+                      >
+                        <ImageIcon className="h-4 w-4 text-purple-500" />
+                        Choose from gallery
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Info */}
@@ -234,6 +347,8 @@ export default function ProfileEdit() {
               {EDITABLE_FIELDS.map((field) => {
                 const Icon = field.icon;
                 const value = profile[field.key as keyof typeof profile] as string || "";
+                const currentVal = editValues[field.key] ?? value;
+                const hasChange = currentVal !== value;
                 return (
                   <motion.div
                     key={field.key}
@@ -247,7 +362,7 @@ export default function ProfileEdit() {
                     </label>
                     {field.type === "textarea" ? (
                       <textarea
-                        value={editValues[field.key] ?? value}
+                        value={currentVal}
                         onChange={(e) => setEditValues(prev => ({ ...prev, [field.key]: e.target.value }))}
                         placeholder={field.placeholder}
                         rows={4}
@@ -256,29 +371,39 @@ export default function ProfileEdit() {
                     ) : (
                       <input
                         type={field.type}
-                        value={editValues[field.key] ?? value}
+                        value={currentVal}
                         onChange={(e) => setEditValues(prev => ({ ...prev, [field.key]: e.target.value }))}
                         placeholder={field.placeholder}
                         className="w-full px-4 py-3 rounded-lg border border-pink-100 bg-white text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50"
                       />
                     )}
-                    {(editValues[field.key] ?? value) !== value && (
-                      <Button
-                        size="sm"
-                        className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg"
-                        onClick={() => {
-                          upsertProfile.mutate({ [field.key]: editValues[field.key] || value });
-                          setEditValues(prev => {
-                            const copy = { ...prev };
-                            delete copy[field.key];
-                            return copy;
-                          });
-                        }}
-                        disabled={upsertProfile.isPending}
-                      >
-                        <Check className="h-4 w-4 mr-2" /> Save
-                      </Button>
-                    )}
+                    <button
+                      className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        hasChange
+                          ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                      onClick={() => hasChange && handleSaveField(field.key, currentVal)}
+                      disabled={!hasChange || savingField === field.key}
+                    >
+                      {savingField === field.key ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : savedField === field.key ? (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center gap-1 text-green-600"
+                        >
+                          <Check className="h-4 w-4" />
+                          Saved!
+                        </motion.div>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Save
+                        </>
+                      )}
+                    </button>
                   </motion.div>
                 );
               })}
@@ -338,11 +463,20 @@ export default function ProfileEdit() {
               <h3 className="text-lg font-bold text-gray-800">My Photos</h3>
               <Button
                 className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl h-12 gap-2"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => galleryFileInputRef.current?.click()}
                 disabled={uploadingPhoto}
               >
-                <Plus className="h-5 w-5" />
-                {uploadingPhoto ? "Uploading..." : "Add Photo"}
+                {uploadingPhoto ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-5 w-5" />
+                    Add Photo
+                  </>
+                )}
               </Button>
 
               {!photos || photos.length === 0 ? (
@@ -366,19 +500,36 @@ export default function ProfileEdit() {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 rounded-xl transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                        {photo.status === "approved" && (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleSetAsAvatar(photo.photoUrl)}
+                            className="p-2.5 bg-purple-600 text-white rounded-full hover:bg-purple-700"
+                            title="Set as profile photo"
+                          >
+                            <Star className="h-4 w-4" />
+                          </motion.button>
+                        )}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => deletePhoto.mutate({ photoId: photo.id })}
-                          className="p-3 bg-red-600 text-white rounded-full hover:bg-red-700"
+                          className="p-2.5 bg-red-600 text-white rounded-full hover:bg-red-700"
+                          title="Delete photo"
                         >
-                          <Trash2 className="h-5 w-5" />
+                          <Trash2 className="h-4 w-4" />
                         </motion.button>
                       </div>
                       {photo.status !== "approved" && (
                         <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500 text-white">
                           {photo.status === "pending" ? "Pending" : "Rejected"}
+                        </div>
+                      )}
+                      {photo.photoUrl === profile.avatarUrl && (
+                        <div className="absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold bg-purple-600 text-white flex items-center gap-1">
+                          <Star className="h-2.5 w-2.5" /> Avatar
                         </div>
                       )}
                     </motion.div>
@@ -400,7 +551,7 @@ export default function ProfileEdit() {
                 className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-100/50 p-4 space-y-3"
               >
                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
-                  <Mail className="h-4 w-4 text-pink-500" />
+                  <Sparkles className="h-4 w-4 text-pink-500" />
                   Email Address
                 </label>
                 <div className="text-sm text-gray-600 px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 font-mono">
@@ -499,6 +650,58 @@ export default function ProfileEdit() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dismiss avatar menu on outside click */}
+      {showAvatarMenu && (
+        <div className="fixed inset-0 z-10" onClick={() => setShowAvatarMenu(false)} />
+      )}
+
+      {/* Gallery Picker Modal */}
+      <AnimatePresence>
+        {showGalleryPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowGalleryPicker(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-pink-100/50 overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-5 border-b border-pink-100/50 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-800">Choose Profile Photo</h3>
+                <button onClick={() => setShowGalleryPicker(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-5">
+                <div className="grid grid-cols-3 gap-3">
+                  {approvedPhotos.map((photo: any) => (
+                    <motion.button
+                      key={photo.id}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleSetAsAvatar(photo.photoUrl)}
+                      className={`aspect-square rounded-xl overflow-hidden shadow-md border-2 transition-all ${
+                        photo.photoUrl === profile.avatarUrl
+                          ? "border-purple-500 ring-2 ring-purple-300"
+                          : "border-transparent hover:border-pink-300"
+                      }`}
+                    >
+                      <img src={photo.photoUrl} alt="Gallery" className="w-full h-full object-cover" />
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Change Request Modal */}
       <AnimatePresence>

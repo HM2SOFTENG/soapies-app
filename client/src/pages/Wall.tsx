@@ -49,17 +49,18 @@ function PostComposer({ user }: { user: any }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const response = await fetch("/api/upload-photo", { method: "POST", body: formData });
-      if (!response.ok) throw new Error("Upload failed");
+      const response = await fetch("/api/upload-photo", {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
       setMediaUrl(data.url);
       toast.success("Image uploaded!");
-    } catch (err) {
-      toast.error("Failed to upload image");
+    } catch (err: any) {
+      toast.error(`Failed to upload image: ${err.message}`);
     }
   };
 
