@@ -846,6 +846,15 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
               </div>
             </motion.button>
 
+            {/* Submit button for Stripe */}
+            {selectedPayment === "stripe" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white">
+                <p className="text-sm font-semibold mb-1">💳 Secure Card Payment</p>
+                <p className="text-xs opacity-80">You'll be redirected to Stripe Checkout to complete payment. Your ticket QR will be generated automatically.</p>
+              </motion.div>
+            )}
+
             {/* Submit button for Venmo */}
             {selectedPayment === "venmo" && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -1034,6 +1043,7 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
   const utils = trpc.useUtils();
   const [reserved, setReserved] = useState(false);
   const [reservationData, setReservationData] = useState<any>(null);
+  const pendingPaymentMethod = useRef<string | null>(null);
   const [atCapacity, setAtCapacity] = useState(false);
   const [joinedWaitlist, setJoinedWaitlist] = useState(false);
   const { data: settings } = trpc.settings.get.useQuery();
@@ -1094,6 +1104,7 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
     let paymentStatus: "pending" | "paid" = "pending";
     if (data.paymentMethod === "credits") paymentStatus = "paid";
 
+    pendingPaymentMethod.current = data.paymentMethod;
     setReservationData(data);
     createReservation.mutate({
       eventId: event.id,

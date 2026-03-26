@@ -507,7 +507,7 @@ export const appRouter = router({
         if (!rows.length) throw new TRPCError({ code: "NOT_FOUND" });
         const { res, event } = rows[0];
 
-        // Ticket price mapping (in cents)
+        // Ticket price in cents — use live event prices when available
         const amounts: Record<string, number> = {
           single_female: Math.round(parseFloat(event.priceSingleFemale ?? "40") * 100),
           couple: Math.round(parseFloat(event.priceCouple ?? "130") * 100),
@@ -533,6 +533,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe not configured" });
         return result;
       }),
+
 
     joinWaitlist: protectedProcedure.input(z.object({ eventId: z.number() })).mutation(async ({ ctx, input }) => {
       return db.joinWaitlist(input.eventId, ctx.user.id);
