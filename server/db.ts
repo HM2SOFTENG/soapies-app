@@ -495,12 +495,46 @@ export async function getUserConversations(userId: number) {
     }
   }
 
-  // Return all conversations the user participates in
+  // Return all conversations the user participates in, enriched with other-participant info for DMs
   const allIds = Array.from(participantIds);
   if (allIds.length === 0) return [];
-  return db.select().from(conversations)
+  const rawConvs = await db.select().from(conversations)
     .where(sql`${conversations.id} IN (${sql.join(allIds.map(id => sql`${id}`), sql`, `)})`)
     .orderBy(desc(conversations.updatedAt));
+
+  // For DMs, fetch the other participant's display name and avatar
+  const enriched = await Promise.all(rawConvs.map(async (conv) => {
+    if (conv.type !== 'dm') return conv;
+    try {
+      // Find the other participant
+      const others = await db.select({
+        userId: conversationParticipants.userId,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+        name: users.name,
+      })
+        .from(conversationParticipants)
+        .leftJoin(profiles, eq(conversationParticipants.userId, profiles.userId))
+        .leftJoin(users, eq(conversationParticipants.userId, users.id))
+        .where(and(
+          eq(conversationParticipants.conversationId, conv.id),
+          sql`${conversationParticipants.userId} != ${userId}`
+        ))
+        .limit(1);
+      const other = others[0];
+      if (other) {
+        return {
+          ...conv,
+          name: other.displayName || other.name || conv.name || `Chat #${conv.id}`,
+          otherUserAvatarUrl: other.avatarUrl ?? null,
+          otherUserId: other.userId,
+        };
+      }
+    } catch { /* fallback to raw */ }
+    return conv;
+  }));
+
+  return enriched;
 }
 
 export async function getConversationMessages(conversationId: number, limit = 100) {

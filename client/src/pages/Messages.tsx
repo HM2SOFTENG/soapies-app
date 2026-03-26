@@ -72,13 +72,13 @@ function MessageMenu({
       style={isMine ? { right: 0, bottom: "100%" } : { left: 0, bottom: "100%" }}
     >
       <button onClick={() => { onReply(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--accent)]">
-        <Reply className="h-4 w-4 text-gray-400" /> Reply
+        <Reply className="h-4 w-4 text-[var(--muted-foreground)]" /> Reply
       </button>
       <button onClick={() => { onCopy(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--accent)]">
-        <Copy className="h-4 w-4 text-gray-400" /> Copy
+        <Copy className="h-4 w-4 text-[var(--muted-foreground)]" /> Copy
       </button>
       <button onClick={() => { onPin(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[var(--foreground)] hover:bg-[var(--accent)]">
-        <Pin className="h-4 w-4 text-gray-400" /> Pin Message
+        <Pin className="h-4 w-4 text-[var(--muted-foreground)]" /> Pin Message
       </button>
       {isMine ? (
         <button onClick={() => { onDelete(); onClose(); }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">
@@ -223,7 +223,7 @@ function CallUI({
           <span className="text-4xl font-bold">{convName.charAt(0).toUpperCase()}</span>
         </div>
         <h2 className="text-2xl font-bold">{convName}</h2>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-[var(--muted-foreground)] text-sm mt-1">
           {callState === "calling" ? "Calling..." : callState === "connected" ? "Connected" : "Call ended"}
         </p>
       </div>
@@ -273,7 +273,7 @@ function DateDivider({ date }: { date: Date }) {
   return (
     <div className="flex items-center gap-3 my-4">
       <div className="flex-1 h-px bg-pink-100" />
-      <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide px-2">{label}</span>
+      <span className="text-[10px] text-[var(--muted-foreground)] font-semibold uppercase tracking-wide px-2">{label}</span>
       <div className="flex-1 h-px bg-pink-100" />
     </div>
   );
@@ -349,15 +349,15 @@ function NewChatModal({ onClose, onConversationCreated }: {
         <div className="px-6 py-4 border-b border-pink-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-pink-500" />
-            <h3 className="font-display text-lg font-bold text-gray-800">New Conversation</h3>
+            <h3 className="font-display text-lg font-bold text-[var(--foreground)]">New Conversation</h3>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-pink-50 text-gray-400">
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)]">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-pink-50">
+        <div className="flex border-b border-[var(--border)]">
           {(["dm", "group"] as const).map(tab => (
             <button
               key={tab}
@@ -365,7 +365,7 @@ function NewChatModal({ onClose, onConversationCreated }: {
               className={`flex-1 py-3 text-sm font-semibold transition-colors ${
                 activeTab === tab
                   ? "text-pink-600 border-b-2 border-pink-500"
-                  : "text-gray-400 hover:text-gray-600"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]"
               }`}
             >
               {tab === "dm" ? "Direct Message" : "Group Chat"}
@@ -380,7 +380,7 @@ function NewChatModal({ onClose, onConversationCreated }: {
               value={groupName}
               onChange={e => setGroupName(e.target.value)}
               placeholder="Group name (optional)"
-              className="w-full px-4 py-2.5 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-gray-300"
+              className="w-full px-4 py-2.5 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-[var(--muted-foreground)]"
             />
           </div>
         )}
@@ -388,12 +388,12 @@ function NewChatModal({ onClose, onConversationCreated }: {
         {/* Search */}
         <div className="px-4 pt-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
             <input
               value={memberSearch}
               onChange={e => setMemberSearch(e.target.value)}
               placeholder="Search members..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-gray-300"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-[var(--muted-foreground)]"
             />
           </div>
         </div>
@@ -419,7 +419,7 @@ function NewChatModal({ onClose, onConversationCreated }: {
               <Loader2 className="h-5 w-5 animate-spin text-pink-400" />
             </div>
           ) : !members || members.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-8">No members found</p>
+            <p className="text-center text-sm text-[var(--muted-foreground)] py-8">No members found</p>
           ) : (
             <div className="space-y-1">
               {members.map((member: any) => {
@@ -444,11 +444,11 @@ function NewChatModal({ onClose, onConversationCreated }: {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
+                      <p className="text-sm font-semibold text-[var(--foreground)] truncate">
                         {member.displayName || member.name || "Member"}
                       </p>
                       {member.location && (
-                        <p className="text-xs text-gray-400 truncate">{member.location}</p>
+                        <p className="text-xs text-[var(--muted-foreground)] truncate">{member.location}</p>
                       )}
                     </div>
                     {createConversation.isPending && activeTab === "dm" && (
@@ -514,9 +514,9 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-pink-50">
+      <div className="p-4 sm:p-5 border-b border-[var(--border)]">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-xl font-black text-gray-800">Messages</h2>
+          <h2 className="font-display text-xl font-black text-[var(--foreground)]">Messages</h2>
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             <Button
               size="sm"
@@ -528,7 +528,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
           </motion.div>
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -543,7 +543,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-pink-400" />
-            <p className="text-sm text-gray-400">Loading chats...</p>
+            <p className="text-sm text-[var(--muted-foreground)]">Loading chats...</p>
           </div>
         ) : !filtered || Object.keys(filtered).length === 0 ? (
           <div className="text-center py-20 px-6">
@@ -554,8 +554,8 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
             >
               <MessageCircle className="h-8 w-8 text-pink-400" />
             </motion.div>
-            <h3 className="font-display text-lg font-bold text-gray-600 mb-2">No conversations yet</h3>
-            <p className="text-gray-400 text-sm">Start chatting with community members!</p>
+            <h3 className="font-display text-lg font-bold text-[var(--muted-foreground)] mb-2">No conversations yet</h3>
+            <p className="text-[var(--muted-foreground)] text-sm">Start chatting with community members!</p>
           </div>
         ) : (
           <div>
@@ -566,7 +566,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
               return (
                 <div key={section}>
                   <div className="px-4 sm:px-5 py-2.5 bg-[var(--muted)] sticky top-0 z-10">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{section}</p>
+                    <p className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wide">{section}</p>
                   </div>
 
                   {items.map((conv: any, i: number) => {
@@ -579,7 +579,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
                         transition={{ delay: i * 0.04 }}
                         whileHover={{ backgroundColor: "rgba(236, 72, 153, 0.04)" }}
                         onClick={() => onSelect(conv.id)}
-                        className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-pink-50/50 transition-colors"
+                        className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-[var(--border)] transition-colors"
                       >
                         <div className="relative flex-shrink-0">
                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md ${
@@ -605,13 +605,13 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
                             <div className="flex items-center gap-2 min-w-0">
-                              <p className={`text-sm truncate ${unread > 0 ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}>
+                              <p className={`text-sm truncate ${unread > 0 ? "font-bold text-[var(--foreground)]" : "font-semibold text-[var(--foreground)]"}`}>
                                 {conv.name || `Chat #${conv.id}`}
                               </p>
-                              {conv.type === "channel" && <Users className="h-3 w-3 text-gray-400 flex-shrink-0" />}
+                              {conv.type === "channel" && <Users className="h-3 w-3 text-[var(--muted-foreground)] flex-shrink-0" />}
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-[10px] text-[var(--muted-foreground)]">
                                 {formatDistanceToNow(new Date(conv.updatedAt), { addSuffix: false })}
                               </span>
                               {unread > 0 && (
@@ -621,7 +621,7 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
                               )}
                             </div>
                           </div>
-                          <p className="text-xs text-gray-400 truncate">
+                          <p className="text-xs text-[var(--muted-foreground)] truncate">
                             {conv.type === "channel"
                               ? `Channel • ${conv.participantCount || 0} members`
                               : conv.type === "group"
@@ -839,7 +839,7 @@ function ChatView({ conversationId, userId, onBack }: {
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={onBack}
-          className="p-2 rounded-xl hover:bg-pink-50 text-gray-500 cursor-pointer"
+          className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)] cursor-pointer"
         >
           <ArrowLeft className="h-5 w-5" />
         </motion.button>
@@ -860,7 +860,7 @@ function ChatView({ conversationId, userId, onBack }: {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-display font-bold text-gray-800 text-sm truncate">{convName}</h3>
+          <h3 className="font-display font-bold text-[var(--foreground)] text-sm truncate">{convName}</h3>
           <p className="text-[10px] text-emerald-500 font-semibold">
             {conv?.type === "channel" ? `Channel • members` : "Online"}
           </p>
@@ -871,7 +871,7 @@ function ChatView({ conversationId, userId, onBack }: {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { e.stopPropagation(); setShowInChatSearch(v => !v); }}
-            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+            className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)] cursor-pointer"
           >
             <Search className="h-4 w-4" />
           </motion.button>
@@ -880,7 +880,7 @@ function ChatView({ conversationId, userId, onBack }: {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { e.stopPropagation(); setCallState({ isVideo: false }); }}
-            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+            className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)] cursor-pointer"
           >
             <Phone className="h-4 w-4" />
           </motion.button>
@@ -889,7 +889,7 @@ function ChatView({ conversationId, userId, onBack }: {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { e.stopPropagation(); setCallState({ isVideo: true }); }}
-            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+            className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)] cursor-pointer"
           >
             <Video className="h-4 w-4" />
           </motion.button>
@@ -898,7 +898,7 @@ function ChatView({ conversationId, userId, onBack }: {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { e.stopPropagation(); toast("Right-click or long-press a message for options", { icon: "ℹ️" }); }}
-            className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+            className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)] cursor-pointer"
           >
             <MoreVertical className="h-4 w-4" />
           </motion.button>
@@ -915,22 +915,22 @@ function ChatView({ conversationId, userId, onBack }: {
             className="px-4 py-2 border-b border-pink-50 overflow-hidden"
           >
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted-foreground)]" />
               <input
                 autoFocus
                 value={inChatSearch}
                 onChange={e => setInChatSearch(e.target.value)}
                 placeholder="Search in chat..."
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-gray-300"
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-[var(--muted-foreground)]"
               />
               {inChatSearch && (
-                <button onClick={() => setInChatSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <button onClick={() => setInChatSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]">
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
             {inChatSearch && (
-              <p className="text-xs text-gray-400 mt-1 ml-1">
+              <p className="text-xs text-[var(--muted-foreground)] mt-1 ml-1">
                 {displayedMsgs.length} result{displayedMsgs.length !== 1 ? "s" : ""}
               </p>
             )}
@@ -948,7 +948,7 @@ function ChatView({ conversationId, userId, onBack }: {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-pink-300" />
-            <p className="text-xs text-gray-400">Loading messages...</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Loading messages...</p>
           </div>
         ) : displayedMsgs && displayedMsgs.length > 0 ? (
           <>
@@ -998,7 +998,7 @@ function ChatView({ conversationId, userId, onBack }: {
                     <motion.p
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-center text-[10px] text-gray-300 font-medium my-2"
+                      className="text-center text-[10px] text-[var(--muted-foreground)] font-medium my-2"
                     >
                       {format(new Date(msg.createdAt), "h:mm a")}
                     </motion.p>
@@ -1024,7 +1024,7 @@ function ChatView({ conversationId, userId, onBack }: {
 
                     <div className={`max-w-[75%] sm:max-w-[65%] relative group ${isMine ? "order-1" : ""}`}>
                       {showSenderName && (
-                        <p className="text-[10px] text-gray-400 font-semibold mb-1 ml-1">{msg.senderName}</p>
+                        <p className="text-[10px] text-[var(--muted-foreground)] font-semibold mb-1 ml-1">{msg.senderName}</p>
                       )}
 
                       {/* Reply-to preview */}
@@ -1033,7 +1033,7 @@ function ChatView({ conversationId, userId, onBack }: {
                           const parent = (msgs as any[]).find((m: any) => m.id === msg.replyToId);
                           if (!parent) return null;
                           return (
-                            <div className={`mb-1 px-3 py-1.5 rounded-xl border-l-4 border-pink-400 bg-pink-50/70 text-xs text-gray-500 truncate ${isMine ? "bg-purple-50/70 border-purple-400" : ""}`}>
+                            <div className={`mb-1 px-3 py-1.5 rounded-xl border-l-4 border-pink-400 bg-pink-50/70 text-xs text-[var(--muted-foreground)] truncate ${isMine ? "bg-purple-50/70 border-purple-400" : ""}`}>
                               <span className="font-semibold">{parent.senderName}:</span>{" "}
                               {parent.isDeleted ? "[deleted]" : parent.content || (parent.attachmentUrl ? "[Image]" : "")}
                             </div>
@@ -1049,7 +1049,7 @@ function ChatView({ conversationId, userId, onBack }: {
                         } ${
                           isMine
                             ? "bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-pink-200/30"
-                            : "glass-strong border border-pink-100/50 text-gray-700 rounded-2xl rounded-bl-md"
+                            : "glass-strong border border-pink-100/50 text-[var(--foreground)] rounded-2xl rounded-bl-md"
                         }`}
                       >
                         {isDeleted ? (
@@ -1078,7 +1078,7 @@ function ChatView({ conversationId, userId, onBack }: {
                               onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }}
                               className="inline-flex items-center gap-0.5 bg-[var(--card)] border border-[var(--border)] rounded-full px-2 py-0.5 text-xs shadow-sm hover:border-pink-300 transition-colors"
                             >
-                              {emoji} <span className="text-gray-500 font-medium">{count}</span>
+                              {emoji} <span className="text-[var(--muted-foreground)] font-medium">{count}</span>
                             </button>
                           ))}
                         </div>
@@ -1086,7 +1086,7 @@ function ChatView({ conversationId, userId, onBack }: {
 
                       {/* Time + read receipt */}
                       <div className={`flex items-center gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
-                        <span className="text-[10px] text-gray-300">
+                        <span className="text-[10px] text-[var(--muted-foreground)]">
                           {format(new Date(msg.createdAt), "h:mm a")}
                         </span>
                         {isMine && !isDeleted && (
@@ -1105,13 +1105,13 @@ function ChatView({ conversationId, userId, onBack }: {
                           >
                             <button
                               onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveMenu(null); }}
-                              className="p-1.5 rounded-full bg-[var(--card)] border border-[var(--border)] text-gray-400 hover:text-pink-500 shadow-sm"
+                              className="p-1.5 rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-pink-500 shadow-sm"
                             >
                               <Reply className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setActiveReactionBar(activeReactionBar === msg.id ? null : msg.id); setActiveMenu(null); }}
-                              className="p-1.5 rounded-full bg-[var(--card)] border border-[var(--border)] text-gray-400 hover:text-pink-500 shadow-sm"
+                              className="p-1.5 rounded-full bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-pink-500 shadow-sm"
                             >
                               <Smile className="h-3.5 w-3.5" />
                             </button>
@@ -1161,7 +1161,7 @@ function ChatView({ conversationId, userId, onBack }: {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 text-xs text-gray-400 mt-2"
+                className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] mt-2"
               >
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
@@ -1190,8 +1190,8 @@ function ChatView({ conversationId, userId, onBack }: {
             >
               <Sparkles className="h-7 w-7 text-pink-300" />
             </motion.div>
-            <p className="text-sm text-gray-400 font-medium">{inChatSearch ? "No matching messages" : "No messages yet"}</p>
-            {!inChatSearch && <p className="text-xs text-gray-300">Say hi and start the conversation!</p>}
+            <p className="text-sm text-[var(--muted-foreground)] font-medium">{inChatSearch ? "No matching messages" : "No messages yet"}</p>
+            {!inChatSearch && <p className="text-xs text-[var(--muted-foreground)]">Say hi and start the conversation!</p>}
           </div>
         )}
       </div>
@@ -1207,9 +1207,9 @@ function ChatView({ conversationId, userId, onBack }: {
           >
             <div className="flex-1 min-w-0 border-l-4 border-pink-400 pl-2">
               <p className="text-[10px] text-pink-500 font-bold">Replying to {replyingTo.senderName}</p>
-              <p className="text-xs text-gray-600 truncate">{replyingTo.content || "[Image]"}</p>
+              <p className="text-xs text-[var(--muted-foreground)] truncate">{replyingTo.content || "[Image]"}</p>
             </div>
-            <button onClick={() => setReplyingTo(null)} className="text-gray-400 p-1">
+            <button onClick={() => setReplyingTo(null)} className="text-[var(--muted-foreground)] p-1">
               <X className="h-4 w-4" />
             </button>
           </motion.div>
@@ -1276,7 +1276,7 @@ function ChatView({ conversationId, userId, onBack }: {
                 };
                 input.click();
               }}
-              className="p-2 rounded-xl hover:bg-pink-50 text-gray-400 cursor-pointer"
+              className="p-2 rounded-xl hover:bg-pink-50 text-[var(--muted-foreground)] cursor-pointer"
             >
               <ImageIcon className="h-5 w-5" />
             </motion.button>
@@ -1286,7 +1286,7 @@ function ChatView({ conversationId, userId, onBack }: {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(v => !v); }}
-              className={`p-2 rounded-xl hover:bg-pink-50 cursor-pointer transition-colors ${showEmojiPicker ? "text-pink-500 bg-pink-50" : "text-gray-400"}`}
+              className={`p-2 rounded-xl hover:bg-pink-50 cursor-pointer transition-colors ${showEmojiPicker ? "text-pink-500 bg-pink-50" : "text-[var(--muted-foreground)]"}`}
             >
               <Smile className="h-5 w-5" />
             </motion.button>
@@ -1356,8 +1356,8 @@ export default function Messages() {
             className="inline-flex w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-purple-100 items-center justify-center mb-6">
             <Shield className="h-10 w-10 text-pink-400" />
           </motion.div>
-          <h2 className="font-display text-2xl font-bold text-gray-700 mb-3">Private Messages</h2>
-          <p className="text-gray-400 text-sm mb-6">Sign in to chat privately with community members.</p>
+          <h2 className="font-display text-2xl font-bold text-[var(--foreground)] mb-3">Private Messages</h2>
+          <p className="text-[var(--muted-foreground)] text-sm mb-6">Sign in to chat privately with community members.</p>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button onClick={() => window.location.href = getLoginUrl()}
               className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl px-8 py-3 shadow-xl gap-2">
@@ -1386,7 +1386,7 @@ export default function Messages() {
               onSelect={setSelectedConv}
               unreadCounts={unreadCounts || {}}
             />
-            <div className="border-l border-pink-50">
+            <div className="border-l border-[var(--border)]">
               {selectedConv ? (
                 <ChatView
                   conversationId={selectedConv}
@@ -1403,8 +1403,8 @@ export default function Messages() {
                     >
                       <MessageCircle className="h-8 w-8 text-pink-400" />
                     </motion.div>
-                    <h3 className="font-display text-lg font-bold text-gray-600 mb-2">Select a conversation</h3>
-                    <p className="text-gray-400 text-sm">Choose a chat to start messaging</p>
+                    <h3 className="font-display text-lg font-bold text-[var(--muted-foreground)] mb-2">Select a conversation</h3>
+                    <p className="text-[var(--muted-foreground)] text-sm">Choose a chat to start messaging</p>
                   </div>
                 </div>
               )}
