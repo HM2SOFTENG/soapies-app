@@ -25,6 +25,9 @@ import AdminAudit from "./pages/admin/AdminAudit";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminReservations from "./pages/admin/AdminReservations";
 import AdminTestResults from "./pages/admin/AdminTestResults";
+import ToS from "./pages/ToS";
+import Privacy from "./pages/Privacy";
+import Tickets from "./pages/Tickets";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
 import PendingApproval from "./pages/PendingApproval";
@@ -79,12 +82,15 @@ function Router() {
         <Route path="/events" component={Events} />
         <Route path="/events/:id" component={EventDetail} />
         <Route path="/apply" component={Apply} />
+        <Route path="/tos" component={ToS} />
+        <Route path="/privacy" component={Privacy} />
 
         {/* Protected routes — require completed profile */}
         <Route path="/dashboard" component={GuardedDashboard} />
         <Route path="/profile" component={GuardedProfile} />
         <Route path="/wall" component={Wall} />
         <Route path="/messages" component={GuardedMessages} />
+        <Route path="/tickets" component={Tickets} />
 
         {/* Admin routes — admins skip profile check via RequireProfile logic */}
         <Route path="/admin" component={AdminDashboard} />
