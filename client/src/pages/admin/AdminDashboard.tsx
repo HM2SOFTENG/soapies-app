@@ -1,6 +1,5 @@
 import AdminLayout from "./AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { motion } from "framer-motion";
 import {
   Users, Calendar, CreditCard, Activity, Zap,
@@ -54,7 +53,6 @@ function MiniSparkline({ color }: { color: string }) {
 }
 
 export default function AdminDashboard() {
-  const { data: analytics } = trpc.admin.analytics.useQuery(undefined, { staleTime: 60_000 });
   const { data: stats } = trpc.admin.stats.useQuery(undefined, {
     retry: false, staleTime: 30_000, refetchOnWindowFocus: false,
   });

@@ -1396,7 +1396,6 @@ export async function getCheckinRates() {
   return rows;
 }
 
->>>>>>> origin/feat/quick-wins
 // ─── USER TICKETS ────────────────────────────────────────────────────────────
 
 export async function getUserReservations(userId: number) {
@@ -1438,4 +1437,73 @@ export async function createTicketForReservation(reservationId: number, userId: 
   if (existing.length > 0) return existing[0].id;
   const r = await db.insert(tickets).values({ reservationId, userId, qrCode });
   return r[0].insertId;
+}
+
+// ─── MEMBER DISCOVERY ────────────────────────────────────────────────────────
+
+export async function browseMembers({ userId, page = 0, search, orientation, community }: {
+  userId: number; page?: number; search?: string; orientation?: string; community?: string;
+}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions = [
+    eq(profiles.applicationStatus, 'approved'),
+    sql`${profiles.userId} != ${userId}`,
+    sql`${profiles.userId} NOT IN (SELECT blockedId FROM blocked_users WHERE blockerId = ${userId})`,
+  ];
+  if (search) conditions.push(sql`${profiles.displayName} LIKE ${`%${search}%`}`);
+  if (orientation) conditions.push(eq(profiles.orientation, orientation));
+  if (community) conditions.push(eq(profiles.communityId, community));
+  return db.select({
+    id: profiles.userId,
+    displayName: profiles.displayName,
+    avatarUrl: profiles.avatarUrl,
+    orientation: profiles.orientation,
+    location: profiles.location,
+    communityId: profiles.communityId,
+    createdAt: profiles.createdAt,
+  }).from(profiles)
+    .where(and(...conditions))
+    .limit(20).offset(page * 20)
+    .orderBy(desc(profiles.createdAt));
+}
+
+export async function getCommunityLanding(communityId: string) {
+  const db = await getDb(); if (!db) return { memberCount: 0, upcomingEvents: [], latestPosts: [] };
+  const [memberCount, upcomingEvents, latestPosts] = await Promise.all([
+    db.select({ count: sql<number>`COUNT(*)` }).from(profiles)
+      .where(and(eq(profiles.applicationStatus, 'approved'), eq(profiles.communityId, communityId)))
+      .then(r => Number(r[0]?.count ?? 0)),
+    db.select().from(events)
+      .where(and(eq(events.communityId, communityId), gte(events.startDate, new Date())))
+      .orderBy(asc(events.startDate)).limit(3),
+    db.select().from(wallPosts)
+      .where(and(eq(wallPosts.communityId, communityId), eq(wallPosts.visibility, 'members')))
+      .orderBy(desc(wallPosts.createdAt)).limit(5),
+  ]);
+  return { memberCount, upcomingEvents, latestPosts };
+}
+
+export async function getAllReservations({ eventId, status, page = 0 }: { eventId?: number; status?: string; page?: number } = {}) {
+  const db = await getDb(); if (!db) return [];
+  const conditions: any[] = [];
+  if (eventId) conditions.push(eq(reservations.eventId, eventId));
+  if (status) conditions.push(eq(reservations.paymentStatus, status as any));
+  return db.select({
+    id: reservations.id,
+    eventId: reservations.eventId,
+    userId: reservations.userId,
+    ticketType: reservations.ticketType,
+    paymentMethod: reservations.paymentMethod,
+    paymentStatus: reservations.paymentStatus,
+    status: reservations.status,
+    totalAmount: reservations.totalAmount,
+    createdAt: reservations.createdAt,
+    eventTitle: events.title,
+    memberName: profiles.displayName,
+  }).from(reservations)
+    .leftJoin(events, eq(reservations.eventId, events.id))
+    .leftJoin(profiles, eq(reservations.userId, profiles.userId))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(reservations.createdAt))
+    .limit(20).offset(page * 20);
 }

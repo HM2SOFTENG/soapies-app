@@ -35,7 +35,7 @@ export default function AdminAuditLogs() {
     const s = search.toLowerCase();
     return (
       log.action?.toLowerCase().includes(s) ||
-      log.adminName?.toLowerCase().includes(s) ||
+      String(log.adminId).includes(s) ||
       log.targetType?.toLowerCase().includes(s) ||
       String(log.targetId ?? "").includes(s)
     );
@@ -120,10 +120,7 @@ export default function AdminAuditLogs() {
                           {log.createdAt ? format(new Date(log.createdAt), "MMM d, yyyy HH:mm") : "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-700 font-medium">
-                          {log.adminName ?? `Admin #${log.adminId}`}
-                          {log.adminEmail && (
-                            <div className="text-xs text-gray-400">{log.adminEmail}</div>
-                          )}
+                          {`Admin #${log.adminId}`}
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-mono font-semibold border border-purple-100">

@@ -1212,6 +1212,21 @@ export const appRouter = router({
   }),
 
   // ─── TEST RESULTS ────────────────────────────────────────────────────────
+  members: router({
+    browse: protectedProcedure.input(z.object({
+      page: z.number().default(0),
+      search: z.string().optional(),
+      orientation: z.string().optional(),
+      community: z.string().optional(),
+    })).query(async ({ ctx, input }) => {
+      return db.browseMembers({ userId: ctx.user.id, ...input });
+    }),
+  }),
+  communities: router({
+    landing: publicProcedure.input(z.object({ communityId: z.string() })).query(async ({ input }) => {
+      return db.getCommunityLanding(input.communityId);
+    }),
+  }),
   testResults: router({
     submit: protectedProcedure.input(z.object({
       reservationId: z.number(),
@@ -1430,8 +1445,8 @@ export const appRouter = router({
       await db.upsertAppSetting(input.key, input.value, ctx.user.id);
       return { success: true };
     }),
-    auditLogs: adminProcedure.query(async () => {
-      return db.getAuditLogs();
+    auditLogs: adminProcedure.input(z.object({ page: z.number().default(0), action: z.string().optional() }).optional()).query(async ({ input }) => {
+      return db.getAuditLogs(100);
     }),
     expenses: adminProcedure.input(z.object({ eventId: z.number().optional() }).optional()).query(async ({ input }) => {
       return db.getExpenses(input?.eventId);
@@ -1526,6 +1541,13 @@ export const appRouter = router({
         }
       } catch {}
       return { success: true };
+    }),
+    allReservations: adminProcedure.input(z.object({
+      eventId: z.number().optional(),
+      status: z.string().optional(),
+      page: z.number().default(0),
+    })).query(async ({ input }) => {
+      return db.getAllReservations(input);
     }),
     rejectReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.updateReservation(input.id, { paymentStatus: "failed", status: "cancelled" });

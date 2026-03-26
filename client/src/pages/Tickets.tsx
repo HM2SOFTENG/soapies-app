@@ -206,13 +206,17 @@ export default function Tickets() {
           <div className="space-y-4 max-w-md mx-auto">
             {tickets.map((ticket, i) => (
               <TicketCard
-                key={ticket.reservationId}
+                key={ticket.id}
                 ticket={{
-                  ...ticket,
-                  qrCode: ticket.qrCode ?? null,
-                  isUsed: ticket.isUsed ?? null,
-                  checkedInAt: ticket.checkedInAt ? new Date(ticket.checkedInAt) : null,
+                  reservationId: ticket.id,
+                  status: ticket.checkinStatus ?? 'confirmed',
+                  ticketType: ticket.ticketType,
+                  checkedInAt: null,
+                  eventName: ticket.eventTitle ?? 'Event',
                   eventDate: new Date(ticket.eventDate),
+                  venue: ticket.eventVenue ?? null,
+                  qrCode: ticket.qrCode ?? null,
+                  isUsed: null,
                 }}
                 index={i}
               />
@@ -221,8 +225,9 @@ export default function Tickets() {
         )}
 
         {/* Empty state */}
+
         {!isLoading && !error && tickets && tickets.length === 0 && <EmptyState />}
       </div>
     </PageWrapper>
-
+  );
 }

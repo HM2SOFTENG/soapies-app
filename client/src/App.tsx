@@ -41,7 +41,6 @@ import ProfileSetup from "./pages/ProfileSetup";
 import ToS from "./pages/ToS";
 import Privacy from "./pages/Privacy";
 import AcceptInvite from "./pages/AcceptInvite";
-import Tickets from "./pages/Tickets";
 import Members from "./pages/Members";
 import CommunityPage from "./pages/CommunityPage";
 import { AnimatePresence } from "framer-motion";

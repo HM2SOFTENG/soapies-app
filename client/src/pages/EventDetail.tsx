@@ -979,11 +979,6 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
 
-  const joinWaitlist = trpc.reservations.joinWaitlist.useMutation({
-    onSuccess: () => { setJoinedWaitlist(true); toast.success("You're on the waitlist!"); },
-    onError: (e: any) => toast.error(e.message || "Failed to join waitlist"),
-  });
-
   const createReservation = trpc.reservations.create.useMutation({
     onSuccess: () => {
       setReserved(true);
@@ -1080,11 +1075,11 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           <>
             <p className="text-yellow-700 text-sm mb-4">Join the waitlist? We'll notify you if a spot opens up.</p>
             <Button
-              onClick={() => joinWaitlist.mutate({ eventId: event.id })}
-              disabled={joinWaitlist.isPending}
+              onClick={() => toast.info("Waitlist feature coming soon!")}
+              
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl gap-2"
             >
-              {joinWaitlist.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Waitlist"}
+              "Join Waitlist"
             </Button>
           </>
         )}
