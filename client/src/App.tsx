@@ -22,6 +22,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminInterviewSlots from "./pages/admin/AdminInterviewSlots";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminReservations from "./pages/admin/AdminReservations";
 import AdminTestResults from "./pages/admin/AdminTestResults";
@@ -36,6 +37,12 @@ import WelcomeGuide from "./pages/WelcomeGuide";
 import ScheduleInterview from "./pages/ScheduleInterview";
 import Waiver from "./pages/Waiver";
 import ProfileSetup from "./pages/ProfileSetup";
+import ToS from "./pages/ToS";
+import Privacy from "./pages/Privacy";
+import AcceptInvite from "./pages/AcceptInvite";
+import Tickets from "./pages/Tickets";
+import Members from "./pages/Members";
+import CommunityPage from "./pages/CommunityPage";
 import { AnimatePresence } from "framer-motion";
 import BottomTabNav from "./components/BottomTabNav";
 import { FloatingBubbles } from "./components/FloatingElements";
@@ -57,6 +64,7 @@ function withProfileGuard(Component: React.ComponentType<any>) {
 const GuardedDashboard = withProfileGuard(Dashboard);
 const GuardedProfile = withProfileGuard(Profile);
 const GuardedMessages = withProfileGuard(Messages);
+const GuardedTickets = withProfileGuard(Tickets);
 
 function Router() {
   return (
@@ -79,12 +87,22 @@ function Router() {
         <Route path="/events" component={Events} />
         <Route path="/events/:id" component={EventDetail} />
         <Route path="/apply" component={Apply} />
+        <Route path="/tos" component={ToS} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/invite/:token" component={AcceptInvite} />
 
         {/* Protected routes — require completed profile */}
         <Route path="/dashboard" component={GuardedDashboard} />
         <Route path="/profile" component={GuardedProfile} />
         <Route path="/wall" component={Wall} />
         <Route path="/messages" component={GuardedMessages} />
+        <Route path="/tickets" component={GuardedTickets} />
+        <Route path="/members" component={Members} />
+
+        {/* Community landing pages */}
+        <Route path="/c/soapies">{() => <CommunityPage communityId="soapies" />}</Route>
+        <Route path="/c/groupies">{() => <CommunityPage communityId="groupies" />}</Route>
+        <Route path="/c/gaypeez">{() => <CommunityPage communityId="gaypeez" />}</Route>
 
         {/* Admin routes — admins skip profile check via RequireProfile logic */}
         <Route path="/admin" component={AdminDashboard} />
@@ -96,6 +114,7 @@ function Router() {
         <Route path="/admin/referrals" component={AdminReferrals} />
         <Route path="/admin/interview-slots" component={AdminInterviewSlots} />
         <Route path="/admin/audit" component={AdminAudit} />
+        <Route path="/admin/audit-logs" component={AdminAuditLogs} />
         <Route path="/admin/announcements" component={AdminAnnouncements} />
         <Route path="/admin/reservations" component={AdminReservations} />
         <Route path="/admin/test-results" component={AdminTestResults} />
@@ -130,7 +149,7 @@ function AppShell() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme="light" switchable={true}>
         <TooltipProvider>
           <Toaster richColors position="top-center" />
           <AppShell />

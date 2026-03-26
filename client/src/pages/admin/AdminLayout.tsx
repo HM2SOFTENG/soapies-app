@@ -21,8 +21,8 @@ const sidebarLinks = [
   { href: "/admin/interview-slots", label: "Interview Slots", icon: CalendarCheck, color: "from-blue-400 to-cyan-500" },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone, color: "from-amber-400 to-orange-500" },
   { href: "/admin/test-results", label: "Test Results", icon: FlaskConical, color: "from-cyan-400 to-blue-500" },
-  { href: "/admin/reservations", label: "Reservations", icon: CreditCard, color: "from-green-400 to-emerald-500" },
-  { href: "/admin/audit", label: "Audit Log", icon: ScrollText, color: "from-orange-400 to-amber-500" },
+  { href: "/admin/reservations", label: "🎟 Reservations", icon: CreditCard, color: "from-green-400 to-emerald-500" },
+  { href: "/admin/audit-logs", label: "📋 Audit Logs", icon: ScrollText, color: "from-orange-400 to-amber-500" },
   { href: "/admin/settings", label: "Settings", icon: Settings, color: "from-rose-400 to-pink-500" },
 ];
 

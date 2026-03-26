@@ -328,6 +328,10 @@ export default function Home() {
               <Link href="/wall"><span className="hover:text-pink-400 transition-colors cursor-pointer">Community</span></Link>
               <Link href="/dashboard"><span className="hover:text-pink-400 transition-colors cursor-pointer">Dashboard</span></Link>
             </div>
+            <div className="flex gap-6 text-xs font-medium">
+              <Link href="/tos"><span className="hover:text-pink-400 transition-colors cursor-pointer">Terms of Service</span></Link>
+              <Link href="/privacy"><span className="hover:text-pink-400 transition-colors cursor-pointer">Privacy Policy</span></Link>
+            </div>
             <p className="text-xs text-gray-600">&copy; {new Date().getFullYear()} Soapies. All rights reserved.</p>
           </div>
         </div>

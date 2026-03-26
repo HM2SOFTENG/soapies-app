@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu, X, User, LogOut, LayoutDashboard, Shield, Bell,
   Calendar, MessageCircle, Users, Sparkles, ChevronRight,
-  Check, CheckCheck, Clock, PartyPopper, UserCheck, AlertCircle
+  Check, CheckCheck, Clock, PartyPopper, UserCheck, AlertCircle,
+  Moon, Sun,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png";
 
@@ -83,6 +85,7 @@ export default function Navbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const { theme, toggleTheme, switchable } = useTheme();
   const utils = trpc.useUtils();
 
   const { data: notifList } = trpc.notifications.list.useQuery(undefined, {
@@ -203,6 +206,18 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
+            {/* Dark Mode Toggle */}
+            {switchable && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleTheme}
+                className="p-2.5 rounded-xl hover:bg-pink-50 transition-colors text-gray-600 hover:text-pink-600"
+                aria-label="Toggle dark mode"
+              >
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </motion.button>
+            )}
             {isAuthenticated ? (
               <>
                 {/* Notification Bell with Dropdown */}

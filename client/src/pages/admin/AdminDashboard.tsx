@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import {
+  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 
 // ─── ANIMATED COUNTER ──────────────────────────────────────────────────────
 function AnimatedCounter({ target, duration = 1.5 }: { target: number; duration?: number }) {
@@ -54,6 +58,9 @@ export default function AdminDashboard() {
   });
   const { data: pendingApps } = trpc.admin.pendingApplications.useQuery(undefined, {
     retry: false, staleTime: 30_000, refetchOnWindowFocus: false,
+  });
+  const { data: analytics } = trpc.admin.analytics.useQuery(undefined, {
+    retry: false, staleTime: 60_000, refetchOnWindowFocus: false,
   });
 
   const pendingCount = pendingApps?.length ?? 0;
@@ -301,6 +308,89 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* ── Analytics Charts ─────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="mt-8"
+      >
+        <h3 className="font-display text-xl font-black text-gray-800 mb-5 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-pink-500" /> Analytics Overview
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue by Event */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 bg-white shadow-sm">
+            <h4 className="text-sm font-bold text-gray-600 mb-4">💰 Revenue by Event</h4>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={analytics?.revenueByEvent ?? []} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="title" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} />
+                <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Revenue"]} />
+                <Bar dataKey="revenue" fill="#f000bc" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Ticket Type Breakdown */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 bg-white shadow-sm">
+            <h4 className="text-sm font-bold text-gray-600 mb-4">🎟 Ticket Type Breakdown</h4>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={analytics?.ticketTypeBreakdown ?? []}
+                  dataKey="count"
+                  nameKey="ticketType"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={({ ticketType, percent }) => `${ticketType} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  labelLine={false}
+                >
+                  {(analytics?.ticketTypeBreakdown ?? []).map((_entry, index) => {
+                    const PIE_COLORS = ["#f000bc", "#8b5cf6", "#06b6d4", "#ec4899", "#a855f7"];
+                    return <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />;
+                  })}
+                </Pie>
+                <Tooltip formatter={(v: number, name: string) => [v, name]} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Member Growth */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 bg-white shadow-sm">
+            <h4 className="text-sm font-bold text-gray-600 mb-4">📈 Member Growth (6 months)</h4>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={analytics?.memberGrowth ?? []} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: "#8b5cf6", r: 4 }} name="New Members" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Check-in Rates */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-xl p-4 bg-white shadow-sm">
+            <h4 className="text-sm font-bold text-gray-600 mb-4">✅ Check-in Rates by Event</h4>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={analytics?.checkinRates ?? []} margin={{ top: 4, right: 8, left: 0, bottom: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="title" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" interval={0} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="total" fill="#8b5cf6" name="Total" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="checkedIn" fill="#06b6d4" name="Checked In" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </motion.div>
     </AdminLayout>
   );
 }
