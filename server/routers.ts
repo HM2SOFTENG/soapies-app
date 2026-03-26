@@ -378,6 +378,9 @@ export const appRouter = router({
     myReservations: protectedProcedure.query(async ({ ctx }) => {
       return db.getReservationsByUser(ctx.user.id);
     }),
+    myTickets: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserReservations(ctx.user.id);
+    }),
     byEvent: adminProcedure.input(z.object({ eventId: z.number() })).query(async ({ input }) => {
       return db.getReservationsByEventWithUsers(input.eventId);
     }),
@@ -1475,6 +1478,22 @@ export const appRouter = router({
     confirmReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.updateReservation(input.id, { paymentStatus: "paid", status: "confirmed" });
       await db.createAuditLog({ adminId: ctx.user.id, action: "reservation_confirmed", targetType: "reservation", targetId: input.id });
+      // Generate QR ticket for confirmed reservation
+      try {
+        const { generateTicketQR } = await import("./services/tickets");
+        const dbConn = await db.getDb();
+        if (dbConn) {
+          const { reservations: resTableQR } = await import("../drizzle/schema");
+          const { eq: eqQR } = await import("drizzle-orm");
+          const qrRows = await dbConn.select().from(resTableQR).where(eqQR(resTableQR.id, input.id)).limit(1);
+          if (qrRows.length > 0) {
+            const qrCode = await generateTicketQR(input.id);
+            await db.createTicketForReservation(input.id, qrRows[0].userId, qrCode);
+          }
+        }
+      } catch (err) {
+        console.error("[Tickets] Failed to generate QR:", err);
+      }
       // Notify the user
       const resRows = await db.getReservationsByUser(0); // will query by id below
       try {
