@@ -371,13 +371,20 @@ export default function AdminUsers() {
                           </td>
                           <td className="px-5 py-4 text-xs">
                             <div className="flex flex-col gap-1">
-                              {u.profile?.applicationStatus && (
-                                <span className={`font-bold ${
-                                  u.profile.applicationStatus === "approved" ? "text-emerald-600" :
-                                  u.profile.applicationStatus === "rejected" ? "text-red-500" :
-                                  "text-amber-600"
-                                }`}>{u.profile.applicationStatus}</span>
-                              )}
+                              {(() => {
+                                const appStatus = u.profile?.applicationStatus ?? null;
+                                if (appStatus === "approved") {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Member</span>;
+                                } else if (appStatus === "submitted" || appStatus === "under_review") {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">⏳ Pending</span>;
+                                } else if (appStatus === "waitlisted") {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">📋 Waitlisted</span>;
+                                } else if (appStatus === "rejected") {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">✗ Rejected</span>;
+                                } else {
+                                  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">◌ Incomplete</span>;
+                                }
+                              })()}
                               {u.emailVerified ? (
                                 <span className="text-gray-400">Verified</span>
                               ) : (
@@ -470,12 +477,20 @@ export default function AdminUsers() {
                               {memberRole.charAt(0).toUpperCase() + memberRole.slice(1)}
                               <Edit2 className="h-2 w-2 opacity-50" />
                             </button>
-                            {u.profile?.applicationStatus && (
-                              <span className={`text-[10px] font-bold ${
-                                u.profile.applicationStatus === "approved" ? "text-emerald-600" :
-                                u.profile.applicationStatus === "rejected" ? "text-red-500" : "text-amber-600"
-                              }`}>{u.profile.applicationStatus}</span>
-                            )}
+                            {(() => {
+                              const appStatus = u.profile?.applicationStatus ?? null;
+                              if (appStatus === "approved") {
+                                return <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Member</span>;
+                              } else if (appStatus === "submitted" || appStatus === "under_review") {
+                                return <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">⏳ Pending</span>;
+                              } else if (appStatus === "waitlisted") {
+                                return <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">📋 Waitlisted</span>;
+                              } else if (appStatus === "rejected") {
+                                return <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">✗ Rejected</span>;
+                              } else {
+                                return <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">◌ Incomplete</span>;
+                              }
+                            })()}
                           </div>
                         </div>
                         <motion.button

@@ -15,12 +15,17 @@ import { motion } from "framer-motion";
  * - Users without profile: redirects to /apply
  */
 export function RequireProfile({ children }: { children: React.ReactNode }) {
-  const { loading, isAuthenticated, needsApplication, isPendingApproval, isAdmin, applicationStatus } = useProfileStatus();
+  const { loading, isAuthenticated, needsApplication, isPendingApproval, isApprovedMember, isAdmin, applicationStatus } = useProfileStatus();
   const { isAuthenticated: authd } = useAuth();
   const profileQuery = trpc.profile.me.useQuery(undefined, { enabled: authd, staleTime: 5 * 60 * 1000 });
   const [, setLocation] = useLocation();
 
   const profile = profileQuery.data;
+
+  // Approved-but-onboarding-incomplete: needs waiver or profile-setup
+  const needsOnboarding = !isAdmin && !isPendingApproval && !needsApplication &&
+    applicationStatus === "approved" &&
+    (!profile?.waiverSignedAt || !profile?.profileSetupComplete);
 
   useEffect(() => {
     if (loading || profileQuery.isLoading) return;
@@ -67,8 +72,8 @@ export function RequireProfile({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If needs application/pending and authenticated, don't render children (redirect is happening)
-  if (isAuthenticated && (needsApplication || isPendingApproval) && !isAdmin) {
+  // If not fully approved and authenticated, don't render children (redirect is happening)
+  if (isAuthenticated && !isAdmin && (needsApplication || isPendingApproval || needsOnboarding)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-purple-50">
         <motion.div
@@ -84,7 +89,7 @@ export function RequireProfile({ children }: { children: React.ReactNode }) {
             ✨
           </motion.div>
           <h2 className="text-xl font-bold text-gray-800">Complete Your Profile</h2>
-          <p className="text-gray-500 text-sm">Redirecting you to the application form...</p>
+          <p className="text-gray-500 text-sm">Redirecting you...</p>
         </motion.div>
       </div>
     );

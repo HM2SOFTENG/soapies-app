@@ -27,6 +27,7 @@ export function useProfileStatus() {
         applicationStatus: null as string | null,
         needsApplication: false,
         isPendingApproval: false,
+        isApprovedMember: false,
         isAdmin: false,
       };
     }
@@ -41,6 +42,7 @@ export function useProfileStatus() {
         applicationStatus: null as string | null,
         needsApplication: false,
         isPendingApproval: false,
+        isApprovedMember: false,
         isAdmin: false,
       };
     }
@@ -51,17 +53,18 @@ export function useProfileStatus() {
     const profileComplete = !!profile?.isProfileComplete;
     const applicationStatus = profile?.applicationStatus ?? null;
 
-    // Admins skip the application requirement
-    // Users with a completed profile (any status) don't need to re-apply
-    const needsApplication = !isAdmin && !hasProfile;
-
-    // Users whose application is pending review should be redirected to the pending page
-    const isPendingApproval = !isAdmin && hasProfile && (
-      applicationStatus === "submitted" ||
-      applicationStatus === "under_review" ||
-      applicationStatus === "waitlisted" ||
-      applicationStatus === "rejected"
+    // Fully approved member: admin OR (approved + waiver + profile setup complete)
+    const isApprovedMember = isAdmin || (
+      applicationStatus === "approved" &&
+      !!profile?.waiverSignedAt &&
+      !!profile?.profileSetupComplete
     );
+
+    // Needs to complete application: no profile at all, or profile is in draft state (never submitted)
+    const needsApplication = !isAdmin && (!hasProfile || applicationStatus === null || applicationStatus === "draft");
+
+    // Pending/rejected — redirected to /pending
+    const isPendingApproval = !isAdmin && hasProfile && !needsApplication && applicationStatus !== "approved";
 
     return {
       loading: false,
@@ -71,6 +74,7 @@ export function useProfileStatus() {
       applicationStatus,
       needsApplication,
       isPendingApproval,
+      isApprovedMember,
       isAdmin,
     };
   }, [authLoading, isAuthenticated, user, profileQuery.isLoading, profileQuery.data]);

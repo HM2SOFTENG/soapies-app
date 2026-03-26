@@ -1,6 +1,7 @@
 import { createEvent } from 'ics';
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useProfileStatus } from "@/hooks/useProfileStatus";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1040,6 +1041,8 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
 // ─── MAIN TICKET SECTION ────────────────────────────────────────────────────
 function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?: boolean | null }) {
   const { isAuthenticated } = useAuth();
+  const { isApprovedMember, needsApplication } = useProfileStatus();
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const [reserved, setReserved] = useState(false);
   const [reservationData, setReservationData] = useState<any>(null);
@@ -1151,6 +1154,32 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           Sign In to Reserve
         </Button>
         <AddToCalendarSection event={event} />
+      </motion.div>
+    );
+  }
+
+  // Logged in but not an approved member
+  if (isAuthenticated && !isApprovedMember) {
+    const msg = needsApplication
+      ? "You need to complete your application to reserve tickets."
+      : "Your membership is pending approval. You'll be able to reserve tickets once approved.";
+    const btnLabel = needsApplication ? "Complete Application" : "Check Application Status";
+    const btnPath = needsApplication ? "/join" : "/pending";
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-strong rounded-3xl p-8 border border-pink-100/50 mb-8 text-center"
+      >
+        <div className="text-5xl mb-4">🎟️</div>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">Members Only</h2>
+        <p className="text-gray-500 text-sm mb-6">{msg}</p>
+        <Button
+          onClick={() => setLocation(btnPath)}
+          className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 px-8 py-3"
+        >
+          {btnLabel}
+        </Button>
       </motion.div>
     );
   }

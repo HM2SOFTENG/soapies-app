@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useProfileStatus } from "@/hooks/useProfileStatus";
 import CommunityTeaser from "@/components/CommunityTeaser";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -263,6 +264,7 @@ const COMMUNITY_FILTERS = [
 
 export default function Members() {
   const { isAuthenticated } = useAuth();
+  const { isApprovedMember } = useProfileStatus();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -322,7 +324,7 @@ export default function Members() {
     setAllMembers([]);
   }
 
-  if (!isAuthenticated) {
+  if (!isApprovedMember) {
     return (
       <PageWrapper className="min-h-screen">
         <CommunityTeaser />

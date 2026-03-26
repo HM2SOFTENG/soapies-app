@@ -71,6 +71,8 @@ const GuardedProfileEdit = withProfileGuard(ProfileEdit);
 const GuardedMessages = withProfileGuard(Messages);
 const GuardedTickets = withProfileGuard(Tickets);
 const GuardedSettings = withProfileGuard(UserSettings);
+const GuardedWall = withProfileGuard(Wall);
+const GuardedMembers = withProfileGuard(Members);
 
 function Router() {
   return (
@@ -101,11 +103,11 @@ function Router() {
         <Route path="/dashboard" component={GuardedDashboard} />
         <Route path="/profile" component={GuardedProfile} />
         <Route path="/profile/edit" component={GuardedProfileEdit} />
-        <Route path="/wall" component={Wall} />
+        <Route path="/wall" component={GuardedWall} />
         <Route path="/messages" component={GuardedMessages} />
         <Route path="/tickets" component={GuardedTickets} />
-        <Route path="/members" component={Members} />
-        <Route path="/u/:userId">{(params) => <MemberProfile userId={params?.userId ? parseInt(params.userId) : undefined} />}</Route>
+        <Route path="/members" component={GuardedMembers} />
+        <Route path="/u/:userId">{(params) => <RequireProfile><MemberProfile userId={params?.userId ? parseInt(params.userId) : undefined} /></RequireProfile>}</Route>
         <Route path="/settings" component={GuardedSettings} />
 
         {/* Community landing pages */}

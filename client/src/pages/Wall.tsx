@@ -1,5 +1,6 @@
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useProfileStatus } from "@/hooks/useProfileStatus";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -480,6 +481,7 @@ function CommentsSection({ postId }: { postId: number }) {
 // ─── MAIN WALL PAGE ────────────────────────────────────────────────────────
 export default function Wall() {
   const { user, isAuthenticated } = useAuth();
+  const { isApprovedMember } = useProfileStatus();
   const [, navigate] = useLocation();
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"latest" | "popular">("latest");
@@ -515,7 +517,7 @@ export default function Wall() {
     enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
 
-  if (!isAuthenticated) {
+  if (!isApprovedMember) {
     return (
       <PageWrapper withPadding={false}>
         <CommunityTeaser />

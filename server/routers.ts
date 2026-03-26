@@ -399,6 +399,11 @@ export const appRouter = router({
       partnerUserId: z.number().optional(),
       testResultUrl: z.string().optional(),
     })).mutation(async ({ ctx, input }) => {
+      // Verify user is approved before allowing reservation
+      const reservingProfile = await db.getProfileByUserId(ctx.user.id);
+      if (ctx.user.role !== 'admin' && (!reservingProfile || reservingProfile.applicationStatus !== 'approved')) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be an approved member to reserve tickets.' });
+      }
       // Check capacity before creating reservation
       const cap = await db.getEventCapacity(input.eventId);
       if (cap && cap.capacity && cap.capacity > 0 && (cap.currentAttendees ?? 0) >= cap.capacity) {
@@ -536,6 +541,11 @@ export const appRouter = router({
 
 
     joinWaitlist: protectedProcedure.input(z.object({ eventId: z.number() })).mutation(async ({ ctx, input }) => {
+      // Verify user is approved before allowing waitlist join
+      const waitlistProfile = await db.getProfileByUserId(ctx.user.id);
+      if (ctx.user.role !== 'admin' && (!waitlistProfile || waitlistProfile.applicationStatus !== 'approved')) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be an approved member to join the waitlist.' });
+      }
       return db.joinWaitlist(input.eventId, ctx.user.id);
     }),
 
