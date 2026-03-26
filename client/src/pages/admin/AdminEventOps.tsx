@@ -37,12 +37,16 @@ function WristbandBadge({ color, size = "sm" }: { color?: string | null; size?: 
 // ─── RESERVATIONS TAB ───────────────────────────────────────────────────
 function ReservationsTab({ eventId }: { eventId: number }) {
   const [search, setSearch] = useState("");
+  const utils = trpc.useUtils();
   const { data: reservations, isLoading } = trpc.reservations.byEvent.useQuery(
     { eventId },
     { retry: false }
   );
   const updateStatus = trpc.reservations.updateStatus.useMutation({
-    onSuccess: () => toast.success("Reservation updated"),
+    onSuccess: () => {
+      toast.success("Reservation updated");
+      utils.reservations.byEvent.invalidate({ eventId });
+    },
   });
 
   const filtered = useMemo(() => {
@@ -444,14 +448,21 @@ function CheckInTab({ eventId }: { eventId: number }) {
 
 // ─── STAFF TAB ──────────────────────────────────────────────────────────
 function StaffTab({ eventId }: { eventId: number }) {
+  const utils = trpc.useUtils();
   const { data: operators } = trpc.operators.list.useQuery({ eventId });
   const { data: shifts } = trpc.shifts.list.useQuery({ eventId });
   const { data: checklist } = trpc.checklist.list.useQuery({ eventId });
   const removeOperator = trpc.operators.remove.useMutation({
-    onSuccess: () => toast.success("Operator removed"),
+    onSuccess: () => {
+      toast.success("Operator removed");
+      utils.operators.list.invalidate({ eventId });
+    },
   });
   const updateChecklistItem = trpc.checklist.update.useMutation({
-    onSuccess: () => toast.success("Checklist updated"),
+    onSuccess: () => {
+      toast.success("Checklist updated");
+      utils.checklist.list.invalidate({ eventId });
+    },
   });
 
   return (

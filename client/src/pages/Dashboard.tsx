@@ -311,11 +311,15 @@ function CreditsReferralSection() {
   const { data: creditHistory } = trpc.credits.history.useQuery(undefined, {
     retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
   });
+  const utils = trpc.useUtils();
   const { data: referral } = trpc.referrals.myCode.useQuery(undefined, {
     retry: false, refetchOnWindowFocus: false, staleTime: 60_000, enabled: isAuthenticated,
   });
   const generate = trpc.referrals.generate.useMutation({
-    onSuccess: () => toast.success("Referral code generated!"),
+    onSuccess: () => {
+      toast.success("Referral code generated!");
+      utils.referrals.myCode.invalidate();
+    },
   });
 
   const copyCode = () => {

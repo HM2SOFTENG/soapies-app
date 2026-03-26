@@ -11,6 +11,7 @@ import {
   AlertCircle, CreditCard, DollarSign, AlertTriangle, BadgeCheck,
   ChevronRight, Search, FlaskConical,
 } from "lucide-react";
+import { createEvent as createIcsEvent } from "ics";
 import { Link, useParams, useLocation } from "wouter";
 import { format, isFuture, isPast, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from "date-fns";
 import { toast } from "sonner";
@@ -965,20 +966,35 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
 }
 
 // ─── MAIN TICKET SECTION ────────────────────────────────────────────────────
-function TicketSection({ event }: { event: any }) {
+function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?: boolean | null }) {
   const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
   const [reserved, setReserved] = useState(false);
   const [reservationData, setReservationData] = useState<any>(null);
+  const [atCapacity, setAtCapacity] = useState(false);
+  const [joinedWaitlist, setJoinedWaitlist] = useState(false);
   const { data: settings } = trpc.settings.get.useQuery();
   const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
 
+  const joinWaitlist = trpc.reservations.joinWaitlist.useMutation({
+    onSuccess: () => { setJoinedWaitlist(true); toast.success("You're on the waitlist!"); },
+    onError: (e: any) => toast.error(e.message || "Failed to join waitlist"),
+  });
+
   const createReservation = trpc.reservations.create.useMutation({
     onSuccess: () => {
       setReserved(true);
+      utils.events.byId.invalidate({ id: event.id });
     },
-    onError: (e: any) => toast.error(e.message || "Failed to create reservation"),
+    onError: (e: any) => {
+      if ((e as any)?.data?.code === "PRECONDITION_FAILED" || e.message === "This event is at capacity.") {
+        setAtCapacity(true);
+      } else {
+        toast.error(e.message || "Failed to create reservation");
+      }
+    },
   });
 
   function handleReserve(data: {
@@ -1014,13 +1030,16 @@ function TicketSection({ event }: { event: any }) {
 
   if (reserved && reservationData) {
     return (
-      <ReservationConfirmation
-        paymentMethod={reservationData.paymentMethod}
-        totalAmount={reservationData.totalAmount}
-        event={event}
-        venmoHandle={venmoHandle}
-        userName={(me as any)?.name}
-      />
+      <>
+        <ReservationConfirmation
+          paymentMethod={reservationData.paymentMethod}
+          totalAmount={reservationData.totalAmount}
+          event={event}
+          venmoHandle={venmoHandle}
+          userName={(me as any)?.name}
+        />
+        <AddToCalendarSection event={event} />
+      </>
     );
   }
 
@@ -1040,28 +1059,130 @@ function TicketSection({ event }: { event: any }) {
         >
           Sign In to Reserve
         </Button>
+        <AddToCalendarSection event={event} />
+      </motion.div>
+    );
+  }
+
+  if (atCapacity) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-strong rounded-3xl p-8 border border-yellow-200 bg-yellow-50 mb-8 text-center"
+      >
+        <div className="text-4xl mb-3">⚠️</div>
+        <h2 className="font-display text-xl font-bold text-yellow-800 mb-2">This event is at capacity.</h2>
+        {joinedWaitlist ? (
+          <p className="text-yellow-700 text-sm">✅ You're on the waitlist! We'll notify you if a spot opens up.</p>
+        ) : (
+          <>
+            <p className="text-yellow-700 text-sm mb-4">Join the waitlist? We'll notify you if a spot opens up.</p>
+            <Button
+              onClick={() => joinWaitlist.mutate({ eventId: event.id })}
+              disabled={joinWaitlist.isPending}
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl gap-2"
+            >
+              {joinWaitlist.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join Waitlist"}
+            </Button>
+          </>
+        )}
       </motion.div>
     );
   }
 
   return (
-    <ReservationFlow
-      event={event}
-      onSuccess={handleReserve}
-      isSubmitting={createReservation.isPending}
-    />
+    <>
+      {waiverRequired ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-strong rounded-3xl p-8 border border-yellow-200 bg-yellow-50 mb-8 text-center opacity-60 pointer-events-none select-none"
+        >
+          <div className="text-4xl mb-2">🔒</div>
+          <p className="text-yellow-800 font-semibold">Sign the waiver above to unlock ticket selection.</p>
+        </motion.div>
+      ) : (
+        <ReservationFlow
+          event={event}
+          onSuccess={handleReserve}
+          isSubmitting={createReservation.isPending}
+        />
+      )}
+      <AddToCalendarSection event={event} />
+    </>
+  );
+}
+
+// ─── ADD TO CALENDAR ────────────────────────────────────────────────────────
+function AddToCalendarSection({ event }: { event: any }) {
+  const start = new Date(event.startDate);
+  const end = event.endDate ? new Date(event.endDate) : new Date(start.getTime() + 3 * 60 * 60 * 1000);
+
+  function toGoogleDate(d: Date) {
+    return d.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  }
+
+  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${toGoogleDate(start)}/${toGoogleDate(end)}&details=${encodeURIComponent(event.description ?? "")}&location=${encodeURIComponent(event.venue ?? "")}`;
+
+  function downloadIcs() {
+    const arr = (d: Date): [number, number, number, number, number] => [
+      d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes(),
+    ];
+    const { error, value } = createIcsEvent({
+      title: event.title,
+      description: event.description ?? "",
+      location: event.venue ?? "",
+      start: arr(start),
+      end: arr(end),
+    });
+    if (error || !value) return;
+    const blob = new Blob([value], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${event.title.replace(/\s+/g, "_")}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-wrap gap-2 mt-4"
+    >
+      <a
+        href={googleUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-600 hover:border-pink-200 hover:text-pink-600 transition-colors"
+      >
+        📅 Google Calendar
+      </a>
+      <button
+        onClick={downloadIcs}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-600 hover:border-pink-200 hover:text-pink-600 transition-colors"
+      >
+        📅 iCal / Apple
+      </button>
+    </motion.div>
   );
 }
 
 // ─── REFERRAL SECTION ───────────────────────────────────────────────────────
 function ReferralSection() {
   const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
   const { data: referral } = trpc.referrals.myCode.useQuery(undefined, {
     enabled: isAuthenticated,
     retry: false,
   });
   const generate = trpc.referrals.generate.useMutation({
-    onSuccess: () => toast.success("Referral code generated!"),
+    onSuccess: () => {
+      toast.success("Referral code generated!");
+      utils.referrals.myCode.invalidate();
+    },
   });
 
   if (!isAuthenticated) return null;
@@ -1263,6 +1384,7 @@ export default function EventDetail() {
     { id: parseInt(id || "0") },
     { retry: false }
   );
+  const { data: myProfile } = trpc.profile.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
 
   if (isLoading) {
     return (
@@ -1315,8 +1437,29 @@ export default function EventDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
+            {/* Waiver Gate Banner */}
+            {!isPastEvent && (event as any).requiresWaiver && myProfile && !(myProfile as any).waiverSignedAt && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 p-4 rounded-2xl bg-yellow-50 border border-yellow-300"
+              >
+                <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                <p className="text-sm text-yellow-800 font-medium flex-1">
+                  ⚠️ This event requires a signed waiver before you can reserve tickets.{" "}
+                  <Link href="/waiver">
+                    <span className="underline font-bold text-yellow-900 hover:text-yellow-700 cursor-pointer">Sign Waiver →</span>
+                  </Link>
+                </p>
+              </motion.div>
+            )}
             {/* Ticket / Reservation Flow */}
-            {!isPastEvent && <TicketSection event={event} />}
+            {!isPastEvent && (
+              <TicketSection
+                event={event}
+                waiverRequired={(event as any).requiresWaiver && myProfile && !(myProfile as any).waiverSignedAt}
+              />
+            )}
 
             {/* Event Details */}
             <EventDetailsCard event={event} />

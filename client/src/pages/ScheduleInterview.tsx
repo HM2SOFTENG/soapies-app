@@ -64,11 +64,13 @@ export default function ScheduleInterview() {
     staleTime: 30_000,
   });
 
+  const utils = trpc.useUtils();
   const bookMutation = trpc.introCalls.book.useMutation({
     onSuccess: () => {
       const slot = (slots ?? []).find((s: any) => s.id === selectedSlotId);
       setBooked(slot);
       toast.success("Interview slot booked! 🎉");
+      utils.introCalls.all.invalidate();
       // Redirect to pending after 4 seconds
       setTimeout(() => navigate("/pending"), 4000);
     },
