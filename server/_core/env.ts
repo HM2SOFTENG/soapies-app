@@ -14,7 +14,7 @@ export const ENV = {
   spacesRegion: process.env.DO_SPACES_REGION ?? "sfo3",
   spacesEndpoint: process.env.DO_SPACES_ENDPOINT ?? "https://sfo3.digitaloceanspaces.com",
   sendgridApiKey: process.env.SENDGRID_API_KEY ?? "",
-  sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapies.app",
+  sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapiesplaygrp.club",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
   twilioFromNumber: process.env.TWILIO_FROM_NUMBER ?? "",
@@ -28,5 +28,5 @@ export const ENV = {
   // Web Push (VAPID)
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
-  vapidEmail: process.env.VAPID_EMAIL ?? "admin@soapies.app",
+  vapidEmail: process.env.VAPID_EMAIL ?? "admin@soapiesplaygrp.club",
 };

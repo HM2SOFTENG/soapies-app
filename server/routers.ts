@@ -518,7 +518,7 @@ export const appRouter = router({
         if (amount === 0)
           throw new TRPCError({ code: "BAD_REQUEST", message: "No payment required for this ticket type" });
 
-        const baseUrl = process.env.APP_URL ?? "https://soapies.app";
+        const baseUrl = process.env.APP_URL ?? "https://soapiesplaygrp.club";
         const result = await createCheckoutSession({
           reservationId: input.reservationId,
           eventTitle: event.title,
