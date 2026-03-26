@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, asc, inArray, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users, profiles, events, reservations, tickets,
@@ -1341,6 +1341,62 @@ export async function createShiftAssignment(data: { shiftId: number; userId: num
   return r[0].insertId;
 }
 
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+
+export async function getRevenueByEvent() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    eventName: events.title,
+    revenue: sql<number>`SUM(${reservations.totalAmount})`,
+    ticketCount: sql<number>`COUNT(*)`,
+  }).from(reservations)
+    .innerJoin(events, eq(reservations.eventId, events.id))
+    .where(inArray(reservations.paymentStatus, ['paid']))
+    .groupBy(events.id, events.title);
+  return rows;
+}
+
+export async function getTicketTypeBreakdown() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    type: reservations.ticketType,
+    count: sql<number>`COUNT(*)`,
+    revenue: sql<number>`SUM(${reservations.totalAmount})`,
+  }).from(reservations)
+    .where(inArray(reservations.paymentStatus, ['paid']))
+    .groupBy(reservations.ticketType);
+  return rows;
+}
+
+export async function getMemberGrowthByMonth() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    month: sql<string>`DATE_FORMAT(${profiles.createdAt}, '%Y-%m')`,
+    count: sql<number>`COUNT(*)`,
+  }).from(profiles)
+    .where(and(
+      eq(profiles.applicationStatus, 'approved'),
+      gte(profiles.createdAt, sql`DATE_SUB(NOW(), INTERVAL 6 MONTH)`)
+    ))
+    .groupBy(sql`DATE_FORMAT(${profiles.createdAt}, '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(${profiles.createdAt}, '%Y-%m')`);
+  return rows;
+}
+
+export async function getCheckinRates() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    eventName: events.title,
+    total: sql<number>`COUNT(*)`,
+    checkedIn: sql<number>`SUM(CASE WHEN ${reservations.status} = 'checked_in' THEN 1 ELSE 0 END)`,
+  }).from(reservations)
+    .innerJoin(events, eq(reservations.eventId, events.id))
+    .where(inArray(reservations.paymentStatus, ['paid']))
+    .groupBy(events.id, events.title);
+  return rows;
+}
+
+>>>>>>> origin/feat/quick-wins
 // ─── USER TICKETS ────────────────────────────────────────────────────────────
 
 export async function getUserReservations(userId: number) {
@@ -1377,6 +1433,7 @@ export async function getUserReservations(userId: number) {
 
 export async function createTicketForReservation(reservationId: number, userId: number, qrCode: string) {
   const db = await getDb(); if (!db) return;
+  // Upsert: only create if not already exists
   const existing = await db.select().from(tickets).where(eq(tickets.reservationId, reservationId)).limit(1);
   if (existing.length > 0) return existing[0].id;
   const r = await db.insert(tickets).values({ reservationId, userId, qrCode });

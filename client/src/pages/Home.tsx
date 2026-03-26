@@ -327,6 +327,8 @@ export default function Home() {
               <Link href="/events"><span className="hover:text-pink-400 transition-colors cursor-pointer">Events</span></Link>
               <Link href="/wall"><span className="hover:text-pink-400 transition-colors cursor-pointer">Community</span></Link>
               <Link href="/dashboard"><span className="hover:text-pink-400 transition-colors cursor-pointer">Dashboard</span></Link>
+              <Link href="/tos"><span className="hover:text-pink-400 transition-colors cursor-pointer">Terms</span></Link>
+              <Link href="/privacy"><span className="hover:text-pink-400 transition-colors cursor-pointer">Privacy</span></Link>
             </div>
             <div className="flex gap-6 text-xs font-medium">
               <Link href="/tos"><span className="hover:text-pink-400 transition-colors cursor-pointer">Terms of Service</span></Link>

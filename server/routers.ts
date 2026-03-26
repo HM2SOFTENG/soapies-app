@@ -902,6 +902,12 @@ export const appRouter = router({
 
   // ─── PARTNER / RELATIONSHIP GROUPS ────────────────────────────────────────
   partners: router({
+    getInvitation: publicProcedure.input(z.object({ token: z.string() })).query(async ({ input }) => {
+      const inv = await db.getPartnerInvitationByToken(input.token);
+      if (!inv) throw new TRPCError({ code: 'NOT_FOUND', message: 'Invalid or expired invitation' });
+      const inviter = await db.getUserById(inv.inviterId);
+      return { ...inv, inviterName: inviter?.name ?? 'Someone' };
+    }),
     myGroups: protectedProcedure.query(async ({ ctx }) => {
       const profile = await db.getProfileByUserId(ctx.user.id);
       if (!profile) return [];
@@ -1247,6 +1253,12 @@ export const appRouter = router({
 
   // ─── ADMIN ───────────────────────────────────────────────────────────────
   admin: router({
+    analytics: adminProcedure.query(async () => ({
+      revenueByEvent: await db.getRevenueByEvent(),
+      ticketTypeBreakdown: await db.getTicketTypeBreakdown(),
+      memberGrowth: await db.getMemberGrowthByMonth(),
+      checkinRates: await db.getCheckinRates(),
+    })),
     stats: adminProcedure.query(async () => {
       return db.getDashboardStats();
     }),
