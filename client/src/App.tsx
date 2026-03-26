@@ -26,6 +26,7 @@ import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminReservations from "./pages/admin/AdminReservations";
 import AdminTestResults from "./pages/admin/AdminTestResults";
+import Tickets from "./pages/Tickets";
 import Apply from "./pages/Apply";
 import JoinFlow from "./pages/JoinFlow";
 import PendingApproval from "./pages/PendingApproval";

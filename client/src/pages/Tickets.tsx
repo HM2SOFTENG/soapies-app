@@ -224,5 +224,5 @@ export default function Tickets() {
         {!isLoading && !error && tickets && tickets.length === 0 && <EmptyState />}
       </div>
     </PageWrapper>
-  );
+
 }
