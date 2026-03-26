@@ -292,7 +292,10 @@ export default function Profile() {
               </h3>
               {RESTRICTED_FIELDS.map((field) => {
                 const Icon = field.icon;
-                const value = profile[field.key as keyof typeof profile] as string || "—";
+                const rawValue = profile[field.key as keyof typeof profile];
+                const value = rawValue instanceof Date
+                  ? rawValue.toLocaleDateString()
+                  : (rawValue as string) || "—";
                 const hasPending = pendingRequests?.some((r: any) => r.fieldName === field.label);
                 return (
                   <motion.div
