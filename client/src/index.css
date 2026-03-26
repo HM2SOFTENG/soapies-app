@@ -456,21 +456,13 @@ html {
    ═══════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════
-   SMOOTH THEME TRANSITIONS — silky crossfades on every color property
+   SMOOTH THEME TRANSITIONS — only on the root element's CSS vars,
+   NOT on every child (that breaks framer-motion animations)
    ═══════════════════════════════════════════════════════════════ */
-*, *::before, *::after {
+:root, html {
   transition:
-    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.3s ease,
-    fill 0.4s ease,
-    stroke 0.4s ease;
-}
-/* Don't transition things that would feel sluggish */
-*, *::before, *::after {
-  transition-property: background-color, border-color, color, box-shadow, opacity, fill, stroke;
+    background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── DARK THEME ─────────────────────────────────────────────── */
