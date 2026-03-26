@@ -378,6 +378,9 @@ export const appRouter = router({
     myReservations: protectedProcedure.query(async ({ ctx }) => {
       return db.getReservationsByUser(ctx.user.id);
     }),
+    myTickets: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserReservations(ctx.user.id);
+    }),
     byEvent: adminProcedure.input(z.object({ eventId: z.number() })).query(async ({ input }) => {
       return db.getReservationsByEventWithUsers(input.eventId);
     }),
@@ -1244,6 +1247,12 @@ export const appRouter = router({
 
   // ─── ADMIN ───────────────────────────────────────────────────────────────
   admin: router({
+    analytics: adminProcedure.query(async () => ({
+      revenueByEvent: await db.getRevenueByEvent(),
+      ticketTypeBreakdown: await db.getTicketTypeBreakdown(),
+      memberGrowth: await db.getMemberGrowthByMonth(),
+      checkinRates: await db.getCheckinRates(),
+    })),
     stats: adminProcedure.query(async () => {
       return db.getDashboardStats();
     }),
@@ -1475,6 +1484,22 @@ export const appRouter = router({
     confirmReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.updateReservation(input.id, { paymentStatus: "paid", status: "confirmed" });
       await db.createAuditLog({ adminId: ctx.user.id, action: "reservation_confirmed", targetType: "reservation", targetId: input.id });
+      // Generate QR ticket for confirmed reservation
+      try {
+        const { generateTicketQR } = await import("./services/tickets.js");
+        const dbConn = await db.getDb();
+        if (dbConn) {
+          const { reservations: resTable } = await import("../drizzle/schema");
+          const { eq: eqOp } = await import("drizzle-orm");
+          const rows = await dbConn.select().from(resTable).where(eqOp(resTable.id, input.id)).limit(1);
+          if (rows.length > 0) {
+            const qrCode = await generateTicketQR(input.id);
+            await db.createTicketForReservation(input.id, rows[0].userId, qrCode);
+          }
+        }
+      } catch (err) {
+        console.error("[Tickets] Failed to generate QR:", err);
+      }
       // Notify the user
       const resRows = await db.getReservationsByUser(0); // will query by id below
       try {

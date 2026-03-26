@@ -1,5 +1,6 @@
 import AdminLayout from "./AdminLayout";
 import { trpc } from "@/lib/trpc";
+import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { motion } from "framer-motion";
 import {
   Users, Calendar, CreditCard, Activity, Zap,
@@ -49,6 +50,7 @@ function MiniSparkline({ color }: { color: string }) {
 }
 
 export default function AdminDashboard() {
+  const { data: analytics } = trpc.admin.analytics.useQuery(undefined, { staleTime: 60_000 });
   const { data: stats } = trpc.admin.stats.useQuery(undefined, {
     retry: false, staleTime: 30_000, refetchOnWindowFocus: false,
   });
@@ -172,6 +174,71 @@ export default function AdminDashboard() {
             </motion.div>
           </Link>
         ))}
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="mb-8">
+        <h3 className="font-display text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Activity className="h-5 w-5 text-pink-500" /> Analytics
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Revenue by Event */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4 mb-6">
+            <p className="text-sm font-bold text-gray-700 mb-3">Revenue by Event</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={analytics?.revenueByEvent ?? []}>
+                <XAxis dataKey="eventName" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip formatter={(v: number) => [`$${Number(v).toFixed(2)}`, 'Revenue']} />
+                <Bar dataKey="revenue" fill="#f000bc" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Ticket Type Breakdown */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4 mb-6">
+            <p className="text-sm font-bold text-gray-700 mb-3">Ticket Type Breakdown</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={analytics?.ticketTypeBreakdown ?? []} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={75} label>
+                  {(analytics?.ticketTypeBreakdown ?? []).map((_: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={['#f000bc', '#8b5cf6', '#06b6d4', '#10b981'][index % 4]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Member Growth */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4 mb-6">
+            <p className="text-sm font-bold text-gray-700 mb-3">Member Growth (Last 6 Months)</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={analytics?.memberGrowth ?? []}>
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Check-in Rates */}
+          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4 mb-6">
+            <p className="text-sm font-bold text-gray-700 mb-3">Check-in Rates by Event</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={analytics?.checkinRates ?? []}>
+                <XAxis dataKey="eventName" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="total" fill="#06b6d4" radius={[4, 4, 0, 0]} name="Total" />
+                <Bar dataKey="checkedIn" fill="#10b981" radius={[4, 4, 0, 0]} name="Checked In" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       {/* Content Grid */}

@@ -1,7 +1,7 @@
-import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { eq, desc, and, sql, asc, inArray, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
-  InsertUser, users, profiles, events, reservations,
+  InsertUser, users, profiles, events, reservations, tickets,
   wallPosts, wallPostLikes, wallPostComments, conversations,
   conversationParticipants, messages, notifications, announcements,
   groups, appSettings, memberCredits, referralCodes, eventAddons,
@@ -1338,5 +1338,103 @@ export async function searchProfiles(query: string) {
 export async function createShiftAssignment(data: { shiftId: number; userId: number; status: string }) {
   const db = await getDb(); if (!db) return;
   const r = await db.insert(shiftAssignments).values(data as any);
+  return r[0].insertId;
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────────────────────────
+
+export async function getRevenueByEvent() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    eventName: events.title,
+    revenue: sql<number>`SUM(${reservations.totalAmount})`,
+    ticketCount: sql<number>`COUNT(*)`,
+  }).from(reservations)
+    .innerJoin(events, eq(reservations.eventId, events.id))
+    .where(inArray(reservations.paymentStatus, ['paid']))
+    .groupBy(events.id, events.title);
+  return rows;
+}
+
+export async function getTicketTypeBreakdown() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    type: reservations.ticketType,
+    count: sql<number>`COUNT(*)`,
+    revenue: sql<number>`SUM(${reservations.totalAmount})`,
+  }).from(reservations)
+    .where(inArray(reservations.paymentStatus, ['paid']))
+    .groupBy(reservations.ticketType);
+  return rows;
+}
+
+export async function getMemberGrowthByMonth() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    month: sql<string>`DATE_FORMAT(${profiles.createdAt}, '%Y-%m')`,
+    count: sql<number>`COUNT(*)`,
+  }).from(profiles)
+    .where(and(
+      eq(profiles.applicationStatus, 'approved'),
+      gte(profiles.createdAt, sql`DATE_SUB(NOW(), INTERVAL 6 MONTH)`)
+    ))
+    .groupBy(sql`DATE_FORMAT(${profiles.createdAt}, '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(${profiles.createdAt}, '%Y-%m')`);
+  return rows;
+}
+
+export async function getCheckinRates() {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    eventName: events.title,
+    total: sql<number>`COUNT(*)`,
+    checkedIn: sql<number>`SUM(CASE WHEN ${reservations.status} = 'checked_in' THEN 1 ELSE 0 END)`,
+  }).from(reservations)
+    .innerJoin(events, eq(reservations.eventId, events.id))
+    .where(inArray(reservations.paymentStatus, ['paid']))
+    .groupBy(events.id, events.title);
+  return rows;
+}
+
+// ─── USER TICKETS ────────────────────────────────────────────────────────────
+
+export async function getUserReservations(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db.select({
+    id: reservations.id,
+    eventId: reservations.eventId,
+    ticketType: reservations.ticketType,
+    paymentStatus: reservations.paymentStatus,
+    checkinStatus: reservations.status,
+    createdAt: reservations.createdAt,
+    eventTitle: events.title,
+    eventDate: events.startDate,
+    eventVenue: events.venue,
+    eventImageUrl: events.coverImageUrl,
+  })
+  .from(reservations)
+  .innerJoin(events, eq(reservations.eventId, events.id))
+  .where(and(eq(reservations.userId, userId), inArray(reservations.paymentStatus, ['paid', 'partial'])));
+
+  // Attach QR codes from tickets table
+  const result = await Promise.all(rows.map(async (r) => {
+    const dbConn = await getDb();
+    if (!dbConn) return { ...r, qrCode: null };
+    const ticketRows = await dbConn
+      .select({ qrCode: tickets.qrCode })
+      .from(tickets)
+      .where(eq(tickets.reservationId, r.id))
+      .limit(1);
+    return { ...r, qrCode: ticketRows[0]?.qrCode ?? null };
+  }));
+  return result;
+}
+
+export async function createTicketForReservation(reservationId: number, userId: number, qrCode: string) {
+  const db = await getDb(); if (!db) return;
+  // Upsert: only create if not already exists
+  const existing = await db.select().from(tickets).where(eq(tickets.reservationId, reservationId)).limit(1);
+  if (existing.length > 0) return existing[0].id;
+  const r = await db.insert(tickets).values({ reservationId, userId, qrCode });
   return r[0].insertId;
 }
