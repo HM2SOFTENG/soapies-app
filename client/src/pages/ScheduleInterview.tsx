@@ -2,8 +2,9 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import {
-  Loader2, Calendar, Clock, CheckCircle2, ArrowLeft, PhoneCall,
+  Loader2, Calendar, Clock, CheckCircle2, PhoneCall,
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -125,15 +126,7 @@ export default function ScheduleInterview() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
           />
-          <motion.button
-            onClick={() => navigate("/pending")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 font-medium text-sm transition-all ml-auto"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back
-          </motion.button>
+          <BackButton variant="glass" fallback="/pending" className="ml-auto" />
         </div>
       </header>
 

@@ -1,7 +1,8 @@
 import PageWrapper from "@/components/PageWrapper";
+import BackButton from "@/components/BackButton";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Loader2, Heart, Users, Edit3 } from "lucide-react";
+import { MapPin, Loader2, Heart, Users, Edit3 } from "lucide-react";
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
@@ -228,12 +229,7 @@ export default function MemberProfile({ userId: propUserId, isOwnProfile = false
           style={{ background: coverGradient }}
         >
           {/* Back button */}
-          <button
-            onClick={() => navigate(-1 as any)}
-            className="absolute top-4 left-4 p-2 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <BackButton variant="icon" fallback="/members" className="absolute top-4 left-4" />
 
           {/* Avatar overlapping */}
           <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">

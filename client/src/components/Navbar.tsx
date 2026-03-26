@@ -6,7 +6,7 @@ import {
   Menu, X, User, LogOut, LayoutDashboard, Shield, Bell,
   Calendar, MessageCircle, Users, Sparkles, ChevronRight,
   Check, CheckCheck, Clock, PartyPopper, UserCheck, AlertCircle,
-  Moon, Sun,
+  Moon, Sun, Settings,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
@@ -547,6 +547,19 @@ export default function Navbar() {
                                 <User className="h-4 w-4" />
                               </div>
                               <span className="font-semibold text-sm text-gray-700">Profile</span>
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-gray-300" />
+                          </div>
+                        </Link>
+                      </motion.div>
+                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.27 }}>
+                        <Link href="/settings">
+                          <div className="flex items-center justify-between p-3.5 rounded-xl hover:bg-gray-50 transition-all">
+                            <span className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center">
+                                <Settings className="h-4 w-4" />
+                              </div>
+                              <span className="font-semibold text-sm text-gray-700">Settings</span>
                             </span>
                             <ChevronRight className="h-4 w-4 text-gray-300" />
                           </div>

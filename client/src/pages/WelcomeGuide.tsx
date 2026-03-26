@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
+import BackButton from "@/components/BackButton"
 import {
   ChevronLeft,
   ChevronRight,
@@ -1454,6 +1455,7 @@ export function WelcomeFlyersClient() {
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
+              <BackButton variant="glass" fallback="/dashboard" />
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png"
                 alt="Soapies"
