@@ -1257,7 +1257,7 @@ function EventDetailsCard({ event }: { event: any }) {
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 function downloadIcs(event: any) {
-  const start = new Date(event.eventDate);
+  const start = new Date(event.startDate);
   createEvent(
     {
       title: event.title,
@@ -1400,7 +1400,7 @@ export default function EventDetail() {
                   📅 Add to iCal
                 </button>
                 <a
-                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${new Date(event.eventDate).toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${new Date(new Date(event.eventDate).getTime() + 4 * 3600000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(event.venue || '')}`}
+                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${new Date(event.startDate).toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${new Date(new Date(event.startDate).getTime() + 4 * 3600000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(event.venue || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-pink-100/50 text-gray-700 hover:text-pink-600 text-sm px-4 py-2.5 rounded-xl transition w-full justify-center font-medium"

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 export default function AcceptInvite() {
   const { token } = useParams<{ token: string }>();
   const [, setLocation] = useLocation();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const { data: invitation, isLoading, error } = trpc.partners.getInvitation.useQuery(
     { token: token ?? '' },

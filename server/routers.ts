@@ -902,6 +902,12 @@ export const appRouter = router({
 
   // ─── PARTNER / RELATIONSHIP GROUPS ────────────────────────────────────────
   partners: router({
+    getInvitation: publicProcedure.input(z.object({ token: z.string() })).query(async ({ input }) => {
+      const inv = await db.getPartnerInvitationByToken(input.token);
+      if (!inv) throw new TRPCError({ code: 'NOT_FOUND', message: 'Invalid or expired invitation' });
+      const inviter = await db.getUserById(inv.inviterId);
+      return { ...inv, inviterName: inviter?.name ?? 'Someone' };
+    }),
     myGroups: protectedProcedure.query(async ({ ctx }) => {
       const profile = await db.getProfileByUserId(ctx.user.id);
       if (!profile) return [];
@@ -1486,7 +1492,7 @@ export const appRouter = router({
       await db.createAuditLog({ adminId: ctx.user.id, action: "reservation_confirmed", targetType: "reservation", targetId: input.id });
       // Generate QR ticket for confirmed reservation
       try {
-        const { generateTicketQR } = await import("./services/tickets.js");
+        const { generateTicketQR } = await import("./services/tickets");
         const dbConn = await db.getDb();
         if (dbConn) {
           const { reservations: resTable } = await import("../drizzle/schema");
