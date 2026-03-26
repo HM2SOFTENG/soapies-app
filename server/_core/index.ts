@@ -33,6 +33,66 @@ async function startServer() {
   const server = createServer(app);
   // Trust reverse proxy (DigitalOcean App Platform) for correct protocol/IP detection
   app.set("trust proxy", 1);
+
+  // Stripe webhook — must use raw body, registered BEFORE express.json()
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      const { getStripe } = await import("../services/stripe");
+      const { ENV: envCfg } = await import("./env");
+      const stripe = getStripe();
+      if (!stripe) return res.status(400).send("Stripe not configured");
+
+      const sig = req.headers["stripe-signature"] as string;
+      let event: any;
+      try {
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          sig,
+          envCfg.stripeWebhookSecret
+        );
+      } catch (err: any) {
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        const reservationId = parseInt(session.metadata.reservationId);
+        const userId = parseInt(session.metadata.userId);
+
+        const db = await import("../db");
+
+        // Mark reservation paid
+        await db.updateReservation(reservationId, {
+          paymentStatus: "paid",
+          status: "confirmed",
+          stripeSessionId: session.id,
+          stripePaymentIntentId: session.payment_intent,
+        });
+
+        // Generate QR ticket
+        try {
+          const { generateTicketQR } = await import("../services/tickets");
+          const qrCode = await generateTicketQR(reservationId);
+          await db.createTicketForReservation(reservationId, userId, qrCode);
+        } catch {}
+
+        // Log audit
+        try {
+          await db.createAuditLog({
+            adminId: userId,
+            action: "stripe_payment_confirmed",
+            targetType: "reservation",
+            targetId: reservationId,
+          });
+        } catch {}
+      }
+
+      res.json({ received: true });
+    }
+  );
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

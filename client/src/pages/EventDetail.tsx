@@ -258,7 +258,7 @@ function ConfettiEffect() {
 
 // ─── RESERVATION FLOW ───────────────────────────────────────────────────────
 type ReservationStep = "ticket" | "orientation" | "partner" | "testresult" | "payment" | "confirm";
-type PaymentMethod = "venmo" | "credits" | "volunteer";
+type PaymentMethod = "stripe" | "venmo" | "credits" | "volunteer";
 
 interface ReservationFlowProps {
   event: any;
@@ -737,7 +737,38 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
           <div className="space-y-4">
             <h3 className="font-bold text-gray-700 mb-3">Choose Payment Method</h3>
 
-            {/* Venmo */}
+            {/* Stripe — Card Payment */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleSelectPayment("stripe")}
+              className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
+                selectedPayment === "stripe"
+                  ? "border-pink-400 bg-pink-50 shadow-md shadow-pink-100"
+                  : "border-gray-100 bg-white hover:border-pink-200"
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                  <CreditCard className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-gray-800">💳 Pay by Card</p>
+                    {selectedPayment === "stripe" && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </motion.div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-0.5">Secure checkout via Stripe — Visa, Mastercard, Amex</p>
+                  <p className="text-xs text-pink-600 mt-1 font-medium">✓ Instant confirmation + QR ticket</p>
+                </div>
+              </div>
+            </motion.button>
+
+                        {/* Venmo */}
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
@@ -809,6 +840,15 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                 </div>
               </div>
             </motion.button>
+
+            {/* Submit button for Stripe */}
+            {selectedPayment === "stripe" && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white">
+                <p className="text-sm font-semibold mb-1">💳 Secure Card Payment</p>
+                <p className="text-xs opacity-80">You'll be redirected to Stripe Checkout to complete payment. Your ticket QR will be generated automatically.</p>
+              </motion.div>
+            )}
 
             {/* Submit button for Venmo */}
             {selectedPayment === "venmo" && (
@@ -972,6 +1012,7 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
   const utils = trpc.useUtils();
   const [reserved, setReserved] = useState(false);
   const [reservationData, setReservationData] = useState<any>(null);
+  const pendingPaymentMethod = useRef<string | null>(null);
   const [atCapacity, setAtCapacity] = useState(false);
   const [joinedWaitlist, setJoinedWaitlist] = useState(false);
   const { data: settings } = trpc.settings.get.useQuery();
@@ -979,8 +1020,23 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
 
+  const createCheckoutSession = trpc.reservations.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: (e: any) => toast.error(e.message || "Payment redirect failed"),
+  });
+
   const createReservation = trpc.reservations.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      // If Stripe payment, redirect to checkout
+      const resId = typeof data === "number" ? data : data?.id ?? data?.reservationId;
+      if (pendingPaymentMethod.current === "stripe" && resId) {
+        pendingPaymentMethod.current = null;
+        createCheckoutSession.mutate({ reservationId: resId });
+        return;
+      }
+      pendingPaymentMethod.current = null;
       setReserved(true);
       utils.events.byId.invalidate({ id: event.id });
     },
@@ -1010,6 +1066,7 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
     let paymentStatus: "pending" | "paid" = "pending";
     if (data.paymentMethod === "credits") paymentStatus = "paid";
 
+    pendingPaymentMethod.current = data.paymentMethod;
     setReservationData(data);
     createReservation.mutate({
       eventId: event.id,
@@ -1401,6 +1458,18 @@ export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+
+  // Handle Stripe redirect back
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      toast.success("Payment confirmed! 🎉 Your ticket is ready.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("payment") === "cancelled") {
+      toast.error("Payment was cancelled.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
   const { data: event, isLoading, error } = trpc.events.byId.useQuery(
     { id: parseInt(id || "0") },
     { retry: false }
