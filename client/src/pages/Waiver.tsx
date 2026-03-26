@@ -29,8 +29,13 @@ By signing below, I agree to the following terms:
 export default function Waiver() {
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
   const profileQuery = trpc.profile.me.useQuery(undefined, { enabled: isAuthenticated });
-  const signWaiverMutation = trpc.profile.signWaiver.useMutation();
+  const signWaiverMutation = trpc.profile.signWaiver.useMutation({
+    onSuccess: () => {
+      utils.profile.me.invalidate();
+    },
+  });
 
   const [signature, setSignature] = useState("");
   const [agreed, setAgreed] = useState(false);
