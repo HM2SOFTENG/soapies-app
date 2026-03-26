@@ -43,6 +43,7 @@ import Privacy from "./pages/Privacy";
 import AcceptInvite from "./pages/AcceptInvite";
 import Members from "./pages/Members";
 import CommunityPage from "./pages/CommunityPage";
+import UserSettings from "./pages/UserSettings";
 import { AnimatePresence } from "framer-motion";
 import BottomTabNav from "./components/BottomTabNav";
 import { FloatingBubbles } from "./components/FloatingElements";
@@ -65,6 +66,7 @@ const GuardedDashboard = withProfileGuard(Dashboard);
 const GuardedProfile = withProfileGuard(Profile);
 const GuardedMessages = withProfileGuard(Messages);
 const GuardedTickets = withProfileGuard(Tickets);
+const GuardedSettings = withProfileGuard(UserSettings);
 
 function Router() {
   return (
@@ -98,6 +100,7 @@ function Router() {
         <Route path="/messages" component={GuardedMessages} />
         <Route path="/tickets" component={GuardedTickets} />
         <Route path="/members" component={Members} />
+        <Route path="/settings" component={GuardedSettings} />
 
         {/* Community landing pages */}
         <Route path="/c/soapies">{() => <CommunityPage communityId="soapies" />}</Route>

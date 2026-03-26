@@ -6,19 +6,233 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle, Send, Loader2, ArrowLeft, Plus, Shield,
   Sparkles, Search, Phone, Video, MoreVertical, Smile, Image as ImageIcon,
-  Check, CheckCheck, Circle, Users, Pin, Lock
+  Check, CheckCheck, Circle, Users, Pin, Lock, X, UserPlus
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { getLoginUrl } from "@/const";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useLocation } from "wouter";
+
+// ─── NEW CHAT MODAL ────────────────────────────────────────────────────────
+function NewChatModal({ onClose, onConversationCreated }: {
+  onClose: () => void;
+  onConversationCreated: (id: number) => void;
+}) {
+  const [memberSearch, setMemberSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"dm" | "group">("dm");
+  const [groupName, setGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<any[]>([]);
+
+  const { data: members, isLoading: membersLoading } = trpc.members.browse.useQuery(
+    { page: 0, search: memberSearch },
+    { staleTime: 30_000 }
+  );
+
+  const createConversation = trpc.messages.createConversation.useMutation({
+    onSuccess: (convId: any) => {
+      if (convId) {
+        onConversationCreated(Number(convId));
+        onClose();
+      }
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const handleSelectMember = (member: any) => {
+    if (activeTab === "dm") {
+      // For DM: immediately create/open conversation with this person
+      createConversation.mutate({
+        type: "dm",
+        participantIds: [member.userId],
+      });
+    } else {
+      // For group: toggle selection
+      setSelectedMembers(prev =>
+        prev.find(m => m.userId === member.userId)
+          ? prev.filter(m => m.userId !== member.userId)
+          : [...prev, member]
+      );
+    }
+  };
+
+  const handleCreateGroup = () => {
+    if (selectedMembers.length === 0) {
+      toast.error("Select at least one member");
+      return;
+    }
+    createConversation.mutate({
+      type: "group",
+      name: groupName || `Group Chat`,
+      participantIds: selectedMembers.map(m => m.userId),
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-pink-50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-pink-500" />
+            <h3 className="font-display text-lg font-bold text-gray-800">New Conversation</h3>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-pink-50 text-gray-400">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-pink-50">
+          {(["dm", "group"] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => { setActiveTab(tab); setSelectedMembers([]); }}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                activeTab === tab
+                  ? "text-pink-600 border-b-2 border-pink-500"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {tab === "dm" ? "Direct Message" : "Group Chat"}
+            </button>
+          ))}
+        </div>
+
+        {/* Group name input */}
+        {activeTab === "group" && (
+          <div className="px-4 pt-3">
+            <input
+              value={groupName}
+              onChange={e => setGroupName(e.target.value)}
+              placeholder="Group name (optional)"
+              className="w-full px-4 py-2.5 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-gray-300"
+            />
+          </div>
+        )}
+
+        {/* Search */}
+        <div className="px-4 pt-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+            <input
+              value={memberSearch}
+              onChange={e => setMemberSearch(e.target.value)}
+              placeholder="Search members..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-pink-100 bg-pink-50/30 text-sm outline-none focus:border-pink-300 placeholder:text-gray-300"
+            />
+          </div>
+        </div>
+
+        {/* Selected members chips (group mode) */}
+        {activeTab === "group" && selectedMembers.length > 0 && (
+          <div className="px-4 pt-2 flex flex-wrap gap-2">
+            {selectedMembers.map(m => (
+              <span key={m.userId} className="inline-flex items-center gap-1 bg-pink-100 text-pink-700 rounded-full px-3 py-1 text-xs font-semibold">
+                {m.displayName || m.name || "Member"}
+                <button onClick={() => setSelectedMembers(prev => prev.filter(x => x.userId !== m.userId))}>
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Member list */}
+        <div className="px-4 py-3 overflow-y-auto max-h-64">
+          {membersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-pink-400" />
+            </div>
+          ) : !members || members.length === 0 ? (
+            <p className="text-center text-sm text-gray-400 py-8">No members found</p>
+          ) : (
+            <div className="space-y-1">
+              {members.map((member: any) => {
+                const isSelected = selectedMembers.some(m => m.userId === member.userId);
+                return (
+                  <motion.button
+                    key={member.userId}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelectMember(member)}
+                    disabled={createConversation.isPending}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                      isSelected ? "bg-pink-50 border border-pink-200" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center flex-shrink-0 shadow-md">
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <span className="text-white text-sm font-bold">
+                          {(member.displayName || member.name || "?").charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">
+                        {member.displayName || member.name || "Member"}
+                      </p>
+                      {member.location && (
+                        <p className="text-xs text-gray-400 truncate">{member.location}</p>
+                      )}
+                    </div>
+                    {createConversation.isPending && activeTab === "dm" && (
+                      <Loader2 className="h-4 w-4 animate-spin text-pink-400" />
+                    )}
+                    {activeTab === "group" && isSelected && (
+                      <Check className="h-4 w-4 text-pink-500" />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Group create button */}
+        {activeTab === "group" && (
+          <div className="px-4 pb-4">
+            <Button
+              onClick={handleCreateGroup}
+              disabled={createConversation.isPending || selectedMembers.length === 0}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl shadow-lg shadow-pink-200/30"
+            >
+              {createConversation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Users className="h-4 w-4 mr-2" />
+                  Create Group ({selectedMembers.length} member{selectedMembers.length !== 1 ? "s" : ""})
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
 
 // ─── CONVERSATION LIST ─────────────────────────────────────────────────────
 function ConversationList({ conversations, isLoading, onSelect }: {
   conversations: any[] | undefined; isLoading: boolean; onSelect: (id: number) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [showNewChat, setShowNewChat] = useState(false);
 
   const filtered = conversations?.reduce((acc: any, c: any) => {
     if (search && !(c.name || `Chat #${c.id}`).toLowerCase().includes(search.toLowerCase())) {
@@ -42,7 +256,7 @@ function ConversationList({ conversations, isLoading, onSelect }: {
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             <Button
               size="sm"
-              onClick={() => toast("Feature coming soon!", { icon: "🚀" })}
+              onClick={() => setShowNewChat(true)}
               className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-1.5 shadow-lg shadow-pink-200/30"
             >
               <Plus className="h-4 w-4" /> New Chat
@@ -154,6 +368,18 @@ function ConversationList({ conversations, isLoading, onSelect }: {
           </div>
         )}
       </div>
+      {/* New Chat Modal */}
+      <AnimatePresence>
+        {showNewChat && (
+          <NewChatModal
+            onClose={() => setShowNewChat(false)}
+            onConversationCreated={(id) => {
+              setShowNewChat(false);
+              onSelect(id);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -319,6 +545,8 @@ function ChatView({ conversationId, userId, onBack }: {
               const showTime = i === 0 || (
                 new Date(msg.createdAt).getTime() - new Date(msgs[i - 1].createdAt).getTime() > 300000
               );
+              const showSenderName = !isMine && (i === 0 || msgs[i - 1].senderId !== msg.senderId);
+              const senderInitial = (msg.senderName || "?").charAt(0).toUpperCase();
               return (
                 <div key={msg.id}>
                   {showTime && (
@@ -334,9 +562,19 @@ function ChatView({ conversationId, userId, onBack }: {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ delay: i * 0.02, type: "spring", stiffness: 300 }}
-                    className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                    className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}
                   >
-                    <div className={`max-w-[80%] sm:max-w-[70%] relative group ${isMine ? "order-1" : ""}`}>
+                    {/* Sender avatar (others only) */}
+                    {!isMine && (
+                      <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-pink-300 to-purple-400 flex items-center justify-center shadow-sm mb-1">
+                        <span className="text-white text-[10px] font-bold">{senderInitial}</span>
+                      </div>
+                    )}
+                    <div className={`max-w-[75%] sm:max-w-[65%] relative group ${isMine ? "order-1" : ""}`}>
+                      {/* Sender name label */}
+                      {showSenderName && !isMine && (
+                        <p className="text-[10px] text-gray-400 font-semibold mb-1 ml-1">{msg.senderName}</p>
+                      )}
                       <div className={`px-4 py-3 text-sm leading-relaxed break-words ${
                         isMine
                           ? "bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl rounded-br-md shadow-lg shadow-pink-200/30"
