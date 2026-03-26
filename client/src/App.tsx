@@ -105,7 +105,7 @@ function Router() {
         <Route path="/messages" component={GuardedMessages} />
         <Route path="/tickets" component={GuardedTickets} />
         <Route path="/members" component={Members} />
-        <Route path="/u/:userId" component={MemberProfile} />
+        <Route path="/u/:userId">{(params) => <MemberProfile userId={params?.userId ? parseInt(params.userId) : undefined} />}</Route>
         <Route path="/settings" component={GuardedSettings} />
 
         {/* Community landing pages */}
