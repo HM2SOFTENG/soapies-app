@@ -10,6 +10,7 @@ import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
 import { createCheckoutSession } from "./services/stripe";
 import { notifyMessageCreated, broadcastToUser } from "./_core/websocket";
+import { ENV } from "./_core/env";
 
 export const appRouter = router({
   system: systemRouter,

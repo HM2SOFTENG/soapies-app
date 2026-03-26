@@ -9,12 +9,13 @@ import {
   User, Loader2, Camera, Sparkles, Mail, MapPin, Phone, Copy, Shield,
   Edit3, AlertCircle, FileText, Image as ImageIcon, LogOut, Trash2,
   Check, ChevronRight, Heart, Compass, Smile, Lock, Eye, Key, Plus, X,
-  Download
+  Download, Bell
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
 import { Link } from "wouter";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 const EDITABLE_FIELDS = [
   { key: "bio", label: "About Me", icon: Edit3, placeholder: "Share your vibe...", type: "textarea" },
@@ -420,6 +421,9 @@ export default function Profile() {
                 </div>
               </motion.div>
 
+              {/* Push Notifications */}
+              <PushNotificationToggle />
+
               {/* Password Change */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -559,5 +563,47 @@ export default function Profile() {
         )}
       </AnimatePresence>
     </PageWrapper>
+  );
+}
+
+function PushNotificationToggle() {
+  const { supported, permission, subscribe, isPending } = usePushNotifications();
+
+  if (!supported) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-100/50 p-4 space-y-3"
+    >
+      <label className="flex items-center gap-2 text-sm font-bold text-gray-700">
+        <Bell className="h-4 w-4 text-pink-500" />
+        Push Notifications
+      </label>
+      {permission === 'granted' ? (
+        <p className="text-sm text-green-600 flex items-center gap-2">
+          <Check className="h-4 w-4" /> Push notifications are enabled
+        </p>
+      ) : (
+        <>
+          <p className="text-xs text-gray-500">
+            Enable push notifications to get instant alerts for event updates, reservation confirmations, and more.
+          </p>
+          <Button
+            onClick={() => subscribe().then(() => toast.success('Push notifications enabled!')).catch((e: any) => toast.error(e.message || 'Failed to enable push'))}
+            disabled={isPending || permission === 'denied'}
+            size="sm"
+            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl"
+          >
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Bell className="h-4 w-4 mr-1" />}
+            {permission === 'denied' ? 'Notifications Blocked' : 'Enable Push Notifications'}
+          </Button>
+          {permission === 'denied' && (
+            <p className="text-xs text-red-500">Push notifications are blocked. Please enable them in your browser settings.</p>
+          )}
+        </>
+      )}
+    </motion.div>
   );
 }

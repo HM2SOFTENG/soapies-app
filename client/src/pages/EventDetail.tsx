@@ -1069,6 +1069,14 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
     },
   });
 
+  const joinWaitlistMut = trpc.reservations.joinWaitlist.useMutation({
+    onSuccess: (data) => {
+      setJoinedWaitlist(true);
+      toast.success(`You're on the waitlist! Position: #${(data as any)?.position ?? '?'}`);
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to join waitlist'),
+  });
+
   function handleReserve(data: {
     ticketType: string;
     paymentMethod: string;
@@ -1151,11 +1159,11 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           <>
             <p className="text-yellow-700 text-sm mb-4">Join the waitlist? We'll notify you if a spot opens up.</p>
             <Button
-              onClick={() => toast.info("Waitlist feature coming soon!")}
-              
+              onClick={() => joinWaitlistMut.mutate({ eventId: event.id })}
+              disabled={joinWaitlistMut.isPending}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl gap-2"
             >
-              "Join Waitlist"
+              {joinWaitlistMut.isPending ? 'Joining...' : 'Join Waitlist'}
             </Button>
           </>
         )}
