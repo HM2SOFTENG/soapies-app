@@ -14,22 +14,22 @@ export const THEMES: { id: Theme; label: string; emoji: string; description: str
     id: "dark",
     label: "Dark",
     emoji: "🌙",
-    description: "Dark mode",
-    preview: ["#1a0a20", "#2a1535", "#f000bc"],
+    description: "Warm velvet dark",
+    preview: ["#3a2035", "#4a2840", "#f000bc"],
   },
   {
     id: "soapies",
     label: "Soapies",
     emoji: "🧼",
-    description: "Pink & purple",
-    preview: ["#fce4f6", "#f0d0ff", "#c026d3"],
+    description: "Brand pink & mauve",
+    preview: ["#fce8f7", "#f0d8ff", "#c026d3"],
   },
   {
     id: "midnight",
     label: "Midnight",
     emoji: "✨",
-    description: "Deep violet glow",
-    preview: ["#0d0018", "#1a0035", "#a855f7"],
+    description: "Crushed velvet violet",
+    preview: ["#2a1840", "#351e50", "#e040fb"],
   },
 ];
 

@@ -455,152 +455,176 @@ html {
    Applied via class on <html>: .light (default) | .dark | .soapies | .midnight
    ═══════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════
+   SMOOTH THEME TRANSITIONS — silky crossfades on every color property
+   ═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  transition:
+    background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease,
+    fill 0.4s ease,
+    stroke 0.4s ease;
+}
+/* Don't transition things that would feel sluggish */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, box-shadow, opacity, fill, stroke;
+}
+
 /* ─── DARK THEME ─────────────────────────────────────────────── */
+/* Warm deep plum/mauve — not black, think velvet at 2am            */
 .dark {
-  --background: oklch(0.12 0.02 300);
-  --foreground: oklch(0.92 0.02 340);
-  --card: oklch(0.17 0.025 305);
-  --card-foreground: oklch(0.92 0.02 340);
-  --popover: oklch(0.17 0.025 305);
-  --popover-foreground: oklch(0.92 0.02 340);
-  --primary: oklch(0.72 0.22 340);
+  --background: oklch(0.22 0.04 320);
+  --foreground: oklch(0.93 0.03 340);
+  --card: oklch(0.27 0.05 315);
+  --card-foreground: oklch(0.93 0.03 340);
+  --popover: oklch(0.27 0.05 315);
+  --popover-foreground: oklch(0.93 0.03 340);
+  --primary: oklch(0.74 0.22 340);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.22 0.04 310);
-  --secondary-foreground: oklch(0.85 0.05 340);
-  --muted: oklch(0.20 0.03 305);
-  --muted-foreground: oklch(0.58 0.06 310);
-  --accent: oklch(0.25 0.06 320);
-  --accent-foreground: oklch(0.88 0.05 340);
-  --destructive: oklch(0.55 0.22 27);
+  --secondary: oklch(0.32 0.07 320);
+  --secondary-foreground: oklch(0.88 0.05 340);
+  --muted: oklch(0.30 0.05 318);
+  --muted-foreground: oklch(0.62 0.07 325);
+  --accent: oklch(0.35 0.09 325);
+  --accent-foreground: oklch(0.92 0.05 340);
+  --destructive: oklch(0.58 0.20 15);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.26 0.04 310 / 0.6);
-  --input: oklch(0.24 0.04 310);
+  --border: oklch(0.38 0.07 320 / 0.55);
+  --input: oklch(0.33 0.06 318);
   --ring: oklch(0.68 0.22 340 / 0.5);
-  --sidebar: oklch(0.15 0.025 305);
-  --sidebar-foreground: oklch(0.88 0.02 340);
-  --sidebar-accent: oklch(0.22 0.05 315);
-  --sidebar-accent-foreground: oklch(0.85 0.05 340);
-  --sidebar-border: oklch(0.26 0.04 310 / 0.4);
+  --sidebar: oklch(0.24 0.045 318);
+  --sidebar-foreground: oklch(0.90 0.03 340);
+  --sidebar-accent: oklch(0.32 0.08 322);
+  --sidebar-accent-foreground: oklch(0.88 0.05 340);
+  --sidebar-border: oklch(0.36 0.07 318 / 0.4);
   --sidebar-ring: oklch(0.68 0.22 340);
-  --glow-pink: 0 0 40px oklch(0.68 0.22 340 / 0.5);
-  --glow-purple: 0 0 40px oklch(0.55 0.25 310 / 0.5);
+  --glow-pink: 0 0 50px oklch(0.72 0.22 340 / 0.45);
+  --glow-purple: 0 0 50px oklch(0.58 0.22 310 / 0.4);
+  --shadow-elevated: 0 8px 32px oklch(0.15 0.06 320 / 0.5), 0 2px 8px oklch(0.15 0.06 320 / 0.3);
+  --shadow-card: 0 4px 24px oklch(0.15 0.06 320 / 0.4), 0 1px 4px oklch(0.15 0.06 320 / 0.2);
 }
 
 .dark .glass {
-  background: oklch(0.18 0.03 305 / 0.7);
-  border-color: oklch(1 0 0 / 0.08);
+  background: oklch(0.28 0.05 318 / 0.65);
+  border-color: oklch(0.75 0.12 340 / 0.12);
+  backdrop-filter: blur(24px) saturate(1.6);
 }
 .dark .glass-strong {
-  background: oklch(0.20 0.03 305 / 0.85);
-  border-color: oklch(1 0 0 / 0.1);
+  background: oklch(0.30 0.06 318 / 0.82);
+  border-color: oklch(0.75 0.12 340 / 0.18);
 }
 .dark .glass-pink {
-  background: oklch(0.28 0.08 330 / 0.4);
-  border-color: oklch(0.68 0.22 340 / 0.2);
+  background: oklch(0.35 0.10 330 / 0.45);
+  border-color: oklch(0.70 0.18 340 / 0.25);
 }
 .dark .card-premium {
-  background: oklch(0.18 0.03 305 / 0.9);
-  border-color: oklch(0.68 0.1 330 / 0.2);
+  background: oklch(0.28 0.05 318 / 0.88);
+  border-color: oklch(0.68 0.10 330 / 0.22);
 }
 
 /* ─── SOAPIES BRAND THEME ────────────────────────────────────── */
-/* Deep pink/purple brand immersion — replaces white with tinted pastels */
+/* Warm pink/mauve tinted surfaces — logo-brand immersion, less white */
 .soapies {
-  --background: oklch(0.96 0.025 340);
-  --foreground: oklch(0.18 0.04 300);
-  --card: oklch(0.98 0.018 340);
-  --card-foreground: oklch(0.18 0.04 300);
-  --popover: oklch(0.98 0.018 340);
-  --popover-foreground: oklch(0.18 0.04 300);
-  --primary: oklch(0.60 0.26 340);
+  --background: oklch(0.95 0.028 345);
+  --foreground: oklch(0.20 0.05 305);
+  --card: oklch(0.97 0.020 345);
+  --card-foreground: oklch(0.20 0.05 305);
+  --popover: oklch(0.97 0.020 345);
+  --popover-foreground: oklch(0.20 0.05 305);
+  --primary: oklch(0.62 0.26 340);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.90 0.05 310);
-  --secondary-foreground: oklch(0.28 0.12 305);
-  --muted: oklch(0.93 0.035 340);
-  --muted-foreground: oklch(0.45 0.08 305);
-  --accent: oklch(0.88 0.07 310);
-  --accent-foreground: oklch(0.25 0.14 310);
+  --secondary: oklch(0.89 0.06 315);
+  --secondary-foreground: oklch(0.28 0.12 308);
+  --muted: oklch(0.92 0.038 345);
+  --muted-foreground: oklch(0.46 0.08 308);
+  --accent: oklch(0.87 0.08 315);
+  --accent-foreground: oklch(0.25 0.14 308);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.84 0.06 340 / 0.7);
-  --input: oklch(0.88 0.045 340);
-  --ring: oklch(0.60 0.26 340 / 0.5);
-  --sidebar: oklch(0.94 0.03 340);
-  --sidebar-foreground: oklch(0.22 0.05 300);
-  --sidebar-accent: oklch(0.88 0.07 330);
-  --sidebar-accent-foreground: oklch(0.28 0.12 305);
-  --sidebar-border: oklch(0.84 0.06 340 / 0.5);
-  --sidebar-ring: oklch(0.60 0.26 340);
-  --glow-pink: 0 0 50px oklch(0.68 0.22 340 / 0.45);
-  --glow-purple: 0 0 50px oklch(0.52 0.28 310 / 0.45);
+  --border: oklch(0.83 0.07 340 / 0.65);
+  --input: oklch(0.87 0.048 345);
+  --ring: oklch(0.62 0.26 340 / 0.5);
+  --sidebar: oklch(0.93 0.032 340);
+  --sidebar-foreground: oklch(0.22 0.055 305);
+  --sidebar-accent: oklch(0.87 0.08 330);
+  --sidebar-accent-foreground: oklch(0.28 0.12 308);
+  --sidebar-border: oklch(0.83 0.07 340 / 0.45);
+  --sidebar-ring: oklch(0.62 0.26 340);
+  --glow-pink: 0 0 55px oklch(0.68 0.24 340 / 0.5);
+  --glow-purple: 0 0 55px oklch(0.55 0.26 310 / 0.45);
 }
 
 .soapies .glass {
-  background: oklch(0.92 0.05 340 / 0.55);
-  border-color: oklch(0.80 0.12 340 / 0.35);
+  background: oklch(0.91 0.055 340 / 0.58);
+  border-color: oklch(0.78 0.14 340 / 0.38);
+  backdrop-filter: blur(20px) saturate(1.8);
 }
 .soapies .glass-strong {
-  background: oklch(0.94 0.04 340 / 0.80);
-  border-color: oklch(0.80 0.12 340 / 0.45);
+  background: oklch(0.93 0.045 340 / 0.82);
+  border-color: oklch(0.78 0.14 340 / 0.48);
 }
 .soapies .card-premium {
-  background: oklch(0.97 0.02 340 / 0.9);
-  border-color: oklch(0.80 0.1 340 / 0.4);
+  background: oklch(0.96 0.022 345 / 0.92);
+  border-color: oklch(0.78 0.10 340 / 0.42);
 }
 
 /* ─── MIDNIGHT THEME ─────────────────────────────────────────── */
-/* Deep dark violet with neon pink/purple glow */
+/* Rich deep violet-plum — sultry, soft, like crushed velvet        */
 .midnight {
-  --background: oklch(0.08 0.03 295);
-  --foreground: oklch(0.90 0.04 340);
-  --card: oklch(0.12 0.04 295);
-  --card-foreground: oklch(0.90 0.04 340);
-  --popover: oklch(0.12 0.04 295);
-  --popover-foreground: oklch(0.90 0.04 340);
+  --background: oklch(0.18 0.06 300);
+  --foreground: oklch(0.92 0.04 340);
+  --card: oklch(0.23 0.07 300);
+  --card-foreground: oklch(0.92 0.04 340);
+  --popover: oklch(0.23 0.07 300);
+  --popover-foreground: oklch(0.92 0.04 340);
   --primary: oklch(0.78 0.24 340);
-  --primary-foreground: oklch(0.10 0.03 295);
-  --secondary: oklch(0.18 0.07 295);
-  --secondary-foreground: oklch(0.82 0.06 340);
-  --muted: oklch(0.16 0.05 295);
-  --muted-foreground: oklch(0.55 0.08 315);
-  --accent: oklch(0.22 0.10 310);
-  --accent-foreground: oklch(0.88 0.07 340);
-  --destructive: oklch(0.55 0.22 27);
+  --primary-foreground: oklch(0.12 0.04 300);
+  --secondary: oklch(0.28 0.09 300);
+  --secondary-foreground: oklch(0.85 0.06 340);
+  --muted: oklch(0.26 0.07 300);
+  --muted-foreground: oklch(0.58 0.09 318);
+  --accent: oklch(0.32 0.12 310);
+  --accent-foreground: oklch(0.90 0.07 340);
+  --destructive: oklch(0.58 0.20 15);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.30 0.08 305 / 0.5);
-  --input: oklch(0.18 0.06 295);
-  --ring: oklch(0.75 0.24 340 / 0.6);
-  --sidebar: oklch(0.10 0.04 295);
-  --sidebar-foreground: oklch(0.85 0.04 340);
-  --sidebar-accent: oklch(0.20 0.09 310);
-  --sidebar-accent-foreground: oklch(0.85 0.06 340);
-  --sidebar-border: oklch(0.28 0.08 305 / 0.4);
-  --sidebar-ring: oklch(0.75 0.24 340);
-  --glow-pink: 0 0 60px oklch(0.75 0.24 340 / 0.6);
-  --glow-purple: 0 0 60px oklch(0.60 0.28 305 / 0.6);
-  --glow-mixed: 0 0 80px oklch(0.65 0.26 322 / 0.5);
-  --shadow-elevated: 0 8px 32px oklch(0.60 0.20 340 / 0.25), 0 2px 8px oklch(0 0 0 / 0.4);
-  --shadow-card: 0 4px 24px oklch(0.60 0.18 340 / 0.2), 0 1px 4px oklch(0 0 0 / 0.3);
+  --border: oklch(0.38 0.10 308 / 0.5);
+  --input: oklch(0.28 0.08 300);
+  --ring: oklch(0.76 0.24 340 / 0.6);
+  --sidebar: oklch(0.20 0.065 300);
+  --sidebar-foreground: oklch(0.88 0.04 340);
+  --sidebar-accent: oklch(0.30 0.11 308);
+  --sidebar-accent-foreground: oklch(0.88 0.07 340);
+  --sidebar-border: oklch(0.35 0.10 305 / 0.4);
+  --sidebar-ring: oklch(0.76 0.24 340);
+  --glow-pink: 0 0 60px oklch(0.75 0.24 340 / 0.55);
+  --glow-purple: 0 0 60px oklch(0.62 0.26 308 / 0.5);
+  --glow-mixed: 0 0 80px oklch(0.68 0.25 324 / 0.45);
+  --shadow-elevated: 0 8px 40px oklch(0.12 0.08 300 / 0.6), 0 2px 8px oklch(0.12 0.08 300 / 0.4);
+  --shadow-card: 0 4px 24px oklch(0.12 0.08 300 / 0.5), 0 1px 4px oklch(0.12 0.08 300 / 0.3);
 }
 
 .midnight .glass {
-  background: oklch(0.14 0.05 295 / 0.65);
-  border-color: oklch(0.75 0.20 340 / 0.15);
+  background: oklch(0.24 0.08 300 / 0.65);
+  border-color: oklch(0.75 0.20 340 / 0.18);
+  backdrop-filter: blur(28px) saturate(1.7);
 }
 .midnight .glass-strong {
-  background: oklch(0.16 0.06 295 / 0.85);
-  border-color: oklch(0.75 0.20 340 / 0.22);
+  background: oklch(0.26 0.08 300 / 0.85);
+  border-color: oklch(0.75 0.20 340 / 0.25);
 }
 .midnight .glass-pink {
-  background: oklch(0.22 0.10 320 / 0.45);
-  border-color: oklch(0.68 0.22 340 / 0.3);
+  background: oklch(0.30 0.12 322 / 0.48);
+  border-color: oklch(0.70 0.22 340 / 0.32);
 }
 .midnight .card-premium {
-  background: oklch(0.14 0.05 295 / 0.92);
-  border-color: oklch(0.68 0.15 330 / 0.25);
+  background: oklch(0.24 0.08 300 / 0.92);
+  border-color: oklch(0.68 0.16 330 / 0.28);
 }
 .midnight .text-gradient {
-  background: linear-gradient(135deg, oklch(0.80 0.22 340), oklch(0.68 0.28 305), oklch(0.80 0.22 340));
+  background: linear-gradient(135deg, oklch(0.82 0.22 340), oklch(0.70 0.28 305), oklch(0.82 0.22 340));
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -608,7 +632,22 @@ html {
   animation: gradient 4s ease infinite;
 }
 
-/* PageWrapper background tints per theme */
-.dark .page-bg { background: linear-gradient(to bottom, oklch(0.12 0.02 300), oklch(0.15 0.025 305), oklch(0.12 0.02 300)); }
-.soapies .page-bg { background: linear-gradient(to bottom, oklch(0.94 0.04 340), oklch(0.92 0.05 320), oklch(0.94 0.04 340)); }
-.midnight .page-bg { background: linear-gradient(to bottom, oklch(0.08 0.03 295), oklch(0.10 0.04 305), oklch(0.08 0.03 295)); }
+/* PageWrapper tinted backgrounds — soft gradients, never flat */
+.dark .page-bg {
+  background: linear-gradient(160deg,
+    oklch(0.20 0.04 325) 0%,
+    oklch(0.23 0.05 315) 50%,
+    oklch(0.21 0.04 320) 100%);
+}
+.soapies .page-bg {
+  background: linear-gradient(160deg,
+    oklch(0.94 0.038 348) 0%,
+    oklch(0.92 0.048 325) 50%,
+    oklch(0.94 0.035 345) 100%);
+}
+.midnight .page-bg {
+  background: linear-gradient(160deg,
+    oklch(0.17 0.065 305) 0%,
+    oklch(0.20 0.075 295) 50%,
+    oklch(0.18 0.06 308) 100%);
+}
