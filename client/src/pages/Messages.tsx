@@ -659,7 +659,7 @@ function ChatView({ conversationId, userId, onBack }: {
 }) {
   const { data: msgs, isLoading, refetch } = trpc.messages.messages.useQuery(
     { conversationId },
-    { refetchInterval: 0, staleTime: Infinity }
+    { refetchInterval: 3000, staleTime: 0 }
   );
   const { data: conversation } = trpc.messages.conversations.useQuery(undefined, {
     staleTime: 15_000,
@@ -732,6 +732,8 @@ function ChatView({ conversationId, userId, onBack }: {
 
   // Subscribe to conversation on mount + mark as read
   useEffect(() => {
+    // Register as watcher so server broadcasts new_message events to us
+    wsSend("watch_conversation", { conversationId });
     wsSend("presence_update", { conversationId });
     markRead.mutate({ conversationId });
   }, [conversationId]);
