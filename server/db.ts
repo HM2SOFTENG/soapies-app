@@ -446,7 +446,32 @@ export async function getUserConversations(userId: number) {
 
 export async function getConversationMessages(conversationId: number, limit = 100) {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(asc(messages.createdAt)).limit(limit);
+  const rows = await db
+    .select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      senderId: messages.senderId,
+      content: messages.content,
+      attachmentUrl: messages.attachmentUrl,
+      attachmentType: messages.attachmentType,
+      replyToId: messages.replyToId,
+      isEdited: messages.isEdited,
+      isDeleted: messages.isDeleted,
+      createdAt: messages.createdAt,
+      updatedAt: messages.updatedAt,
+      senderName: profiles.displayName,
+      senderFallbackName: users.name,
+    })
+    .from(messages)
+    .leftJoin(users, eq(messages.senderId, users.id))
+    .leftJoin(profiles, eq(messages.senderId, profiles.userId))
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(asc(messages.createdAt))
+    .limit(limit);
+  return rows.map(r => ({
+    ...r,
+    senderName: r.senderName || r.senderFallbackName || "Unknown",
+  }));
 }
 
 export async function createMessage(data: any) {
