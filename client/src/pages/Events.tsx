@@ -1,5 +1,6 @@
 import PageWrapper from "@/components/PageWrapper";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, MapPin, Users, Search, Loader2, Sparkles, ChevronRight, Filter, X } from "lucide-react";
 import { Link } from "wouter";
@@ -9,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 // ─── EVENT CARD ──────────────────────────────────────────────────────────
-function EventCard({ event }: { event: any }) {
+function EventCard({ event, myReservations }: { event: any; myReservations?: any[] }) {
   const isPastEvent = isPast(new Date(event.startDate));
   const isUpcoming = isFuture(new Date(event.startDate));
+  const isReserved = myReservations?.some((r: any) => r.eventId === event.id && r.status !== 'cancelled') ?? false;
 
   return (
     <Link href={`/events/${event.id}`}>
@@ -47,7 +49,11 @@ function EventCard({ event }: { event: any }) {
           </motion.div>
 
           {/* Status Badge */}
-          {isPastEvent && (
+          {isReserved ? (
+            <div className="absolute top-4 right-4 inline-flex items-center px-3 py-1.5 bg-emerald-500/90 backdrop-blur-md rounded-full border border-emerald-400/30">
+              <span className="text-xs font-bold text-white">✓ You're going!</span>
+            </div>
+          ) : isPastEvent && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: -20 }}
@@ -127,10 +133,16 @@ function EventCard({ event }: { event: any }) {
 
 // ─── MAIN EVENTS PAGE ────────────────────────────────────────────────────────
 export default function Events() {
+  const { isAuthenticated } = useAuth();
   const { data: events, isLoading } = trpc.events.list.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+  });
+  const { data: myReservations } = trpc.reservations.myReservations.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
+    staleTime: 30_000,
   });
 
   const [search, setSearch] = useState("");
@@ -293,7 +305,7 @@ export default function Events() {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: i * 0.05 }}
                 >
-                  <EventCard event={event} />
+                  <EventCard event={event} myReservations={myReservations as any[] | undefined} />
                 </motion.div>
               ))}
             </AnimatePresence>

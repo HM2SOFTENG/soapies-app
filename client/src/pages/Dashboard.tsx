@@ -233,6 +233,100 @@ function ReservationsSection() {
   );
 }
 
+// ─── TICKETS DASHBOARD ─────────────────────────────────────────────────────
+function TicketsDashboard() {
+  const { isAuthenticated } = useAuth();
+  const { data: reservations, isLoading } = trpc.reservations.myReservations.useQuery(undefined, {
+    retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
+  });
+  const [, setLocation] = useLocation();
+
+  const upcoming = useMemo(() => {
+    if (!reservations) return [];
+    return (reservations as any[])
+      .filter((r: any) => r.status !== 'cancelled')
+      .slice(0, 3);
+  }, [reservations]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="glass-strong rounded-2xl border border-pink-100/50 overflow-hidden h-full"
+    >
+      <div className="p-5 border-b border-pink-50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 shadow-md">
+            <Ticket className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-display font-bold text-gray-800">My Tickets</h3>
+            <p className="text-xs text-gray-400">{upcoming.length} active</p>
+          </div>
+        </div>
+        <Link href="/tickets">
+          <motion.span whileHover={{ x: 4 }} className="text-xs font-bold text-pink-500 flex items-center gap-1 cursor-pointer">
+            All Tickets <ArrowUpRight className="h-3.5 w-3.5" />
+          </motion.span>
+        </Link>
+      </div>
+      <div className="p-5">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 text-pink-300 animate-spin" />
+          </div>
+        ) : upcoming.length === 0 ? (
+          <div className="text-center py-8">
+            <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}
+              className="inline-flex w-14 h-14 rounded-2xl bg-purple-50 items-center justify-center mb-3">
+              <Ticket className="h-7 w-7 text-purple-300" />
+            </motion.div>
+            <p className="text-sm font-medium text-gray-500 mb-1">No tickets yet</p>
+            <p className="text-xs text-gray-400 mb-4">Browse events and grab your spot!</p>
+            <Link href="/events">
+              <Button size="sm" className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl text-xs gap-1">
+                <Calendar className="h-3.5 w-3.5" /> Find Events
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {upcoming.map((r: any, i: number) => (
+              <motion.div
+                key={r.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="relative overflow-hidden rounded-xl border border-purple-100 bg-gradient-to-r from-purple-50 to-pink-50 p-3"
+              >
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border border-purple-100 -ml-1.5" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border border-purple-100 -mr-1.5" />
+                <div className="flex items-center justify-between gap-2 px-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800 text-sm truncate">{r.ticketType?.replace('_', ' ') || 'Ticket'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 capitalize">
+                      <span className={r.status === 'confirmed' ? 'text-emerald-600 font-semibold' : r.status === 'checked_in' ? 'text-blue-600 font-semibold' : 'text-amber-600 font-semibold'}>{r.status}</span>
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => r.eventId && setLocation(`/events/${r.eventId}`)}
+                    className="border-purple-200 text-purple-600 hover:bg-purple-50 rounded-lg text-xs flex-shrink-0"
+                  >
+                    View
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── NOTIFICATIONS SECTION ─────────────────────────────────────────────────
 function NotificationsSection() {
   const { isAuthenticated } = useAuth();
@@ -581,7 +675,7 @@ export default function Dashboard() {
             <ReservationsSection />
           </div>
           <div className="lg:col-span-2">
-            <NotificationsSection />
+            <TicketsDashboard />
           </div>
         </div>
 

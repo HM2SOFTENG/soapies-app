@@ -99,7 +99,7 @@ function ReservationsTab({ eventId }: { eventId: number }) {
               transition={{ delay: i * 0.05 }}
               className={`p-5 rounded-2xl border ${statusColors[r.status] || statusColors.pending}`}
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-800">{r.displayName || r.profile?.displayName || r.user?.name || "Unknown"}</p>
                   <p className="text-xs text-gray-500">{r.user?.email}</p>
@@ -309,7 +309,32 @@ function CheckInTab({ eventId }: { eventId: number }) {
   const [search, setSearch] = useState("");
   const [selectedGuest, setSelectedGuest] = useState<any | null>(null);
   const [recentCheckIns, setRecentCheckIns] = useState<any[]>([]);
+  const [qrMode, setQrMode] = useState(false);
+  const [qrInput, setQrInput] = useState("");
   const { data: reservations, refetch } = trpc.reservations.byEvent.useQuery({ eventId });
+
+  const checkInByQR = trpc.reservations.checkInByQR.useMutation({
+    onSuccess: (data) => {
+      toast.success(`✅ ${data.guestName || 'Guest'} checked in via QR!`);
+      setQrInput("");
+      refetch();
+    },
+    onError: (e) => {
+      if (e.message.includes("Already")) {
+        toast.warning("⚠️ " + e.message);
+      } else {
+        toast.error("❌ " + e.message);
+      }
+      setQrInput("");
+    },
+  });
+
+  const handleQRSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (qrInput.trim()) {
+      checkInByQR.mutate({ qrCode: qrInput.trim(), eventId });
+    }
+  };
   const updateStatus = trpc.reservations.updateStatus.useMutation({
     onSuccess: (_, variables) => {
       const res = reservations?.find((r: any) => r.id === variables.id);
@@ -350,11 +375,50 @@ function CheckInTab({ eventId }: { eventId: number }) {
             <span className="text-blue-500 text-sm">/ {allGuests.length}</span>
           </div>
         </div>
-        <motion.button onClick={() => refetch()} whileTap={{ scale: 0.9 }}
-          className="p-2 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200">
-          <RefreshCw className="h-4 w-4" />
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setQrMode(!qrMode)}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${qrMode ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
+          >
+            📷 QR Mode
+          </motion.button>
+          <motion.button onClick={() => refetch()} whileTap={{ scale: 0.9 }}
+            className="p-2 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200">
+            <RefreshCw className="h-4 w-4" />
+          </motion.button>
+        </div>
       </div>
+
+      {/* QR Check-In Form */}
+      {qrMode && (
+        <motion.form
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={handleQRSubmit}
+          className="p-4 rounded-2xl bg-purple-50 border border-purple-200"
+        >
+          <p className="text-xs font-bold text-purple-600 uppercase mb-2">QR Check-In Mode</p>
+          <p className="text-xs text-gray-500 mb-3">Scan a QR code or type/paste it below. Press Enter or tap Check In.</p>
+          <div className="flex gap-2">
+            <Input
+              value={qrInput}
+              onChange={e => setQrInput(e.target.value)}
+              placeholder="Scan or paste QR code..."
+              autoFocus
+              className="flex-1 rounded-xl border-purple-200 text-sm"
+              onKeyDown={e => e.key === 'Enter' && qrInput.trim() && checkInByQR.mutate({ qrCode: qrInput.trim(), eventId })}
+            />
+            <Button
+              type="submit"
+              disabled={!qrInput.trim() || checkInByQR.isPending}
+              className="bg-purple-500 text-white rounded-xl text-xs"
+            >
+              {checkInByQR.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check In'}
+            </Button>
+          </div>
+        </motion.form>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -392,9 +456,9 @@ function CheckInTab({ eventId }: { eventId: number }) {
                     )}
                   </div>
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-800 text-sm">{name}</p>
+                      <p className="font-bold text-gray-800 text-sm truncate">{name}</p>
                       {isCheckedIn && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">✓ IN</span>}
                     </div>
                     <p className="text-xs text-gray-500 capitalize">{(r.ticketType || "—").replace("_", " ")} · {r.paymentStatus}</p>
@@ -452,6 +516,11 @@ function StaffTab({ eventId }: { eventId: number }) {
   const { data: operators } = trpc.operators.list.useQuery({ eventId });
   const { data: shifts } = trpc.shifts.list.useQuery({ eventId });
   const { data: checklist } = trpc.checklist.list.useQuery({ eventId });
+  const { data: reservations } = trpc.reservations.byEvent.useQuery({ eventId });
+  const volunteers = useMemo(() => {
+    if (!reservations) return [];
+    return (reservations as any[]).filter((r: any) => r.ticketType === 'volunteer' && r.status !== 'cancelled');
+  }, [reservations]);
   const removeOperator = trpc.operators.remove.useMutation({
     onSuccess: () => {
       toast.success("Operator removed");
@@ -498,6 +567,28 @@ function StaffTab({ eventId }: { eventId: number }) {
                   <X className="h-3 w-3" />
                 </Button>
               </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Volunteer Ticket Holders */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <h3 className="font-display text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Zap className="h-5 w-5 text-pink-500" /> Volunteer Ticket Holders ({volunteers.length})
+        </h3>
+        {volunteers.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-6">No volunteer tickets purchased yet</p>
+        ) : (
+          <div className="space-y-2">
+            {volunteers.map((v: any) => (
+              <div key={v.id} className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                <div>
+                  <p className="font-semibold text-gray-800">{v.displayName || v.profile?.displayName || v.user?.name || 'Unknown'}</p>
+                  <p className="text-xs text-gray-500">{v.user?.email}</p>
+                </div>
+                <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-200 text-emerald-800 capitalize">{v.status}</span>
+              </div>
             ))}
           </div>
         )}

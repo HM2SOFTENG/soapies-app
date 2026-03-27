@@ -115,7 +115,7 @@ export default function AdminLayout({ children, title }: { children: React.React
           </div>
 
           {/* Nav Links */}
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          <nav className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
             {sidebarLinks.map((link, i) => {
               const isActive = location === link.href;
               return (
@@ -202,9 +202,9 @@ export default function AdminLayout({ children, title }: { children: React.React
               animate={{ x: 0 }}
               exit={{ x: -300 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="lg:hidden fixed inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-xl z-50 shadow-2xl"
+              className="lg:hidden fixed inset-y-0 left-0 w-72 bg-white/95 backdrop-blur-xl z-50 shadow-2xl flex flex-col h-full"
             >
-              <div className="p-5 border-b border-pink-50 flex items-center justify-between">
+              <div className="p-5 border-b border-pink-50 flex items-center justify-between flex-shrink-0">
                 <Link href="/" className="flex items-center gap-3 no-underline" onClick={() => setMobileOpen(false)}>
                   <img src={LOGO_URL} alt="Soapies" className="h-8" />
                   <div>
@@ -216,7 +216,7 @@ export default function AdminLayout({ children, title }: { children: React.React
                   <X className="h-5 w-5 text-gray-400" />
                 </motion.button>
               </div>
-              <nav className="p-3 space-y-1">
+              <nav className="flex-1 overflow-y-auto min-h-0 p-3 space-y-1">
                 {sidebarLinks.map((link, i) => {
                   const isActive = location === link.href;
                   return (
@@ -240,12 +240,19 @@ export default function AdminLayout({ children, title }: { children: React.React
                   );
                 })}
               </nav>
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-pink-50">
+              <div className="mt-auto border-t border-pink-50 p-4 flex-shrink-0">
                 <Link href="/" onClick={() => setMobileOpen(false)}>
                   <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-pink-600 cursor-pointer">
                     <ArrowLeft className="h-4 w-4" /> Back to Site
                   </div>
                 </Link>
+                <motion.button
+                  whileHover={{ x: 4 }}
+                  onClick={() => { logout(); setLocation("/"); setMobileOpen(false); }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-600 w-full rounded-lg hover:bg-red-50/50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" /> Sign Out
+                </motion.button>
               </div>
             </motion.aside>
           </>

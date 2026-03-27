@@ -192,7 +192,7 @@ export default function AdminUsers() {
         {/* USERS TAB */}
         <TabsContent value="users" className="space-y-6">
           {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "Total", value: users?.length || 0, gradient: "from-pink-400 to-rose-500" },
               { label: "Members", value: memberCount, gradient: "from-purple-400 to-indigo-500" },

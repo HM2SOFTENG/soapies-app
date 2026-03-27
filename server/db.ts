@@ -967,6 +967,13 @@ export async function getEventShifts(eventId: number) {
   return db.select().from(eventShifts).where(eq(eventShifts.eventId, eventId)).orderBy(asc(eventShifts.startTime));
 }
 
+export async function getShiftById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(eventShifts).where(eq(eventShifts.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function createEventShift(data: any) {
   const db = await getDb(); if (!db) return;
   const r = await db.insert(eventShifts).values(data);
@@ -1647,6 +1654,18 @@ export async function createTicketForReservation(reservationId: number, userId: 
   if (existing.length > 0) return existing[0].id;
   const r = await db.insert(tickets).values({ reservationId, userId, qrCode });
   return r[0].insertId;
+}
+
+export async function getTicketByQRCode(qrCode: string) {
+  const db = await getDb(); if (!db) return null;
+  const rows = await db.select().from(tickets).where(eq(tickets.qrCode, qrCode)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getReservationById(id: number) {
+  const db = await getDb(); if (!db) return null;
+  const rows = await db.select().from(reservations).where(eq(reservations.id, id)).limit(1);
+  return rows[0] ?? null;
 }
 
 // ─── MEMBER DISCOVERY ────────────────────────────────────────────────────────

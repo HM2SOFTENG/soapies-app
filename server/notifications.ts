@@ -409,6 +409,18 @@ function buildDefaultEmailHtml(title: string, body: string): string {
 
 // ─── APPLICATION-SPECIFIC TEMPLATES ─────────────────────────────────────────
 
+export function buildStaffAssignmentNotification(userName: string, eventTitle: string, shiftName: string): NotificationTemplate {
+  return {
+    type: "event_staff",
+    title: "You've been assigned as event staff! 🎉",
+    body: `Hi ${userName}, you've been assigned to help at "${eventTitle}" as a volunteer/staff member for the "${shiftName}" shift.`,
+    emailSubject: `Staff Assignment — ${eventTitle}`,
+    emailHtml: `<p>Hi ${userName},</p><p>You've been assigned as staff/volunteer for <strong>${eventTitle}</strong>, shift: <strong>${shiftName}</strong>.</p><p>Please arrive on time and check in with the event coordinator. Failure to show up without notice may affect your future event access.</p><p>See you there! 💕</p>`,
+    smsMessage: `Hi ${userName}! You're assigned as staff for "${eventTitle}" (${shiftName} shift). Please arrive on time!`,
+    data: { type: "event_staff" },
+  };
+}
+
 export function buildApprovalNotification(userName: string): NotificationTemplate {
   return {
     type: "application_approved",

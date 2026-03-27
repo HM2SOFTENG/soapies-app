@@ -529,6 +529,21 @@ export const appRouter = router({
       return { success: true };
     }),
 
+    checkInByQR: adminProcedure.input(z.object({
+      qrCode: z.string(),
+      eventId: z.number(),
+    })).mutation(async ({ input }) => {
+      const ticket = await db.getTicketByQRCode(input.qrCode);
+      if (!ticket) throw new TRPCError({ code: 'NOT_FOUND', message: 'QR code not found' });
+      const reservation = await db.getReservationById(ticket.reservationId);
+      if (!reservation) throw new TRPCError({ code: 'NOT_FOUND', message: 'Reservation not found' });
+      if (reservation.eventId !== input.eventId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'QR code is for a different event' });
+      if (reservation.status === 'checked_in') throw new TRPCError({ code: 'CONFLICT', message: 'Already checked in' });
+      if (reservation.status === 'cancelled') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Reservation is cancelled' });
+      await db.updateReservation(reservation.id, { status: 'checked_in' });
+      return { success: true, guestName: (reservation as any).displayName ?? null };
+    }),
+
     createCheckoutSession: protectedProcedure
       .input(z.object({ reservationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -1087,7 +1102,30 @@ export const appRouter = router({
       return db.assignToShift({ shiftId: input.shiftId, userId: ctx.user.id, status: "assigned" });
     }),
     assignUser: adminProcedure.input(z.object({ shiftId: z.number(), userId: z.number() })).mutation(async ({ input }) => {
-      return db.assignToShift({ ...input, status: "assigned" });
+      const result = await db.assignToShift({ ...input, status: "assigned" });
+      try {
+        const shift = await db.getShiftById(input.shiftId);
+        if (shift) {
+          const event = await db.getEventById(shift.eventId);
+          const assignedUser = await db.getUserById(input.userId);
+          const assignedProfile = await db.getProfileByUserId(input.userId);
+          const userName = assignedProfile?.displayName || assignedUser?.name || "Member";
+          if (event) {
+            const template = notif.buildStaffAssignmentNotification(userName, event.title, shift.name);
+            await notif.sendNotification({
+              userId: input.userId,
+              type: template.type,
+              title: template.title,
+              body: template.body,
+              email: assignedUser?.email ?? undefined,
+              data: template.data,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("[Notification] Failed to send staff assignment notification:", err);
+      }
+      return result;
     }),
     updateAssignment: adminProcedure.input(z.object({
       id: z.number(),

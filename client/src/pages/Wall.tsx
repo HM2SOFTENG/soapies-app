@@ -197,7 +197,7 @@ function PostComposer({ user }: { user: any }) {
 }
 
 // ─── POST CARD ─────────────────────────────────────────────────────────────
-function PostCard({ post, isLiked, index, onAuthorClick, currentUserId }: { post: any; isLiked: boolean; index: number; onAuthorClick?: (authorId: number, displayName: string, avatarUrl?: string | null) => void; currentUserId?: number }) {
+function PostCard({ post, isLiked, index, onAuthorClick, currentUserId, myReservations }: { post: any; isLiked: boolean; index: number; onAuthorClick?: (authorId: number, displayName: string, avatarUrl?: string | null) => void; currentUserId?: number; myReservations?: any[] }) {
   const [showComments, setShowComments] = useState(false);
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikes, setLocalLikes] = useState(post.likesCount || 0);
@@ -358,14 +358,22 @@ function PostCard({ post, isLiked, index, onAuthorClick, currentUserId }: { post
         ) : (() => {
           const eventLinkMatch = post.content?.match(/^([\s\S]*?) → (\/events\/(\d+))$/);
           if (eventLinkMatch) {
+            const eventId = parseInt(eventLinkMatch[3]);
+            const isAlreadyReserved = myReservations?.some((r: any) => r.eventId === eventId && r.status !== 'cancelled') ?? false;
             return (
               <>
                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mb-3">{eventLinkMatch[1]}</p>
-                <Link href={eventLinkMatch[2]}>
-                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition cursor-pointer mb-4">
-                    Join the fun 🎟️
+                {isAlreadyReserved ? (
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 mb-4">
+                    ✓ You're going! 🎉
                   </span>
-                </Link>
+                ) : (
+                  <Link href={eventLinkMatch[2]}>
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition cursor-pointer mb-4">
+                      Join the fun 🎟️
+                    </span>
+                  </Link>
+                )}
               </>
             );
           }
@@ -615,6 +623,10 @@ export default function Wall() {
     enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
 
+  const { data: myReservations } = trpc.reservations.myReservations.useQuery(undefined, {
+    enabled: isAuthenticated, retry: false, staleTime: 30_000,
+  });
+
   if (!isApprovedMember) {
     return (
       <PageWrapper withPadding={false}>
@@ -755,6 +767,7 @@ export default function Wall() {
                   index={i}
                   onAuthorClick={handleAuthorClick}
                   currentUserId={user?.id}
+                  myReservations={myReservations as any[] | undefined}
                 />
               ))}
             </AnimatePresence>
