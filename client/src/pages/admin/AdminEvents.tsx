@@ -12,12 +12,108 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) {
+  const [form, setForm] = useState({
+    title: event.title || "",
+    description: event.description || "",
+    venue: event.venue || "",
+    address: event.address || "",
+    startDate: event.startDate ? new Date(event.startDate).toISOString().slice(0, 16) : "",
+    endDate: event.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : "",
+    capacity: String(event.capacity || ""),
+    priceSingleFemale: String(event.priceSingleFemale || ""),
+    priceSingleMale: String(event.priceSingleMale || ""),
+    priceCouple: String(event.priceCouple || ""),
+    status: event.status || "published",
+  });
+
+  const updateEvent = trpc.events.update.useMutation({
+    onSuccess: () => { toast.success("Event updated!"); onClose(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Title</label>
+        <Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} className="rounded-xl border-pink-100" />
+      </div>
+      <div>
+        <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Description</label>
+        <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className="w-full px-4 py-3 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 bg-white/50" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Venue</label>
+          <Input value={form.venue} onChange={e => setForm(p => ({ ...p, venue: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Capacity</label>
+          <Input type="number" value={form.capacity} onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+      </div>
+      <div>
+        <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Address</label>
+        <Input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="rounded-xl border-pink-100" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Start Date</label>
+          <Input type="datetime-local" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">End Date</label>
+          <Input type="datetime-local" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Women $</label>
+          <Input type="number" value={form.priceSingleFemale} onChange={e => setForm(p => ({ ...p, priceSingleFemale: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Couple $</label>
+          <Input type="number" value={form.priceCouple} onChange={e => setForm(p => ({ ...p, priceCouple: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+        <div>
+          <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Men $</label>
+          <Input type="number" value={form.priceSingleMale} onChange={e => setForm(p => ({ ...p, priceSingleMale: e.target.value }))} className="rounded-xl border-pink-100" />
+        </div>
+      </div>
+      <div>
+        <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Status</label>
+        <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 bg-white">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div className="flex gap-3 pt-2">
+        <Button variant="outline" className="flex-1 rounded-xl" onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={() => updateEvent.mutate({
+            id: event.id,
+            ...form,
+            capacity: form.capacity ? parseInt(form.capacity) : undefined,
+          })}
+          disabled={updateEvent.isPending || !form.title}
+          className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2"
+        >
+          {updateEvent.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminEvents() {
   const { data: events, isLoading } = trpc.events.all.useQuery(undefined, {
     retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
   const utils = trpc.useUtils();
   const [showCreate, setShowCreate] = useState(false);
+  const [editEvent, setEditEvent] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -345,7 +441,7 @@ export default function AdminEvents() {
                     </motion.div>
                   </Link>
                   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <Button size="sm" variant="outline" className="rounded-xl border-pink-200 text-pink-600 gap-1 h-9" onClick={() => toast.info("Edit feature coming soon")}>
+                    <Button size="sm" variant="outline" className="rounded-xl border-pink-200 text-pink-600 gap-1 h-9" onClick={() => setEditEvent(event)}>
                       <Edit className="h-3 w-3" /> Edit
                     </Button>
                   </motion.div>
@@ -360,6 +456,32 @@ export default function AdminEvents() {
           ))}
         </div>
       )}
+      {/* Edit Event Modal */}
+      <AnimatePresence>
+        {editEvent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            onClick={() => setEditEvent(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display text-xl font-bold text-gray-800">Edit Event</h3>
+                <button onClick={() => setEditEvent(null)} className="p-2 rounded-xl hover:bg-pink-50 text-gray-400"><X className="h-5 w-5" /></button>
+              </div>
+              <EditEventForm event={editEvent} onClose={() => { setEditEvent(null); utils.events.all.invalidate(); }} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AdminLayout>
   );
 }

@@ -30,6 +30,151 @@ const RESTRICTED_FIELDS = [
 
 type TabId = "info" | "account" | "photos" | "danger";
 
+function PasswordChangeSection() {
+  const [open, setOpen] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+
+  const changePw = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Password updated!");
+      setOpen(false);
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (!open) {
+    return (
+      <Button
+        variant="outline"
+        className="w-full border-pink-200 text-pink-600 hover:bg-pink-50 rounded-lg"
+        onClick={() => setOpen(true)}
+      >
+        Change Password
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <input
+        type="password"
+        value={currentPw}
+        onChange={e => setCurrentPw(e.target.value)}
+        placeholder="Current password"
+        className="w-full px-4 py-2.5 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 bg-white/70"
+      />
+      <input
+        type="password"
+        value={newPw}
+        onChange={e => setNewPw(e.target.value)}
+        placeholder="New password (min 8 chars)"
+        className="w-full px-4 py-2.5 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 bg-white/70"
+      />
+      <input
+        type="password"
+        value={confirmPw}
+        onChange={e => setConfirmPw(e.target.value)}
+        placeholder="Confirm new password"
+        className="w-full px-4 py-2.5 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 bg-white/70"
+      />
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="flex-1 rounded-xl border-gray-200 text-gray-600"
+          onClick={() => { setOpen(false); setCurrentPw(""); setNewPw(""); setConfirmPw(""); }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={() => {
+            if (newPw !== confirmPw) { toast.error("Passwords don't match"); return; }
+            if (newPw.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+            changePw.mutate({ currentPassword: currentPw, newPassword: newPw });
+          }}
+          disabled={changePw.isPending || !currentPw || !newPw || !confirmPw}
+          className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2"
+        >
+          {changePw.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Password"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DeactivateAccountSection() {
+  const [step, setStep] = useState<'idle' | 'confirm' | 'code'>('idle');
+  const [code, setCode] = useState("");
+
+  const requestDeactivation = trpc.auth.requestDeactivation.useMutation({
+    onSuccess: () => { setStep('code'); toast.success("Check your email for a confirmation code"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const confirmDeactivation = trpc.auth.confirmDeactivation.useMutation({
+    onSuccess: () => {
+      toast.success("Account deactivated");
+      window.location.href = "/";
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (step === 'idle') {
+    return (
+      <Button
+        onClick={() => setStep('confirm')}
+        className="w-full bg-red-600 hover:bg-red-700 text-white rounded-xl h-11"
+      >
+        Deactivate Account
+      </Button>
+    );
+  }
+
+  if (step === 'confirm') {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-red-700 font-medium">Are you sure? This will send a confirmation email.</p>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setStep('idle')}>Cancel</Button>
+          <Button
+            onClick={() => requestDeactivation.mutate()}
+            disabled={requestDeactivation.isPending}
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl"
+          >
+            {requestDeactivation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Confirmation"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-red-700">Enter the 6-digit code sent to your email:</p>
+      <input
+        type="text"
+        value={code}
+        onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        placeholder="000000"
+        maxLength={6}
+        className="w-full px-4 py-2.5 rounded-xl border border-red-200 text-sm outline-none focus:border-red-400 bg-white text-center font-mono text-lg tracking-widest"
+      />
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setStep('idle')}>Cancel</Button>
+        <Button
+          onClick={() => confirmDeactivation.mutate({ code })}
+          disabled={code.length !== 6 || confirmDeactivation.isPending}
+          className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl"
+        >
+          {confirmDeactivation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Deactivation"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileEdit() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("info");
@@ -567,13 +712,7 @@ export default function ProfileEdit() {
                   <Key className="h-4 w-4 text-pink-500" />
                   Password
                 </label>
-                <Button
-                  variant="outline"
-                  className="w-full border-pink-200 text-pink-600 hover:bg-pink-50 rounded-lg"
-                  disabled
-                >
-                  Change Password (Coming Soon)
-                </Button>
+                <PasswordChangeSection />
               </motion.div>
             </div>
           </TabsContent>
@@ -598,12 +737,7 @@ export default function ProfileEdit() {
                     Deactivating your account will suspend it temporarily. You can reactivate it later.
                   </p>
                 </div>
-                <Button
-                  className="w-full bg-red-600 hover:bg-red-700 text-white rounded-xl h-11"
-                  disabled
-                >
-                  Deactivate Account (Coming Soon)
-                </Button>
+                <DeactivateAccountSection />
               </motion.div>
 
               {/* Logout */}

@@ -215,6 +215,19 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    changePassword: protectedProcedure.input(z.object({
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(8),
+    })).mutation(async ({ ctx, input }) => {
+      const user = await auth.getUserById(ctx.user.id);
+      if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      if (!user.passwordHash) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Password login not set up for this account' });
+      const valid = await auth.verifyPassword(input.currentPassword, user.passwordHash);
+      if (!valid) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Current password is incorrect' });
+      await auth.updatePassword(ctx.user.id, input.newPassword);
+      return { success: true };
+    }),
+
     requestDeactivation: protectedProcedure.mutation(async ({ ctx }) => {
       const user = await db.getUserById(ctx.user.id);
       if (!user?.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No email address on account' });
