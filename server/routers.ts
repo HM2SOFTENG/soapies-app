@@ -414,7 +414,7 @@ export const appRouter = router({
     }),
     myTickets: protectedProcedure.query(async ({ ctx }) => {
       const tickets = await db.getUserReservations(ctx.user.id);
-      // Auto-generate QR for confirmed tickets missing one
+      // Auto-generate QR for confirmed/paid tickets missing one
       const result = await Promise.all(tickets.map(async (t: any) => {
         if ((t.status === 'confirmed' || t.paymentStatus === 'paid') && !t.qrCode) {
           try {
@@ -422,7 +422,8 @@ export const appRouter = router({
             const qrCode = await generateTicketQR(t.id);
             await db.createTicketForReservation(t.id, ctx.user.id, qrCode);
             return { ...t, qrCode };
-          } catch {
+          } catch (err) {
+            console.error(`[Tickets] Failed to generate QR for reservation ${t.id}:`, err);
             return t;
           }
         }
