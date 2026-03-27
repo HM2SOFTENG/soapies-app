@@ -10,9 +10,10 @@ import {
   RefreshCw, Eye, XCircle, Clock, TrendingUp, FlaskConical, ExternalLink,
   Plus
 } from "lucide-react";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import jsQR from "jsqr";
 
 // ─── TABS ───────────────────────────────────────────────────────────────
 type TabType = "reservations" | "checkin" | "staff" | "finances" | "testResults";
@@ -324,13 +325,14 @@ function CheckInTab({ eventId }: { eventId: number }) {
   const [qrMode, setQrMode] = useState(false);
   const [qrInput, setQrInput] = useState("");
 
-  // Camera state
+  // Camera state — jsQR works on ALL browsers including iOS Safari
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const detectorRef = useRef<any>(null);
   const scanningRef = useRef(false);
+  const animFrameRef = useRef<number>(0);
 
   const { data: reservations, refetch } = trpc.reservations.byEvent.useQuery({ eventId });
 
@@ -350,57 +352,65 @@ function CheckInTab({ eventId }: { eventId: number }) {
     },
   });
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     scanningRef.current = false;
+    cancelAnimationFrame(animFrameRef.current);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
     setCameraActive(false);
-  };
+  }, []);
 
-  const scanLoop = async () => {
-    if (!scanningRef.current || !videoRef.current || !detectorRef.current) return;
-    try {
-      const barcodes = await detectorRef.current.detect(videoRef.current);
-      if (barcodes.length > 0) {
-        const code = barcodes[0].rawValue;
-        stopCamera();
-        checkInByQR.mutate({ qrCode: code, eventId });
-        return;
-      }
-    } catch {}
-    if (scanningRef.current) requestAnimationFrame(scanLoop);
-  };
+  const scanFrame = useCallback(() => {
+    if (!scanningRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      animFrameRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { animFrameRef.current = requestAnimationFrame(scanFrame); return; }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+    if (code?.data) {
+      stopCamera();
+      checkInByQR.mutate({ qrCode: code.data, eventId });
+      return;
+    }
+    animFrameRef.current = requestAnimationFrame(scanFrame);
+  }, [stopCamera, checkInByQR, eventId]);
 
   const startCamera = async () => {
     setCameraError(null);
     try {
-      if (!('BarcodeDetector' in window)) {
-        setCameraError("Camera scanning not supported on this browser. Use the text input below.");
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("Camera not supported on this device/browser.");
         return;
       }
-      // @ts-ignore
-      detectorRef.current = new BarcodeDetector({ formats: ['qr_code'] });
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        await videoRef.current.play();
       }
       setCameraActive(true);
       scanningRef.current = true;
-      scanLoop();
+      animFrameRef.current = requestAnimationFrame(scanFrame);
     } catch {
-      setCameraError("Camera access denied. Use the text input below.");
+      setCameraError("Camera access denied. Please allow camera access and try again.");
     }
   };
 
   useEffect(() => {
     return () => { stopCamera(); };
-  }, []);
+  }, [stopCamera]);
 
   const handleQRSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -439,93 +449,110 @@ function CheckInTab({ eventId }: { eventId: number }) {
 
   return (
     <div className="space-y-5">
-      {/* Live Count */}
-      <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-bold text-blue-600 uppercase">Checked In</p>
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-display text-3xl font-black text-blue-700">{checkedInCount}</span>
-            <span className="text-blue-500 text-sm">/ {allGuests.length}</span>
+      {/* Live Count + QR toggle */}
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs font-bold text-blue-600 uppercase">Checked In</p>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-3xl font-black text-blue-700">{checkedInCount}</span>
+              <span className="text-blue-500 text-sm">/ {allGuests.length}</span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setQrMode(!qrMode)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${qrMode ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
-          >
-            📷 QR Mode
-          </motion.button>
           <motion.button onClick={() => refetch()} whileTap={{ scale: 0.9 }}
-            className="p-2 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200">
+            className="p-2 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 flex-shrink-0">
             <RefreshCw className="h-4 w-4" />
           </motion.button>
         </div>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => { setQrMode(!qrMode); if (cameraActive) stopCamera(); }}
+          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${qrMode ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
+        >
+          📷 {qrMode ? 'Close QR Scanner' : 'Open QR Scanner'}
+        </motion.button>
       </div>
 
-      {/* QR Check-In */}
-      {qrMode && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-2xl bg-purple-50 border border-purple-200 space-y-3"
-        >
-          <p className="text-xs font-bold text-purple-600 uppercase">QR Check-In Mode</p>
+      {/* QR Check-In panel */}
+      <AnimatePresence>
+        {qrMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 space-y-3">
+              <p className="text-xs font-bold text-purple-600 uppercase">QR Check-In Mode</p>
 
-          {/* Camera view */}
-          {cameraActive ? (
-            <div className="relative rounded-xl overflow-hidden bg-black aspect-square max-w-xs mx-auto">
-              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-              {/* Scan target overlay */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-48 h-48 border-2 border-white/60 rounded-xl relative">
-                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-purple-400 rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-purple-400 rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-purple-400 rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-purple-400 rounded-br-lg" />
+              {/* jsQR camera view — works on iOS Safari + all browsers */}
+              {cameraActive ? (
+                <div className="relative rounded-xl overflow-hidden bg-black w-full" style={{ aspectRatio: "1/1" }}>
+                  <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                  <canvas ref={canvasRef} className="hidden" />
+                  {/* Scan corners overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="relative w-48 h-48">
+                      <div className="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-purple-400" />
+                      <div className="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-purple-400" />
+                      <div className="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-purple-400" />
+                      <div className="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-purple-400" />
+                      <div className="absolute inset-x-0 top-1/2 h-0.5 bg-purple-400/60 animate-pulse" />
+                    </div>
+                  </div>
+                  <button
+                    onClick={stopCamera}
+                    className="absolute top-3 right-3 px-3 py-1.5 bg-black/70 rounded-lg text-white text-xs font-bold"
+                  >
+                    ✕ Stop
+                  </button>
+                  <p className="absolute bottom-3 left-0 right-0 text-center text-white/70 text-xs">
+                    Point camera at QR code
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Button
+                    onClick={startCamera}
+                    disabled={checkInByQR.isPending}
+                    className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-xl gap-2"
+                  >
+                    📷 Start Camera
+                  </Button>
+                  {cameraError && (
+                    <p className="text-xs text-red-500 text-center">{cameraError}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Text/paste fallback */}
+              <div>
+                <p className="text-xs text-gray-500 mb-2 font-medium">Or paste QR code value:</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={qrInput}
+                    onChange={e => setQrInput(e.target.value)}
+                    placeholder="Paste code here..."
+                    className="flex-1 rounded-xl border-purple-200 text-sm min-w-0"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && qrInput.trim()) {
+                        checkInByQR.mutate({ qrCode: qrInput.trim(), eventId });
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => qrInput.trim() && checkInByQR.mutate({ qrCode: qrInput.trim(), eventId })}
+                    disabled={!qrInput.trim() || checkInByQR.isPending}
+                    className="bg-purple-500 text-white rounded-xl text-xs flex-shrink-0"
+                  >
+                    {checkInByQR.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Go'}
+                  </Button>
                 </div>
               </div>
-              <button onClick={stopCamera} className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-lg text-white text-xs">✕ Stop</button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <Button
-                onClick={startCamera}
-                disabled={checkInByQR.isPending}
-                className="w-full bg-purple-500 text-white rounded-xl gap-2"
-              >
-                📷 Open Camera Scanner
-              </Button>
-              {cameraError && <p className="text-xs text-red-500">{cameraError}</p>}
-            </div>
-          )}
-
-          {/* Text fallback */}
-          <div>
-            <p className="text-xs text-gray-500 mb-2">Or type/paste QR code:</p>
-            <div className="flex gap-2">
-              <Input
-                value={qrInput}
-                onChange={e => setQrInput(e.target.value)}
-                placeholder="Paste QR code value..."
-                className="flex-1 rounded-xl border-purple-200 text-sm"
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && qrInput.trim()) {
-                    checkInByQR.mutate({ qrCode: qrInput.trim(), eventId });
-                  }
-                }}
-              />
-              <Button
-                onClick={() => qrInput.trim() && checkInByQR.mutate({ qrCode: qrInput.trim(), eventId })}
-                disabled={!qrInput.trim() || checkInByQR.isPending}
-                className="bg-purple-500 text-white rounded-xl text-xs"
-              >
-                {checkInByQR.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Go'}
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Search */}
       <div className="relative">
@@ -553,7 +580,7 @@ function CheckInTab({ eventId }: { eventId: number }) {
                   isCheckedIn ? "bg-emerald-50 border-emerald-200" : "bg-white border-pink-100 hover:border-pink-300"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {/* Avatar */}
                   <div className={`w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden ${isCheckedIn ? "bg-emerald-200" : "bg-gradient-to-br from-pink-300 to-purple-400"}`}>
                     {r.profile?.avatarUrl ? (
@@ -562,17 +589,16 @@ function CheckInTab({ eventId }: { eventId: number }) {
                       <span className="text-sm font-black text-white">{name.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-                  {/* Info */}
-                  <div className="flex-1 min-w-0 overflow-hidden">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-800 text-sm truncate">{name}</p>
-                      {isCheckedIn && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">✓ IN</span>}
+                  {/* Info + Wristband stacked */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-gray-800 text-sm truncate flex-1 min-w-0">{name}</p>
+                      {isCheckedIn && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full flex-shrink-0">✓ IN</span>}
                     </div>
-                    <p className="text-xs text-gray-500">{r.ticketType ? formatTicketType(r.ticketType) : "—"} · {r.paymentStatus}</p>
-                  </div>
-                  {/* Wristband */}
-                  <div className="flex-shrink-0">
-                    <WristbandBadge color={r.wristbandColor} />
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <p className="text-xs text-gray-500">{r.ticketType ? formatTicketType(r.ticketType) : "—"} · {r.paymentStatus}</p>
+                      <WristbandBadge color={r.wristbandColor} />
+                    </div>
                   </div>
                 </div>
               </motion.button>
