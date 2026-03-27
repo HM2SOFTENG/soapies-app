@@ -1667,9 +1667,14 @@ export async function getUserReservations(userId: number) {
 
 export async function createTicketForReservation(reservationId: number, userId: number, qrCode: string) {
   const db = await getDb(); if (!db) return;
-  // Upsert: only create if not already exists
   const existing = await db.select().from(tickets).where(eq(tickets.reservationId, reservationId)).limit(1);
-  if (existing.length > 0) return existing[0].id;
+  if (existing.length > 0) {
+    // If the existing row has no QR code (from a failed previous attempt), update it
+    if (!existing[0].qrCode) {
+      await db.update(tickets).set({ qrCode }).where(eq(tickets.reservationId, reservationId));
+    }
+    return existing[0].id;
+  }
   const r = await db.insert(tickets).values({ reservationId, userId, qrCode });
   return r[0].insertId;
 }

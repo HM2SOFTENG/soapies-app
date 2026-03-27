@@ -226,7 +226,7 @@ export const tickets = mysqlTable("tickets", {
   id: int("id").autoincrement().primaryKey(),
   reservationId: int("reservationId").notNull(),
   userId: int("userId").notNull(),
-  qrCode: varchar("qrCode", { length: 256 }).notNull().unique(),
+  qrCode: text("qrCode"),  // data URL can be ~1-10KB; was varchar(256) which truncated
   isUsed: boolean("isUsed").default(false),
   usedAt: timestamp("usedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
