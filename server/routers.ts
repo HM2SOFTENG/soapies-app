@@ -505,8 +505,8 @@ export const appRouter = router({
             );
             if (!alreadyPosted) {
               await db.createWallPost({
-                authorId: null,
-                authorName: "Soapies Team",
+                authorId: ctx.user.id,
+                authorName: userName,
                 communityId,
                 content: `${userName} just reserved a spot for **${event.title}**! 🎟️ Join them for the fun → /events/${event.id}`,
                 visibility: "members",

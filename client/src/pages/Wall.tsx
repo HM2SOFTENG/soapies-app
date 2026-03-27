@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart, MessageCircle, Share2, Loader2, Sparkles, Image as ImageIcon,
-  MoreHorizontal, Flame, TrendingUp, Users, Pin, X, Lock, Globe, Users2
+  MoreHorizontal, Flame, TrendingUp, Users, Pin, X, Lock, Globe, Users2, ChevronDown
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -204,6 +204,7 @@ function PostCard({ post, isLiked, index, onAuthorClick, currentUserId }: { post
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content || "");
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const utils = trpc.useUtils();
 
   const updatePost = trpc.wall.updatePost.useMutation({
@@ -373,10 +374,28 @@ function PostCard({ post, isLiked, index, onAuthorClick, currentUserId }: { post
 
         {/* Media */}
         {post.mediaUrl && (
-          <motion.div whileHover={{ scale: 1.01 }} className="rounded-xl overflow-hidden mb-4 shadow-md">
+          <motion.div whileHover={{ scale: 1.01 }} className="rounded-xl overflow-hidden mb-4 shadow-md cursor-pointer" onClick={() => setFullscreenImage(post.mediaUrl)}>
             <img src={post.mediaUrl} alt="" className="w-full object-cover max-h-96" />
           </motion.div>
         )}
+
+        {/* Fullscreen Image Overlay */}
+        <AnimatePresence>
+          {fullscreenImage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 cursor-pointer"
+              onClick={() => setFullscreenImage(null)}
+            >
+              <img src={fullscreenImage} alt="fullscreen" className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl" />
+              <button onClick={() => setFullscreenImage(null)} className="absolute top-4 right-4 text-white bg-black/40 rounded-full p-2">
+                <X className="h-6 w-6" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Badges */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -586,8 +605,9 @@ export default function Wall() {
     navigate(`/u/${userId}`);
   }
 
+  const [postLimit, setPostLimit] = useState(20);
   const { data: posts, isLoading } = trpc.wall.posts.useQuery(
-    { communityId: selectedFilter || undefined },
+    { communityId: selectedFilter || undefined, limit: postLimit },
     { enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false }
   );
 
@@ -738,6 +758,17 @@ export default function Wall() {
                 />
               ))}
             </AnimatePresence>
+            {posts && posts.length >= postLimit && (
+              <motion.div className="flex justify-center mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setPostLimit(p => p + 20)}
+                  className="rounded-xl border-pink-200 text-pink-600 hover:bg-pink-50 gap-2"
+                >
+                  <ChevronDown className="h-4 w-4" /> Load More
+                </Button>
+              </motion.div>
+            )}
           </div>
         )}
       </div>

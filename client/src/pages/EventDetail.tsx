@@ -1506,9 +1506,10 @@ function EventDetailsCard({ event }: { event: any }) {
             <div className="w-full h-2 rounded-full bg-gray-200 mt-2">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-600"
-                style={{ width: "60%" }}
+                style={{ width: `${Math.min(100, Math.round(((event.currentAttendees ?? 0) / (event.capacity || 1)) * 100))}%` }}
               />
             </div>
+            <p className="text-xs text-gray-500 mt-1">{event.currentAttendees ?? 0} / {event.capacity} reserved</p>
           </div>
         </div>
 

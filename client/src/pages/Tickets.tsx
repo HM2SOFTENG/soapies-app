@@ -113,9 +113,21 @@ function TicketCard({ ticket, index }: TicketCardProps) {
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/5 bg-white/5">
-            <Loader2 size={14} className="text-white/30 animate-spin" />
-            <span className="text-xs text-white/30">QR code generating…</span>
+          <div className="flex flex-col items-center gap-2 py-4 rounded-xl border border-white/5 bg-white/5">
+            {ticket.status === 'pending' ? (
+              <>
+                <div className="text-2xl">⏳</div>
+                <p className="text-xs text-white/50 text-center">Payment pending verification</p>
+                <p className="text-[10px] text-white/30 text-center">QR code will appear once confirmed</p>
+              </>
+            ) : ticket.status === 'confirmed' ? (
+              <>
+                <div className="text-2xl animate-pulse">🎟️</div>
+                <p className="text-xs text-white/50 text-center">QR generating...</p>
+              </>
+            ) : (
+              <span className="text-xs text-white/30">No QR code available</span>
+            )}
           </div>
         )}
       </div>

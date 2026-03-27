@@ -397,6 +397,13 @@ export default function JoinFlow() {
     }
   }, [resendTimer]);
 
+  // Auto-fill referral code from ?ref= query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setReferralCode(ref);
+  }, []);
+
   // Step 1: Welcome
   const handleBeginJourney = () => {
     setCurrentStep(2);

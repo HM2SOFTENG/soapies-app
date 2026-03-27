@@ -25,6 +25,7 @@ function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) 
     priceSingleMale: String(event.priceSingleMale || ""),
     priceCouple: String(event.priceCouple || ""),
     status: event.status || "published",
+    coverImageUrl: event.coverImageUrl || "",
   });
 
   const updateEvent = trpc.events.update.useMutation({
@@ -41,6 +42,10 @@ function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) 
       <div>
         <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Description</label>
         <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} className="w-full px-4 py-3 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 bg-white/50" />
+      </div>
+      <div>
+        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Cover Image URL</label>
+        <Input value={form.coverImageUrl} onChange={e => setForm(p => ({ ...p, coverImageUrl: e.target.value }))} placeholder="https://... (image URL)" className="rounded-xl border-pink-100" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -96,6 +101,7 @@ function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) 
             id: event.id,
             ...form,
             capacity: form.capacity ? parseInt(form.capacity) : undefined,
+            coverImageUrl: form.coverImageUrl || undefined,
           })}
           disabled={updateEvent.isPending || !form.title}
           className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2"
@@ -128,6 +134,7 @@ export default function AdminEvents() {
   const [form, setForm] = useState({
     title: "", description: "", venue: "", address: "", startDate: "", endDate: "",
     capacity: "", priceSingleFemale: "", priceSingleMale: "", priceCouple: "", eventType: "party",
+    coverImageUrl: "",
   });
 
   const createEvent = trpc.events.create.useMutation({
@@ -135,7 +142,7 @@ export default function AdminEvents() {
       toast.success("Event created!", { icon: "🎉" });
       utils.events.all.invalidate();
       setShowCreate(false);
-      setForm({ title: "", description: "", venue: "", address: "", startDate: "", endDate: "", capacity: "", priceSingleFemale: "", priceSingleMale: "", priceCouple: "", eventType: "party" });
+      setForm({ title: "", description: "", venue: "", address: "", startDate: "", endDate: "", capacity: "", priceSingleFemale: "", priceSingleMale: "", priceCouple: "", eventType: "party", coverImageUrl: "" });
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -214,6 +221,10 @@ export default function AdminEvents() {
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Description</label>
                   <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Event description" rows={3} className="w-full px-4 py-3 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 bg-white/50" />
                 </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Cover Image URL</label>
+                  <Input value={form.coverImageUrl} onChange={e => setForm(p => ({ ...p, coverImageUrl: e.target.value }))} placeholder="https://... (image URL)" className="rounded-xl border-pink-100" />
+                </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Venue</label>
                   <Input value={form.venue} onChange={e => setForm(p => ({ ...p, venue: e.target.value }))} placeholder="Venue name" className="rounded-xl border-pink-100" />
@@ -272,6 +283,7 @@ export default function AdminEvents() {
                       priceSingleMale: form.priceSingleMale || undefined,
                       priceCouple: form.priceCouple || undefined,
                       eventType: form.eventType as any,
+                      coverImageUrl: form.coverImageUrl || undefined,
                     })}
                     disabled={!form.title || createEvent.isPending}
                     className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl px-8 gap-2 shadow-lg shadow-pink-200/30"

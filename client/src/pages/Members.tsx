@@ -436,7 +436,7 @@ export default function Members() {
                   key={member.id}
                   member={member}
                   index={i}
-                  onClick={() => setSelectedMember(member)}
+                  onClick={() => navigate(`/u/${member.id}`)}
                 />
               ))}
             </div>
