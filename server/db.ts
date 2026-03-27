@@ -79,6 +79,12 @@ export async function getApprovedUsers() {
     .then(rows => rows.map(r => ({ ...r.user, profile: r.profile })));
 }
 
+export async function deactivateUser(userId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.update(users).set({ isSuspended: true }).where(eq(users.id, userId));
+  return { success: true };
+}
+
 export async function suspendUser(userId: number) {
   const db = await getDb(); if (!db) return;
   await db.update(users).set({ isSuspended: true }).where(eq(users.id, userId));
@@ -383,6 +389,18 @@ export async function createWallPostComment(data: any) {
   const db = await getDb(); if (!db) return;
   await db.insert(wallPostComments).values(data);
   await db.update(wallPosts).set({ commentsCount: sql`${wallPosts.commentsCount} + 1` }).where(eq(wallPosts.id, data.postId));
+}
+
+export async function updateWallPost(postId: number, userId: number, data: { content: string }) {
+  const db = await getDb(); if (!db) return;
+  await db.update(wallPosts).set({ content: data.content }).where(and(eq(wallPosts.id, postId), eq(wallPosts.authorId, userId)));
+  return { success: true };
+}
+
+export async function deleteWallPost(postId: number, userId: number) {
+  const db = await getDb(); if (!db) return;
+  await db.delete(wallPosts).where(and(eq(wallPosts.id, postId), eq(wallPosts.authorId, userId)));
+  return { success: true };
 }
 
 export async function toggleWallPostLike(postId: number, userId: number) {

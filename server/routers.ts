@@ -214,6 +214,24 @@ export const appRouter = router({
         await auth.updatePassword(user.id, input.newPassword);
         return { success: true };
       }),
+
+    requestDeactivation: protectedProcedure.mutation(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user?.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No email address on account' });
+      const code = auth.generateOtp();
+      await auth.saveOtp({ userId: user.id, target: user.email, code, type: 'password_reset' });
+      await auth.sendEmailOtp(user.email, code);
+      return { success: true };
+    }),
+
+    confirmDeactivation: protectedProcedure.input(z.object({ code: z.string().min(4) })).mutation(async ({ ctx, input }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user?.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No email address on account' });
+      const otp = await auth.verifyOtp({ target: user.email, code: input.code, type: 'password_reset' });
+      if (!otp) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid or expired code' });
+      await db.deactivateUser(ctx.user.id);
+      return { success: true };
+    }),
   }),
 
   // ─── PROFILE ─────────────────────────────────────────────────────────────
@@ -404,6 +422,12 @@ export const appRouter = router({
       if (ctx.user.role !== 'admin' && (!reservingProfile || reservingProfile.applicationStatus !== 'approved')) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be an approved member to reserve tickets.' });
       }
+      // Check for duplicate reservation
+      const existingRes = await db.getReservationsByUser(ctx.user.id);
+      const alreadyReserved = existingRes.some((r: any) => r.eventId === input.eventId && r.status !== 'cancelled');
+      if (alreadyReserved) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'You already have a reservation for this event.' });
+      }
       // Check capacity before creating reservation
       const cap = await db.getEventCapacity(input.eventId);
       if (cap && cap.capacity && cap.capacity > 0 && (cap.currentAttendees ?? 0) >= cap.capacity) {
@@ -471,7 +495,7 @@ export const appRouter = router({
                 authorId: null,
                 authorName: "Soapies Team",
                 communityId,
-                content: `${userName} just reserved a spot for ${event.title}! 🎟️`,
+                content: `${userName} just reserved a spot for **${event.title}**! 🎟️ Join them for the fun → /events/${event.id}`,
                 visibility: "members",
               });
             }
@@ -585,12 +609,36 @@ export const appRouter = router({
     myLikes: protectedProcedure.query(async ({ ctx }) => {
       return db.getUserLikedPosts(ctx.user.id);
     }),
+    updatePost: protectedProcedure.input(z.object({ postId: z.number(), content: z.string() })).mutation(async ({ ctx, input }) => {
+      return db.updateWallPost(input.postId, ctx.user.id, { content: input.content });
+    }),
+    deletePost: protectedProcedure.input(z.object({ postId: z.number() })).mutation(async ({ ctx, input }) => {
+      return db.deleteWallPost(input.postId, ctx.user.id);
+    }),
   }),
 
   // ─── MESSAGING ───────────────────────────────────────────────────────────
   messages: router({
     conversations: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserConversations(ctx.user.id);
+      const convs = await db.getUserConversations(ctx.user.id);
+      const userProfile = await db.getProfileByUserId(ctx.user.id);
+      const userGender = (userProfile as any)?.gender?.toLowerCase() ?? '';
+      const userRole = ctx.user.role;
+      return convs.filter((c: any) => {
+        if (c.type !== 'channel') return true;
+        const name = (c.name || '').toLowerCase();
+        if ((name.includes('mens') || name === "mens chat") && !name.includes('women')) {
+          if (userRole === 'admin') return true;
+          return userGender === 'male' || userGender === 'man';
+        }
+        if (name.includes('women') || name.includes('ladies')) {
+          if (userRole === 'admin') return true;
+          return userGender === 'female' || userGender === 'woman';
+        }
+        if (name.includes('admin')) return userRole === 'admin';
+        if (name.includes('angel')) return userRole === 'admin' || (userRole as string) === 'angel';
+        return true;
+      });
     }),
     messages: protectedProcedure.input(z.object({ conversationId: z.number(), limit: z.number().optional() })).query(async ({ input }) => {
       return db.getConversationMessages(input.conversationId, input.limit);
@@ -1549,7 +1597,7 @@ export const appRouter = router({
             authorId: null,
             authorName: "Soapies Team",
             communityId,
-            content: `🎉 Please welcome ${displayName} to the Soapies community!`,
+            content: `🎉 A new Soapi has joined the playgroup! Please welcome **${displayName}** — come say hi and show them some love! 💕`,
             visibility: "members",
           });
         } catch (err) {

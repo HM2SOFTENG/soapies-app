@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { FloatingBubbles } from "@/components/FloatingElements";
 import CommunityTeaser from "@/components/CommunityTeaser";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import UserProfilePreview from "@/components/UserProfilePreview";
 
 const COMMUNITIES = [
@@ -197,11 +197,26 @@ function PostComposer({ user }: { user: any }) {
 }
 
 // ─── POST CARD ─────────────────────────────────────────────────────────────
-function PostCard({ post, isLiked, index, onAuthorClick }: { post: any; isLiked: boolean; index: number; onAuthorClick?: (authorId: number, displayName: string, avatarUrl?: string | null) => void }) {
+function PostCard({ post, isLiked, index, onAuthorClick, currentUserId }: { post: any; isLiked: boolean; index: number; onAuthorClick?: (authorId: number, displayName: string, avatarUrl?: string | null) => void; currentUserId?: number }) {
   const [showComments, setShowComments] = useState(false);
   const [localLiked, setLocalLiked] = useState(isLiked);
   const [localLikes, setLocalLikes] = useState(post.likesCount || 0);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
   const utils = trpc.useUtils();
+
+  const updatePost = trpc.wall.updatePost.useMutation({
+    onSuccess: () => { utils.wall.posts.invalidate(); setIsEditing(false); toast.success("Post updated!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deletePost = trpc.wall.deletePost.useMutation({
+    onSuccess: () => { utils.wall.posts.invalidate(); toast.success("Post deleted!"); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const isOwnPost = !!currentUserId && post.authorId === currentUserId;
 
   const likePost = trpc.wall.like.useMutation({
     onMutate: () => {
@@ -283,15 +298,78 @@ function PostCard({ post, isLiked, index, onAuthorClick }: { post: any; isLiked:
               <p className="text-xs text-gray-400">{timeAgo}</p>
             </div>
           </div>
-          {post.isPinned && (
-            <motion.div whileHover={{ scale: 1.1 }} className="p-1.5 rounded-lg bg-amber-50">
-              <Pin className="h-4 w-4 text-amber-500" />
-            </motion.div>
-          )}
+          <div className="flex items-center gap-1">
+            {post.isPinned && (
+              <motion.div whileHover={{ scale: 1.1 }} className="p-1.5 rounded-lg bg-amber-50">
+                <Pin className="h-4 w-4 text-amber-500" />
+              </motion.div>
+            )}
+            {isOwnPost && (
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                </motion.button>
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-pink-100 z-20 min-w-[120px] py-1">
+                    <button
+                      onClick={() => { setIsEditing(true); setShowMenu(false); }}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() => { if (confirm('Delete this post?')) deletePost.mutate({ postId: post.id }); setShowMenu(false); }}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Content */}
-        <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>
+        {isEditing ? (
+          <div className="mb-4">
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-pink-200 bg-white/70 text-sm outline-none focus:border-pink-400 resize-none"
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => updatePost.mutate({ postId: post.id, content: editContent })}
+                disabled={updatePost.isPending}
+                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold"
+              >
+                {updatePost.isPending ? 'Saving...' : 'Save'}
+              </button>
+              <button onClick={() => setIsEditing(false)} className="px-4 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold">Cancel</button>
+            </div>
+          </div>
+        ) : (() => {
+          const eventLinkMatch = post.content?.match(/^([\s\S]*?) → (\/events\/(\d+))$/);
+          if (eventLinkMatch) {
+            return (
+              <>
+                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mb-3">{eventLinkMatch[1]}</p>
+                <Link href={eventLinkMatch[2]}>
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition cursor-pointer mb-4">
+                    Join the fun 🎟️
+                  </span>
+                </Link>
+              </>
+            );
+          }
+          return <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>;
+        })()}
 
         {/* Media */}
         {post.mediaUrl && (
@@ -656,6 +734,7 @@ export default function Wall() {
                   isLiked={myLikes?.includes(post.id) ?? false}
                   index={i}
                   onAuthorClick={handleAuthorClick}
+                  currentUserId={user?.id}
                 />
               ))}
             </AnimatePresence>

@@ -488,6 +488,19 @@ function NewChatModal({ onClose, onConversationCreated }: {
   );
 }
 
+// ─── CHANNEL AVATAR HELPER ────────────────────────────────────────────────
+function getChannelAvatar(name: string, type: string): { emoji: string; gradient: string } {
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('women') || lower.includes('ladies')) return { emoji: '👩', gradient: 'from-pink-400 to-rose-500' };
+  if (lower.includes('mens') || lower === 'mens chat') return { emoji: '👨', gradient: 'from-blue-400 to-indigo-500' };
+  if (lower.includes('admin')) return { emoji: '🛡️', gradient: 'from-red-400 to-orange-500' };
+  if (lower.includes('angel')) return { emoji: '😇', gradient: 'from-purple-400 to-pink-400' };
+  if (lower.includes('general') || lower.includes('main')) return { emoji: '💬', gradient: 'from-fuchsia-400 to-purple-500' };
+  if (lower.includes('event') || lower.includes('party')) return { emoji: '🎉', gradient: 'from-pink-500 to-yellow-400' };
+  if (type === 'channel') return { emoji: '#', gradient: 'from-blue-300 to-blue-500' };
+  return { emoji: '💬', gradient: 'from-pink-300 to-purple-400' };
+}
+
 // ─── CONVERSATION LIST ─────────────────────────────────────────────────────
 function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: {
   conversations: any[] | undefined;
@@ -582,17 +595,14 @@ function ConversationList({ conversations, isLoading, onSelect, unreadCounts }: 
                         className="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer border-b border-[var(--border)] transition-colors"
                       >
                         <div className="relative flex-shrink-0">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md ${
-                            conv.type === "channel"
-                              ? "bg-gradient-to-br from-blue-300 to-blue-500"
-                              : "bg-gradient-to-br from-pink-300 to-purple-400"
-                          }`}>
-                            {conv.type === "channel" ? (
-                              <Lock className="h-5 w-5 text-white" />
-                            ) : (
-                              <MessageCircle className="h-5 w-5 text-white" />
-                            )}
-                          </div>
+                          {(() => {
+                            const avatar = getChannelAvatar(conv.name || '', conv.type);
+                            return (
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md bg-gradient-to-br ${avatar.gradient}`}>
+                                <span className="text-xl">{avatar.emoji}</span>
+                              </div>
+                            );
+                          })()}
                           {conv.type !== "channel" && (
                             <motion.div
                               animate={{ scale: [1, 1.2, 1] }}
@@ -691,7 +701,9 @@ function ChatView({ conversationId, userId, onBack }: {
   const { sendMessage: wsSend, isConnected, subscribe } = useWebSocket();
 
   const addReaction = trpc.messages.addReaction.useMutation();
-  const markRead = trpc.messages.markRead.useMutation();
+  const markRead = trpc.messages.markRead.useMutation({
+    onSuccess: () => utils.messages.unreadCounts.invalidate(),
+  });
   const deleteMessage = trpc.messages.deleteMessage.useMutation({
     onSuccess: () => utils.messages.messages.invalidate({ conversationId }),
   });
@@ -1345,7 +1357,7 @@ export default function Messages() {
     enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
   const { data: unreadCounts } = trpc.messages.unreadCounts.useQuery(undefined, {
-    enabled: isAuthenticated, refetchInterval: 30_000,
+    enabled: isAuthenticated, refetchInterval: 10_000,
   });
 
   if (!isAuthenticated) {

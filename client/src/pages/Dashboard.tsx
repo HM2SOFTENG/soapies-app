@@ -237,7 +237,7 @@ function ReservationsSection() {
 function NotificationsSection() {
   const { isAuthenticated } = useAuth();
   const { data: notifications } = trpc.notifications.list.useQuery(undefined, {
-    retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
+    retry: false, refetchOnWindowFocus: true, staleTime: 30_000, enabled: isAuthenticated, refetchInterval: 15_000,
   });
   const unread = notifications?.filter((n: any) => !n.isRead).length ?? 0;
 
@@ -524,7 +524,25 @@ export default function Dashboard() {
     );
   }
 
-  const firstName = user?.name?.split(" ")[0] || "there";
+  const { data: dashProfile } = trpc.profile.me.useQuery(undefined, {
+    enabled: isAuthenticated, retry: false, staleTime: 30_000,
+  });
+  const { data: dashReservations } = trpc.reservations.myReservations.useQuery(undefined, {
+    enabled: isAuthenticated, retry: false, staleTime: 30_000,
+  });
+  const { data: dashNotifications } = trpc.notifications.list.useQuery(undefined, {
+    enabled: isAuthenticated, retry: false, staleTime: 30_000,
+  });
+  const { data: dashCreditBalance } = trpc.credits.balance.useQuery(undefined, {
+    enabled: isAuthenticated, retry: false, staleTime: 30_000,
+  });
+
+  const firstName = dashProfile?.displayName?.split(" ")[0] || user?.name?.split(" ")[0]?.split("@")[0] || "there";
+
+  const statReservations = dashReservations?.length ?? 0;
+  const statNotifications = dashNotifications?.filter((n: any) => !n.isRead).length ?? 0;
+  const statCredits = dashCreditBalance ?? 0;
+  const statAttended = dashReservations?.filter((r: any) => r.status === 'confirmed' || r.status === 'checked_in').length ?? 0;
 
   return (
     <PageWrapper>
@@ -534,10 +552,10 @@ export default function Dashboard() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          <StatCard icon={Ticket} label="Reservations" value={0} color="from-purple-400 to-indigo-500" delay={0.15} />
-          <StatCard icon={Bell} label="Notifications" value={0} color="from-pink-500 to-rose-500" delay={0.2} />
-          <StatCard icon={CreditCard} label="Credits" value={0} color="from-fuchsia-400 to-pink-500" delay={0.25} />
-          <StatCard icon={PartyPopper} label="Events Attended" value={0} color="from-violet-400 to-purple-500" delay={0.3} />
+          <StatCard icon={Ticket} label="Reservations" value={statReservations} color="from-purple-400 to-indigo-500" delay={0.15} />
+          <StatCard icon={Bell} label="Notifications" value={statNotifications} color="from-pink-500 to-rose-500" delay={0.2} />
+          <StatCard icon={CreditCard} label="Credits" value={statCredits} color="from-fuchsia-400 to-pink-500" delay={0.25} />
+          <StatCard icon={PartyPopper} label="Events Attended" value={statAttended} color="from-violet-400 to-purple-500" delay={0.3} />
         </div>
 
         {/* Main Content Grid */}

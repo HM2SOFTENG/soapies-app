@@ -273,6 +273,7 @@ export default function Members() {
   const [page, setPage] = useState(0);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<any | null>(null);
+  const [sortBy, setSortBy] = useState<"name" | "newest">("newest");
 
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: () => {
@@ -386,6 +387,19 @@ export default function Members() {
             />
           ))}
         </div>
+
+        {/* Sort */}
+        <div className="flex items-center justify-end mt-3 gap-2">
+          <span className="text-xs text-gray-500 font-semibold">Sort:</span>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as any)}
+            className="px-3 py-1.5 rounded-lg border border-pink-200 bg-white text-xs outline-none focus:ring-2 focus:ring-pink-200/50 font-semibold"
+          >
+            <option value="newest">Newest</option>
+            <option value="name">Name A–Z</option>
+          </select>
+        </div>
       </div>
 
       {/* Grid */}
@@ -414,7 +428,10 @@ export default function Members() {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {allMembers.map((member, i) => (
+              {[...allMembers].sort((a, b) => {
+                if (sortBy === "name") return (a.displayName || "").localeCompare(b.displayName || "");
+                return 0; // newest = server order
+              }).map((member, i) => (
                 <MemberCard
                   key={member.id}
                   member={member}

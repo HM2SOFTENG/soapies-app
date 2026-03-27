@@ -52,6 +52,8 @@ import IOSInstallBanner from "./components/IOSInstallBanner";
 import { FloatingBubbles } from "./components/FloatingElements";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { useLocation as useWouterLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 /** Wraps a component with the RequireProfile guard */
 function withProfileGuard(Component: React.ComponentType<any>) {
@@ -143,6 +145,11 @@ const HIDE_TABS_PATHS = ["/login", "/register", "/join", "/verify-email", "/forg
 function AppShell() {
   const [location] = useWouterLocation();
   const hideTabs = HIDE_TABS_PATHS.some(p => location.startsWith(p));
+  const { isAuthenticated } = useAuth();
+  const { data: unreadCounts } = trpc.messages.unreadCounts.useQuery(undefined, {
+    enabled: isAuthenticated, refetchInterval: 10_000,
+  });
+  const totalUnread = unreadCounts ? Object.values(unreadCounts as Record<string, number>).reduce((a: number, b: number) => a + b, 0) : 0;
 
   return (
     <>
@@ -152,7 +159,7 @@ function AppShell() {
       <div className="relative z-10">
         <Router />
       </div>
-      {!hideTabs && <BottomTabNav />}
+      {!hideTabs && <BottomTabNav unreadMessages={totalUnread} />}
       <IOSInstallBanner />
     </>
   );

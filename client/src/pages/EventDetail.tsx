@@ -297,7 +297,7 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
     { enabled: partnerSearch.length >= 2 }
   );
 
-  const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
+  const venmoHandle = settings?.["venmo_handle"] ?? "@kellen-brennan";
 
   const getTicketPrice = useCallback((ticketId: string) => {
     if (ticketId === "single_female") return parseFloat(event.priceSingleFemale || "0");
@@ -866,6 +866,7 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                     2. In the memo write your name + "{event.title}"<br />
                     3. Tap "I've Sent Payment" below — your spot will be reserved pending verification
                   </p>
+                  <a href={`https://venmo.com/${(venmoHandle || 'kellen-brennan').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-[#008CFF] text-white text-sm font-bold hover:opacity-90 transition">Open Venmo →</a>
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -984,6 +985,7 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
                   "{displayName} - {event.title}"
                 </span>
               </p>
+              <a href={`https://venmo.com/${(venmoHandle || 'kellen-brennan').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-[#008CFF] text-white text-sm font-bold hover:opacity-90 transition">Open Venmo →</a>
               <p className="text-xs text-blue-500 mt-3">
                 ⏳ Your reservation is pending payment confirmation. We'll notify you once verified.
               </p>
@@ -1052,7 +1054,11 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
   const { data: settings } = trpc.settings.get.useQuery();
   const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
 
-  const venmoHandle = settings?.["venmo_handle"] ?? "@SoapiesEvents";
+  const venmoHandle = settings?.["venmo_handle"] ?? "@kellen-brennan";
+  const { data: myReservations } = trpc.reservations.myReservations.useQuery(undefined, {
+    enabled: isAuthenticated, retry: false, staleTime: 15_000,
+  });
+  const alreadyReserved = myReservations?.some((r: any) => r.eventId === event.id && r.status !== 'cancelled');
 
   const [pendingStripeReservationId, setPendingStripeReservationId] = useState<number | null>(null);
 
@@ -1132,6 +1138,28 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           venmoHandle={venmoHandle}
           userName={(me as any)?.name}
         />
+        <AddToCalendarSection event={event} />
+      </>
+    );
+  }
+
+  if (isAuthenticated && alreadyReserved) {
+    return (
+      <>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-strong rounded-3xl p-8 border border-emerald-200 bg-emerald-50 mb-8 text-center"
+        >
+          <div className="text-5xl mb-4">🎉</div>
+          <h2 className="font-display text-2xl font-bold text-emerald-800 mb-2">You're going!</h2>
+          <p className="text-emerald-700 text-sm">You already have a reservation for this event. See you there!</p>
+          <Link href="/dashboard">
+            <Button className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl gap-2">
+              View My Reservations
+            </Button>
+          </Link>
+        </motion.div>
         <AddToCalendarSection event={event} />
       </>
     );

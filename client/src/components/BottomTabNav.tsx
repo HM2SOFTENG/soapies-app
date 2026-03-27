@@ -40,9 +40,9 @@ export default function BottomTabNav({ unreadMessages = 0 }: BottomTabNavProps) 
   const loggedInTabs: TabItem[] = [
     { icon: Home, label: "Home", path: "/dashboard" },
     { icon: Calendar, label: "Events", path: "/events" },
+    { icon: Users, label: "Community", path: "/wall" },
     { icon: MessageCircle, label: "Messages", path: "/messages", badge: unreadMessages || undefined },
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: Users, label: "Community", path: "/wall" },
   ];
 
   const tabs = isAuthenticated ? loggedInTabs : loggedOutTabs;

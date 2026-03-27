@@ -70,7 +70,7 @@ export default function AdminEvents() {
       const matchSearch = !search || e.title.toLowerCase().includes(search.toLowerCase());
       const matchType = filterType === "all" || e.eventType === filterType;
       return matchSearch && matchType;
-    });
+    }).sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   }, [events, search, filterType]);
 
   const eventTypes = ["all", "party", "social", "retreat", "festival", "other"];
