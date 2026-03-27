@@ -1154,6 +1154,12 @@ export async function getUnreadCounts(userId: number): Promise<Record<number, nu
   const result: Record<number, number> = {};
   for (const part of parts) {
     const lastRead = part.lastReadAt;
+    // If user has never read this conversation, treat as 0 unread (not all-time unread)
+    // This prevents phantom badges for channels auto-joined without any new messages
+    if (!lastRead) {
+      result[part.conversationId] = 0;
+      continue;
+    }
     const count = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(messages)
@@ -1161,13 +1167,18 @@ export async function getUnreadCounts(userId: number): Promise<Record<number, nu
         eq(messages.conversationId, part.conversationId),
         sql`${messages.senderId} != ${userId}`,
         sql`${messages.isDeleted} = false`,
-        lastRead
-          ? sql`${messages.createdAt} > ${lastRead}`
-          : sql`1=1`,
+        sql`${messages.createdAt} > ${lastRead}`,
       ));
     result[part.conversationId] = Number(count[0]?.count ?? 0);
   }
   return result;
+}
+
+export async function markAllConversationsRead(userId: number): Promise<void> {
+  const db = await getDb(); if (!db) return;
+  await db.update(conversationParticipants)
+    .set({ lastReadAt: new Date() })
+    .where(eq(conversationParticipants.userId, userId));
 }
 
 // ─── CONVERSATION PARTICIPANTS ──────────────────────────────────────────────

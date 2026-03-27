@@ -1353,12 +1353,25 @@ function ChatView({ conversationId, userId, onBack }: {
 export default function Messages() {
   const { user, isAuthenticated } = useAuth();
   const [selectedConv, setSelectedConv] = useState<number | null>(null);
+  const utils = trpc.useUtils();
   const { data: conversations, isLoading } = trpc.messages.conversations.useQuery(undefined, {
     enabled: isAuthenticated, retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
   const { data: unreadCounts } = trpc.messages.unreadCounts.useQuery(undefined, {
     enabled: isAuthenticated, refetchInterval: 10_000,
   });
+
+  // On mount, initialise lastReadAt for any conversations where it's null
+  // This prevents phantom unread badges for channels auto-joined without any history
+  const markAllConvRead = trpc.messages.markAllConversationsRead.useMutation({
+    onSuccess: () => utils.messages.unreadCounts.invalidate(),
+  });
+  useEffect(() => {
+    if (isAuthenticated) {
+      markAllConvRead.mutate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return (

@@ -767,6 +767,11 @@ export const appRouter = router({
       return { success: true };
     }),
 
+    markAllConversationsRead: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.markAllConversationsRead(ctx.user.id);
+      return { success: true };
+    }),
+
     deleteMessage: protectedProcedure.input(z.object({
       messageId: z.number(),
     })).mutation(async ({ ctx, input }) => {
