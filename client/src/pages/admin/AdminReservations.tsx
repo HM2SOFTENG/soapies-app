@@ -149,7 +149,7 @@ function AllReservationsTab() {
     const headers = ["ID", "Member", "Event", "Ticket Type", "Payment Method", "Payment Status", "Check-in", "Amount", "Date"];
     const rows = reservations.map((r: any) => [
       r.id,
-      r.displayName ?? "",
+      r.memberName ?? r.displayName ?? "",
       r.eventTitle ?? "",
       r.ticketType ?? "",
       r.paymentMethod ?? "",
@@ -237,7 +237,7 @@ function AllReservationsTab() {
                       key={r.id}
                       className={`border-b border-gray-50 hover:bg-pink-50/20 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
                     >
-                      <td className="px-4 py-3 font-medium text-gray-800">{r.displayName ?? `User #${r.userId}`}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{r.memberName ?? r.displayName ?? `User #${r.userId}`}</td>
                       <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate">{r.eventTitle ?? "—"}</td>
                       <td className="px-4 py-3 text-gray-600">{ticketLabel(r.ticketType)}</td>
                       <td className="px-4 py-3 text-gray-500 capitalize">{r.paymentMethod ?? "—"}</td>

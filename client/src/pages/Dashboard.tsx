@@ -240,13 +240,15 @@ function TicketsDashboard() {
     retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
   });
   const [, setLocation] = useLocation();
+  const [expanded, setExpanded] = useState(false);
 
   const upcoming = useMemo(() => {
     if (!reservations) return [];
     return (reservations as any[])
-      .filter((r: any) => r.status !== 'cancelled')
-      .slice(0, 3);
+      .filter((r: any) => r.status !== 'cancelled');
   }, [reservations]);
+
+  const visibleTickets = expanded ? upcoming : upcoming.slice(0, 1);
 
   return (
     <motion.div
@@ -292,7 +294,7 @@ function TicketsDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {upcoming.map((r: any, i: number) => (
+            {visibleTickets.map((r: any, i: number) => (
               <motion.div
                 key={r.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -320,6 +322,14 @@ function TicketsDashboard() {
                 </div>
               </motion.div>
             ))}
+            {upcoming.length > 1 && (
+              <motion.button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full text-xs text-pink-500 font-semibold py-2 hover:text-pink-600 transition-colors"
+              >
+                {expanded ? '↑ Show less' : `↓ Show ${upcoming.length - 1} more`}
+              </motion.button>
+            )}
           </div>
         )}
       </div>
@@ -670,13 +680,8 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
-          <div className="lg:col-span-3">
-            <ReservationsSection />
-          </div>
-          <div className="lg:col-span-2">
-            <TicketsDashboard />
-          </div>
+        <div className="mb-8">
+          <TicketsDashboard />
         </div>
 
         {/* Credits & Referral */}

@@ -147,7 +147,11 @@ function AppShell() {
   const hideTabs = HIDE_TABS_PATHS.some(p => location.startsWith(p));
   const { isAuthenticated } = useAuth();
   const { data: unreadCounts } = trpc.messages.unreadCounts.useQuery(undefined, {
-    enabled: isAuthenticated, refetchInterval: 10_000,
+    enabled: isAuthenticated,
+    refetchInterval: 5_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
   const totalUnread = unreadCounts ? Object.values(unreadCounts as Record<string, number>).reduce((a: number, b: number) => a + b, 0) : 0;
 

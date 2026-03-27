@@ -413,7 +413,22 @@ export const appRouter = router({
       return db.getReservationsByUser(ctx.user.id);
     }),
     myTickets: protectedProcedure.query(async ({ ctx }) => {
-      return db.getUserReservations(ctx.user.id);
+      const tickets = await db.getUserReservations(ctx.user.id);
+      // Auto-generate QR for confirmed tickets missing one
+      const result = await Promise.all(tickets.map(async (t: any) => {
+        if ((t.status === 'confirmed' || t.paymentStatus === 'paid') && !t.qrCode) {
+          try {
+            const { generateTicketQR } = await import("./services/tickets");
+            const qrCode = await generateTicketQR(t.id);
+            await db.createTicketForReservation(t.id, ctx.user.id, qrCode);
+            return { ...t, qrCode };
+          } catch {
+            return t;
+          }
+        }
+        return t;
+      }));
+      return result;
     }),
     byEvent: adminProcedure.input(z.object({ eventId: z.number() })).query(async ({ input }) => {
       return db.getReservationsByEventWithUsers(input.eventId);

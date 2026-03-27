@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, asc, inArray, gte } from "drizzle-orm";
+import { eq, desc, and, sql, asc, inArray, gte, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users, profiles, events, reservations, tickets,
@@ -1622,6 +1622,7 @@ export async function getUserReservations(userId: number) {
     eventId: reservations.eventId,
     ticketType: reservations.ticketType,
     paymentStatus: reservations.paymentStatus,
+    status: reservations.status,
     checkinStatus: reservations.status,
     createdAt: reservations.createdAt,
     eventTitle: events.title,
@@ -1631,7 +1632,13 @@ export async function getUserReservations(userId: number) {
   })
   .from(reservations)
   .innerJoin(events, eq(reservations.eventId, events.id))
-  .where(and(eq(reservations.userId, userId), inArray(reservations.paymentStatus, ['paid', 'partial'])));
+  .where(and(
+    eq(reservations.userId, userId),
+    or(
+      inArray(reservations.paymentStatus, ['paid', 'partial']),
+      eq(reservations.status, 'confirmed')
+    )
+  ));
 
   // Attach QR codes from tickets table
   const result = await Promise.all(rows.map(async (r) => {
