@@ -17,6 +17,17 @@ import { format } from "date-fns";
 // ─── TABS ───────────────────────────────────────────────────────────────
 type TabType = "reservations" | "checkin" | "staff" | "finances" | "testResults";
 
+// ─── TICKET TYPE LABEL ──────────────────────────────────────────────────
+function formatTicketType(type: string): string {
+  const map: Record<string, string> = {
+    single_female: "👩 Single Woman",
+    single_male: "👨 Single Man",
+    couple: "💑 Couple",
+    volunteer: "⭐ Volunteer",
+  };
+  return map[type] ?? type.replace(/_/g, " ");
+}
+
 // ─── WRISTBAND BADGE ────────────────────────────────────────────────────
 function WristbandBadge({ color, size = "sm" }: { color?: string | null; size?: "sm" | "lg" }) {
   if (!color) return <span className="text-gray-400">—</span>;
@@ -105,7 +116,7 @@ function ReservationsTab({ eventId }: { eventId: number }) {
                   <p className="font-bold text-gray-800">{r.displayName || r.profile?.displayName || r.user?.name || "Unknown"}</p>
                   <p className="text-xs text-gray-500">{r.user?.email}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <span className="text-sm text-gray-600">{r.ticketType} × {r.quantity}</span>
+                    <span className="text-sm text-gray-600">{formatTicketType(r.ticketType || '')} × {r.quantity}</span>
                     <WristbandBadge color={r.wristbandColor} />
                   </div>
                   {r.partnerUserId && (
@@ -248,7 +259,7 @@ function GuestModal({ guest, onCheckIn, onClose, isLoading }: {
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl bg-pink-50 border border-pink-100">
                 <p className="text-[10px] font-bold text-pink-500 uppercase mb-1">Ticket</p>
-                <p className="text-sm font-bold text-gray-800 capitalize">{(guest.ticketType || "—").replace("_", " ")}</p>
+                <p className="text-sm font-bold text-gray-800">{guest.ticketType ? formatTicketType(guest.ticketType) : "—"}</p>
               </div>
               <div className="p-3 rounded-xl bg-purple-50 border border-purple-100">
                 <p className="text-[10px] font-bold text-purple-500 uppercase mb-1">Payment</p>
@@ -557,7 +568,7 @@ function CheckInTab({ eventId }: { eventId: number }) {
                       <p className="font-bold text-gray-800 text-sm truncate">{name}</p>
                       {isCheckedIn && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">✓ IN</span>}
                     </div>
-                    <p className="text-xs text-gray-500 capitalize">{(r.ticketType || "—").replace("_", " ")} · {r.paymentStatus}</p>
+                    <p className="text-xs text-gray-500">{r.ticketType ? formatTicketType(r.ticketType) : "—"} · {r.paymentStatus}</p>
                   </div>
                   {/* Wristband */}
                   <div className="flex-shrink-0">

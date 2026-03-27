@@ -171,11 +171,11 @@ function AllReservationsTab() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center bg-white rounded-xl border border-pink-100/50 p-4 shadow-sm">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center bg-white rounded-xl border border-pink-100/50 p-4 shadow-sm">
         <select
           value={eventId ?? ""}
           onChange={(e) => { setEventId(e.target.value ? Number(e.target.value) : undefined); setPage(0); }}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300"
+          className="w-full sm:w-auto text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300"
         >
           <option value="">All Events</option>
           {(events ?? []).map((ev: any) => (
@@ -185,7 +185,7 @@ function AllReservationsTab() {
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300"
+          className="w-full sm:w-auto text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300"
         >
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
@@ -198,41 +198,74 @@ function AllReservationsTab() {
           variant="outline"
           size="sm"
           onClick={exportCSV}
-          className="ml-auto border-green-200 text-green-700 hover:bg-green-50 gap-1.5"
+          className="w-full sm:w-auto sm:ml-auto border-green-200 text-green-700 hover:bg-green-50 gap-1.5"
         >
           <Download className="h-4 w-4" /> Export CSV
         </Button>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 text-pink-400 animate-spin" />
         </div>
+      ) : (!reservations || reservations.length === 0) ? (
+        <div className="text-center py-12 text-gray-400">No reservations found</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-pink-100/50 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-100">
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Member</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Event</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Ticket Type</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Method</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Payment</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Check-in</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Amount</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(!reservations || reservations.length === 0) ? (
-                  <tr>
-                    <td colSpan={9} className="text-center py-12 text-gray-400">No reservations found</td>
+        <>
+          {/* Mobile card view */}
+          <div className="md:hidden space-y-3">
+            {reservations.map((r: any, i: number) => (
+              <div key={r.id} className={`p-4 rounded-2xl border ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} border-pink-100 space-y-3`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-800 truncate">{r.memberName ?? r.displayName ?? `User #${r.userId}`}</p>
+                    <p className="text-xs text-gray-500 truncate">{r.eventTitle ?? '—'}</p>
+                  </div>
+                  <StatusBadge status={r.paymentStatus} />
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="px-2 py-1 bg-pink-50 text-pink-700 rounded-full font-medium">{ticketLabel(r.ticketType)}</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full capitalize">{r.paymentMethod ?? '—'}</span>
+                  <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-full font-bold">${parseFloat(r.totalAmount || '0').toFixed(2)}</span>
+                  {r.status === 'checked_in' && <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full">✅ Checked In</span>}
+                </div>
+                <p className="text-xs text-gray-400">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '—'}</p>
+                <div className="flex gap-2 pt-1">
+                  {r.paymentStatus !== 'paid' && r.paymentStatus !== 'confirmed' && (
+                    <Button size="sm" className="flex-1 h-8 text-xs bg-green-500 hover:bg-green-600 text-white" onClick={() => confirm.mutate({ id: r.id })}>
+                      <Check className="h-3 w-3 mr-1" /> Confirm
+                    </Button>
+                  )}
+                  {r.status !== 'cancelled' && (
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-xs border-red-200 text-red-600 hover:bg-red-50" onClick={() => reject.mutate({ id: r.id })}>
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table view */}
+          <div className="hidden md:block bg-white rounded-2xl border border-pink-100/50 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-100">
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Member</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Event</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Ticket Type</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Method</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Payment</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Check-in</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Amount</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
                   </tr>
-                ) : (
-                  reservations.map((r: any, i: number) => (
+                </thead>
+                <tbody>
+                  {reservations.map((r: any, i: number) => (
                     <tr
                       key={r.id}
                       className={`border-b border-gray-50 hover:bg-pink-50/20 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-gray-50/30"}`}
@@ -275,13 +308,14 @@ function AllReservationsTab() {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 rounded-xl mt-2">
             <p className="text-xs text-gray-500">Page {page + 1}</p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))} className="h-8 px-3">
@@ -292,7 +326,7 @@ function AllReservationsTab() {
               </Button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

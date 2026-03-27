@@ -47,7 +47,7 @@ function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) 
         <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Cover Image URL</label>
         <Input value={form.coverImageUrl} onChange={e => setForm(p => ({ ...p, coverImageUrl: e.target.value }))} placeholder="https://... (image URL)" className="rounded-xl border-pink-100" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Venue</label>
           <Input value={form.venue} onChange={e => setForm(p => ({ ...p, venue: e.target.value }))} className="rounded-xl border-pink-100" />
@@ -61,7 +61,7 @@ function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) 
         <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Address</label>
         <Input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className="rounded-xl border-pink-100" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Start Date</label>
           <Input type="datetime-local" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className="rounded-xl border-pink-100" />
@@ -71,7 +71,7 @@ function EditEventForm({ event, onClose }: { event: any; onClose: () => void }) 
           <Input type="datetime-local" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className="rounded-xl border-pink-100" />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1 block">Women $</label>
           <Input type="number" value={form.priceSingleFemale} onChange={e => setForm(p => ({ ...p, priceSingleFemale: e.target.value }))} className="rounded-xl border-pink-100" />

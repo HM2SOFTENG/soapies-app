@@ -146,7 +146,7 @@ function PostComposer({ user }: { user: any }) {
             </div>
 
             {/* Visibility & Community Selection */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Visibility</label>
                 <select

@@ -103,7 +103,7 @@ export default function AdminAnnouncements() {
                   className="w-full rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 px-3 py-2 text-sm resize-none outline-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Target Audience</label>
                   <select
