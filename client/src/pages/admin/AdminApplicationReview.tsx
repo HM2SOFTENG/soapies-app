@@ -68,7 +68,7 @@ function PhotoGrid({ photos }: { photos: string[] }) {
     </div>
   );
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {photos.slice(0, 6).map((url, i) => (
         <a key={i} href={url} target="_blank" rel="noopener noreferrer">
           <img
@@ -116,7 +116,7 @@ function DetailPanel({ profileId, app, onAction }: {
   const d = detail;
 
   return (
-    <div className="border-t border-pink-100 bg-pink-50/30 p-5 space-y-5">
+    <div className="border-t border-pink-100 bg-pink-50/30 p-4 sm:p-5 space-y-5 overflow-hidden">
       {/* Photos */}
       <div>
         <h4 className="text-sm font-bold text-gray-600 mb-3 flex items-center gap-1.5">
@@ -246,7 +246,7 @@ function DetailPanel({ profileId, app, onAction }: {
           <div className="space-y-3">
             <div>
               <h4 className="text-sm font-bold text-gray-600 mb-2">Member Type</h4>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {(["member", "angel", "admin"] as const).map(role => (
                   <button
                     key={role}
@@ -323,10 +323,10 @@ function AppCard({ app, index, onRefresh }: { app: any; index: number; onRefresh
       className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100/50 shadow-lg hover:shadow-xl transition-all overflow-hidden"
     >
       <div
-        className="p-5 cursor-pointer"
+        className="p-4 sm:p-5 cursor-pointer"
         onClick={() => setExpanded(e => !e)}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0">
           <Avatar photos={photos} name={name} />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">

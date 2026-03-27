@@ -161,7 +161,7 @@ export default function AdminLayout({ children, title }: { children: React.React
               </Link>
               <motion.button
                 whileHover={{ x: 4 }}
-                onClick={() => { logout(); setLocation("/"); }}
+                onClick={async () => { try { await logout(); } catch {} setLocation("/"); }}
                 className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-600 w-full rounded-lg hover:bg-red-50/50 transition-colors cursor-pointer"
               >
                 <LogOut className="h-4 w-4" /> Sign Out
@@ -248,7 +248,7 @@ export default function AdminLayout({ children, title }: { children: React.React
                 </Link>
                 <motion.button
                   whileHover={{ x: 4 }}
-                  onClick={() => { logout(); setLocation("/"); setMobileOpen(false); }}
+                  onClick={async () => { try { await logout(); } catch {} setLocation("/"); setMobileOpen(false); }}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-600 w-full rounded-lg hover:bg-red-50/50 transition-colors cursor-pointer"
                 >
                   <LogOut className="h-4 w-4" /> Sign Out
