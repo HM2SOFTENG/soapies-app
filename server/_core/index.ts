@@ -8,6 +8,8 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic } from "./static";
 import { initializeWebSocket } from "./websocket";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -33,6 +35,66 @@ async function startServer() {
   const server = createServer(app);
   // Trust reverse proxy (DigitalOcean App Platform) for correct protocol/IP detection
   app.set("trust proxy", 1);
+
+  // ── SECURITY HEADERS ─────────────────────────────────────────────────────
+  app.use(helmet({
+    // Allow inline scripts/styles needed by Vite + React
+    contentSecurityPolicy: false,
+    // Allow embedding in iframes from same origin only (blocks clickjacking)
+    frameguard: { action: "sameorigin" },
+    // Force HTTPS for 1 year (DigitalOcean App Platform always uses HTTPS)
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    // Hide server tech fingerprint
+    hidePoweredBy: true,
+    // Block MIME-type sniffing
+    noSniff: true,
+    // Prevent IE from opening downloads in-page
+    ieNoOpen: true,
+    // Basic XSS protection for old browsers
+    xssFilter: true,
+    // Disable cross-origin opener (prevents tab-napping)
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    // Referrer: send origin only, not full URL (hides page paths on external nav)
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  }));
+
+  // ── RATE LIMITING ────────────────────────────────────────────────────────
+  // Auth endpoints — strict limit to prevent brute force
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many attempts. Please try again in 15 minutes." },
+    skip: (req) => process.env.NODE_ENV === "development",
+  });
+
+  // API general limit — generous, just prevents abuse
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many requests. Please slow down." },
+    skip: (req) => process.env.NODE_ENV === "development",
+  });
+
+  // Apply rate limits
+  app.use("/api/trpc/auth.login", authLimiter);
+  app.use("/api/trpc/auth.register", authLimiter);
+  app.use("/api/trpc/auth.sendPhoneOtp", authLimiter);
+  app.use("/api/trpc/auth.verifyPhoneOtp", authLimiter);
+  app.use("/api/trpc/auth.requestPasswordReset", authLimiter);
+  app.use("/api/trpc/auth.resetPassword", authLimiter);
+  app.use("/api/trpc", apiLimiter);
+  app.use("/api/upload-photo", apiLimiter);
+
+  // ── ROBOTS / SEARCH ENGINE BLOCKING ──────────────────────────────────────
+  // Prevent search engines from indexing any page (private community app)
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain");
+    res.send("User-agent: *\nDisallow: /\n");
+  });
 
   // Stripe webhook — must use raw body, registered BEFORE express.json()
   app.post(

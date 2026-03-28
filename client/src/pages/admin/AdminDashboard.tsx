@@ -73,19 +73,19 @@ export default function AdminDashboard() {
   ];
 
   const quickLinks = [
-    { label: "Applications", desc: "Review applicants", href: "/admin/applications", icon: FileText, gradient: "from-pink-500 to-rose-500", badge: pendingCount },
-    { label: "Referrals", desc: "Referral pipeline", href: "/admin/referrals", icon: Share2, gradient: "from-purple-500 to-indigo-500" },
-    { label: "Event Ops", desc: "Manage operations", href: "/admin/events", icon: ClipboardList, gradient: "from-fuchsia-500 to-pink-500" },
-    { label: "Audit Log", desc: "Admin activity", href: "/admin/settings", icon: ScrollText, gradient: "from-violet-500 to-purple-500" },
+    { label: "Applications", desc: "Review applicants", href: "/cp/rx", icon: FileText, gradient: "from-pink-500 to-rose-500", badge: pendingCount },
+    { label: "Referrals", desc: "Referral pipeline", href: "/cp/rf", icon: Share2, gradient: "from-purple-500 to-indigo-500" },
+    { label: "Event Ops", desc: "Manage operations", href: "/cp/ev", icon: ClipboardList, gradient: "from-fuchsia-500 to-pink-500" },
+    { label: "Audit Log", desc: "Admin activity", href: "/cp/cfg", icon: ScrollText, gradient: "from-violet-500 to-purple-500" },
   ];
 
   const quickActions = [
-    { label: "Create Event", desc: "Schedule a new party", href: "/admin/events", icon: Calendar, gradient: "from-pink-500 to-rose-500" },
-    { label: "Manage Users", desc: "View all members", href: "/admin/users", icon: Users, gradient: "from-purple-500 to-indigo-500" },
-    { label: "Applications", desc: "Review new signups", href: "/admin/applications", icon: Target, gradient: "from-fuchsia-500 to-pink-500" },
-    { label: "Interview Slots", desc: "Manage call availability", href: "/admin/interview-slots", icon: Clock, gradient: "from-blue-500 to-cyan-500" },
-    { label: "Referrals", desc: "Track referral pipeline", href: "/admin/referrals", icon: Share2, gradient: "from-emerald-500 to-teal-500" },
-    { label: "Settings", desc: "Configure platform", href: "/admin/settings", icon: Zap, gradient: "from-violet-500 to-purple-500" },
+    { label: "Create Event", desc: "Schedule a new party", href: "/cp/ev", icon: Calendar, gradient: "from-pink-500 to-rose-500" },
+    { label: "Manage Users", desc: "View all members", href: "/cp/mb", icon: Users, gradient: "from-purple-500 to-indigo-500" },
+    { label: "Applications", desc: "Review new signups", href: "/cp/rx", icon: Target, gradient: "from-fuchsia-500 to-pink-500" },
+    { label: "Interview Slots", desc: "Manage call availability", href: "/cp/iv", icon: Clock, gradient: "from-blue-500 to-cyan-500" },
+    { label: "Referrals", desc: "Track referral pipeline", href: "/cp/rf", icon: Share2, gradient: "from-emerald-500 to-teal-500" },
+    { label: "Settings", desc: "Configure platform", href: "/cp/cfg", icon: Zap, gradient: "from-violet-500 to-purple-500" },
   ];
 
   return (
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
             <h3 className="font-display text-lg font-bold text-gray-800 flex items-center gap-2">
               <Activity className="h-5 w-5 text-pink-500" /> Pending Applications
             </h3>
-            <Link href="/admin/applications">
+            <Link href="/cp/rx">
               <span className="text-xs text-pink-500 hover:text-pink-700 font-semibold flex items-center gap-1 cursor-pointer">
                 View All <ChevronRight className="h-3 w-3" />
               </span>
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
                       <p className="text-sm font-semibold text-gray-700 truncate">{name}</p>
                       <p className="text-[10px] text-gray-400 capitalize">{phaseLabel} · {new Date(app.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <Link href="/admin/applications">
+                    <Link href="/cp/rx">
                       <span className="text-xs text-pink-500 font-semibold hover:text-pink-700 cursor-pointer whitespace-nowrap">Review →</span>
                     </Link>
                   </motion.div>
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
             </div>
           )}
           {pendingApps && pendingApps.length > 3 && (
-            <Link href="/admin/applications">
+            <Link href="/cp/rx">
               <p className="text-xs text-center text-pink-400 hover:text-pink-600 pt-4 border-t border-pink-50 mt-4 cursor-pointer font-medium">
                 +{pendingApps.length - 3} more applications → Review All
               </p>

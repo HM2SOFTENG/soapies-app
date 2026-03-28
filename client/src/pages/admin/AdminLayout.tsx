@@ -13,17 +13,17 @@ import { Button } from "@/components/ui/button";
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhpP94ZvscRd7twWNT6/soapies-logo_cf3c72b2.png";
 
 const sidebarLinks = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, color: "from-pink-400 to-rose-500" },
-  { href: "/admin/events", label: "Events", icon: Calendar, color: "from-purple-400 to-indigo-500" },
-  { href: "/admin/users", label: "Users", icon: Users, color: "from-fuchsia-400 to-pink-500" },
-  { href: "/admin/applications", label: "Applications", icon: FileText, color: "from-violet-400 to-purple-500" },
-  { href: "/admin/referrals", label: "Referrals", icon: Share2, color: "from-emerald-400 to-teal-500" },
-  { href: "/admin/interview-slots", label: "Interview Slots", icon: CalendarCheck, color: "from-blue-400 to-cyan-500" },
-  { href: "/admin/announcements", label: "Announcements", icon: Megaphone, color: "from-amber-400 to-orange-500" },
-  { href: "/admin/test-results", label: "Test Results", icon: FlaskConical, color: "from-cyan-400 to-blue-500" },
-  { href: "/admin/reservations", label: "🎟 Reservations", icon: CreditCard, color: "from-green-400 to-emerald-500" },
-  { href: "/admin/audit-logs", label: "📋 Audit Logs", icon: ScrollText, color: "from-orange-400 to-amber-500" },
-  { href: "/admin/settings", label: "Settings", icon: Settings, color: "from-rose-400 to-pink-500" },
+  { href: "/cp", label: "Dashboard", icon: LayoutDashboard, color: "from-pink-400 to-rose-500" },
+  { href: "/cp/ev", label: "Events", icon: Calendar, color: "from-purple-400 to-indigo-500" },
+  { href: "/cp/mb", label: "Users", icon: Users, color: "from-fuchsia-400 to-pink-500" },
+  { href: "/cp/rx", label: "Applications", icon: FileText, color: "from-violet-400 to-purple-500" },
+  { href: "/cp/rf", label: "Referrals", icon: Share2, color: "from-emerald-400 to-teal-500" },
+  { href: "/cp/iv", label: "Interview Slots", icon: CalendarCheck, color: "from-blue-400 to-cyan-500" },
+  { href: "/cp/an", label: "Announcements", icon: Megaphone, color: "from-amber-400 to-orange-500" },
+  { href: "/cp/tr", label: "Test Results", icon: FlaskConical, color: "from-cyan-400 to-blue-500" },
+  { href: "/cp/rs", label: "🎟 Reservations", icon: CreditCard, color: "from-green-400 to-emerald-500" },
+  { href: "/cp/al", label: "📋 Audit Logs", icon: ScrollText, color: "from-orange-400 to-amber-500" },
+  { href: "/cp/cfg", label: "Settings", icon: Settings, color: "from-rose-400 to-pink-500" },
 ];
 
 export default function AdminLayout({ children, title }: { children: React.ReactNode; title: string }) {

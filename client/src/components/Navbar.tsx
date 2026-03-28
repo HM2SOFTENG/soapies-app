@@ -42,7 +42,7 @@ function getNotificationLink(n: any): string | null {
     case "application_waitlisted":
       return "/pending";
     case "new_application":
-      return "/admin/applications";
+      return "/cp/rx";
     case "interview_scheduled":
       return "/schedule-interview";
     case "message":
@@ -358,7 +358,7 @@ export default function Navbar() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => setLocation("/admin")}
+                      onClick={() => setLocation("/cp")}
                       className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md hover:shadow-lg transition-all"
                     >
                       <Shield className="h-4 w-4" />
@@ -558,7 +558,7 @@ export default function Navbar() {
                       </motion.div>
                       {user?.role === "admin" && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-                          <Link href="/admin">
+                          <Link href="/cp">
                             <div className="flex items-center justify-between p-3.5 rounded-xl hover:bg-gray-50 transition-all">
                               <span className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md">

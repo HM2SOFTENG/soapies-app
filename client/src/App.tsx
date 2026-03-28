@@ -117,20 +117,23 @@ function Router() {
         <Route path="/c/groupies">{() => <CommunityPage communityId="groupies" />}</Route>
         <Route path="/c/gaypeez">{() => <CommunityPage communityId="gaypeez" />}</Route>
 
-        {/* Admin routes — admins skip profile check via RequireProfile logic */}
-        <Route path="/admin" component={AdminDashboard} />
-        <Route path="/admin/events" component={AdminEvents} />
-        <Route path="/admin/events/:id" component={AdminEventOps} />
-        <Route path="/admin/users" component={AdminUsers} />
-        <Route path="/admin/applications" component={AdminApplicationReview} />
-        <Route path="/admin/settings" component={AdminSettings} />
-        <Route path="/admin/referrals" component={AdminReferrals} />
-        <Route path="/admin/interview-slots" component={AdminInterviewSlots} />
-        <Route path="/admin/audit" component={AdminAudit} />
-        <Route path="/admin/audit-logs" component={AdminAuditLogs} />
-        <Route path="/admin/announcements" component={AdminAnnouncements} />
-        <Route path="/admin/reservations" component={AdminReservations} />
-        <Route path="/admin/test-results" component={AdminTestResults} />
+        {/* Admin routes — obfuscated paths, all protected by adminProcedure server-side */}
+        <Route path="/cp" component={AdminDashboard} />
+        <Route path="/cp/ev" component={AdminEvents} />
+        <Route path="/cp/ev/:id" component={AdminEventOps} />
+        <Route path="/cp/mb" component={AdminUsers} />
+        <Route path="/cp/rx" component={AdminApplicationReview} />
+        <Route path="/cp/cfg" component={AdminSettings} />
+        <Route path="/cp/rf" component={AdminReferrals} />
+        <Route path="/cp/iv" component={AdminInterviewSlots} />
+        <Route path="/cp/lg" component={AdminAudit} />
+        <Route path="/cp/al" component={AdminAuditLogs} />
+        <Route path="/cp/an" component={AdminAnnouncements} />
+        <Route path="/cp/rs" component={AdminReservations} />
+        <Route path="/cp/tr" component={AdminTestResults} />
+        {/* Legacy redirects so old bookmarks still work */}
+        <Route path="/admin">{() => { window.location.replace("/cp"); return null; }}</Route>
+        <Route path="/admin/:rest*">{() => { window.location.replace("/cp"); return null; }}</Route>
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
@@ -140,7 +143,7 @@ function Router() {
 }
 
 /** Pages where bottom tab nav should be hidden */
-const HIDE_TABS_PATHS = ["/login", "/register", "/join", "/verify-email", "/forgot-password", "/pending", "/schedule-interview", "/admin"];
+const HIDE_TABS_PATHS = ["/login", "/register", "/join", "/verify-email", "/forgot-password", "/pending", "/schedule-interview", "/admin", "/cp"];
 
 function AppShell() {
   const [location] = useWouterLocation();
