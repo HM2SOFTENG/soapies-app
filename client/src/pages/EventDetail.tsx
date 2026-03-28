@@ -288,10 +288,28 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
   const { data: settings } = trpc.settings.get.useQuery();
   const { isAuthenticated } = useAuth();
   const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const { data: myProfile } = trpc.profile.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
   const { data: creditBalance } = trpc.credits.balance.useQuery(undefined, {
     enabled: isAuthenticated,
     retry: false,
   });
+
+  // Gender-based ticket filtering
+  // Males, trans males, non-binary → single_male, volunteer, couple
+  // Women, transwomen → single_female, volunteer, couple
+  const userGender = (myProfile?.gender || "").toLowerCase().trim();
+  const isMaleGender = ["male", "man", "trans male", "transmale", "trans man", "transman", "non-binary", "nonbinary", "non binary", "enby"].includes(userGender);
+  const isFemaleGender = ["female", "woman", "trans female", "transfemale", "trans woman", "transwoman", "transgender woman"].includes(userGender);
+  // If gender is unknown/unset, show all tickets (don't block purchase)
+  const genderKnown = isMaleGender || isFemaleGender;
+
+  const allowedTicketIds = genderKnown
+    ? isMaleGender
+      ? ["single_male", "volunteer", "couple"]
+      : ["single_female", "volunteer", "couple"]
+    : ["single_female", "single_male", "couple", "volunteer"]; // all if unknown
+
+  const availableTicketTypes = TICKET_TYPES.filter(t => allowedTicketIds.includes(t.id));
   const { data: partnerResults } = trpc.profile.search.useQuery(
     { query: partnerSearch },
     { enabled: partnerSearch.length >= 2 }
@@ -370,7 +388,7 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         <p className="text-gray-500 text-sm mb-6">Select the ticket type that applies to you</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {TICKET_TYPES.map((ticket) => {
+          {availableTicketTypes.map((ticket) => {
             const price = getTicketPrice(ticket.id);
             return (
               <motion.button

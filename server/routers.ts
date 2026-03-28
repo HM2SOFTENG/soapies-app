@@ -451,6 +451,23 @@ export const appRouter = router({
       if (ctx.user.role !== 'admin' && (!reservingProfile || reservingProfile.applicationStatus !== 'approved')) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be an approved member to reserve tickets.' });
       }
+
+      // Gender-based ticket enforcement (skip for admins and when gender is not set)
+      if (ctx.user.role !== 'admin' && input.ticketType && reservingProfile?.gender) {
+        const gender = reservingProfile.gender.toLowerCase().trim();
+        const maleGenders = ["male", "man", "trans male", "transmale", "trans man", "transman", "non-binary", "nonbinary", "non binary", "enby"];
+        const femaleGenders = ["female", "woman", "trans female", "transfemale", "trans woman", "transwoman", "transgender woman"];
+        const isMale = maleGenders.includes(gender);
+        const isFemale = femaleGenders.includes(gender);
+
+        if (isMale && input.ticketType === "single_female") {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'This ticket type is not available for your gender. Please select Single Man, Volunteer, or Couple.' });
+        }
+        if (isFemale && input.ticketType === "single_male") {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'This ticket type is not available for your gender. Please select Single Woman, Volunteer, or Couple.' });
+        }
+      }
+
       // Check for duplicate reservation
       const existingRes = await db.getReservationsByUser(ctx.user.id);
       const alreadyReserved = existingRes.some((r: any) => r.eventId === input.eventId && r.status !== 'cancelled');
