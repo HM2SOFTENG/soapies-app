@@ -559,6 +559,132 @@ function CreditsReferralSection() {
   );
 }
 
+// ─── MY REFERRAL TRACKER ──────────────────────────────────────────────────
+function MyReferralTracker() {
+  const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
+  const { data: myCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const { data: myReferrals, isLoading } = trpc.referrals.myReferrals.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const generate = trpc.referrals.generate.useMutation({
+    onSuccess: () => { utils.referrals.myCode.invalidate(); toast.success("Referral code generated!"); },
+  });
+
+  const copyCode = () => {
+    if (myCode?.code) {
+      navigator.clipboard.writeText(myCode.code);
+      toast.success("Code copied!");
+    }
+  };
+
+  const shareLink = () => {
+    const link = `${window.location.origin}/join?ref=${myCode?.code}`;
+    if (navigator.share) {
+      navigator.share({ title: "Join Soapies!", url: link });
+    } else {
+      navigator.clipboard.writeText(link);
+      toast.success("Link copied!");
+    }
+  };
+
+  const STEPS = ["Joined", "Applied", "Interview", "Approved", "Credit ✓"];
+
+  function getStep(row: any): number {
+    if (row.referralConverted) return 4;
+    const status = row.applicationStatus as string;
+    const phase = row.applicationPhase as string | null;
+    if (status === "approved" || phase === "final_approved") return 3;
+    if (phase === "interview_scheduled" || phase === "interview_complete") return 2;
+    if (status === "submitted" || status === "under_review") return 1;
+    if (row.userCreatedAt) return 0;
+    return -1;
+  }
+
+  const creditsEarned = myReferrals?.filter((r: any) => r.referralConverted).length ?? 0;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+      className="glass-strong rounded-2xl border border-pink-100/50 overflow-hidden">
+      <div className="p-5 border-b border-pink-50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 shadow-md">
+            <Gift className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-display font-bold text-gray-800">My Referrals</h3>
+            <p className="text-xs text-gray-400">{myReferrals?.length ?? 0} referred · {creditsEarned} credits earned</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Code section */}
+        {myCode?.code ? (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 border border-pink-100">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-pink-500 uppercase mb-0.5">Your Code</p>
+              <p className="font-mono text-lg font-black text-pink-700">{myCode.code}</p>
+            </div>
+            <button onClick={copyCode} className="p-2 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-600 transition-colors flex-shrink-0">
+              <Copy className="h-4 w-4" />
+            </button>
+            <button onClick={shareLink} className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold flex-shrink-0">
+              Share
+            </button>
+          </div>
+        ) : (
+          <Button onClick={() => generate.mutate()} disabled={generate.isPending}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2">
+            {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+            Generate My Code
+          </Button>
+        )}
+
+        {/* Referred users */}
+        {isLoading ? (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-pink-300" /></div>
+        ) : !myReferrals || myReferrals.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-400">No referrals yet.</p>
+            <p className="text-xs text-gray-300 mt-1">Share your code and earn credits when they get approved!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(myReferrals as any[]).map((row: any, i: number) => {
+              const step = getStep(row);
+              return (
+                <div key={row.referredProfileId} className={`p-3 rounded-xl border ${row.referralConverted ? "bg-emerald-50 border-emerald-100" : "bg-gray-50 border-gray-100"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-semibold text-sm text-gray-800">{row.referredDisplayName ?? "Member"}</p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.referralConverted ? "bg-emerald-200 text-emerald-800" : "bg-gray-200 text-gray-600"}`}>
+                      {row.referralConverted ? "💰 Credit Earned" : STEPS[Math.max(step, 0)]}
+                    </span>
+                  </div>
+                  {/* Mini progress bar */}
+                  <div className="flex gap-1 items-center">
+                    {STEPS.map((label, si) => (
+                      <div key={si} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${si <= step ? "bg-pink-500 text-white" : "bg-gray-200 text-gray-400"}`}>
+                          {si <= step ? "✓" : si + 1}
+                        </div>
+                        {si < STEPS.length - 1 && <div className={`h-0.5 w-full ${si < step ? "bg-pink-400" : "bg-gray-200"}`} />}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-1 mt-0.5">
+                    {STEPS.map((label, si) => (
+                      <p key={si} className={`flex-1 text-[8px] text-center ${si <= step ? "text-pink-500" : "text-gray-300"}`}>{label}</p>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── QUICK LINKS GRID ──────────────────────────────────────────────────────
 function QuickLinksGrid() {
   const links = [
@@ -687,6 +813,11 @@ export default function Dashboard() {
         {/* Credits & Referral */}
         <div className="mb-8">
           <CreditsReferralSection />
+        </div>
+
+        {/* Referral Tracker */}
+        <div className="mb-8">
+          <MyReferralTracker />
         </div>
 
         {/* Quick Links */}

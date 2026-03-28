@@ -972,6 +972,10 @@ export const appRouter = router({
     adminList: adminProcedure.query(async () => {
       return db.getReferralPipeline();
     }),
+    myReferrals: protectedProcedure.query(async ({ ctx }) => {
+      const pipeline = await db.getReferralPipeline();
+      return (pipeline as any[]).filter((r: any) => r.referredByUserId === ctx.user.id);
+    }),
   }),
 
   // ─── APP SETTINGS (public) ───────────────────────────────────────────────

@@ -771,8 +771,12 @@ export async function getReferralPipeline() {
       referralConvertedAt: profiles.referralConvertedAt,
       referredByCode: profiles.referredByCode,
       referredByUserId: profiles.referredByUserId,
+      applicationStatus: profiles.applicationStatus,
+      applicationPhase: profiles.applicationPhase,
+      userCreatedAt: users.createdAt,
     })
     .from(profiles)
+    .leftJoin(users, eq(profiles.userId, users.id))
     .where(sql`${profiles.referredByCode} IS NOT NULL`);
 
   // For each referred member, get the referrer's display name and code stats
