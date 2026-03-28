@@ -695,8 +695,13 @@ export async function createGroup(data: any) {
 
 export async function getReferralCode(userId: number) {
   const db = await getDb(); if (!db) return null;
-  const r = await db.select().from(referralCodes).where(eq(referralCodes.userId, userId)).limit(1);
+  const r = await db.select().from(referralCodes).where(eq(referralCodes.userId, userId)).orderBy(desc(referralCodes.createdAt)).limit(1);
   return r[0] ?? null;
+}
+
+export async function getReferralCodes(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  return db.select().from(referralCodes).where(eq(referralCodes.userId, userId)).orderBy(desc(referralCodes.createdAt));
 }
 
 export async function createReferralCode(data: any) {

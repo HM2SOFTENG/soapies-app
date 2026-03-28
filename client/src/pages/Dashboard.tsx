@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, Ticket, Bell, CreditCard, Gift, Star, ChevronRight,
   Loader2, Check, Clock, Sparkles, Heart, MessageCircle, Users,
-  ArrowUpRight, Copy, PartyPopper, Zap, TrendingUp, Shield, Share2
+  ArrowUpRight, Copy, PartyPopper, Zap, TrendingUp, Shield
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -406,7 +406,7 @@ function NotificationsSection() {
   );
 }
 
-// ─── CREDITS & REFERRAL SECTION ────────────────────────────────────────────
+// ─── CREDITS SECTION ───────────────────────────────────────────────────────
 function CreditsReferralSection() {
   const { isAuthenticated } = useAuth();
   const { data: balance } = trpc.credits.balance.useQuery(undefined, {
@@ -415,113 +415,34 @@ function CreditsReferralSection() {
   const { data: creditHistory } = trpc.credits.history.useQuery(undefined, {
     retry: false, refetchOnWindowFocus: false, staleTime: 30_000, enabled: isAuthenticated,
   });
-  const utils = trpc.useUtils();
-  const { data: referral } = trpc.referrals.myCode.useQuery(undefined, {
-    retry: false, refetchOnWindowFocus: false, staleTime: 60_000, enabled: isAuthenticated,
-  });
-  const generate = trpc.referrals.generate.useMutation({
-    onSuccess: () => {
-      toast.success("Referral code generated!");
-      utils.referrals.myCode.invalidate();
-    },
-  });
-
-  const copyCode = () => {
-    if (referral?.code) {
-      navigator.clipboard.writeText(referral.code);
-      toast.success("Code copied to clipboard!");
-    }
-  };
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Credits Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          whileHover={{ y: -4 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-purple-600 p-6 shadow-xl"
-        >
-          <FloatingBubbles count={4} />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
-                <CreditCard className="h-5 w-5 text-white" />
-              </div>
-              <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
-                <Star className="h-5 w-5 text-yellow-300" />
-              </motion.div>
-            </div>
-            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Credit Balance</p>
-            <div className="font-display text-4xl font-black text-white">
-              <AnimatedNumber value={balance ?? 0} />
-            </div>
-            <p className="text-white/50 text-xs mt-2">Earn credits through referrals & events</p>
-          </div>
-        </motion.div>
-
-        {/* Referral Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          whileHover={{ y: -4 }}
-          className="glass-strong rounded-2xl border border-pink-100/50 p-6"
-        >
+      {/* Credits Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        whileHover={{ y: -4 }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 via-fuchsia-500 to-purple-600 p-6 shadow-xl"
+      >
+        <FloatingBubbles count={4} />
+        <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 shadow-md">
-              <Gift className="h-5 w-5 text-white" />
+            <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
+              <CreditCard className="h-5 w-5 text-white" />
             </div>
-            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-              <TrendingUp className="h-4 w-4 text-pink-400" />
+            <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}>
+              <Star className="h-5 w-5 text-yellow-300" />
             </motion.div>
           </div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Referral Code</p>
-          {referral?.code ? (
-            <>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                onClick={copyCode}
-                className="flex items-center gap-2 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl px-4 py-3 mt-2 cursor-pointer border border-pink-100 group"
-              >
-                <span className="font-mono text-lg font-black text-pink-600 flex-1">{referral.code}</span>
-                <Copy className="h-4 w-4 text-pink-400 group-hover:text-pink-600 transition-colors" />
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                onClick={() => {
-                  const referralLink = `${window.location.origin}/join?ref=${referral.code}`;
-                  if (navigator.share) {
-                    navigator.share({ title: "Join Soapies!", text: "Join me on Soapies Playgroup!", url: referralLink });
-                  } else {
-                    navigator.clipboard.writeText(referralLink);
-                    toast.success("Referral link copied!");
-                  }
-                }}
-                className="flex items-center gap-2 bg-pink-50 rounded-xl px-4 py-2.5 mt-2 cursor-pointer border border-pink-100 group hover:bg-pink-100 transition"
-              >
-                <Share2 className="h-4 w-4 text-pink-500" />
-                <span className="text-xs font-semibold text-pink-600 flex-1">Share referral link</span>
-                <Copy className="h-3.5 w-3.5 text-pink-400" />
-              </motion.div>
-              <p className="text-[11px] text-gray-400 mt-2">Share with friends to earn credits</p>
-            </>
-          ) : (
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={() => generate.mutate()}
-                disabled={generate.isPending}
-                className="w-full mt-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 shadow-lg"
-              >
-                {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Generate My Code
-              </Button>
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
+          <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Credit Balance</p>
+          <div className="font-display text-4xl font-black text-white">
+            <AnimatedNumber value={balance ?? 0} />
+          </div>
+          <p className="text-white/50 text-xs mt-2">Earn credits through referrals & events</p>
+        </div>
+      </motion.div>
 
       {/* Credit History */}
       {creditHistory && creditHistory.length > 0 && (
@@ -563,21 +484,25 @@ function CreditsReferralSection() {
 function MyReferralTracker() {
   const { isAuthenticated } = useAuth();
   const utils = trpc.useUtils();
-  const { data: myCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: isAuthenticated, retry: false });
-  const { data: myReferrals, isLoading } = trpc.referrals.myReferrals.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const { data: myCodes, isLoading: codesLoading } = trpc.referrals.myCodes.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const { data: myReferrals, isLoading: referralsLoading } = trpc.referrals.myReferrals.useQuery(undefined, { enabled: isAuthenticated, retry: false });
   const generate = trpc.referrals.generate.useMutation({
-    onSuccess: () => { utils.referrals.myCode.invalidate(); toast.success("Referral code generated!"); },
+    onSuccess: () => {
+      utils.referrals.myCodes.invalidate();
+      utils.referrals.myCode.invalidate();
+      toast.success("New referral code created!");
+    },
   });
 
-  const copyCode = () => {
-    if (myCode?.code) {
-      navigator.clipboard.writeText(myCode.code);
-      toast.success("Code copied!");
-    }
+  const [expandedCode, setExpandedCode] = useState<string | null>(null);
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success("Code copied!");
   };
 
-  const shareLink = () => {
-    const link = `${window.location.origin}/join?ref=${myCode?.code}`;
+  const shareLink = (code: string) => {
+    const link = `${window.location.origin}/join?ref=${code}`;
     if (navigator.share) {
       navigator.share({ title: "Join Soapies!", url: link });
     } else {
@@ -600,10 +525,21 @@ function MyReferralTracker() {
   }
 
   const creditsEarned = myReferrals?.filter((r: any) => r.referralConverted).length ?? 0;
+  const hasCodes = myCodes && myCodes.length > 0;
+
+  // Group referrals by which code they used
+  const referralsByCode = (myReferrals as any[] | undefined)?.reduce((acc: Record<string, any[]>, r: any) => {
+    const key = r.referredByCode ?? "unknown";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {}) ?? {};
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
       className="glass-strong rounded-2xl border border-pink-100/50 overflow-hidden">
+
+      {/* Header */}
       <div className="p-5 border-b border-pink-50 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 shadow-md">
@@ -611,55 +547,162 @@ function MyReferralTracker() {
           </div>
           <div>
             <h3 className="font-display font-bold text-gray-800">My Referrals</h3>
-            <p className="text-xs text-gray-400">{myReferrals?.length ?? 0} referred · {creditsEarned} credits earned</p>
+            <p className="text-xs text-gray-400">
+              {myReferrals?.length ?? 0} referred · {creditsEarned} credits earned · {myCodes?.length ?? 0} code{(myCodes?.length ?? 0) !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
+        {/* Create New Code button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => generate.mutate()}
+          disabled={generate.isPending}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md disabled:opacity-60"
+        >
+          {generate.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          New Code
+        </motion.button>
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Code section */}
-        {myCode?.code ? (
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 border border-pink-100">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-pink-500 uppercase mb-0.5">Your Code</p>
-              <p className="font-mono text-lg font-black text-pink-700">{myCode.code}</p>
-            </div>
-            <button onClick={copyCode} className="p-2 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-600 transition-colors flex-shrink-0">
-              <Copy className="h-4 w-4" />
-            </button>
-            <button onClick={shareLink} className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold flex-shrink-0">
-              Share
-            </button>
+        {/* No codes yet */}
+        {!hasCodes && !codesLoading && (
+          <div className="text-center py-6">
+            <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}
+              className="inline-flex w-14 h-14 rounded-2xl bg-pink-50 items-center justify-center mb-3">
+              <Gift className="h-7 w-7 text-pink-300" />
+            </motion.div>
+            <p className="text-sm font-medium text-gray-500 mb-1">No referral codes yet</p>
+            <p className="text-xs text-gray-400 mb-4">Create a code and share it to earn credits when friends get approved!</p>
+            <Button onClick={() => generate.mutate()} disabled={generate.isPending}
+              className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 text-sm">
+              {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Create My First Code
+            </Button>
           </div>
-        ) : (
-          <Button onClick={() => generate.mutate()} disabled={generate.isPending}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2">
-            {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
-            Generate My Code
-          </Button>
         )}
 
-        {/* Referred users */}
-        {isLoading ? (
-          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-pink-300" /></div>
-        ) : !myReferrals || myReferrals.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-sm text-gray-400">No referrals yet.</p>
-            <p className="text-xs text-gray-300 mt-1">Share your code and earn credits when they get approved!</p>
-          </div>
-        ) : (
+        {/* Codes list */}
+        {hasCodes && (
           <div className="space-y-3">
-            {(myReferrals as any[]).map((row: any, i: number) => {
+            {(myCodes as any[]).map((codeObj: any, ci: number) => {
+              const codeReferrals = referralsByCode[codeObj.code] ?? [];
+              const isExpanded = expandedCode === codeObj.code;
+
+              return (
+                <motion.div
+                  key={codeObj.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: ci * 0.05 }}
+                  className="rounded-xl border border-pink-100 overflow-hidden"
+                >
+                  {/* Code row */}
+                  <div className="flex items-center gap-3 p-3 bg-pink-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-pink-500 uppercase mb-0.5">Code {ci + 1}</p>
+                      <p className="font-mono text-lg font-black text-pink-700">{codeObj.code}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => copyCode(codeObj.code)}
+                        className="p-2 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-600 transition-colors"
+                        title="Copy code"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => shareLink(codeObj.code)}
+                        className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold"
+                        title="Share referral link"
+                      >
+                        Share
+                      </button>
+                      {codeReferrals.length > 0 && (
+                        <button
+                          onClick={() => setExpandedCode(isExpanded ? null : codeObj.code)}
+                          className="px-2 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold transition-colors"
+                          title="View referrals"
+                        >
+                          {codeReferrals.length} 👤 {isExpanded ? "▲" : "▼"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats bar */}
+                  <div className="flex gap-4 px-4 py-2 bg-white border-t border-pink-50 text-[10px] font-semibold text-gray-400">
+                    <span>{codeObj.totalReferrals ?? codeReferrals.length} referred</span>
+                    <span>·</span>
+                    <span>{codeReferrals.filter((r: any) => r.referralConverted).length} converted</span>
+                  </div>
+
+                  {/* Expanded referrals for this code */}
+                  <AnimatePresence>
+                    {isExpanded && codeReferrals.length > 0 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 space-y-2 bg-gray-50 border-t border-pink-50">
+                          {codeReferrals.map((row: any) => {
+                            const step = getStep(row);
+                            return (
+                              <div key={row.referredProfileId}
+                                className={`p-3 rounded-xl border ${row.referralConverted ? "bg-emerald-50 border-emerald-100" : "bg-white border-gray-100"}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="font-semibold text-sm text-gray-800">{row.referredDisplayName ?? "Member"}</p>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.referralConverted ? "bg-emerald-200 text-emerald-800" : "bg-gray-200 text-gray-600"}`}>
+                                    {row.referralConverted ? "💰 Credit Earned" : STEPS[Math.max(step, 0)]}
+                                  </span>
+                                </div>
+                                {/* Progress steps */}
+                                <div className="flex gap-1 items-center">
+                                  {STEPS.map((label, si) => (
+                                    <div key={si} className="flex-1 flex flex-col items-center gap-0.5">
+                                      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${si <= step ? "bg-pink-500 text-white" : "bg-gray-200 text-gray-400"}`}>
+                                        {si <= step ? "✓" : si + 1}
+                                      </div>
+                                      {si < STEPS.length - 1 && <div className={`h-0.5 w-full ${si < step ? "bg-pink-400" : "bg-gray-200"}`} />}
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex gap-1 mt-0.5">
+                                  {STEPS.map((label, si) => (
+                                    <p key={si} className={`flex-1 text-[8px] text-center ${si <= step ? "text-pink-500" : "text-gray-300"}`}>{label}</p>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Referrals not tied to any specific code (fallback list) */}
+        {!referralsLoading && myReferrals && myReferrals.length > 0 && !hasCodes && (
+          <div className="space-y-3">
+            {(myReferrals as any[]).map((row: any) => {
               const step = getStep(row);
               return (
-                <div key={row.referredProfileId} className={`p-3 rounded-xl border ${row.referralConverted ? "bg-emerald-50 border-emerald-100" : "bg-gray-50 border-gray-100"}`}>
+                <div key={row.referredProfileId}
+                  className={`p-3 rounded-xl border ${row.referralConverted ? "bg-emerald-50 border-emerald-100" : "bg-gray-50 border-gray-100"}`}>
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm text-gray-800">{row.referredDisplayName ?? "Member"}</p>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.referralConverted ? "bg-emerald-200 text-emerald-800" : "bg-gray-200 text-gray-600"}`}>
                       {row.referralConverted ? "💰 Credit Earned" : STEPS[Math.max(step, 0)]}
                     </span>
                   </div>
-                  {/* Mini progress bar */}
                   <div className="flex gap-1 items-center">
                     {STEPS.map((label, si) => (
                       <div key={si} className="flex-1 flex flex-col items-center gap-0.5">
@@ -679,6 +722,10 @@ function MyReferralTracker() {
               );
             })}
           </div>
+        )}
+
+        {referralsLoading && (
+          <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-pink-300" /></div>
         )}
       </div>
     </motion.div>

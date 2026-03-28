@@ -952,10 +952,13 @@ export const appRouter = router({
     myCode: protectedProcedure.query(async ({ ctx }) => {
       return db.getReferralCode(ctx.user.id);
     }),
+    myCodes: protectedProcedure.query(async ({ ctx }) => {
+      return db.getReferralCodes(ctx.user.id);
+    }),
     generate: protectedProcedure.mutation(async ({ ctx }) => {
-      const existing = await db.getReferralCode(ctx.user.id);
-      if (existing) return existing;
-      const code = `SOAP${ctx.user.id}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      // Always create a new code so users can refer multiple people with different codes
+      const suffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const code = `SOAP${suffix}`;
       await db.createReferralCode({ userId: ctx.user.id, code });
       return db.getReferralCode(ctx.user.id);
     }),
