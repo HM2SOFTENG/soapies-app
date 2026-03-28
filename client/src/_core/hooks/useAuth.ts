@@ -28,17 +28,12 @@ export function useAuth(options?: UseAuthOptions) {
   const logout = useCallback(async () => {
     try {
       await logoutMutation.mutateAsync();
-    } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        return;
-      }
-      throw error;
+    } catch {
+      // Ignore all logout errors — the server call is best-effort.
+      // We always clear the client session below regardless.
     } finally {
       utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
+      try { await utils.auth.me.invalidate(); } catch { /* ignore */ }
     }
   }, [logoutMutation, utils]);
 
