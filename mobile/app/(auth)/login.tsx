@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import {
   View,
   Text,
@@ -13,7 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
-import { trpc, SESSION_COOKIE_KEY } from '../../lib/trpc';
+import { trpc, saveToken } from '../../lib/trpc';
 import { queryClient } from '../_layout';
 import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
@@ -33,9 +32,9 @@ export default function LoginScreen() {
         return;
       }
 
-      // 1. Store token FIRST — before anything else
-      await SecureStore.setItemAsync(SESSION_COOKIE_KEY, data.sessionToken);
-      console.log('[Login] ✅ token stored, length:', data.sessionToken.length);
+      // 1. Save token to memory + SecureStore (memory is instant, no async latency)
+      await saveToken(data.sessionToken);
+      console.log('[Login] ✅ token saved, length:', data.sessionToken.length);
 
       // 2. Set user in auth context — AuthGuard uses this to allow navigation
       if (data?.user) setUser(data.user);

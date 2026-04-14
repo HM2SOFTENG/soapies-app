@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { SESSION_COOKIE_KEY } from './trpc';
+import { loadTokenFromStorage, clearToken, getMemoryToken, SESSION_COOKIE_KEY } from './trpc';
 
 type User = {
   id: number;
@@ -47,15 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const token = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
+        const token = await loadTokenFromStorage();
         if (token && !isValidJWT(token)) {
-          // Malformed token — clear it before any tRPC request fires
           console.log('[Auth] Clearing malformed token, length:', token.length);
-          await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
-          // Also clear ALL other possible stale keys
-          await SecureStore.deleteItemAsync('app_session_id').catch(() => {});
-          await SecureStore.deleteItemAsync('session_token').catch(() => {});
-          await SecureStore.deleteItemAsync('sessionToken').catch(() => {});
+          await clearToken();
         } else if (token) {
           console.log('[Auth] Valid token on mount, length:', token.length);
         } else {
@@ -74,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
-    await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY).catch(() => {});
+    await clearToken();
     setUserState(null);
     try {
       const { queryClient } = await import('../app/_layout');
