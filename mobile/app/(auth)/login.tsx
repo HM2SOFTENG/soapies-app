@@ -19,7 +19,7 @@ import { colors } from '../../lib/colors';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { setUser, setHasToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -32,14 +32,16 @@ export default function LoginScreen() {
         return;
       }
 
-      // 1. Save token to memory + SecureStore (memory is instant, no async latency)
+      // 1. Save token to memory + SecureStore
       await saveToken(data.sessionToken);
-      console.log('[Login] ✅ token saved, length:', data.sessionToken.length);
 
-      // 2. Set user in auth context — AuthGuard uses this to allow navigation
+      // 2. Mark token as available — this triggers re-render of all enabled:hasToken queries
+      setHasToken(true);
+
+      // 3. Set user in auth context
       if (data?.user) setUser(data.user);
 
-      // 3. Navigate
+      // 4. Navigate
       router.replace('/(tabs)');
     },
     onError: (err) => {

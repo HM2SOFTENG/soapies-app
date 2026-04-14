@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { trpc, getMemoryToken } from '../../lib/trpc';
+import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../lib/auth';
@@ -32,7 +32,7 @@ export default function ProfileScreen() {
   const { logout, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const router = useRouter();
-  const hasToken = !!getMemoryToken();
+  const { hasToken } = useAuth();
   const { data: me, isLoading, error: meError, fetchStatus: meFetchStatus } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const { data: profileData, error: profileError } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const { data: creditsData } = trpc.credits.balance.useQuery(undefined, { enabled: hasToken });

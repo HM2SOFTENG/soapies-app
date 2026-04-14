@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { loadTokenFromStorage, clearToken, getMemoryToken, SESSION_COOKIE_KEY } from './trpc';
+import { loadTokenFromStorage, clearToken, SESSION_COOKIE_KEY } from './trpc';
 
 type User = {
   id: number;
@@ -16,14 +16,18 @@ type User = {
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
+  hasToken: boolean;           // reactive — triggers re-render when token changes
   setUser: (user: User | null) => void;
+  setHasToken: (val: boolean) => void;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
+  hasToken: false,
   setUser: () => {},
+  setHasToken: () => {},
   logout: async () => {},
 });
 
@@ -31,8 +35,6 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-// Validate token synchronously before anything else loads
-// A valid JWT has exactly 3 dot-separated parts and is < 300 chars
 function isValidJWT(token: string | null): boolean {
   if (!token) return false;
   const parts = token.split('.');
@@ -42,6 +44,7 @@ function isValidJWT(token: string | null): boolean {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -50,10 +53,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token && !isValidJWT(token)) {
           console.log('[Auth] Clearing malformed token, length:', token.length);
           await clearToken();
+          setHasToken(false);
         } else if (token) {
           console.log('[Auth] Valid token on mount, length:', token.length);
+          setHasToken(true);
         } else {
           console.log('[Auth] No token on mount');
+          setHasToken(false);
         }
       } catch (e) {
         console.warn('[Auth] mount check error:', e);
@@ -70,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     await clearToken();
     setUserState(null);
+    setHasToken(false);         // triggers re-render — disables all queries immediately
     try {
       const { queryClient } = await import('../app/_layout');
       queryClient.clear();
@@ -79,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, setUser, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, hasToken, setUser, setHasToken, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -21,7 +21,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { trpc, getMemoryToken } from '../../lib/trpc';
+import { trpc } from '../../lib/trpc';
+import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
 import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
@@ -473,7 +474,7 @@ export default function HomeScreen() {
   const [commentsPost, setCommentsPost] = useState<{ id: number; authorId?: number } | null>(null);
 
   // ── Data ────────────────────────────────────────────────────────────────────
-  const hasToken = !!getMemoryToken();
+  const { hasToken } = useAuth();
 
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const me = meData as any;

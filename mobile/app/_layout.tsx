@@ -21,7 +21,7 @@ export const queryClient = new QueryClient({
 const trpcClient = createTRPCClient();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoading, user, setUser, logout } = useAuth();
+  const { isLoading, user, setUser, logout, setHasToken } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const didValidateRef = useRef(false);
@@ -42,6 +42,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (meQuery.data && !user) {
       console.log('[AuthGuard] cold start user:', (meQuery.data as any).email);
       setUser(meQuery.data as any);
+      setHasToken(true);  // ensure queries are enabled after cold-start validation
     }
   }, [meQuery.data]);
 
