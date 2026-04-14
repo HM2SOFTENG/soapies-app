@@ -38,11 +38,6 @@ export default function ProfileScreen() {
   const { data: creditsData } = trpc.credits.balance.useQuery(undefined, { enabled: hasToken });
   const { data: referralCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: hasToken });
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[Profile] auth.me =>', JSON.stringify(me), '| error:', meError?.message, '| fetchStatus:', meFetchStatus);
-    console.log('[Profile] profile.me =>', JSON.stringify(profileData), '| error:', profileError?.message);
-  }, [me, profileData, meError, profileError, meFetchStatus]);
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: async () => {
       console.log('[Profile] logout success, clearing session');
