@@ -74,7 +74,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, segments]);
 
-  if (isLoading) return null;
+  // Don't render until token is loaded into memory
+  if (isLoading) {
+    return null;
+  }
 
   return <>{children}</>;
 }

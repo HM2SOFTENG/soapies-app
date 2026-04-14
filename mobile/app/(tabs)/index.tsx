@@ -21,7 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { trpc } from '../../lib/trpc';
+import { trpc, getMemoryToken } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
@@ -473,10 +473,12 @@ export default function HomeScreen() {
   const [commentsPost, setCommentsPost] = useState<{ id: number; authorId?: number } | null>(null);
 
   // ── Data ────────────────────────────────────────────────────────────────────
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 0 });
+  const hasToken = !!getMemoryToken();
+
+  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const me = meData as any;
 
-  const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0 });
+  const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const profile = profileData as any;
 
   const {
@@ -485,15 +487,15 @@ export default function HomeScreen() {
     refetch: refetchPosts,
   } = trpc.wall.posts.useQuery(
     { communityId: 'soapies', limit: 50 },
-    { staleTime: 30_000, refetchOnWindowFocus: false, refetchInterval: 60_000 },
+    { staleTime: 30_000, refetchOnWindowFocus: false, refetchInterval: 60_000, enabled: hasToken },
   );
 
-  const { data: announcementsRaw } = trpc.announcements.active.useQuery(undefined, { staleTime: 60_000 });
+  const { data: announcementsRaw } = trpc.announcements.active.useQuery(undefined, { staleTime: 60_000, enabled: hasToken });
   const dismissAnnouncement = trpc.announcements.dismiss.useMutation();
 
   const { data: eventsRaw } = trpc.events.list.useQuery({ communityId: 'soapies' }, { staleTime: 120_000 });
 
-  const myLikes = trpc.wall.myLikes.useQuery(undefined, { staleTime: 30_000, refetchOnWindowFocus: false });
+  const myLikes = trpc.wall.myLikes.useQuery(undefined, { staleTime: 30_000, refetchOnWindowFocus: false, enabled: hasToken });
 
   const utils = trpc.useUtils();
 
