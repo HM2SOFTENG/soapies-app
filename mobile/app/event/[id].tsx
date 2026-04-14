@@ -30,6 +30,7 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const utils = trpc.useUtils();
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [ticketType, setTicketType] = useState<TicketType>('single_female');
 
@@ -51,9 +52,11 @@ export default function EventDetailScreen() {
   const reserveMutation = trpc.reservations.create.useMutation({
     onSuccess: () => {
       setShowTicketModal(false);
-      Alert.alert('🎉 Reserved!', 'Your spot is confirmed. Check your tickets.', [
+      utils.reservations.myTickets.invalidate();
+      utils.reservations.myReservations.invalidate();
+      Alert.alert('🎉 Reserved!', 'Your spot is reserved. Check your tickets for payment details.', [
         { text: 'View Tickets', onPress: () => router.push('/tickets' as any) },
-        { text: 'OK' },
+        { text: 'Stay Here', style: 'cancel' },
       ]);
     },
     onError: (e) => {

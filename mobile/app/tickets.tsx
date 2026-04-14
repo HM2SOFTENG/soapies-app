@@ -95,8 +95,8 @@ function TicketCard({
           {title}
         </Text>
 
-        {/* Date and ticket type */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 }}>
+        {/* Date, ticket type, and venue */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <Ionicons name="calendar-outline" size={14} color={colors.muted} />
             <Text style={{ color: colors.muted, fontSize: 13 }}>{dateStr}</Text>
@@ -110,6 +110,14 @@ function TicketCard({
             </View>
           )}
         </View>
+        {(ticket.eventVenue || ticket.event?.venue) && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 }}>
+            <Ionicons name="location-outline" size={14} color={colors.muted} />
+            <Text style={{ color: colors.muted, fontSize: 13 }}>
+              {ticket.eventVenue ?? ticket.event?.venue}
+            </Text>
+          </View>
+        )}
 
         {/* Status badges */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
@@ -240,6 +248,8 @@ export default function TicketsScreen() {
   });
 
   const tickets = (data as any[]) ?? [];
+  const pendingTickets = tickets.filter((t: any) => t.paymentStatus === 'pending' && t.status !== 'cancelled');
+  const confirmedTickets = tickets.filter((t: any) => !(t.paymentStatus === 'pending' && t.status !== 'cancelled'));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -314,15 +324,56 @@ export default function TicketsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            tickets.map((ticket: any) => (
-              <TicketCard
-                key={ticket.id}
-                ticket={ticket}
-                onViewQR={handleViewQR}
-                onPayNow={handlePayNow}
-                payingId={payingId}
-              />
-            ))
+            <>
+              {pendingTickets.length > 0 && (
+                <>
+                  <View style={{
+                    marginHorizontal: 16,
+                    marginBottom: 12,
+                    padding: 14,
+                    backgroundColor: `${colors.pink}15`,
+                    borderRadius: 12,
+                    borderColor: `${colors.pink}33`,
+                    borderWidth: 1,
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <Ionicons name="time-outline" size={16} color={colors.pink} />
+                      <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 14 }}>Payment Pending</Text>
+                    </View>
+                    <Text style={{ color: colors.muted, fontSize: 13 }}>
+                      Complete payment to confirm your spot. Tap "Pay Now" on any pending reservation.
+                    </Text>
+                  </View>
+                  {pendingTickets.map((ticket: any) => (
+                    <TicketCard
+                      key={ticket.id}
+                      ticket={ticket}
+                      onViewQR={handleViewQR}
+                      onPayNow={handlePayNow}
+                      payingId={payingId}
+                    />
+                  ))}
+                </>
+              )}
+              {confirmedTickets.length > 0 && (
+                <>
+                  {pendingTickets.length > 0 && (
+                    <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginHorizontal: 16, marginBottom: 10, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      Confirmed
+                    </Text>
+                  )}
+                  {confirmedTickets.map((ticket: any) => (
+                    <TicketCard
+                      key={ticket.id}
+                      ticket={ticket}
+                      onViewQR={handleViewQR}
+                      onPayNow={handlePayNow}
+                      payingId={payingId}
+                    />
+                  ))}
+                </>
+              )}
+            </>
           )}
         </ScrollView>
       )}

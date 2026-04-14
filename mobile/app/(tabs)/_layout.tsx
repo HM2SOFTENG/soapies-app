@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, Text } from 'react-native';
 import { colors } from '../../lib/colors';
 import { trpc } from '../../lib/trpc';
+import { useAuth } from '../../lib/auth';
 
 function BadgeIcon({ name, color, size, badge }: { name: any; color: string; size: number; badge?: number }) {
   return (
@@ -32,7 +33,32 @@ function BadgeIcon({ name, color, size, badge }: { name: any; color: string; siz
   );
 }
 
+function AdminBadgeIcon({ name, color, size }: { name: any; color: string; size: number }) {
+  return (
+    <View style={{ width: size + 8, height: size + 8, justifyContent: 'center', alignItems: 'center' }}>
+      <Ionicons name={name} size={size} color={color} />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          backgroundColor: colors.purple,
+          borderRadius: 6,
+          width: 12,
+          height: 12,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Ionicons name="shield-checkmark" size={7} color="#fff" />
+      </View>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const { data: unreadData } = trpc.messages.unreadCounts.useQuery(undefined, {
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -103,7 +129,9 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => isAdmin
+            ? <AdminBadgeIcon name="person" color={color} size={size} />
+            : <Ionicons name="person" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

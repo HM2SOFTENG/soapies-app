@@ -29,7 +29,8 @@ function StatBox({ label, value }: { label: string; value: number | string }) {
 }
 
 export default function ProfileScreen() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const router = useRouter();
   const { data: me, isLoading } = trpc.auth.me.useQuery();
   const { data: creditsData } = trpc.credits.balance.useQuery();
@@ -219,6 +220,45 @@ export default function ProfileScreen() {
 
         {/* Actions */}
         <View style={{ paddingHorizontal: 20, gap: 12 }}>
+          {isAdmin && (
+            <TouchableOpacity
+              onPress={() => router.push('/admin' as any)}
+              style={{
+                borderRadius: 14,
+                overflow: 'hidden',
+                marginBottom: 2,
+              }}
+            >
+              <LinearGradient
+                colors={[`${colors.purple}33`, `${colors.pink}33`]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderRadius: 14,
+                  borderColor: `${colors.purple}66`,
+                  borderWidth: 1,
+                }}
+              >
+                <Ionicons name="shield-checkmark" size={20} color={colors.purple} />
+                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 12, flex: 1 }}>Admin Dashboard</Text>
+                <View style={{
+                  backgroundColor: `${colors.purple}44`,
+                  paddingHorizontal: 10,
+                  paddingVertical: 3,
+                  borderRadius: 20,
+                  marginRight: 8,
+                }}>
+                  <Text style={{ color: colors.purple, fontWeight: '800', fontSize: 11 }}>ADMIN</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             onPress={() => router.push('/edit-profile' as any)}
             style={{

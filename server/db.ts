@@ -1654,11 +1654,9 @@ export async function getUserReservations(userId: number) {
   .innerJoin(events, eq(reservations.eventId, events.id))
   .where(and(
     eq(reservations.userId, userId),
-    or(
-      inArray(reservations.paymentStatus, ['paid', 'partial']),
-      eq(reservations.status, 'confirmed')
-    )
-  ));
+    sql`${reservations.status} != 'cancelled'`
+  ))
+  .orderBy(desc(reservations.createdAt));
 
   // Attach QR codes from tickets table
   const result = await Promise.all(rows.map(async (r) => {
