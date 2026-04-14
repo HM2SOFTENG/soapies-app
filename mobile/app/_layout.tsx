@@ -54,17 +54,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (meQuery.data && !meQuery.error) {
-      // Valid session — redirect away from login if needed
+    // Valid session via server OR user already set in context (just logged in)
+    if (meQuery.data || user) {
       if (inAuthGroup) router.replace('/(tabs)');
       return;
     }
 
-    if (!meQuery.data || meQuery.error) {
-      // No session — redirect to login if needed
+    // meQuery explicitly returned null/error and no user in context — not logged in
+    if (!meQuery.data && !meQuery.isLoading && !user) {
       if (!inAuthGroup) router.replace('/(auth)/login');
     }
-  }, [isLoading, meQuery.isLoading, meQuery.isFetching, meQuery.data, meQuery.error, segments]);
+  }, [isLoading, user, meQuery.isLoading, meQuery.isFetching, meQuery.data, meQuery.error, segments]);
 
   return <>{children}</>;
 }
