@@ -471,7 +471,7 @@ export default function EventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({} as any, {
+  const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({ communityId: 'soapies' }, {
     staleTime: 60_000,
   });
 

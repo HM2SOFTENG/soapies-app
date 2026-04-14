@@ -491,7 +491,7 @@ export default function HomeScreen() {
   const { data: announcementsRaw } = trpc.announcements.active.useQuery(undefined, { staleTime: 60_000 });
   const dismissAnnouncement = trpc.announcements.dismiss.useMutation();
 
-  const { data: eventsRaw } = trpc.events.list.useQuery({} as any, { staleTime: 120_000 });
+  const { data: eventsRaw } = trpc.events.list.useQuery({ communityId: 'soapies' }, { staleTime: 120_000 });
 
   const myLikes = trpc.wall.myLikes.useQuery(undefined, { staleTime: 30_000, refetchOnWindowFocus: false });
 

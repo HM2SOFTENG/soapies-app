@@ -327,7 +327,7 @@ export const appRouter = router({
 
   // ─── EVENTS ──────────────────────────────────────────────────────────────
   events: router({
-    list: publicProcedure.input(z.object({ communityId: z.string().optional() }).optional()).query(async ({ input }) => {
+    list: publicProcedure.input(z.object({ communityId: z.string().optional() }).nullish()).query(async ({ input }) => {
       return db.getPublishedEvents();
     }),
     all: adminProcedure.query(async () => {
@@ -615,7 +615,7 @@ export const appRouter = router({
 
   // ─── WALL POSTS ──────────────────────────────────────────────────────────
   wall: router({
-    posts: protectedProcedure.input(z.object({ communityId: z.string().optional(), limit: z.number().optional() }).optional()).query(async ({ input }) => {
+    posts: protectedProcedure.input(z.object({ communityId: z.string().optional(), limit: z.number().optional() }).nullish()).query(async ({ input }) => {
       return db.getWallPosts(input?.communityId, input?.limit);
     }),
     create: protectedProcedure.input(z.object({
