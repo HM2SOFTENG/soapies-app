@@ -80,7 +80,8 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: user.emailVerified } };
+        // Also return token in body for native mobile clients that can't read httpOnly cookies
+        return { success: true, sessionToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: user.emailVerified } };
       }),
 
     // Send phone OTP (for login or registration)
@@ -136,7 +137,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true, user: { id: user.id, name: user.name, phone: user.phone, role: user.role } };
+        return { success: true, sessionToken, user: { id: user.id, name: user.name, phone: user.phone, role: user.role } };
       }),
 
     // Verify email with OTP
