@@ -106,7 +106,7 @@ export default function MessagesScreen() {
           style={({ pressed }) => ({
             transform: [{ scale: pressed ? 0.9 : 1 }],
           })}
-          onPress={() => Haptics.selectionAsync()}
+          onPress={() => { Haptics.selectionAsync(); router.push('/members' as any); }}
         >
           <Ionicons name="create-outline" size={24} color={colors.pink} />
         </Pressable>
@@ -164,7 +164,7 @@ export default function MessagesScreen() {
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  // TODO: navigate to members screen
+                  router.push('/members' as any);
                 }}
                 style={({ pressed }) => ({
                   paddingHorizontal: 24,

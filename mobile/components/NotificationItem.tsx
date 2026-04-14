@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text } from 'react-native';
+import { useRouter } from 'expo-router';
+import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../lib/colors';
 import { formatDistanceToNow } from '../lib/utils';
@@ -29,6 +30,7 @@ export interface NotificationData {
   body?: string | null;
   createdAt?: string | null;
   readAt?: string | null;
+  targetId?: string | number | null;
 }
 
 interface NotificationItemProps {
@@ -36,6 +38,16 @@ interface NotificationItemProps {
 }
 
 const NotificationItem = React.memo(function NotificationItem({ notification }: NotificationItemProps) {
+  const router = useRouter();
+
+  function handlePress() {
+    const type = notification.type ?? '';
+    if (type === 'message' && notification.targetId) {
+      router.push('/chat/' + notification.targetId as any);
+    } else if (type === 'event' && notification.targetId) {
+      router.push('/event/' + notification.targetId as any);
+    }
+  }
   const icon = useMemo(() => getIconConfig(notification.type), [notification.type]);
   const timeAgo = useMemo(
     () => (notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt)) : ''),
@@ -44,16 +56,18 @@ const NotificationItem = React.memo(function NotificationItem({ notification }: 
   const isUnread = !notification.readAt;
 
   return (
-    <View
-      style={{
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => ({
         flexDirection: 'row',
         padding: 16,
         borderBottomColor: colors.border,
         borderBottomWidth: 1,
-        backgroundColor: isUnread ? `${colors.pink}08` : 'transparent',
+        backgroundColor: pressed ? colors.pink + '14' : isUnread ? colors.pink + '08' : 'transparent',
         borderLeftWidth: isUnread ? 3 : 0,
         borderLeftColor: isUnread ? colors.pink : 'transparent',
-      }}
+        opacity: pressed ? 0.85 : 1,
+      })}
     >
       {/* Icon circle */}
       <View
@@ -101,7 +115,7 @@ const NotificationItem = React.memo(function NotificationItem({ notification }: 
           }}
         />
       )}
-    </View>
+    </Pressable>
   );
 });
 

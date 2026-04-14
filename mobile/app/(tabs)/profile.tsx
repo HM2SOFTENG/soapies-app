@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Clipboard,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
@@ -28,13 +29,14 @@ function StatBox({ label, value }: { label: string; value: number | string }) {
 
 export default function ProfileScreen() {
   const { logout } = useAuth();
+  const router = useRouter();
   const { data: me, isLoading } = trpc.auth.me.useQuery();
 
   const profile = me as any;
 
   function copyReferral() {
     const code = profile?.referralCode ?? profile?.openId ?? 'N/A';
-    Clipboard.setString(code);
+    Clipboard.setStringAsync(code);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Copied!', 'Referral code copied to clipboard.');
   }
@@ -138,6 +140,7 @@ export default function ProfileScreen() {
         {/* Actions */}
         <View style={{ paddingHorizontal: 20, gap: 12 }}>
           <TouchableOpacity
+            onPress={() => { router.push('/edit-profile' as any); }}
             style={{
               backgroundColor: colors.card,
               borderRadius: 14,
