@@ -9,11 +9,12 @@ import {
   Alert,
   Modal,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
+import * as ImagePicker from 'expo-image-picker';
 import QRCode from 'react-native-qrcode-svg';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
@@ -34,15 +35,32 @@ const PAYMENT_COLORS: Record<string, string> = {
   partial: '#F59E0B',
 };
 
+function getTicketAmount(ticket: any): string {
+  if (ticket.totalAmount && parseFloat(ticket.totalAmount) > 0) {
+    return parseFloat(ticket.totalAmount).toFixed(0);
+  }
+  const defaults: Record<string, number> = {
+    single_female: 40,
+    single_male: 145,
+    couple: 130,
+    volunteer: 0,
+  };
+  return String(defaults[ticket.ticketType] ?? 40);
+}
+
 function TicketCard({
   ticket,
   onViewQR,
   onPayNow,
+  onUploadTest,
+  uploadingId,
   payingId,
 }: {
   ticket: any;
   onViewQR: (qr: string, title: string) => void;
-  onPayNow: (reservationId: number) => void;
+  onPayNow: (ticket: any) => void;
+  onUploadTest: (ticket: any) => void;
+  uploadingId: number | null;
   payingId: number | null;
 }) {
   const title = ticket.event?.title ?? ticket.eventTitle ?? 'Event';
@@ -168,7 +186,7 @@ function TicketCard({
 
           {needsPayment && (
             <TouchableOpacity
-              onPress={() => onPayNow(ticket.id)}
+              onPress={() => onPayNow(ticket)}
               disabled={isPaying}
               style={{
                 flex: 1,
@@ -193,8 +211,8 @@ function TicketCard({
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <>
-                    <Ionicons name="card-outline" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pay Now</Text>
+                    <Ionicons name="logo-venmo" size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pay ${getTicketAmount(ticket)} via Venmo</Text>
                   </>
                 )}
               </LinearGradient>
@@ -215,6 +233,34 @@ function TicketCard({
             </View>
           )}
         </View>
+
+        {/* Upload Test Result button */}
+        {!ticket.testResultSubmitted && ticket.status !== 'cancelled' && (
+          <TouchableOpacity
+            onPress={() => onUploadTest(ticket)}
+            disabled={uploadingId === ticket.id}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 10,
+              paddingVertical: 10,
+              borderRadius: 10,
+              backgroundColor: `${colors.muted}11`,
+              borderColor: `${colors.muted}33`,
+              borderWidth: 1,
+            }}
+          >
+            {uploadingId === ticket.id ? (
+              <ActivityIndicator color={colors.muted} size="small" />
+            ) : (
+              <>
+                <Ionicons name="document-attach-outline" size={16} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 6 }}>Upload Test Result</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -227,25 +273,13 @@ export default function TicketsScreen() {
     visible: false, code: '', title: '',
   });
   const [payingId, setPayingId] = useState<number | null>(null);
+  const [uploadingId, setUploadingId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = trpc.reservations.myTickets.useQuery(undefined, {
     staleTime: 30_000,
   });
 
-  const checkoutMutation = trpc.reservations.createCheckoutSession.useMutation({
-    onSuccess: async (result: any) => {
-      setPayingId(null);
-      if (result?.url) {
-        console.log('[Tickets] opening checkout URL:', result.url);
-        await WebBrowser.openBrowserAsync(result.url);
-      }
-    },
-    onError: (err) => {
-      setPayingId(null);
-      console.error('[Tickets] checkout error:', err.message);
-      Alert.alert('Payment Error', err.message);
-    },
-  });
+  const { mutateAsync: submitTestResult } = trpc.testResults.submit.useMutation();
 
   const tickets = (data as any[]) ?? [];
   const pendingTickets = tickets.filter((t: any) => t.paymentStatus === 'pending' && t.status !== 'cancelled');
@@ -261,10 +295,60 @@ export default function TicketsScreen() {
     setQrModal({ visible: true, code, title });
   }
 
-  function handlePayNow(reservationId: number) {
-    setPayingId(reservationId);
-    console.log('[Tickets] starting checkout for reservation:', reservationId);
-    checkoutMutation.mutate({ reservationId });
+  async function handlePayNow(ticket: any) {
+    const amount = getTicketAmount(ticket);
+    const eventTitle = ticket.eventTitle ?? ticket.event?.title ?? 'Soapies Event';
+    const note = encodeURIComponent(`Soapies ticket - ${eventTitle} - ${ticket.ticketType?.replace('_', ' ')}`);
+    const venmoUrl = `venmo://paycharge?txn=pay&recipients=KELLEN-BRENNAN&amount=${amount}&note=${note}`;
+    const venmoWebUrl = `https://venmo.com/KELLEN-BRENNAN?txn=pay&amount=${amount}&note=${note}`;
+    try {
+      const canOpen = await Linking.canOpenURL(venmoUrl);
+      if (canOpen) {
+        await Linking.openURL(venmoUrl);
+      } else {
+        await Linking.openURL(venmoWebUrl);
+      }
+      Alert.alert(
+        '💸 Complete Payment',
+        `Send $${amount} to @KELLEN-BRENNAN on Venmo with note:\n"${decodeURIComponent(note)}"\n\nYour ticket will be confirmed once payment is verified by admin.`,
+        [{ text: 'OK' }]
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  async function handleUploadTestResult(ticket: any) {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    const formData = new FormData();
+    formData.append('photo', {
+      uri: asset.uri,
+      type: 'image/jpeg',
+      name: 'test-result.jpg',
+    } as any);
+    try {
+      setUploadingId(ticket.id);
+      const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+      const uploadRes = await fetch(`${API_URL}/api/upload-photo`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const { url } = await uploadRes.json();
+      await submitTestResult({ reservationId: ticket.id, eventId: ticket.eventId, resultUrl: url });
+      Alert.alert('✅ Submitted', 'Your test result has been submitted for review.');
+      refetch();
+    } catch (err: any) {
+      Alert.alert('Upload Failed', err.message);
+    } finally {
+      setUploadingId(null);
+    }
   }
 
   return (
@@ -350,6 +434,8 @@ export default function TicketsScreen() {
                       ticket={ticket}
                       onViewQR={handleViewQR}
                       onPayNow={handlePayNow}
+                      onUploadTest={handleUploadTestResult}
+                      uploadingId={uploadingId}
                       payingId={payingId}
                     />
                   ))}
@@ -368,6 +454,8 @@ export default function TicketsScreen() {
                       ticket={ticket}
                       onViewQR={handleViewQR}
                       onPayNow={handlePayNow}
+                      onUploadTest={handleUploadTestResult}
+                      uploadingId={uploadingId}
                       payingId={payingId}
                     />
                   ))}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -39,6 +39,30 @@ export default function EventDetailScreen() {
     { id: Number(id) },
     { enabled: !!id },
   );
+
+  const { data: profileData } = trpc.profile.me.useQuery();
+  const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
+
+  const availableTicketTypes = TICKET_TYPES.filter(t => {
+    if (t.key === 'couple') return true;
+    if (t.key === 'volunteer') return true;
+    if (!userGender) return true;
+    const isMale = ['male', 'man', 'non-binary', 'nonbinary'].includes(userGender);
+    const isFemale = ['female', 'woman'].includes(userGender);
+    if (isMale && t.key === 'single_female') return false;
+    if (isFemale && t.key === 'single_male') return false;
+    return true;
+  });
+
+  const defaultTicketType = (): TicketType => {
+    if (!userGender) return 'single_female';
+    const isMale = ['male', 'man', 'non-binary', 'nonbinary'].includes(userGender);
+    return isMale ? 'single_male' : 'single_female';
+  };
+
+  useEffect(() => {
+    if (profileData) setTicketType(defaultTicketType());
+  }, [profileData]);
 
   const { data: myReservations } = trpc.reservations.myReservations.useQuery(undefined, {
     staleTime: 30_000,
@@ -409,7 +433,7 @@ export default function EventDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {TICKET_TYPES.map(t => (
+            {availableTicketTypes.map(t => (
               <TouchableOpacity
                 key={t.key}
                 onPress={() => setTicketType(t.key)}

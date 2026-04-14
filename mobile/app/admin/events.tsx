@@ -246,6 +246,13 @@ export default function AdminEventsScreen() {
                     <Text style={{ color: statusColor, fontWeight: '700', fontSize: 13 }}>Status</Text>
                   </TouchableOpacity>
                 </View>
+                <TouchableOpacity
+                  onPress={() => router.push(`/admin/checkin?eventId=${ev.id}&eventTitle=${encodeURIComponent(ev.title ?? '')}` as any)}
+                  style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: `${colors.pink}22`, borderRadius: 10, paddingVertical: 10, borderColor: `${colors.pink}44`, borderWidth: 1 }}
+                >
+                  <Ionicons name="qr-code-outline" size={16} color={colors.pink} />
+                  <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 13 }}>Check-In Scanner</Text>
+                </TouchableOpacity>
               </View>
             );
           })}
