@@ -32,10 +32,16 @@ export default function ProfileScreen() {
   const { logout, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const router = useRouter();
-  const { data: me, isLoading } = trpc.auth.me.useQuery(undefined, { staleTime: 0 });
-  const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0 });
+  const { data: me, isLoading, error: meError, fetchStatus: meFetchStatus } = trpc.auth.me.useQuery(undefined, { staleTime: 0 });
+  const { data: profileData, error: profileError } = trpc.profile.me.useQuery(undefined, { staleTime: 0 });
   const { data: creditsData } = trpc.credits.balance.useQuery();
   const { data: referralCode } = trpc.referrals.myCode.useQuery();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[Profile] auth.me =>', JSON.stringify(me), '| error:', meError?.message, '| fetchStatus:', meFetchStatus);
+    console.log('[Profile] profile.me =>', JSON.stringify(profileData), '| error:', profileError?.message);
+  }, [me, profileData, meError, profileError, meFetchStatus]);
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: async () => {
       console.log('[Profile] logout success, clearing session');

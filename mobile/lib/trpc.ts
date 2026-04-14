@@ -22,12 +22,26 @@ export function createTRPCClient() {
           try {
             const token = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
             if (token) {
+              console.log('[trpc] headers() sending token, length:', token.length, 'parts:', token.split('.').length);
               return { Cookie: `app_session_id=${token}` };
+            } else {
+              console.log('[trpc] headers() NO TOKEN in SecureStore');
             }
           } catch (e) {
             console.warn('[trpc] SecureStore read failed:', e);
           }
           return {};
+        },
+        async fetch(url, options) {
+          const urlStr = String(url);
+          const path = urlStr.split('/api/trpc/')[1]?.substring(0, 40) ?? urlStr.substring(0, 40);
+          console.log('[trpc] fetch ->', path);
+          const res = await global.fetch(url as string, options as any);
+          console.log('[trpc] fetch <-', path, 'status:', res.status);
+          if (res.status === 401) {
+            console.warn('[trpc] 401 UNAUTHORIZED on', path);
+          }
+          return res;
         },
       }),
     ],

@@ -31,6 +31,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     refetchOnMount: 'always',
   });
 
+  // Debug
+  useEffect(() => {
+    console.log('[AuthGuard] meQuery.data:', JSON.stringify(meQuery.data)?.substring(0, 80),
+      '| error:', meQuery.error?.message,
+      '| isLoading:', meQuery.isLoading,
+      '| fetchStatus:', meQuery.fetchStatus);
+  }, [meQuery.data, meQuery.error, meQuery.isLoading, meQuery.fetchStatus]);
+
   // Sync valid user into auth context
   useEffect(() => {
     if (meQuery.data) {
