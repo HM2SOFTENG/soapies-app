@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../lib/colors';
@@ -35,11 +35,12 @@ interface NotificationItemProps {
   notification: NotificationData;
 }
 
-export default function NotificationItem({ notification }: NotificationItemProps) {
-  const icon = getIconConfig(notification.type);
-  const timeAgo = notification.createdAt
-    ? formatDistanceToNow(new Date(notification.createdAt))
-    : '';
+const NotificationItem = React.memo(function NotificationItem({ notification }: NotificationItemProps) {
+  const icon = useMemo(() => getIconConfig(notification.type), [notification.type]);
+  const timeAgo = useMemo(
+    () => (notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt)) : ''),
+    [notification.createdAt],
+  );
   const isUnread = !notification.readAt;
 
   return (
@@ -102,4 +103,6 @@ export default function NotificationItem({ notification }: NotificationItemProps
       )}
     </View>
   );
-}
+});
+
+export default NotificationItem;

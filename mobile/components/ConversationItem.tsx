@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import Avatar from './Avatar';
 import { colors } from '../lib/colors';
 import { formatDistanceToNow } from '../lib/utils';
@@ -20,10 +21,10 @@ interface ConversationItemProps {
   onPress: () => void;
 }
 
-export default function ConversationItem({ conversation, onPress }: ConversationItemProps) {
+const ConversationItem = React.memo(function ConversationItem({ conversation, onPress }: ConversationItemProps) {
   const displayName =
     conversation.name ??
-    conversation.participants?.map(p => p.displayName ?? p.name ?? '?').join(', ') ??
+    conversation.participants?.map((p) => p.displayName ?? p.name ?? '?').join(', ') ??
     'Conversation';
 
   const lastTime = conversation.lastMessageAt
@@ -32,18 +33,28 @@ export default function ConversationItem({ conversation, onPress }: Conversation
 
   const unread = conversation.unreadCount ?? 0;
 
+  function handlePress() {
+    Haptics.selectionAsync();
+    onPress();
+  }
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={{
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         borderBottomColor: colors.border,
         borderBottomWidth: 1,
-        backgroundColor: unread > 0 ? `${colors.pink}08` : 'transparent',
-      }}
+        backgroundColor: unread > 0
+          ? `${colors.pink}0A`
+          : pressed
+          ? `${colors.card}80`
+          : 'transparent',
+        transform: [{ scale: pressed ? 0.99 : 1 }],
+      })}
     >
       <Avatar name={displayName} size="md" />
 
@@ -51,7 +62,7 @@ export default function ConversationItem({ conversation, onPress }: Conversation
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}>
           <Text
             style={{
-              color: colors.text,
+              color: '#FFFFFF',
               fontWeight: unread > 0 ? '700' : '500',
               fontSize: 15,
               flex: 1,
@@ -61,12 +72,16 @@ export default function ConversationItem({ conversation, onPress }: Conversation
             {displayName}
           </Text>
           {lastTime ? (
-            <Text style={{ color: colors.muted, fontSize: 11 }}>{lastTime}</Text>
+            <Text style={{ color: '#9CA3AF', fontSize: 11, fontWeight: '400' }}>{lastTime}</Text>
           ) : null}
         </View>
         {conversation.lastMessage ? (
           <Text
-            style={{ color: colors.muted, fontSize: 13 }}
+            style={{
+              color: unread > 0 ? '#E5E7EB' : '#9CA3AF',
+              fontSize: 13,
+              fontWeight: unread > 0 ? '500' : '400',
+            }}
             numberOfLines={1}
           >
             {conversation.lastMessage}
@@ -92,6 +107,8 @@ export default function ConversationItem({ conversation, onPress }: Conversation
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
-}
+});
+
+export default ConversationItem;

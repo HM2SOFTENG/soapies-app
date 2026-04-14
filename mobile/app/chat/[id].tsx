@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   Modal,
   SafeAreaView,
+  Alert,
+  Animated,
+  Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,11 +40,13 @@ export default function ChatScreen() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: messages, isLoading, refetch } = trpc.messages.messages.useQuery(
     { conversationId, limit: 100 },
-    { enabled: !!id, refetchInterval: 5_000 },
+    { enabled: !!id, staleTime: 5_000, refetchInterval: 5_000 },
   );
 
   const { data: conversations } = trpc.messages.conversations.useQuery(undefined, {
     enabled: !!id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const conversation = (conversations as any[])?.find((c: any) => c.id === conversationId);
@@ -55,6 +60,7 @@ export default function ChatScreen() {
 
   const sendMutation = trpc.messages.send.useMutation({
     onSuccess: () => { setText(''); refetch(); },
+    onError: (err) => Alert.alert('Could not send message', err.message),
   });
 
   const reactMutation = trpc.messages.addReaction.useMutation({
@@ -70,22 +76,25 @@ export default function ChatScreen() {
 
   const msgList = (messages as any[]) ?? [];
 
+  // Memoize reversed list to prevent new array allocation every render
+  const reversedMessages = useMemo(() => [...msgList].reverse(), [msgList]);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
-  function handleSend() {
+  const handleSend = useCallback(() => {
     const trimmed = text.trim();
     if (!trimmed) return;
     sendMutation.mutate({ conversationId, content: trimmed });
-  }
+  }, [text, conversationId, sendMutation]);
 
-  function handleLongPress(messageId: number) {
+  const handleLongPress = useCallback((messageId: number) => {
     setSelectedMessageId(messageId);
     setShowReactions(true);
-  }
+  }, []);
 
-  function handleReact(emoji: string) {
+  const handleReact = useCallback((emoji: string) => {
     if (!selectedMessageId) return;
     reactMutation.mutate({ messageId: selectedMessageId, emoji });
-  }
+  }, [selectedMessageId, reactMutation]);
 
   const renderMessage = useCallback(({ item }: { item: any }) => {
     const isMine = item.senderId === user?.id;
@@ -172,7 +181,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
         {/* Header */}
         <View
@@ -203,10 +212,15 @@ export default function ChatScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={[...msgList].reverse()}
+            data={reversedMessages}
             keyExtractor={(item: any) => String(item.id)}
             renderItem={renderMessage}
             inverted
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={15}
+            windowSize={7}
+            initialNumToRender={20}
+            updateCellsBatchingPeriod={50}
             contentContainerStyle={{ paddingVertical: 12 }}
             ListEmptyComponent={
               <View style={{ flex: 1, alignItems: 'center', paddingTop: 60 }}>
@@ -237,18 +251,18 @@ export default function ChatScreen() {
             value={text}
             onChangeText={setText}
             placeholder="Message…"
-            placeholderTextColor={colors.muted}
+            placeholderTextColor="#6B7280"
             multiline
             maxLength={2000}
             style={{
               flex: 1,
               backgroundColor: colors.card,
-              borderColor: colors.border,
+              borderColor: text.trim() ? colors.pink : colors.border,
               borderWidth: 1,
               borderRadius: 20,
               paddingHorizontal: 14,
               paddingVertical: 10,
-              color: colors.text,
+              color: '#FFFFFF',
               fontSize: 15,
               maxHeight: 120,
             }}

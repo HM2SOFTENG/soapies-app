@@ -14,7 +14,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
-import * as SecureStore from 'expo-secure-store';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -23,11 +22,9 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: async (data: any) => {
-      // After register, user may be pending approval
-      if (data?.token) {
-        await SecureStore.setItemAsync('session_token', data.token);
-      }
+    onSuccess: async (_data: any) => {
+      // Cookie is captured automatically by the trpc fetch interceptor.
+      // User will be pending approval — redirect to login.
       Alert.alert(
         'Welcome to Soapies! 🎉',
         'Your application is under review. We\'ll notify you once you\'re approved.',

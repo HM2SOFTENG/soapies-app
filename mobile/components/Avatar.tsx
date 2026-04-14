@@ -20,7 +20,7 @@ interface AvatarProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export default function Avatar({ name, url, size = 'md', style }: AvatarProps) {
+const Avatar = React.memo(function Avatar({ name, url, size = 'md', style }: AvatarProps) {
   const px = typeof size === 'number' ? size : SIZES[size];
   const fontSize = px * 0.35;
   const borderRadius = px / 2;
@@ -30,6 +30,7 @@ export default function Avatar({ name, url, size = 'md', style }: AvatarProps) {
       <Image
         source={{ uri: url }}
         style={[{ width: px, height: px, borderRadius }, style as any]}
+        resizeMode="cover"
       />
     );
   }
@@ -46,4 +47,6 @@ export default function Avatar({ name, url, size = 'md', style }: AvatarProps) {
       </Text>
     </LinearGradient>
   );
-}
+});
+
+export default Avatar;

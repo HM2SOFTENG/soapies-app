@@ -1,28 +1,84 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   FlatList,
   SafeAreaView,
-  ActivityIndicator,
-  TouchableOpacity,
+  Pressable,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import ConversationItem from '../../components/ConversationItem';
+
+// ── Skeleton loader ───────────────────────────────────────────────────────────
+function ConversationSkeleton() {
+  const opacity = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.9, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomColor: colors.border,
+        borderBottomWidth: 1,
+      }}
+    >
+      {/* Avatar circle */}
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.border,
+        }}
+      />
+      <View style={{ marginLeft: 12, gap: 8, flex: 1 }}>
+        <View style={{ width: '55%', height: 13, borderRadius: 6, backgroundColor: colors.border }} />
+        <View style={{ width: '80%', height: 11, borderRadius: 5, backgroundColor: colors.border }} />
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function MessagesScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, refetch } = trpc.messages.conversations.useQuery(undefined, {
+    staleTime: 10_000,
     refetchInterval: 15_000,
   });
 
   const conversations = (data as any[]) ?? [];
+
+  const renderConversation = useCallback(
+    ({ item }: { item: any }) => (
+      <ConversationItem
+        conversation={item}
+        onPress={() => router.push(`/chat/${item.id}` as any)}
+      />
+    ),
+    [router],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -43,28 +99,36 @@ export default function MessagesScreen() {
           alignItems: 'center',
         }}
       >
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700', flex: 1 }}>
           Messages
         </Text>
-        <TouchableOpacity>
+        <Pressable
+          style={({ pressed }) => ({
+            transform: [{ scale: pressed ? 0.9 : 1 }],
+          })}
+          onPress={() => Haptics.selectionAsync()}
+        >
           <Ionicons name="create-outline" size={24} color={colors.pink} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color={colors.pink} size="large" />
+        <View>
+          <ConversationSkeleton />
+          <ConversationSkeleton />
+          <ConversationSkeleton />
+          <ConversationSkeleton />
         </View>
       ) : (
         <FlatList
           data={conversations}
           keyExtractor={(item: any) => String(item.id)}
-          renderItem={({ item }) => (
-            <ConversationItem
-              conversation={item}
-              onPress={() => router.push(`/chat/${item.id}` as any)}
-            />
-          )}
+          renderItem={renderConversation}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -73,14 +137,48 @@ export default function MessagesScreen() {
             />
           }
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 80 }}>
-              <Ionicons name="chatbubbles-outline" size={48} color={colors.border} />
-              <Text style={{ color: colors.muted, marginTop: 12, fontSize: 16 }}>
-                No messages yet
+            <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
+              <Text style={{ fontSize: 48, marginBottom: 12 }}>💬</Text>
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 18,
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  marginBottom: 8,
+                }}
+              >
+                No conversations yet
               </Text>
-              <Text style={{ color: colors.border, fontSize: 13, marginTop: 4 }}>
-                Start a conversation!
+              <Text
+                style={{
+                  color: '#9CA3AF',
+                  fontSize: 15,
+                  fontWeight: '400',
+                  textAlign: 'center',
+                  marginBottom: 24,
+                }}
+              >
+                Find a member and say hello
               </Text>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  // TODO: navigate to members screen
+                }}
+                style={({ pressed }) => ({
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: colors.pink,
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                })}
+              >
+                <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 15 }}>
+                  Browse Members
+                </Text>
+              </Pressable>
             </View>
           }
         />
