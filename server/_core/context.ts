@@ -21,6 +21,9 @@ export async function createContext(
       const { parse } = await import("cookie");
       const parsed = parse(cookies);
       const sessionCookie = parsed["app_session_id"];
+      if (sessionCookie) {
+        console.log("[Auth Debug] cookie value length:", sessionCookie.length, "parts:", sessionCookie.split('.').length, "prefix:", sessionCookie.substring(0, 20));
+      }
       const session = await sdk.verifySession(sessionCookie);
       if (session) {
         user = await getUserByOpenId(session.openId);
