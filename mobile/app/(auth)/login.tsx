@@ -37,14 +37,10 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync(SESSION_COOKIE_KEY, data.sessionToken);
       console.log('[Login] ✅ token stored, length:', data.sessionToken.length);
 
-      // 2. Pre-populate auth.me cache with the user data from login response
-      // This prevents AuthGuard from seeing a stale null and redirecting back to login
-      if (data?.user) {
-        queryClient.setQueryData([['auth', 'me'], { type: 'query' }], data.user);
-        setUser(data.user);
-      }
+      // 2. Set user in auth context — AuthGuard uses this to allow navigation
+      if (data?.user) setUser(data.user);
 
-      // 3. Navigate — AuthGuard will see user in cache and allow it
+      // 3. Navigate
       router.replace('/(tabs)');
     },
     onError: (err) => {

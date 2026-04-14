@@ -1,5 +1,5 @@
 import '../global.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,60 +24,56 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoading, user, setUser, logout } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const didValidateRef = useRef(false);
 
+  // Only validate session once on cold start (when there's no user in context yet)
+  // After login, user is set via setUser() and we don't need to re-validate
   const meQuery = trpc.auth.me.useQuery(undefined, {
+    enabled: !user && !isLoading, // only query when no user in context
     retry: false,
-    staleTime: 5 * 60_000, // 5 min — don't re-fetch unless stale
-    refetchOnMount: false,  // don't re-fetch just because component mounts
+    staleTime: Infinity,          // once validated, never re-fetch automatically
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
 
-  // Debug
+  // Sync server-validated user into context (cold start)
   useEffect(() => {
-    console.log('[AuthGuard] meQuery.data:', JSON.stringify(meQuery.data)?.substring(0, 80),
-      '| error:', meQuery.error?.message,
-      '| isLoading:', meQuery.isLoading,
-      '| fetchStatus:', meQuery.fetchStatus);
-  }, [meQuery.data, meQuery.error, meQuery.isLoading, meQuery.fetchStatus]);
-
-  // Sync valid user into auth context
-  useEffect(() => {
-    if (meQuery.data) {
+    if (meQuery.data && !user) {
+      console.log('[AuthGuard] cold start user:', (meQuery.data as any).email);
       setUser(meQuery.data as any);
     }
   }, [meQuery.data]);
 
-  // On JWT error — clear token and kick to login
+  // Clear token on JWT error
   useEffect(() => {
     if (meQuery.error) {
-      console.log('[AuthGuard] invalid token, clearing...');
+      console.log('[AuthGuard] session invalid, clearing token');
       SecureStore.deleteItemAsync(SESSION_COOKIE_KEY).catch(() => {});
       queryClient.clear();
       logout();
     }
   }, [meQuery.error]);
 
+  // Routing logic
   useEffect(() => {
     if (isLoading) return;
-    if (meQuery.isLoading || meQuery.isFetching) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    // Valid session via server OR user already set in context (just logged in)
-    if (meQuery.data || user) {
+    // User is set (either from login or cold-start validation)
+    if (user) {
       if (inAuthGroup) router.replace('/(tabs)');
       return;
     }
 
-    // meQuery explicitly returned null/error and no user in context — not logged in
-    if (!meQuery.data && !meQuery.isLoading && !user) {
+    // No user + meQuery done + no error = server confirmed no session
+    if (!meQuery.isLoading && meQuery.fetchStatus === 'idle' && !meQuery.data) {
       if (!inAuthGroup) router.replace('/(auth)/login');
+      return;
     }
-  }, [isLoading, user, meQuery.isLoading, meQuery.isFetching, meQuery.data, meQuery.error, segments]);
+  }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, segments]);
 
-  // Block rendering children until token validation completes
-  // This prevents tRPC queries from firing with a stale/invalid token
   if (isLoading) return null;
 
   return <>{children}</>;
