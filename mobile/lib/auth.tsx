@@ -49,12 +49,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const token = await loadTokenFromStorage();
+        // Nuke ALL possible stale token keys from previous app versions
+        const SecureStore = await import('expo-secure-store');
+        const allKeys = [
+          'app_session_cookie',   // current key
+          'app_session_id',       // old key variant
+          'session_token',        // old key variant
+          'sessionToken',         // old key variant
+          'SESSION_COOKIE',       // old key variant
+        ];
+        
+        // Read current key first
+        const token = await SecureStore.getItemAsync('app_session_cookie').catch(() => null);
+        
+        // Clear all old/stale keys regardless
+        for (const key of allKeys.filter(k => k !== 'app_session_cookie')) {
+          await SecureStore.deleteItemAsync(key).catch(() => {});
+        }
+
         if (token && !isValidJWT(token)) {
           console.log('[Auth] Clearing malformed token, length:', token.length);
           await clearToken();
           setHasToken(false);
         } else if (token) {
+          // Load valid token into memory
+          const { setMemoryToken } = await import('./trpc');
+          setMemoryToken(token);
           console.log('[Auth] Valid token on mount, length:', token.length);
           setHasToken(true);
         } else {

@@ -49,8 +49,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // Clear token on JWT error
   useEffect(() => {
     if (meQuery.error) {
-      console.log('[AuthGuard] session invalid, clearing token');
-      SecureStore.deleteItemAsync(SESSION_COOKIE_KEY).catch(() => {});
+      console.log('[AuthGuard] session invalid, clearing all tokens');
+      // Nuke all known key variants
+      ['app_session_cookie','app_session_id','session_token','sessionToken'].forEach(k =>
+        SecureStore.deleteItemAsync(k).catch(() => {})
+      );
       queryClient.clear();
       logout();
     }
