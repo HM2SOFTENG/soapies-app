@@ -33,6 +33,7 @@ export default function ProfileScreen() {
   const isAdmin = user?.role === 'admin';
   const router = useRouter();
   const { data: me, isLoading } = trpc.auth.me.useQuery();
+  const { data: profileData } = trpc.profile.me.useQuery();
   const { data: creditsData } = trpc.credits.balance.useQuery();
   const { data: referralCode } = trpc.referrals.myCode.useQuery();
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -49,10 +50,11 @@ export default function ProfileScreen() {
     },
   });
 
-  const profile = me as any;
+  // Merge auth.me (role/email) with profile.me (displayName, bio, avatar, stats)
+  const profile = { ...(me as any), ...(profileData as any) };
 
   const credits = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
-  const myCode = (referralCode as any)?.code ?? profile?.referralCode ?? profile?.openId?.slice(0, 8).toUpperCase() ?? 'N/A';
+  const myCode = (referralCode as any)?.code ?? 'N/A';
 
   function copyReferral() {
     Clipboard.setStringAsync(myCode);
@@ -104,13 +106,13 @@ export default function ProfileScreen() {
           style={{ paddingTop: 48, paddingBottom: 24, alignItems: 'center', paddingHorizontal: 20 }}
         >
           <Avatar
-            name={profile?.name ?? '?'}
+            name={profile?.displayName ?? profile?.name ?? '?'}
             url={profile?.avatarUrl}
             size={88}
             style={{ marginBottom: 12 }}
           />
           <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800' }}>
-            {profile?.name ?? 'Member'}
+            {profile?.displayName ?? profile?.name ?? 'Member'}
           </Text>
           {profile?.bio && (
             <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 6 }}>
