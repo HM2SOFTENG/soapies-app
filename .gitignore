@@ -115,3 +115,4 @@ mysql_data/
 # Manus (removed)
 .manus-logs/
 
+CREDENTIALS.md
