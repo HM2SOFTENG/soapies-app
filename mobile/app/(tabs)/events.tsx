@@ -11,34 +11,38 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
-  Platform,
+  Image,
+  Modal,
+  StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HERO_MAX = 280;
-const HERO_MIN = 100;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const HERO_MAX = 320;
+const HERO_MIN = 90;
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function daysUntil(date: string | Date) {
   const diff = new Date(date).getTime() - Date.now();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  return days <= 0 ? 'Today!' : days === 1 ? 'Tomorrow' : `In ${days} days`;
+  return days <= 0 ? 'Tonight! 🔥' : days === 1 ? 'Tomorrow 🎉' : `In ${days} days`;
 }
 
 function formatDate(date: string | Date) {
   return new Date(date).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
   });
+}
+
+function formatDateShort(date: string | Date) {
+  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function statusColor(status: string) {
@@ -49,193 +53,252 @@ function statusColor(status: string) {
     default: return colors.muted;
   }
 }
-
 function statusLabel(status: string) {
   switch (status) {
-    case 'published': return 'Published';
-    case 'completed': return 'Completed';
-    case 'sold_out': return 'Sold Out';
+    case 'published': return '● Live';
+    case 'completed': return 'Past';
+    case 'sold_out': return '🔥 Sold Out';
     default: return status;
   }
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+// Theme colors for event type thumbnails (fallback when no image)
+const EVENT_GRADIENTS: [string, string][] = [
+  [colors.pink, colors.purple],
+  ['#F59E0B', '#EF4444'],
+  ['#8B5CF6', '#EC4899'],
+  ['#10B981', '#3B82F6'],
+  ['#F97316', '#EC4899'],
+];
 
-function EventSkeleton() {
-  const opacity = useRef(new Animated.Value(0.4)).current;
+function eventGradient(id: number): [string, string] {
+  return EVENT_GRADIENTS[id % EVENT_GRADIENTS.length];
+}
+
+// Emoji thumbnails for event types
+function eventEmoji(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('rave')) return '🎆';
+  if (t.includes('barbie')) return '💗';
+  if (t.includes('mardi gras')) return '🎭';
+  if (t.includes('valentine')) return '💕';
+  if (t.includes('cowboy') || t.includes('cowgirl')) return '🤠';
+  if (t.includes('circus')) return '🎪';
+  if (t.includes('disco')) return '🪩';
+  if (t.includes('beach') || t.includes('blacks')) return '🏖️';
+  if (t.includes('vegas')) return '🎰';
+  if (t.includes('halloween')) return '🎃';
+  if (t.includes('christmas') || t.includes('holiday')) return '🎄';
+  return '🎉';
+}
+
+// ── Shimmer Skeleton ─────────────────────────────────────────────────────────
+
+function ShimmerSkeleton() {
+  const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const pulse = Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.9, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
-      ]),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
     );
-    pulse.start();
-    return () => pulse.stop();
-  }, [opacity]);
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
-    <Animated.View
-      style={{
-        opacity,
-        backgroundColor: colors.card,
-        borderRadius: 16,
-        marginBottom: 12,
-        borderColor: colors.border,
-        borderWidth: 1,
-        padding: 16,
-        overflow: 'hidden',
-      }}
-    >
-      <View style={{ width: '70%', height: 16, borderRadius: 8, backgroundColor: colors.border, marginBottom: 10 }} />
-      <View style={{ width: '45%', height: 12, borderRadius: 6, backgroundColor: colors.border, marginBottom: 8 }} />
-      <View style={{ width: '55%', height: 12, borderRadius: 6, backgroundColor: colors.border }} />
+    <Animated.View style={[styles.skeletonCard, { opacity }]}>
+      <View style={styles.skeletonThumb} />
+      <View style={styles.skeletonBody}>
+        <View style={[styles.skeletonLine, { width: '75%', height: 16 }]} />
+        <View style={[styles.skeletonLine, { width: '50%', height: 11, marginTop: 8 }]} />
+        <View style={[styles.skeletonLine, { width: '60%', height: 11, marginTop: 6 }]} />
+        <View style={{ flexDirection: 'row', gap: 6, marginTop: 10 }}>
+          <View style={[styles.skeletonPill, { width: 64 }]} />
+          <View style={[styles.skeletonPill, { width: 80 }]} />
+        </View>
+      </View>
     </Animated.View>
+  );
+}
+
+// ── Thumbnail ─────────────────────────────────────────────────────────────────
+
+function EventThumbnail({ event, size = 88 }: { event: any; size?: number }) {
+  const [imgError, setImgError] = useState(false);
+  const grad = eventGradient(event.id);
+  const emoji = eventEmoji(event.title ?? '');
+  const hasImage = event.coverImageUrl && !imgError;
+
+  return (
+    <View style={{ width: size, height: size, borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
+      {hasImage ? (
+        <Image
+          source={{ uri: event.coverImageUrl }}
+          style={{ width: size, height: size }}
+          onError={() => setImgError(true)}
+          resizeMode="cover"
+        />
+      ) : (
+        <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ fontSize: size * 0.38 }}>{emoji}</Text>
+        </LinearGradient>
+      )}
+    </View>
+  );
+}
+
+// ── Price Tags ────────────────────────────────────────────────────────────────
+
+function PriceTags({ event }: { event: any }) {
+  type Tag = { label: string; price: string | null; color: string };
+  const tags: Tag[] = [];
+  if (event.priceSingleFemale != null) tags.push({ label: '♀ Woman', price: `$${parseFloat(event.priceSingleFemale).toFixed(0)}`, color: colors.pink });
+  if (event.priceSingleMale != null) tags.push({ label: '♂ Man', price: `$${parseFloat(event.priceSingleMale).toFixed(0)}`, color: colors.purple });
+  if (event.priceCouple != null) tags.push({ label: '♥ Couple', price: `$${parseFloat(event.priceCouple).toFixed(0)}`, color: '#10B981' });
+
+  if (!tags.length) return null;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 5 }}>
+        {tags.map((t, i) => (
+          <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: `${t.color}20`, borderColor: `${t.color}50`, borderWidth: 1 }}>
+            <Text style={{ color: t.color, fontSize: 11, fontWeight: '700' }}>{t.label} {t.price}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 // ── Animated Event Card ───────────────────────────────────────────────────────
 
 function AnimatedEventCard({ event, index }: { event: any; index: number }) {
-  const translateY = useRef(new Animated.Value(40)).current;
+  const router = useRouter();
+  const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(translateY, {
-      toValue: 0,
-      duration: 400,
-      delay: index * 80,
-      useNativeDriver: true,
-    }).start();
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 400,
-      delay: index * 80,
-      useNativeDriver: true,
-    }).start();
-  }, [index]);
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: 0, duration: 450, delay: index * 70, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: 450, delay: index * 70, useNativeDriver: true }),
+    ]).start();
 
-  const ticketTypes = (event.ticketTypes as any[]) ?? [];
-  const totalCapacity = ticketTypes.reduce((sum: number, t: any) => sum + (t.capacity ?? 0), 0);
-  const totalSold = ticketTypes.reduce((sum: number, t: any) => sum + (t.sold ?? t._count?.tickets ?? 0), 0);
-  const spotsLeft = totalCapacity > 0 ? totalCapacity - totalSold : null;
+    // Subtle glow pulse for upcoming events
+    if (event.status === 'published') {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+  }, [index, event.status]);
+
+  function onPressIn() {
+    Haptics.selectionAsync();
+    Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+  }
+  function onPressOut() {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 6 }).start();
+  }
+  function onPress() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/event/[id]', params: { id: String(event.id) } });
+  }
 
   const sc = statusColor(event.status);
   const sl = statusLabel(event.status);
+  const spotsLeft = event.capacity && event.currentAttendees != null
+    ? event.capacity - event.currentAttendees
+    : null;
+  const spotsPercent = event.capacity ? (event.currentAttendees ?? 0) / event.capacity : 0;
+  const isHot = spotsLeft !== null && spotsLeft < 10 && event.status === 'published';
 
-  const pressScale = useRef(new Animated.Value(1)).current;
-
-  function onPressIn() {
-    Animated.spring(pressScale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start();
-  }
-  function onPressOut() {
-    Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
-  }
+  const borderGlowColor = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [`${colors.pink}30`, `${colors.pink}80`],
+  });
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY }, { scale: pressScale }] }}>
-      <TouchableOpacity
-        activeOpacity={1}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        onPress={() => Haptics.selectionAsync()}
-        style={{
-          backgroundColor: colors.card,
-          borderRadius: 16,
-          marginBottom: 12,
-          borderColor: colors.border,
-          borderWidth: 1,
-          overflow: 'hidden',
-          flexDirection: 'row',
-        }}
-      >
-        {/* Gradient left border */}
-        <LinearGradient
-          colors={[colors.pink, colors.purple]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={{ width: 4 }}
-        />
+    <Animated.View style={{ opacity, transform: [{ translateY }, { scale }], marginBottom: 12 }}>
+      <TouchableOpacity activeOpacity={1} onPressIn={onPressIn} onPressOut={onPressOut} onPress={onPress}>
+        <Animated.View style={[styles.eventCard, { borderColor: event.status === 'published' ? borderGlowColor as any : colors.border }]}>
+          {/* Gradient left accent */}
+          <LinearGradient
+            colors={eventGradient(event.id)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ width: 4, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
+          />
 
-        <View style={{ flex: 1, padding: 14 }}>
-          {/* Title + status */}
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, flex: 1, lineHeight: 20 }}>
-              {event.title}
-            </Text>
-            <View
-              style={{
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 10,
-                backgroundColor: `${sc}22`,
-                marginLeft: 8,
-                flexShrink: 0,
-              }}
-            >
-              <Text style={{ color: sc, fontSize: 11, fontWeight: '700' }}>{sl}</Text>
-            </View>
+          {/* Thumbnail */}
+          <View style={{ padding: 12, paddingRight: 0 }}>
+            <EventThumbnail event={event} size={88} />
           </View>
 
-          {/* Date */}
-          {event.startDate && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="calendar-outline" size={13} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 12, marginLeft: 5 }}>
-                {formatDate(event.startDate)}
-              </Text>
-            </View>
-          )}
-
-          {/* Location */}
-          {event.location && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Ionicons name="location-outline" size={13} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 12, marginLeft: 5 }} numberOfLines={1}>
-                {event.location}
-              </Text>
-            </View>
-          )}
-
-          {/* Ticket prices */}
-          {ticketTypes.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-              <View style={{ flexDirection: 'row', gap: 6 }}>
-                {ticketTypes.map((t: any, i: number) => {
-                  const ticketColors = [colors.pink, colors.purple, '#10B981', '#F59E0B'];
-                  const tc = ticketColors[i % ticketColors.length];
-                  return (
-                    <View
-                      key={t.id ?? i}
-                      style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        borderRadius: 8,
-                        backgroundColor: `${tc}22`,
-                        borderColor: `${tc}44`,
-                        borderWidth: 1,
-                      }}
-                    >
-                      <Text style={{ color: tc, fontSize: 11, fontWeight: '600' }}>
-                        {t.name ?? t.role ?? 'Ticket'}{t.price != null ? ` · $${t.price}` : ' · Free'}
-                      </Text>
-                    </View>
-                  );
-                })}
+          {/* Content */}
+          <View style={{ flex: 1, padding: 12, paddingLeft: 10 }}>
+            {/* Status + hot badge row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
+              <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: `${sc}20` }}>
+                <Text style={{ color: sc, fontSize: 10, fontWeight: '800' }}>{sl}</Text>
               </View>
-            </ScrollView>
-          )}
+              {isHot && (
+                <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: `${colors.pink}30` }}>
+                  <Text style={{ color: colors.pink, fontSize: 10, fontWeight: '800' }}>🔥 {spotsLeft} left</Text>
+                </View>
+              )}
+              {event.status === 'published' && (
+                <View style={{ marginLeft: 'auto' }}>
+                  <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '700' }}>{daysUntil(event.startDate)}</Text>
+                </View>
+              )}
+            </View>
 
-          {/* Spots left */}
-          {spotsLeft !== null && (
-            <Text style={{ color: colors.muted, fontSize: 12 }}>
-              <Text style={{ color: spotsLeft < 5 ? colors.pink : '#10B981', fontWeight: '700' }}>
-                {spotsLeft}
-              </Text>
-              {' / '}{totalCapacity} spots left
+            {/* Title */}
+            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 14, lineHeight: 19, marginBottom: 4 }} numberOfLines={2}>
+              {event.title}
             </Text>
-          )}
-        </View>
+
+            {/* Date + location */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+              <Ionicons name="calendar-outline" size={11} color={colors.muted} />
+              <Text style={{ color: colors.muted, fontSize: 11 }}>{formatDate(event.startDate)}</Text>
+            </View>
+            {event.location && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="location-outline" size={11} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>{event.location}</Text>
+              </View>
+            )}
+
+            {/* Price tags */}
+            <PriceTags event={event} />
+
+            {/* Capacity bar */}
+            {event.capacity > 0 && event.status === 'published' && (
+              <View style={{ marginTop: 8 }}>
+                <View style={{ height: 3, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' }}>
+                  <LinearGradient
+                    colors={spotsPercent > 0.8 ? [colors.pink, '#EF4444'] : [colors.purple, colors.pink]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={{ height: '100%', width: `${Math.min(spotsPercent * 100, 100)}%`, borderRadius: 2 }}
+                  />
+                </View>
+                <Text style={{ color: colors.muted, fontSize: 10, marginTop: 3 }}>
+                  {event.currentAttendees ?? 0}/{event.capacity} reserved
+                </Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -244,143 +307,157 @@ function AnimatedEventCard({ event, index }: { event: any; index: number }) {
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
 function HeroSection({ event, scrollY }: { event: any | null; scrollY: Animated.Value }) {
+  const router = useRouter();
+  const [imgError, setImgError] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Pulse the CTA button
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.04, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+
+    // Shimmer on hero
+    const shimmer = Animated.loop(
+      Animated.timing(shimmerAnim, { toValue: 1, duration: 2500, useNativeDriver: true })
+    );
+    shimmer.start();
+
+    return () => { pulse.stop(); shimmer.stop(); };
+  }, []);
+
   const heroHeight = scrollY.interpolate({
     inputRange: [0, HERO_MAX - HERO_MIN],
     outputRange: [HERO_MAX, HERO_MIN],
     extrapolate: 'clamp',
   });
-
   const contentOpacity = scrollY.interpolate({
-    inputRange: [0, (HERO_MAX - HERO_MIN) * 0.5],
+    inputRange: [0, (HERO_MAX - HERO_MIN) * 0.4],
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
-
   const miniOpacity = scrollY.interpolate({
-    inputRange: [(HERO_MAX - HERO_MIN) * 0.6, HERO_MAX - HERO_MIN],
+    inputRange: [(HERO_MAX - HERO_MIN) * 0.55, HERO_MAX - HERO_MIN],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
+  const imageScale = scrollY.interpolate({
+    inputRange: [-80, 0, HERO_MAX - HERO_MIN],
+    outputRange: [1.15, 1, 1],
+    extrapolate: 'clamp',
+  });
 
-  if (!event) {
-    return (
-      <Animated.View style={{ height: heroHeight, overflow: 'hidden' }}>
-        <LinearGradient
-          colors={[`${colors.purple}88`, `${colors.pink}44`, colors.bg]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <Text style={{ color: colors.muted, fontSize: 16 }}>No upcoming events</Text>
-        </LinearGradient>
-      </Animated.View>
-    );
-  }
-
-  const countdown = daysUntil(event.startDate);
+  const grad = event ? eventGradient(event.id) : [colors.purple, colors.pink] as [string, string];
+  const hasImage = event?.coverImageUrl && !imgError;
+  const countdown = event ? daysUntil(event.startDate) : '';
+  const emoji = event ? eventEmoji(event.title ?? '') : '🎉';
 
   return (
     <Animated.View style={{ height: heroHeight, overflow: 'hidden' }}>
+      {/* Background image or gradient */}
+      <Animated.View style={{ position: 'absolute', inset: 0, transform: [{ scale: imageScale }] }}>
+        {hasImage ? (
+          <Image source={{ uri: event.coverImageUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" onError={() => setImgError(true)} />
+        ) : (
+          <LinearGradient colors={[`${grad[0]}EE`, `${grad[1]}CC`, `${colors.bg}FF`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />
+        )}
+      </Animated.View>
+
+      {/* Dark overlay so text is always legible */}
       <LinearGradient
-        colors={[`${colors.purple}CC`, `${colors.pink}99`, `${colors.bg}EE`]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1 }}
-      >
-        {/* Collapsed mini view */}
-        <Animated.View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            opacity: miniOpacity,
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 20,
-            paddingVertical: 12,
-          }}
-        >
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: colors.pink,
-              marginRight: 10,
-            }}
-          />
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, flex: 1 }} numberOfLines={1}>
-            {event.title}
-          </Text>
-          <View
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 12,
-              backgroundColor: `${colors.pink}33`,
-            }}
-          >
+        colors={['transparent', `${colors.bg}99`, colors.bg]}
+        start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      {/* Floating emoji decoration */}
+      {!hasImage && (
+        <Animated.Text style={{ position: 'absolute', top: 30, right: 24, fontSize: 72, opacity: 0.18, transform: [{ rotate: '15deg' }] }}>
+          {emoji}
+        </Animated.Text>
+      )}
+
+      {/* Mini collapsed bar */}
+      <Animated.View style={[styles.miniBar, { opacity: miniOpacity }]}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.pink, marginRight: 10 }} />
+        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, flex: 1 }} numberOfLines={1}>
+          {event?.title ?? 'No upcoming events'}
+        </Text>
+        {countdown ? (
+          <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: `${colors.pink}33` }}>
             <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700' }}>{countdown}</Text>
           </View>
-        </Animated.View>
+        ) : null}
+      </Animated.View>
 
-        {/* Expanded full content */}
-        <Animated.View style={{ opacity: contentOpacity, flex: 1, justifyContent: 'flex-end', padding: 20 }}>
-          {/* Countdown badge */}
-          <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-            <LinearGradient
-              colors={[colors.pink, colors.purple]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 }}
-            >
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{countdown}</Text>
-            </LinearGradient>
-          </View>
-
-          <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800', marginBottom: 6, lineHeight: 30 }}>
-            {event.title}
-          </Text>
-
-          {event.startDate && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <Ionicons name="calendar-outline" size={14} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 6 }}>{formatDate(event.startDate)}</Text>
-            </View>
-          )}
-          {event.location && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-              <Ionicons name="location-outline" size={14} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 6 }}>{event.location}</Text>
-            </View>
-          )}
-
-          {/* Reserve button */}
-          <TouchableOpacity
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-            style={{ alignSelf: 'flex-start' }}
+      {/* Full expanded content */}
+      {event ? (
+        <Animated.View style={[styles.heroContent, { opacity: contentOpacity }]}>
+          {/* Countdown pill */}
+          <LinearGradient
+            colors={[colors.pink, colors.purple]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.countdownPill}
           >
-            <LinearGradient
-              colors={[colors.pink, colors.purple]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                paddingHorizontal: 20,
-                paddingVertical: 11,
-                borderRadius: 24,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>🎟 {countdown}</Text>
+          </LinearGradient>
+
+          <Text style={styles.heroTitle} numberOfLines={2}>{event.title}</Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
+            <Ionicons name="calendar-outline" size={13} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.heroMeta}>{formatDate(event.startDate)}</Text>
+          </View>
+          {event.location && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 6 }}>
+              <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.heroMeta}>{event.location}</Text>
+            </View>
+          )}
+
+          {/* CTA button with pulse */}
+          <Animated.View style={{ transform: [{ scale: pulseAnim }], alignSelf: 'flex-start' }}>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push({ pathname: '/event/[id]', params: { id: String(event.id) } });
               }}
             >
-              <Ionicons name="ticket-outline" size={16} color="#fff" />
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Reserve My Spot</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={[colors.pink, colors.purple]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={styles.heroBtn}
+              >
+                <Ionicons name="ticket-outline" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Reserve My Spot</Text>
+                <Ionicons name="arrow-forward" size={14} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
-      </LinearGradient>
+      ) : (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: colors.muted, fontSize: 16 }}>No upcoming events</Text>
+        </View>
+      )}
     </Animated.View>
+  );
+}
+
+// ── Month Divider ─────────────────────────────────────────────────────────────
+
+function MonthDivider({ month }: { month: string }) {
+  return (
+    <View style={styles.monthDivider}>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+      <Text style={styles.monthLabel}>{month}</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+    </View>
   );
 }
 
@@ -390,34 +467,46 @@ const FILTER_TABS = ['All', 'Upcoming', 'Past'] as const;
 type FilterTab = typeof FILTER_TABS[number];
 
 export default function EventsScreen() {
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('All');
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('Upcoming');
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({} as any, {
-    staleTime: 120_000,
-    refetchOnWindowFocus: true,
+    staleTime: 60_000,
   });
 
   const events = useMemo(() => {
     const raw = (eventsData as any)?.events ?? eventsData ?? [];
-    return (raw as any[]) ?? [];
+    return (raw as any[]).sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }, [eventsData]);
 
   const upcoming = useMemo(
-    () => events.filter((e: any) => e.status === 'published' && new Date(e.startDate) >= new Date()),
+    () => events.filter((e: any) => e.status === 'published' && new Date(e.startDate) >= new Date())
+              .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()),
     [events],
   );
   const nextEvent = upcoming[0] ?? null;
 
   const filtered = useMemo(() => {
-    if (activeFilter === 'All') return events;
     if (activeFilter === 'Upcoming') return upcoming;
-    if (activeFilter === 'Past') {
-      return events.filter((e: any) => e.status === 'completed' || new Date(e.startDate) < new Date());
-    }
-    return events;
+    if (activeFilter === 'Past') return events.filter((e: any) => e.status === 'completed' || new Date(e.startDate) < new Date());
+    return [...upcoming, ...events.filter((e: any) => !(e.status === 'published' && new Date(e.startDate) >= new Date()))];
   }, [events, upcoming, activeFilter]);
+
+  // Group by month
+  const groupedItems = useMemo(() => {
+    const items: ({ type: 'divider'; month: string } | { type: 'event'; event: any })[] = [];
+    let lastMonth = '';
+    filtered.forEach(e => {
+      const month = new Date(e.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      if (month !== lastMonth) {
+        items.push({ type: 'divider', month });
+        lastMonth = month;
+      }
+      items.push({ type: 'event', event: e });
+    });
+    return items;
+  }, [filtered]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -425,77 +514,56 @@ export default function EventsScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const renderItem = useCallback(({ item, index }: { item: any; index: number }) => (
-    <AnimatedEventCard event={item} index={index} />
-  ), []);
+  const renderItem = useCallback(({ item, index }: { item: any; index: number }) => {
+    if (item.type === 'divider') return <MonthDivider month={item.month} />;
+    return <AnimatedEventCard event={item.event} index={index} />;
+  }, []);
+
+  const filterAnim = useRef(new Animated.Value(0)).current;
+  const filterScale = useRef(
+    FILTER_TABS.map(() => new Animated.Value(1))
+  ).current;
+
+  function onFilterPress(tab: FilterTab, idx: number) {
+    Haptics.selectionAsync();
+    setActiveFilter(tab);
+    Animated.spring(filterScale[idx], { toValue: 0.92, useNativeDriver: true, speed: 50 }).start(() => {
+      Animated.spring(filterScale[idx], { toValue: 1, useNativeDriver: true, speed: 30 }).start();
+    });
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      {/* Sticky animated hero */}
+      {/* Hero */}
       <HeroSection event={nextEvent} scrollY={scrollY} />
 
       {/* Filter tabs */}
-      <View
-        style={{
-          flexDirection: 'row',
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          borderBottomColor: colors.border,
-          borderBottomWidth: 1,
-          gap: 8,
-        }}
-      >
-        {FILTER_TABS.map((tab) => (
-          <Pressable
-            key={tab}
-            onPress={() => {
-              Haptics.selectionAsync();
-              setActiveFilter(tab);
-            }}
-            style={({ pressed }) => ({
-              paddingHorizontal: 16,
-              paddingVertical: 7,
-              borderRadius: 20,
-              backgroundColor: activeFilter === tab ? colors.pink : colors.card,
-              borderColor: activeFilter === tab ? colors.pink : colors.border,
-              borderWidth: 1,
-              transform: [{ scale: pressed ? 0.95 : 1 }],
-            })}
-          >
-            <Text
-              style={{
-                color: activeFilter === tab ? '#fff' : colors.muted,
-                fontWeight: '600',
-                fontSize: 13,
-              }}
-            >
-              {tab}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={styles.filterRow}>
+        {FILTER_TABS.map((tab, idx) => {
+          const active = activeFilter === tab;
+          return (
+            <Animated.View key={tab} style={{ transform: [{ scale: filterScale[idx] }] }}>
+              <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, active && styles.filterTabActive]}>
+                <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>{tab}</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
         <View style={{ flex: 1 }} />
-        <View
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 7,
-            borderRadius: 20,
-            backgroundColor: `${colors.pink}22`,
-          }}
-        >
-          <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 13 }}>{filtered.length}</Text>
+        <View style={styles.countBadge}>
+          <Text style={{ color: colors.pink, fontWeight: '800', fontSize: 13 }}>{filtered.length}</Text>
         </View>
       </View>
 
+      {/* List */}
       {isLoading ? (
         <View style={{ padding: 16 }}>
-          <EventSkeleton />
-          <EventSkeleton />
-          <EventSkeleton />
+          {[0, 1, 2].map(i => <ShimmerSkeleton key={i} />)}
         </View>
       ) : (
         <Animated.FlatList
-          data={filtered}
-          keyExtractor={(item: any) => String(item.id)}
+          data={groupedItems}
+          keyExtractor={(item: any, index) => item.type === 'divider' ? `div-${item.month}` : String(item.event.id)}
           renderItem={renderItem}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -503,25 +571,15 @@ export default function EventsScreen() {
           )}
           scrollEventThrottle={16}
           removeClippedSubviews
-          maxToRenderPerBatch={10}
+          maxToRenderPerBatch={8}
           windowSize={5}
-          initialNumToRender={8}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
-          }
-          ListHeaderComponent={
-            <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-              All Events
-            </Text>
-          }
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />}
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 }}>
-              <Text style={{ fontSize: 48, marginBottom: 12 }}>🎉</Text>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
-                No events yet
-              </Text>
-              <Text style={{ color: colors.muted, fontSize: 15, textAlign: 'center' }}>
+            <View style={{ alignItems: 'center', paddingTop: 60 }}>
+              <Text style={{ fontSize: 64, marginBottom: 12 }}>🎉</Text>
+              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 6 }}>Nothing here yet</Text>
+              <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 14 }}>
                 Check back soon — something exciting is always brewing
               </Text>
             </View>
@@ -531,3 +589,143 @@ export default function EventsScreen() {
     </SafeAreaView>
   );
 }
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  eventCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    flexDirection: 'row',
+  },
+  skeletonCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderColor: colors.border,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  skeletonThumb: {
+    width: 88,
+    height: 112,
+    backgroundColor: colors.border,
+  },
+  skeletonBody: {
+    flex: 1,
+    padding: 12,
+  },
+  skeletonLine: {
+    backgroundColor: colors.border,
+    borderRadius: 6,
+  },
+  skeletonPill: {
+    height: 20,
+    borderRadius: 8,
+    backgroundColor: colors.border,
+  },
+  miniBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: `${colors.bg}CC`,
+  },
+  heroContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 16,
+  },
+  countdownPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '900',
+    marginBottom: 8,
+    lineHeight: 32,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  heroMeta: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+  },
+  heroBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 28,
+    shadowColor: colors.pink,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    gap: 8,
+  },
+  filterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
+  filterTabActive: {
+    backgroundColor: colors.pink,
+    borderColor: colors.pink,
+  },
+  filterLabel: {
+    color: colors.muted,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  filterLabelActive: {
+    color: '#fff',
+  },
+  countBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: `${colors.pink}22`,
+  },
+  monthDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 12,
+  },
+  monthLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+});
