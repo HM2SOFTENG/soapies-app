@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,11 +16,19 @@ import ConversationItem from '../../components/ConversationItem';
 
 export default function MessagesScreen() {
   const router = useRouter();
-  const { data, isLoading } = trpc.messages.conversations.useQuery(undefined, {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data, isLoading, refetch } = trpc.messages.conversations.useQuery(undefined, {
     refetchInterval: 15_000,
   });
 
-  const conversations = (data as any)?.conversations ?? data ?? [];
+  const conversations = (data as any[]) ?? [];
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -53,14 +62,24 @@ export default function MessagesScreen() {
           renderItem={({ item }) => (
             <ConversationItem
               conversation={item}
-              onPress={() => router.push(`/chat/${item.id}`)}
+              onPress={() => router.push(`/chat/${item.id}` as any)}
             />
           )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.pink}
+            />
+          }
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 80 }}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.border} />
               <Text style={{ color: colors.muted, marginTop: 12, fontSize: 16 }}>
-                No conversations yet
+                No messages yet
+              </Text>
+              <Text style={{ color: colors.border, fontSize: 13, marginTop: 4 }}>
+                Start a conversation!
               </Text>
             </View>
           }

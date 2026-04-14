@@ -1,25 +1,62 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { colors } from '../lib/colors';
+import { communityColor } from '../lib/utils';
 
-type Props = { event: any };
+export interface EventCardEvent {
+  id: number;
+  title?: string | null;
+  name?: string | null;
+  coverImageUrl?: string | null;
+  imageUrl?: string | null;
+  startDate?: string | Date | null;
+  venue?: string | null;
+  communityId?: string | null;
+  community?: { name?: string | null } | null;
+  priceSingleMale?: string | null;
+  priceSingleFemale?: string | null;
+  priceCouple?: string | null;
+  status?: string | null;
+}
 
-export default function EventCard({ event }: Props) {
+interface EventCardProps {
+  event: EventCardEvent;
+  onPress?: () => void;
+}
+
+export default function EventCard({ event, onPress }: EventCardProps) {
   const router = useRouter();
-  const price = event.price ? `$${(event.price / 100).toFixed(2)}` : 'Free';
+  const title = event.title ?? event.name ?? 'Untitled Event';
+  const imageUrl = event.coverImageUrl ?? event.imageUrl;
+  const community = event.communityId ?? event.community?.name;
+  const badgeColor = communityColor(community);
+
   const dateStr = event.startDate
     ? new Date(event.startDate).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric',
+        weekday: 'short', month: 'short', day: 'numeric',
       })
     : 'TBD';
 
+  const lowestPrice = [event.priceSingleFemale, event.priceCouple, event.priceSingleMale]
+    .filter(Boolean)
+    .map(p => parseFloat(p!))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b)[0];
+
+  const priceLabel = lowestPrice !== undefined ? `From $${lowestPrice.toFixed(0)}` : 'Free';
+
+  function handlePress() {
+    if (onPress) { onPress(); return; }
+    router.push(`/event/${event.id}`);
+  }
+
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/event/${event.id}`)}
-      activeOpacity={0.85}
+      onPress={handlePress}
+      activeOpacity={0.9}
       style={{
         backgroundColor: colors.card,
         borderRadius: 16,
@@ -28,61 +65,65 @@ export default function EventCard({ event }: Props) {
         borderWidth: 1,
       }}
     >
-      {/* Image */}
-      <View style={{ height: 160 }}>
-        {event.imageUrl ? (
-          <Image source={{ uri: event.imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+      {/* Hero */}
+      <View style={{ height: 160, position: 'relative' }}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         ) : (
           <LinearGradient
             colors={['#7C3AED', '#EC4899']}
             style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
           >
-            <Ionicons name="calendar" size={44} color="rgba(255,255,255,0.4)" />
+            <Ionicons name="calendar" size={40} color="rgba(255,255,255,0.3)" />
           </LinearGradient>
         )}
-        {/* Date badge */}
-        <View
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            backgroundColor: 'rgba(0,0,0,0.75)',
-            borderRadius: 8,
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-          }}
-        >
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{dateStr}</Text>
-        </View>
+        {community && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 12,
+              backgroundColor: `${badgeColor}dd`,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
+              {community.charAt(0).toUpperCase() + community.slice(1)}
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* Info */}
       <View style={{ padding: 14 }}>
-        {event.community?.name && (
-          <Text style={{ color: colors.purple, fontSize: 11, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {event.community.name}
-          </Text>
-        )}
-        <Text style={{ color: colors.text, fontWeight: '800', fontSize: 16, marginBottom: 8 }}>
-          {event.name ?? event.title}
+        <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 6 }} numberOfLines={2}>
+          {title}
         </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+            <Ionicons name="calendar-outline" size={13} color={colors.muted} />
+            <Text style={{ color: colors.muted, fontSize: 13 }}>{dateStr}</Text>
+          </View>
+
           {event.venue && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
               <Ionicons name="location-outline" size={13} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 4 }} numberOfLines={1}>
-                {event.venue}
-              </Text>
+              <Text style={{ color: colors.muted, fontSize: 13 }} numberOfLines={1}>{event.venue}</Text>
             </View>
           )}
+
           <View
             style={{
               backgroundColor: `${colors.pink}22`,
-              borderRadius: 8,
               paddingHorizontal: 10,
-              paddingVertical: 4,
+              paddingVertical: 3,
+              borderRadius: 10,
             }}
           >
-            <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 13 }}>{price}</Text>
+            <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700' }}>{priceLabel}</Text>
           </View>
         </View>
       </View>
