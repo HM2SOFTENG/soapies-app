@@ -17,12 +17,16 @@ export async function createContext(
   try {
     // Parse session cookie and verify JWT
     const cookies = opts.req.headers.cookie;
+    const authHeader = opts.req.headers.authorization;
+    console.log("[Auth] cookie header present:", !!cookies, "| authorization:", !!authHeader, "| path:", opts.req.url?.substring(0, 60));
     if (cookies) {
       const { parse } = await import("cookie");
       const parsed = parse(cookies);
       const sessionCookie = parsed["app_session_id"];
       if (sessionCookie) {
-        console.log("[Auth Debug] cookie value length:", sessionCookie.length, "parts:", sessionCookie.split('.').length, "prefix:", sessionCookie.substring(0, 20));
+        console.log("[Auth] ✅ cookie found, length:", sessionCookie.length, "prefix:", sessionCookie.substring(0, 20));
+      } else {
+        console.log("[Auth] ❌ cookie header present but app_session_id not found. Keys:", Object.keys(parsed));
       }
       const session = await sdk.verifySession(sessionCookie);
       if (session) {
