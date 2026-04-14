@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
 import { trpc, SESSION_COOKIE_KEY } from '../../lib/trpc';
+import { queryClient } from '../_layout';
 import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
 
@@ -23,20 +24,26 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const utils = trpc.useUtils();
+
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: any) => {
-      // Explicitly store the session token from response body
-      // The trpc.ts interceptor also does this, but we do it here too
-      // to guarantee it's saved before navigation
-      if (data?.sessionToken) {
-        await SecureStore.setItemAsync(SESSION_COOKIE_KEY, data.sessionToken);
-        console.log('[Login] token stored, length:', data.sessionToken.length);
+      if (!data?.sessionToken) {
+        Alert.alert('Sign In Failed', 'No session token returned. Please try again.');
+        return;
       }
-      if (data?.user) {
-        setUser(data.user);
-      }
-      // Small delay to ensure SecureStore write is flushed
-      await new Promise(r => setTimeout(r, 100));
+
+      // 1. Store token FIRST — before anything else
+      await SecureStore.setItemAsync(SESSION_COOKIE_KEY, data.sessionToken);
+      console.log('[Login] ✅ token stored, length:', data.sessionToken.length);
+
+      // 2. Sync user into auth context
+      if (data?.user) setUser(data.user);
+
+      // 3. Clear all stale query cache so everything re-fetches with new token
+      queryClient.clear();
+
+      // 4. Navigate
       router.replace('/(tabs)');
     },
     onError: (err) => {

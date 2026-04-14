@@ -6,13 +6,11 @@ import type { AppRouter } from '../../server/routers';
 
 export const trpc = createTRPCReact<AppRouter>();
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
-console.log('[trpc] API_URL:', API_URL);
-
-// The server uses cookie-based auth (app_session_id).
-// On React Native, cookies are not handled automatically, so we store the
-// cookie value in SecureStore and manually inject it as a Cookie header.
 export const SESSION_COOKIE_KEY = 'app_session_cookie';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+
+console.log('[trpc] API_URL:', API_URL);
 
 export function createTRPCClient() {
   return trpc.createClient({
@@ -21,52 +19,15 @@ export function createTRPCClient() {
         url: `${API_URL}/api/trpc`,
         transformer: superjson,
         async headers() {
-          const cookie = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
-          if (cookie) {
-            console.log('[trpc] sending cookie, length:', cookie.length, 'prefix:', cookie.substring(0, 20));
-            return { Cookie: `app_session_id=${cookie}` };
+          try {
+            const token = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
+            if (token) {
+              return { Cookie: `app_session_id=${token}` };
+            }
+          } catch (e) {
+            console.warn('[trpc] SecureStore read failed:', e);
           }
           return {};
-        },
-        async fetch(url, options) {
-          const response = await global.fetch(url as string, {
-            ...options,
-            credentials: 'include',
-          });
-
-          // Try Set-Cookie header first (works in some environments)
-          const setCookie = response.headers.get('set-cookie');
-          console.log('[trpc] set-cookie header:', setCookie?.substring(0, 80));
-          if (setCookie) {
-            const match = setCookie.match(/app_session_id=([^;,\s]+)/);
-            if (match?.[1]) {
-              const token = decodeURIComponent(match[1]);
-              console.log('[trpc] captured session from Set-Cookie, token length:', token.length, 'prefix:', token.substring(0, 20));
-              await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
-              return response;
-            }
-          }
-
-          // Fallback: read session token from response body (for httpOnly cookie environments)
-          // We clone the response so we can read the body without consuming it
-          try {
-            const cloned = response.clone();
-            const json = await cloned.json();
-            // tRPC batch response is array, single is object
-            const results = Array.isArray(json) ? json : [json];
-            for (const item of results) {
-              const token = item?.result?.data?.json?.sessionToken;
-              if (token && typeof token === 'string') {
-                console.log('[trpc] captured session from response body, length:', token.length, 'prefix:', token.substring(0, 20));
-                await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
-                break;
-              }
-            }
-          } catch (e: any) {
-            console.log('[trpc] body parse skip:', e?.message);
-          }
-
-          return response;
         },
       }),
     ],
