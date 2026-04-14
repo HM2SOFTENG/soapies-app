@@ -11,5 +11,6 @@ npm-debug.*
 web-build/
 android/
 ios/
+.env
 .env.local
 .env.production
