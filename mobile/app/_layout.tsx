@@ -74,6 +74,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, user, meQuery.isLoading, meQuery.isFetching, meQuery.data, meQuery.error, segments]);
 
+  // Block rendering children until token validation completes
+  // This prevents tRPC queries from firing with a stale/invalid token
+  if (isLoading) return null;
+
   return <>{children}</>;
 }
 
