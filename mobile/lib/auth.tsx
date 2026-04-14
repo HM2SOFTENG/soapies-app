@@ -36,35 +36,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount, check for existing session cookie
   useEffect(() => {
-    checkSession();
+    // Just mark loading done — actual session validation happens in AuthGuard via trpc.auth.me
+    SecureStore.getItemAsync(SESSION_COOKIE_KEY)
+      .catch(() => null)
+      .finally(() => setIsLoading(false));
   }, []);
-
-  async function checkSession() {
-    try {
-      const cookie = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
-      if (!cookie) {
-        setIsLoading(false);
-        return;
-      }
-      // Cookie exists — actual user data will be fetched via trpc.auth.me in root layout
-      setIsLoading(false);
-    } catch {
-      setIsLoading(false);
-    }
-  }
 
   function setUser(u: User | null) {
     setUserState(u);
   }
 
   async function logout() {
-    await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
+    // 1. Clear stored token
+    await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY).catch(() => {});
+    // 2. Clear user state
     setUserState(null);
-    // Clear all cached query data so next user gets fresh data
-    const { queryClient } = await import('../app/_layout');
-    queryClient.clear();
+    // 3. Clear all query cache (lazy import to avoid circular dep)
+    try {
+      const { queryClient } = await import('../app/_layout');
+      queryClient.clear();
+    } catch (e) {
+      console.log('[auth] queryClient clear skip:', e);
+    }
   }
 
   return (

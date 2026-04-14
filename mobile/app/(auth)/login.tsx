@@ -24,11 +24,20 @@ export default function LoginScreen() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: any) => {
-      // Server sets cookie via Set-Cookie header (captured by trpc.ts fetch interceptor).
-      // User data comes in the response body.
+      // Explicitly store the session token from response body
+      // The trpc.ts interceptor also does this, but we do it here too
+      // to guarantee it's saved before navigation
+      if (data?.sessionToken) {
+        const { default: SecureStore } = await import('expo-secure-store');
+        const { SESSION_COOKIE_KEY } = await import('../../lib/trpc');
+        await SecureStore.setItemAsync(SESSION_COOKIE_KEY, data.sessionToken);
+        console.log('[Login] token stored, length:', data.sessionToken.length);
+      }
       if (data?.user) {
         setUser(data.user);
       }
+      // Small delay to ensure SecureStore write is flushed
+      await new Promise(r => setTimeout(r, 100));
       router.replace('/(tabs)');
     },
     onError: (err) => {

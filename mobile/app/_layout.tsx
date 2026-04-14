@@ -1,5 +1,5 @@
 import '../global.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -11,71 +11,76 @@ import { StatusBar } from 'expo-status-bar';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      staleTime: 30_000,
+      retry: false,         // don't retry failed auth queries
+      staleTime: 0,         // always re-fetch on mount — no stale data across logins
+      gcTime: 0,            // don't cache after unmount
     },
   },
 });
 
+// Recreate the tRPC client fresh each time the layout mounts
+// This ensures no stale headers/cookies persist
 const trpcClient = createTRPCClient();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoading, user, setUser } = useAuth();
+  const { isLoading, user, setUser, logout } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
-  // Fetch current user from server to validate session
-  // Only runs when a session cookie exists — avoids spurious null on first load
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
-    staleTime: 60_000,
-    // Don't treat a null response as an error that kicks the user out
-    // The guard below handles the redirect logic
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
   });
 
+  // When server returns valid user, sync into auth context
   useEffect(() => {
     if (meQuery.data) {
       setUser(meQuery.data as any);
     }
   }, [meQuery.data]);
 
+  // When server returns an error (invalid/expired JWT), nuke the token
+  useEffect(() => {
+    if (meQuery.error) {
+      console.log('[AuthGuard] meQuery error — clearing token:', meQuery.error.message);
+      SecureStore.deleteItemAsync(SESSION_COOKIE_KEY).then(() => {
+        queryClient.clear();
+        logout();
+      });
+    }
+  }, [meQuery.error]);
+
   useEffect(() => {
     if (isLoading) return;
+    // Wait until meQuery is done loading before making routing decisions
+    if (meQuery.isLoading || meQuery.isFetching) return;
 
-    const checkAuth = async () => {
+    const navigate = async () => {
       const cookie = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
       const inAuthGroup = segments[0] === '(auth)';
 
-      // If we have a user in local state, never redirect to login
-      if (user) {
-        if (inAuthGroup) router.replace('/(tabs)');
+      // Valid session — user data confirmed by server
+      if (meQuery.data && !meQuery.error) {
+        if (inAuthGroup) {
+          router.replace('/(tabs)');
+        }
         return;
       }
 
-      // No cookie → not logged in
-      if (!cookie) {
-        if (!inAuthGroup) router.replace('/(auth)/login');
+      // No cookie or invalid token — go to login
+      if (!cookie || meQuery.error) {
+        if (!inAuthGroup) {
+          router.replace('/(auth)/login');
+        }
         return;
-      }
-
-      // Has cookie — wait for meQuery to finish before deciding
-      if (meQuery.isLoading || meQuery.isFetching) return;
-
-      // Cookie exists but server says no valid session (expired/invalid)
-      if (meQuery.data === null && meQuery.fetchStatus === 'idle') {
-        await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
-        if (!inAuthGroup) router.replace('/(auth)/login');
-        return;
-      }
-
-      // Cookie + valid server session on auth screen → redirect to app
-      if (meQuery.data && inAuthGroup) {
-        router.replace('/(tabs)');
       }
     };
 
-    checkAuth();
-  }, [isLoading, user, meQuery.isLoading, meQuery.isFetching, meQuery.fetchStatus, meQuery.data, segments]);
+    navigate();
+  }, [isLoading, meQuery.isLoading, meQuery.isFetching, meQuery.data, meQuery.error, segments]);
 
   return <>{children}</>;
 }
