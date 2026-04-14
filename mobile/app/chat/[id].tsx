@@ -9,7 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   Modal,
-  SafeAreaView,
+  
   Alert,
   Animated,
   Pressable,

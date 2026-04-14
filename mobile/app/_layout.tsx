@@ -37,7 +37,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [meQuery.data]);
 
   useEffect(() => {
-    if (isLoading || meQuery.isLoading) return;
+    if (isLoading || meQuery.isLoading || meQuery.isFetching) return;
 
     const checkAuth = async () => {
       const cookie = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
@@ -50,7 +50,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       }
 
       // Has cookie but server returned null user (expired/invalid session) → go to login
-      if (cookie && meQuery.data === null && !meQuery.isLoading) {
+      // Only redirect if the query has actually completed and we have no user in state either
+      if (cookie && meQuery.data === null && meQuery.fetchStatus === 'idle' && !meQuery.isLoading && !user) {
         await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
         if (!inAuthGroup) router.replace('/(auth)/login');
         return;
@@ -63,7 +64,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, [isLoading, meQuery.isLoading, meQuery.data, segments]);
+  }, [isLoading, meQuery.isLoading, meQuery.isFetching, meQuery.fetchStatus, meQuery.data, segments]);
 
   return <>{children}</>;
 }

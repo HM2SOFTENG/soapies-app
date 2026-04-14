@@ -1,15 +1,15 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
@@ -17,6 +17,7 @@ import { colors } from '../../lib/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../lib/auth';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 
 function StatBox({ label, value }: { label: string; value: number | string }) {
   return (
@@ -31,14 +32,56 @@ export default function ProfileScreen() {
   const { logout } = useAuth();
   const router = useRouter();
   const { data: me, isLoading } = trpc.auth.me.useQuery();
+  const { data: creditsData } = trpc.credits.balance.useQuery();
+  const { data: referralCode } = trpc.referrals.myCode.useQuery();
+  const logoutMutation = trpc.auth.logout.useMutation({
+    onSuccess: async () => {
+      console.log('[Profile] logout success, clearing session');
+      await logout();
+      router.replace('/(auth)/login');
+    },
+    onError: async (err) => {
+      console.error('[Profile] logout error:', err.message);
+      // Still clear local session even if server logout fails
+      await logout();
+      router.replace('/(auth)/login');
+    },
+  });
 
   const profile = me as any;
 
+  const credits = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
+  const myCode = (referralCode as any)?.code ?? profile?.referralCode ?? profile?.openId?.slice(0, 8).toUpperCase() ?? 'N/A';
+
   function copyReferral() {
-    const code = profile?.referralCode ?? profile?.openId ?? 'N/A';
-    Clipboard.setStringAsync(code);
+    Clipboard.setStringAsync(myCode);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Copied!', 'Referral code copied to clipboard.');
+  }
+
+  async function shareReferral() {
+    try {
+      await Share.share({
+        message: `Join me on Soapies! Use my referral code: ${myCode}`,
+        title: 'Soapies Referral',
+      });
+    } catch (err: any) {
+      console.error('[Profile] share error:', err);
+    }
+  }
+
+  function handleLogout() {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: () => {
+          console.log('[Profile] triggering logout');
+          logoutMutation.mutate();
+        },
+      },
+    ]);
   }
 
   if (isLoading) {
@@ -113,10 +156,44 @@ export default function ProfileScreen() {
           <StatBox label="Referrals" value={profile?.referralsCount ?? 0} />
         </View>
 
+        {/* Credits Balance */}
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16,
+            padding: 16,
+            borderColor: colors.border,
+            borderWidth: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+        >
+          <View style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: `${colors.pink}22`,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 14,
+          }}>
+            <Ionicons name="star" size={20} color={colors.pink} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600' }}>CREDITS BALANCE</Text>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 2 }}>
+              {typeof credits === 'number' ? credits.toLocaleString() : credits} credits
+            </Text>
+          </View>
+        </View>
+
         {/* Referral code */}
         <View
           style={{
             margin: 20,
+            marginTop: 12,
             backgroundColor: colors.card,
             borderRadius: 16,
             padding: 16,
@@ -129,10 +206,13 @@ export default function ProfileScreen() {
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ color: colors.pink, fontSize: 18, fontWeight: '800', flex: 1, letterSpacing: 2 }}>
-              {profile?.referralCode ?? profile?.openId?.slice(0, 8).toUpperCase() ?? 'N/A'}
+              {myCode}
             </Text>
-            <TouchableOpacity onPress={copyReferral}>
+            <TouchableOpacity onPress={copyReferral} style={{ marginRight: 12 }}>
               <Ionicons name="copy-outline" size={20} color={colors.purple} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={shareReferral}>
+              <Ionicons name="share-outline" size={20} color={colors.purple} />
             </TouchableOpacity>
           </View>
         </View>
@@ -140,7 +220,7 @@ export default function ProfileScreen() {
         {/* Actions */}
         <View style={{ paddingHorizontal: 20, gap: 12 }}>
           <TouchableOpacity
-            onPress={() => { router.push('/edit-profile' as any); }}
+            onPress={() => router.push('/edit-profile' as any)}
             style={{
               backgroundColor: colors.card,
               borderRadius: 14,
@@ -153,19 +233,12 @@ export default function ProfileScreen() {
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.pink} />
-            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>
-              Edit Profile
-            </Text>
+            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>Edit Profile</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => {
-              Alert.alert('Sign Out', 'Are you sure?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Sign Out', style: 'destructive', onPress: logout },
-              ]);
-            }}
+            onPress={() => router.push('/tickets' as any)}
             style={{
               backgroundColor: colors.card,
               borderRadius: 14,
@@ -177,7 +250,48 @@ export default function ProfileScreen() {
               borderWidth: 1,
             }}
           >
-            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            <Ionicons name="ticket-outline" size={20} color={colors.pink} />
+            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>My Tickets</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/members' as any)}
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: colors.border,
+              borderWidth: 1,
+            }}
+          >
+            <Ionicons name="people-outline" size={20} color={colors.pink} />
+            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>Member Directory</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleLogout}
+            disabled={logoutMutation.isPending}
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: colors.border,
+              borderWidth: 1,
+            }}
+          >
+            {logoutMutation.isPending ? (
+              <ActivityIndicator color="#EF4444" size="small" />
+            ) : (
+              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            )}
             <Text style={{ color: '#EF4444', fontWeight: '600', marginLeft: 12 }}>Sign Out</Text>
           </TouchableOpacity>
         </View>

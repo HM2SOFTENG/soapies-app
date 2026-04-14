@@ -32,7 +32,9 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     },
     onError: (err) => {
-      Alert.alert('Sign In Failed', err.message || 'Please check your credentials.');
+      console.error('[Login] onError:', JSON.stringify(err));
+      const msg = err?.message || err?.data?.message || 'Please check your credentials and try again.';
+      Alert.alert('Sign In Failed', msg);
     },
   });
 
@@ -41,6 +43,7 @@ export default function LoginScreen() {
       Alert.alert('Missing fields', 'Please enter your email and password.');
       return;
     }
+    console.log('[Login] attempting:', email.trim().toLowerCase());
     loginMutation.mutate({ email: email.trim().toLowerCase(), password });
   }
 
@@ -120,6 +123,14 @@ export default function LoginScreen() {
               marginBottom: 28,
             }}
           />
+
+          {/* Forgot password */}
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/forgot-password' as any)}
+            style={{ alignSelf: 'flex-end', marginTop: -20, marginBottom: 24 }}
+          >
+            <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 14 }}>Forgot password?</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleLogin}

@@ -1,9 +1,10 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
-  SafeAreaView,
+  
   Pressable,
   RefreshControl,
   Animated,

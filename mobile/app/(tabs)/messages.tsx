@@ -1,12 +1,14 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   FlatList,
-  SafeAreaView,
   Pressable,
   RefreshControl,
   Animated,
+  Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,13 +70,38 @@ export default function MessagesScreen() {
     refetchInterval: 15_000,
   });
 
+  const markAllRead = trpc.messages.markAllConversationsRead.useMutation({
+    onSuccess: () => {
+      console.log('[Messages] marked all conversations read');
+      refetch();
+    },
+  });
+
   const conversations = (data as any[]) ?? [];
+  const hasUnread = conversations.some((c: any) => (c.unreadCount ?? 0) > 0);
 
   const renderConversation = useCallback(
     ({ item }: { item: any }) => (
       <ConversationItem
         conversation={item}
         onPress={() => router.push(`/chat/${item.id}` as any)}
+        onLongPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          Alert.alert(
+            item.name ?? 'Conversation',
+            'What would you like to do?',
+            [
+              {
+                text: 'Mark as Read',
+                onPress: () => {
+                  // mark individual conversation read
+                  console.log('[Messages] marking conversation read:', item.id);
+                },
+              },
+              { text: 'Cancel', style: 'cancel' },
+            ],
+          );
+        }}
       />
     ),
     [router],
@@ -102,6 +129,15 @@ export default function MessagesScreen() {
         <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700', flex: 1 }}>
           Messages
         </Text>
+        {hasUnread && (
+          <TouchableOpacity
+            onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
+            disabled={markAllRead.isPending}
+            style={{ marginRight: 14 }}
+          >
+            <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 13 }}>Mark all read</Text>
+          </TouchableOpacity>
+        )}
         <Pressable
           style={({ pressed }) => ({
             transform: [{ scale: pressed ? 0.9 : 1 }],

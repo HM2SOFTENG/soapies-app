@@ -19,9 +19,10 @@ export interface Conversation {
 interface ConversationItemProps {
   conversation: Conversation;
   onPress: () => void;
+  onLongPress?: () => void;
 }
 
-const ConversationItem = React.memo(function ConversationItem({ conversation, onPress }: ConversationItemProps) {
+const ConversationItem = React.memo(function ConversationItem({ conversation, onPress, onLongPress }: ConversationItemProps) {
   const displayName =
     conversation.name ??
     conversation.participants?.map((p) => p.displayName ?? p.name ?? '?').join(', ') ??
@@ -38,9 +39,15 @@ const ConversationItem = React.memo(function ConversationItem({ conversation, on
     onPress();
   }
 
+  function handleLongPress() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onLongPress?.();
+  }
+
   return (
     <Pressable
       onPress={handlePress}
+      onLongPress={handleLongPress}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
