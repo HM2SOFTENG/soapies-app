@@ -1,0 +1,32 @@
+name: Mobile App Check
+
+on:
+  push:
+    branches: [react-native]
+    paths:
+      - 'mobile/**'
+  pull_request:
+    branches: [main, react-native]
+    paths:
+      - 'mobile/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install mobile deps
+        run: |
+          cd mobile
+          npm install
+      - name: TypeScript check
+        run: |
+          cd mobile
+          npx tsc --noEmit
+      - name: Run tests
+        run: |
+          cd mobile
+          npx vitest run --passWithNoTests
