@@ -228,10 +228,10 @@ export async function seedAdminAccount(): Promise<void> {
 
   const existing = await getUserByEmail(adminEmail);
   if (existing) {
-    // Always sync password hash and ensure admin role on every startup
-    const newHash = await hashPassword(adminPassword);
-    await db.update(users).set({ role: "admin", passwordHash: newHash }).where(eq(users.id, existing.id));
-    console.log(`[Seed] Admin account ${adminEmail} synced (role + password).`);
+    // Only sync role — never overwrite the password hash on restart
+    // Password is managed via the app's change-password flow
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, existing.id));
+    console.log(`[Seed] Admin account ${adminEmail} role confirmed.`);
     return;
   }
 
