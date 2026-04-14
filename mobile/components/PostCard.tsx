@@ -9,11 +9,15 @@ import { formatDistanceToNow, communityColor } from '../lib/utils';
 export interface PostCardPost {
   id: string | number;
   authorName?: string | null;
+  resolvedAuthorName?: string | null;
+  resolvedAvatarUrl?: string | null;
   authorInitials?: string | null;
   content?: string | null;
   mediaUrl?: string | null;
   likeCount?: number | null;
   commentCount?: number | null;
+  likesCount?: number | null;
+  commentsCount?: number | null;
   createdAt?: string | null;
   isLiked?: boolean | null;
   community?: string | null;
@@ -93,10 +97,10 @@ const PostCard = React.memo(function PostCard({ post, onLike, onComment, onPress
     >
       {/* Author row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
-        <Avatar name={post.authorName} size="sm" />
+        <Avatar name={post.resolvedAuthorName ?? post.authorName} url={post.resolvedAvatarUrl} size="sm" />
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
-            {post.authorName ?? 'Member'}
+            {post.resolvedAuthorName ?? post.authorName ?? 'Member'}
           </Text>
           <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '400' }}>{timeAgo}</Text>
         </View>
@@ -171,7 +175,7 @@ const PostCard = React.memo(function PostCard({ post, onLike, onComment, onPress
               color={post.isLiked ? colors.pink : colors.muted}
             />
           </Animated.View>
-          <Text style={{ color: colors.muted, fontSize: 13 }}>{post.likeCount ?? 0}</Text>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>{post.likeCount ?? post.likesCount ?? 0}</Text>
         </Pressable>
 
         {/* Comment button */}
@@ -185,7 +189,7 @@ const PostCard = React.memo(function PostCard({ post, onLike, onComment, onPress
           })}
         >
           <Ionicons name="chatbubble-outline" size={19} color={colors.muted} />
-          <Text style={{ color: colors.muted, fontSize: 13 }}>{post.commentCount ?? 0}</Text>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>{post.commentCount ?? post.commentsCount ?? 0}</Text>
         </Pressable>
       </View>
     </Pressable>

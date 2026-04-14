@@ -235,13 +235,13 @@ function CommentsSheet({
                       }}
                     >
                       <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 12 }}>
-                        {(c.authorName ?? c.author?.name ?? '?').charAt(0).toUpperCase()}
+                        {(c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? '?').charAt(0).toUpperCase()}
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                         <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>
-                          {c.authorName ?? c.author?.name ?? 'Member'}
+                          {c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? 'Member'}
                         </Text>
                         <Text style={{ color: colors.muted, fontSize: 11 }}>
                           {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}
