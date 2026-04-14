@@ -6,7 +6,8 @@ import type { AppRouter } from '../../server/routers';
 
 export const trpc = createTRPCReact<AppRouter>();
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+console.log('[trpc] API_URL:', API_URL);
 
 // The server uses cookie-based auth (app_session_id).
 // On React Native, cookies are not handled automatically, so we store the

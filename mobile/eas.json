@@ -7,7 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://localhost:3000"
+        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app"
       }
     },
     "preview": {
@@ -16,13 +16,13 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://164.92.68.30"
+        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.soapies.app"
+        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app"
       }
     }
   },
