@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
-import { trpc } from '../../lib/trpc';
+import { trpc, SESSION_COOKIE_KEY } from '../../lib/trpc';
 import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
 
@@ -28,8 +29,6 @@ export default function LoginScreen() {
       // The trpc.ts interceptor also does this, but we do it here too
       // to guarantee it's saved before navigation
       if (data?.sessionToken) {
-        const { default: SecureStore } = await import('expo-secure-store');
-        const { SESSION_COOKIE_KEY } = await import('../../lib/trpc');
         await SecureStore.setItemAsync(SESSION_COOKIE_KEY, data.sessionToken);
         console.log('[Login] token stored, length:', data.sessionToken.length);
       }
