@@ -77,7 +77,15 @@ export default function MessagesScreen() {
     },
   });
 
-  const conversations = (data as any[]) ?? [];
+  // Map server fields to ConversationItem expected fields
+  // Server returns updatedAt (not lastMessageAt) and may not include unreadCount
+  const conversations = ((data as any[]) ?? []).map((c: any) => ({
+    ...c,
+    lastMessageAt: c.lastMessageAt ?? c.updatedAt ?? null,
+    lastMessage: c.lastMessage ?? c.lastMessageContent ?? null,
+    unreadCount: c.unreadCount ?? 0,
+    name: c.name ?? c.otherUserName ?? null,
+  }));
   const hasUnread = conversations.some((c: any) => (c.unreadCount ?? 0) > 0);
 
   const renderConversation = useCallback(

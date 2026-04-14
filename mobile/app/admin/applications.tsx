@@ -21,9 +21,12 @@ export default function AdminApplicationsScreen() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
+  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
+  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
+
   const { data, isLoading, refetch } = trpc.admin.pendingApplications.useQuery(
     undefined,
-    { enabled: user?.role === 'admin' }
+    { enabled: isAdmin }
   );
   const applications = (data as any[]) ?? [];
 
@@ -36,7 +39,7 @@ export default function AdminApplicationsScreen() {
   });
 
   // Guard AFTER all hooks
-  if (user?.role !== 'admin') {
+  if (!isAdmin) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>

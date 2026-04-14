@@ -54,13 +54,16 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
+  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
+  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
+
   const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery(
     undefined,
-    { enabled: user?.role === 'admin' }
+    { enabled: isAdmin }
   );
   const { data: pendingVenmo, isLoading: venmoLoading } = trpc.admin.pendingVenmoReservations.useQuery(
     undefined,
-    { enabled: user?.role === 'admin' }
+    { enabled: isAdmin }
   );
 
   const confirmMutation = trpc.admin.confirmReservation.useMutation({
@@ -80,7 +83,7 @@ export default function AdminDashboard() {
   });
 
   // Guard AFTER all hooks
-  if (user?.role !== 'admin') {
+  if (!isAdmin) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <Ionicons name="lock-closed" size={48} color={colors.muted} />

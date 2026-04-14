@@ -29,9 +29,12 @@ export default function AdminReservationsScreen() {
   const utils = trpc.useUtils();
   const [refreshing, setRefreshing] = React.useState(false);
 
+  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
+  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
+
   const { data, isLoading, refetch } = trpc.admin.pendingVenmoReservations.useQuery(
     undefined,
-    { enabled: user?.role === 'admin' }
+    { enabled: isAdmin }
   );
   const reservations = (data as any[]) ?? [];
 
@@ -52,7 +55,7 @@ export default function AdminReservationsScreen() {
   });
 
   // Guard AFTER all hooks
-  if (user?.role !== 'admin') {
+  if (!isAdmin) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>

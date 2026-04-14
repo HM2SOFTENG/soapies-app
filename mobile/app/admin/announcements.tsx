@@ -33,9 +33,12 @@ export default function AdminAnnouncementsScreen() {
     dismissible: true,
   });
 
+  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
+  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
+
   const { data, isLoading } = trpc.announcements.list.useQuery(
     {},
-    { enabled: user?.role === 'admin' }
+    { enabled: isAdmin }
   );
   const announcements = (data as any[]) ?? [];
 
@@ -55,7 +58,7 @@ export default function AdminAnnouncementsScreen() {
   });
 
   // Guard AFTER all hooks
-  if (user?.role !== 'admin') {
+  if (!isAdmin) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>

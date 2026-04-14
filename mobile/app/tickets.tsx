@@ -277,7 +277,7 @@ export default function TicketsScreen() {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
 
   const { data, isLoading, refetch } = trpc.reservations.myTickets.useQuery(undefined, {
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const { mutateAsync: submitTestResult } = trpc.testResults.submit.useMutation();

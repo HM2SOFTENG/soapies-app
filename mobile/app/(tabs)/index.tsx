@@ -368,7 +368,14 @@ export default function FeedScreen() {
 
   const posts = useMemo(() => {
     const rawPosts = (data as any[]) ?? [];
-    return rawPosts.map((p: any) => ({ ...p, isLiked: likedPostIds.has(p.id) }));
+    return rawPosts.map((p: any) => ({
+      ...p,
+      isLiked: likedPostIds.has(p.id),
+      authorName: p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
+      avatarUrl: p.avatarUrl ?? p.profile?.avatarUrl ?? null,
+      resolvedAuthorName: p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
+      resolvedAvatarUrl: p.avatarUrl ?? p.profile?.avatarUrl ?? null,
+    }));
   }, [data, likedPostIds]);
 
   const announcements = useMemo(() => {
