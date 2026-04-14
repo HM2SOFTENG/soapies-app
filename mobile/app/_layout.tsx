@@ -25,46 +25,57 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   // Fetch current user from server to validate session
+  // Only runs when a session cookie exists — avoids spurious null on first load
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     staleTime: 60_000,
+    // Don't treat a null response as an error that kicks the user out
+    // The guard below handles the redirect logic
   });
 
   useEffect(() => {
-    if (meQuery.data !== undefined) {
+    if (meQuery.data) {
       setUser(meQuery.data as any);
     }
   }, [meQuery.data]);
 
   useEffect(() => {
-    if (isLoading || meQuery.isLoading || meQuery.isFetching) return;
+    if (isLoading) return;
 
     const checkAuth = async () => {
       const cookie = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
       const inAuthGroup = segments[0] === '(auth)';
 
-      // No cookie and no user → go to login
-      if (!cookie && !inAuthGroup) {
-        router.replace('/(auth)/login');
+      // If we have a user in local state, never redirect to login
+      if (user) {
+        if (inAuthGroup) router.replace('/(tabs)');
         return;
       }
 
-      // Has cookie but server returned null user (expired/invalid session) → go to login
-      // Only redirect if the query has actually completed and we have no user in state either
-      if (cookie && meQuery.data === null && meQuery.fetchStatus === 'idle' && !meQuery.isLoading && !user) {
+      // No cookie → not logged in
+      if (!cookie) {
+        if (!inAuthGroup) router.replace('/(auth)/login');
+        return;
+      }
+
+      // Has cookie — wait for meQuery to finish before deciding
+      if (meQuery.isLoading || meQuery.isFetching) return;
+
+      // Cookie exists but server says no valid session (expired/invalid)
+      if (meQuery.data === null && meQuery.fetchStatus === 'idle') {
         await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
         if (!inAuthGroup) router.replace('/(auth)/login');
         return;
       }
 
-      // Authenticated user on auth screen → redirect to app
-      if (cookie && meQuery.data && inAuthGroup) {
+      // Cookie + valid server session on auth screen → redirect to app
+      if (meQuery.data && inAuthGroup) {
         router.replace('/(tabs)');
       }
     };
 
     checkAuth();
-  }, [isLoading, meQuery.isLoading, meQuery.isFetching, meQuery.fetchStatus, meQuery.data, segments]);
+  }, [isLoading, user, meQuery.isLoading, meQuery.isFetching, meQuery.fetchStatus, meQuery.data, segments]);
 
   return <>{children}</>;
 }
