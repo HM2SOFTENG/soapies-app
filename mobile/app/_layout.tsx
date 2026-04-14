@@ -27,8 +27,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60_000, // 5 min — don't re-fetch unless stale
+    refetchOnMount: false,  // don't re-fetch just because component mounts
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Debug

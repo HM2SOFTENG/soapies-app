@@ -484,7 +484,7 @@ export default function HomeScreen() {
     isLoading,
     refetch: refetchPosts,
   } = trpc.wall.posts.useQuery(
-    { communityId: 'soapies' } as any,
+    { communityId: 'soapies', limit: 50 },
     { staleTime: 30_000, refetchOnWindowFocus: false, refetchInterval: 60_000 },
   );
 
