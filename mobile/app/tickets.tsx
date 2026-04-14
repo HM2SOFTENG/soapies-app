@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import QRCode from 'react-native-qrcode-svg';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
@@ -319,6 +320,24 @@ export default function TicketsScreen() {
   }
 
   async function handleUploadTestResult(ticket: any) {
+    Alert.alert(
+      'Upload Test Result',
+      'Choose how to upload your test result',
+      [
+        {
+          text: 'Photo Library',
+          onPress: () => uploadFromImagePicker(ticket),
+        },
+        {
+          text: 'File / PDF',
+          onPress: () => uploadFromDocumentPicker(ticket),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  }
+
+  async function uploadFromImagePicker(ticket: any) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -326,19 +345,28 @@ export default function TicketsScreen() {
     });
     if (result.canceled) return;
     const asset = result.assets[0];
-    const formData = new FormData();
-    formData.append('photo', {
-      uri: asset.uri,
-      type: 'image/jpeg',
-      name: 'test-result.jpg',
-    } as any);
+    await doUpload(ticket, asset.uri, 'image/jpeg', 'test-result.jpg');
+  }
+
+  async function uploadFromDocumentPicker(ticket: any) {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*'],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    await doUpload(ticket, asset.uri, asset.mimeType ?? 'application/octet-stream', asset.name ?? 'test-result');
+  }
+
+  async function doUpload(ticket: any, uri: string, mimeType: string, fileName: string) {
     try {
       setUploadingId(ticket.id);
+      const formData = new FormData();
+      formData.append('photo', { uri, type: mimeType, name: fileName } as any);
       const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
       const uploadRes = await fetch(`${API_URL}/api/upload-photo`, {
         method: 'POST',
         body: formData,
-        headers: { 'Content-Type': 'multipart/form-data' },
       });
       const { url } = await uploadRes.json();
       await submitTestResult({ reservationId: ticket.id, eventId: ticket.eventId, resultUrl: url });

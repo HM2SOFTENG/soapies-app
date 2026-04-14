@@ -8,7 +8,7 @@ import { trpc, createTRPCClient, SESSION_COOKIE_KEY } from '../lib/trpc';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,

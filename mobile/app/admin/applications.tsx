@@ -21,6 +21,21 @@ export default function AdminApplicationsScreen() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
+  const { data, isLoading, refetch } = trpc.admin.pendingApplications.useQuery(
+    undefined,
+    { enabled: user?.role === 'admin' }
+  );
+  const applications = (data as any[]) ?? [];
+
+  const reviewMutation = trpc.admin.reviewApplication.useMutation({
+    onSuccess: () => {
+      utils.admin.pendingApplications.invalidate();
+      utils.admin.stats.invalidate();
+    },
+    onError: (e) => Alert.alert('Error', e.message),
+  });
+
+  // Guard AFTER all hooks
   if (user?.role !== 'admin') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
@@ -31,17 +46,6 @@ export default function AdminApplicationsScreen() {
       </SafeAreaView>
     );
   }
-
-  const { data, isLoading, refetch } = trpc.admin.pendingApplications.useQuery();
-  const applications = (data as any[]) ?? [];
-
-  const reviewMutation = trpc.admin.reviewApplication.useMutation({
-    onSuccess: () => {
-      utils.admin.pendingApplications.invalidate();
-      utils.admin.stats.invalidate();
-    },
-    onError: (e) => Alert.alert('Error', e.message),
-  });
 
   function handleAction(profileId: number, displayName: string, action: 'approve' | 'reject') {
     const status = action === 'approve' ? 'approved' : 'rejected';

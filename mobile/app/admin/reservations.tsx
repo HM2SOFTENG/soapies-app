@@ -27,20 +27,12 @@ export default function AdminReservationsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const utils = trpc.useUtils();
-
-  if (user?.role !== 'admin') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  const { data, isLoading, refetch } = trpc.admin.pendingVenmoReservations.useQuery();
   const [refreshing, setRefreshing] = React.useState(false);
+
+  const { data, isLoading, refetch } = trpc.admin.pendingVenmoReservations.useQuery(
+    undefined,
+    { enabled: user?.role === 'admin' }
+  );
   const reservations = (data as any[]) ?? [];
 
   const confirmMutation = trpc.admin.confirmReservation.useMutation({
@@ -58,6 +50,18 @@ export default function AdminReservationsScreen() {
     },
     onError: (e) => Alert.alert('Error', e.message),
   });
+
+  // Guard AFTER all hooks
+  if (user?.role !== 'admin') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
+          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   async function onRefresh() {
     setRefreshing(true);

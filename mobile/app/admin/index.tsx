@@ -52,24 +52,16 @@ function StatCard({ label, value, icon, color }: { label: string; value: any; ic
 export default function AdminDashboard() {
   const router = useRouter();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
 
-  if (user?.role !== 'admin') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Ionicons name="lock-closed" size={48} color={colors.muted} />
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>Access Denied</Text>
-        <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
-          You need admin privileges to access this area.
-        </Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12, borderColor: colors.border, borderWidth: 1 }}>
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery();
-  const { data: pendingVenmo, isLoading: venmoLoading } = trpc.admin.pendingVenmoReservations.useQuery();
+  const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery(
+    undefined,
+    { enabled: user?.role === 'admin' }
+  );
+  const { data: pendingVenmo, isLoading: venmoLoading } = trpc.admin.pendingVenmoReservations.useQuery(
+    undefined,
+    { enabled: user?.role === 'admin' }
+  );
 
   const confirmMutation = trpc.admin.confirmReservation.useMutation({
     onSuccess: () => {
@@ -87,7 +79,21 @@ export default function AdminDashboard() {
     onError: (e) => Alert.alert('Error', e.message),
   });
 
-  const utils = trpc.useUtils();
+  // Guard AFTER all hooks
+  if (user?.role !== 'admin') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Ionicons name="lock-closed" size={48} color={colors.muted} />
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>Access Denied</Text>
+        <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+          You need admin privileges to access this area.
+        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12, borderColor: colors.border, borderWidth: 1 }}>
+          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   const statsData = stats as any;
   const venmoList = (pendingVenmo as any[]) ?? [];
@@ -140,11 +146,11 @@ export default function AdminDashboard() {
           ) : (
             <>
               <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-                <StatCard label="Total Members" value={statsData?.totalMembers ?? statsData?.members} icon="people" color={colors.purple} />
-                <StatCard label="Pending Apps" value={statsData?.pendingApplications ?? statsData?.pending} icon="person-add" color={colors.pink} />
+                <StatCard label="Total Members" value={statsData?.totalUsers ?? statsData?.totalMembers} icon="people" color={colors.purple} />
+                <StatCard label="Pending Apps" value={statsData?.pendingApplications} icon="person-add" color={colors.pink} />
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <StatCard label="Today's Reservations" value={statsData?.todayReservations ?? statsData?.reservations} icon="calendar" color="#10B981" />
+                <StatCard label="Total Reservations" value={statsData?.totalReservations} icon="calendar" color="#10B981" />
                 <StatCard label="Pending Payments" value={venmoList.length} icon="card" color="#F59E0B" />
               </View>
             </>

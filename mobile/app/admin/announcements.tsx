@@ -33,18 +33,10 @@ export default function AdminAnnouncementsScreen() {
     dismissible: true,
   });
 
-  if (user?.role !== 'admin') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  const { data, isLoading } = trpc.announcements.list.useQuery({});
+  const { data, isLoading } = trpc.announcements.list.useQuery(
+    {},
+    { enabled: user?.role === 'admin' }
+  );
   const announcements = (data as any[]) ?? [];
 
   const createMutation = trpc.announcements.create.useMutation({
@@ -61,6 +53,18 @@ export default function AdminAnnouncementsScreen() {
     onSuccess: () => utils.announcements.list.invalidate(),
     onError: (e) => Alert.alert('Error', e.message),
   });
+
+  // Guard AFTER all hooks
+  if (user?.role !== 'admin') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
+          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   function handleCreate() {
     if (!form.title.trim()) { Alert.alert('Error', 'Title is required'); return; }

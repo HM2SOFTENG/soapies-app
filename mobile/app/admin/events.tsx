@@ -81,18 +81,10 @@ export default function AdminEventsScreen() {
     status: 'draft' as EventStatus,
   });
 
-  if (user?.role !== 'admin') {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  const { data, isLoading } = trpc.events.all.useQuery();
+  const { data, isLoading } = trpc.events.all.useQuery(
+    undefined,
+    { enabled: user?.role === 'admin' }
+  );
   const events = (data as any[]) ?? [];
 
   const createMutation = trpc.events.create.useMutation({
@@ -113,6 +105,18 @@ export default function AdminEventsScreen() {
     },
     onError: (e) => Alert.alert('Error', e.message),
   });
+
+  // Guard AFTER all hooks
+  if (user?.role !== 'admin') {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
+          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   function resetForm() {
     setForm({ title: '', description: '', venue: '', address: '', startDate: '', capacity: '', priceSingleMale: '', priceSingleFemale: '', priceCouple: '', status: 'draft' });

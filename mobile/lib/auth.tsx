@@ -62,6 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
     setUserState(null);
+    // Clear all cached query data so next user gets fresh data
+    const { queryClient } = await import('../app/_layout');
+    queryClient.clear();
   }
 
   return (
