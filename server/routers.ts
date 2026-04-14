@@ -522,34 +522,7 @@ export const appRouter = router({
         } catch (err) {
           console.error("[Referral] Failed to process conversion:", err);
         }
-        // Auto-post reservation to wall (only once per user+event within 24h)
-        try {
-          const event = await db.getEventById(input.eventId);
-          if (event) {
-            const profile = await db.getProfileByUserId(ctx.user.id);
-            const user = await db.getUserById(ctx.user.id);
-            const userName = profile?.displayName || user?.name || "A member";
-            const communityId = event.communityId ?? "soapies";
-            const recentPosts = await db.getWallPosts(communityId, 200);
-            const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            const alreadyPosted = recentPosts.some(p =>
-              p.authorId === ctx.user.id &&
-              p.content?.includes(event.title) &&
-              new Date(p.createdAt) > cutoff
-            );
-            if (!alreadyPosted) {
-              await db.createWallPost({
-                authorId: ctx.user.id,
-                authorName: userName,
-                communityId,
-                content: `${userName} just reserved a spot for **${event.title}**! 🎟️ Join them for the fun → /events/${event.id}`,
-                visibility: "members",
-              });
-            }
-          }
-        } catch (err) {
-          console.error("[Wall] Failed to post reservation message:", err);
-        }
+        // Auto-wall-post disabled — clutters the feed with system noise
       }
       return reservationId;
     }),

@@ -66,12 +66,9 @@ export default function MembersScreen() {
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, refetch } = trpc.profile.search.useQuery(
-    { query },
-    {
-      staleTime: 30_000,
-      keepPreviousData: true,
-    } as any,
+  const { data, isLoading, refetch } = trpc.members.browse.useQuery(
+    { page: 0, search: query || undefined },
+    { staleTime: 0 },
   );
 
   const members = (data as any[]) ?? [];
