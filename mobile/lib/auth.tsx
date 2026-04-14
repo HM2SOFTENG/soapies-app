@@ -37,8 +37,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Just mark loading done — actual session validation happens in AuthGuard via trpc.auth.me
+    // Validate stored token on mount — clear it if it looks malformed
     SecureStore.getItemAsync(SESSION_COOKIE_KEY)
+      .then(async (token) => {
+        if (token) {
+          // A valid JWT has exactly 3 dot-separated parts and is ~196 chars
+          const parts = token.split('.');
+          const isValidJWT = parts.length === 3 && token.length < 300;
+          if (!isValidJWT) {
+            console.log('[Auth] Clearing malformed token, length:', token.length, 'parts:', parts.length);
+            await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
+          } else {
+            console.log('[Auth] Token looks valid, length:', token.length);
+          }
+        }
+      })
       .catch(() => null)
       .finally(() => setIsLoading(false));
   }, []);
