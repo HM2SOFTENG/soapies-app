@@ -16,9 +16,9 @@ Auditor: ClawBot (Lead Scrum Master / PO)
 | Post Composer | ✅ | ❌ | 🔴 Missing | FAB triggers `showComposer` state but no modal/component built |
 | Post Reactions | ✅ | ✅ | 🟡 Partial | Reaction picker in `PostCard.tsx` — functional |
 | Comments Thread | ✅ | ❌ | 🔴 Missing | No comments UI on PostCard |
-| Events List | ✅ | ⚠️ | 🔴 Broken | `(tabs)/events.tsx` imports `EventCard` which **does not exist** in `components/` |
+| Events List | ✅ | ✅ | 🟡 Partial | `(tabs)/events.tsx` + `EventCard.tsx` exist. Community filter works. No infinite scroll. |
 | Event Detail + Reserve | ✅ | ✅ | 🟡 Partial | `event/[id].tsx` functional. No ticket type selector (just single reserve mutation). No payment. |
-| DM Messaging — List | ✅ | ⚠️ | 🔴 Broken | `(tabs)/messages.tsx` imports `ConversationItem` which **does not exist** in `components/` |
+| DM Messaging — List | ✅ | ✅ | 🟡 Partial | `(tabs)/messages.tsx` + `ConversationItem.tsx` exist. Polling at 15s. No new-conversation flow. |
 | DM Messaging — Chat | ✅ | ✅ | 🟡 Partial | `chat/[id].tsx` works with polling. No WebSocket. No typing indicator. No new convo creation. |
 | Group Channels | ✅ | ❌ | 🔴 Missing | No UI for group/channel conversations |
 | Member Profile (view) | ✅ | ✅ | 🟡 Partial | `member/[id].tsx` — displays profile. No message/connect CTA. |
@@ -38,12 +38,12 @@ Auditor: ClawBot (Lead Scrum Master / PO)
 | Camera / Photo Upload | N/A | ⚠️ | 🟡 Ready | `expo-image-picker` installed. Not used anywhere yet. |
 | Share Sheet | N/A | ❌ | 🔴 Missing | `expo-sharing` not installed |
 
-### Critical Bugs Blocking Beta
-1. **`EventCard` component missing** — Events tab crashes on mount
-2. **`ConversationItem` component missing** — Messages tab crashes on mount
-3. **Post Composer not built** — FAB does nothing
-4. **No profile edit** — users cannot update their info
-5. **No Tickets screen** — users can reserve but never see their tickets
+### Critical Bugs / Missing Features Blocking Beta
+1. **Post Composer not built** — FAB does nothing
+2. **No profile edit** — users cannot update their info
+3. **No Tickets screen** — users can reserve but never see their tickets
+4. **No new-DM flow** — compose button in Messages has no handler
+5. **No ticket type selector** — EventDetail reserve is single-type only
 
 ---
 
@@ -95,13 +95,12 @@ Goal: Auth → Feed → Events → Messages → Profile fully working end-to-end
 - **Status:** 🔴 Not Started
 - **Notes:** Tap PostCard → push to `/post/[id]` detail screen with comments list + reply input.
 
-### EVT-001 — EventCard Component (Bug Fix)
-- **Type:** Bug / Missing Component
+### EVT-001 — EventCard Component
+- **Type:** Feature (existing)
 - **User Story:** As a member, I can see a list of upcoming events in the Events tab.
 - **Priority:** P0
 - **Effort:** S
-- **Status:** 🔴 Blocking — `EventCard` imported but does not exist
-- **Notes:** Create `components/EventCard.tsx`. Display: image/gradient, event name, date, community badge, price. Tap → `router.push('/event/[id]')`.
+- **Status:** ✅ Done — `EventCard.tsx` fully implemented with image, gradient fallback, community badge, price, tap navigation.
 
 ### EVT-002 — Event Detail + Reserve
 - **Type:** Feature (existing)
@@ -126,13 +125,12 @@ Goal: Auth → Feed → Events → Messages → Profile fully working end-to-end
 - **Status:** 🔴 Not Started
 - **Notes:** Add tab or profile section. Pull from `trpc.tickets.mine`. Show QR when `qrCode` field is populated. (QR generation is also missing on backend — see BACKLOG.md BKL-002.)
 
-### MSG-001 — ConversationItem Component (Bug Fix)
-- **Type:** Bug / Missing Component
+### MSG-001 — ConversationItem Component
+- **Type:** Feature (existing)
 - **User Story:** As a member, I can see my list of conversations in the Messages tab.
 - **Priority:** P0
 - **Effort:** S
-- **Status:** 🔴 Blocking — `ConversationItem` imported but does not exist
-- **Notes:** Create `components/ConversationItem.tsx`. Show: avatar, name, last message preview, unread badge, timestamp.
+- **Status:** ✅ Done — `ConversationItem.tsx` fully implemented with avatar, display name, last message preview, unread badge, timestamp.
 
 ### MSG-002 — Chat Screen
 - **Type:** Feature (existing)

@@ -10,9 +10,9 @@ Ship a working beta with core loop: **auth → feed → events → messages → 
 
 ---
 
-## Overall Status: 🔴 NOT BETA-READY
+## Overall Status: 🟠 NOT BETA-READY
 
-Two tabs are currently broken due to missing components. Core flows are incomplete.
+Core tab components exist but several key flows (composer, profile edit, tickets, new DM) are missing. No crashes on tab load.
 
 ---
 
@@ -41,7 +41,7 @@ Two tabs are currently broken due to missing components. Core flows are incomple
 ### 📅 Events — 30% Complete (Tab Broken)
 | Item | Status | Notes |
 |---|---|---|
-| Events list (tab) | 🔴 BROKEN | `EventCard` component does not exist — tab will crash |
+| Events list (tab) | ✅ Done | `EventCard.tsx` exists and is fully implemented |
 | Community filter | ✅ Done | UI built in `events.tsx` |
 | Event detail page | ✅ Done | Hero, date, venue, reserve button |
 | Reserve CTA | 🟡 Partial | Single `reserve` mutation. No ticket type selector. |
@@ -52,7 +52,7 @@ Two tabs are currently broken due to missing components. Core flows are incomple
 ### 💬 Messages — 40% Complete (Tab Broken)
 | Item | Status | Notes |
 |---|---|---|
-| Conversation list (tab) | 🔴 BROKEN | `ConversationItem` component does not exist — tab will crash |
+| Conversation list (tab) | ✅ Done | `ConversationItem.tsx` exists and is fully implemented |
 | Chat screen | ✅ Done | Polling (5s), send works |
 | New DM / start conversation | ❌ MISSING | Compose button present, no handler |
 | Group channels | ❌ MISSING | Not started |
@@ -87,15 +87,15 @@ Two tabs are currently broken due to missing components. Core flows are incomple
 
 ---
 
-## 🔴 Immediate Blockers (Fix First)
+## 🔴 Immediate Priorities (Fix Before TestFlight)
 
 These must be resolved before any QA or TestFlight build:
 
-1. **Create `components/EventCard.tsx`** — Events tab crashes on import
-2. **Create `components/ConversationItem.tsx`** — Messages tab crashes on import
-3. **Build Post Composer modal** — Core social feature, FAB is dead
-4. **Build Profile Edit screen** — Users can't update anything
-5. **Build My Tickets screen** — Users can reserve but never see confirmation
+1. **Build Post Composer modal** — Core social feature, FAB is dead
+2. **Build Profile Edit screen** — Users can't update anything
+3. **Build My Tickets screen** — Users can reserve but never see confirmation
+4. **Wire new-DM flow** — Compose button in Messages header has no handler
+5. **Add ticket type selector** — EventDetail reserve is single-type only
 
 ---
 
