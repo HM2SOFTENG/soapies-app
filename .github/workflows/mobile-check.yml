@@ -21,7 +21,7 @@ jobs:
       - name: Install mobile deps
         run: |
           cd mobile
-          npm install
+          npm install --legacy-peer-deps
       - name: TypeScript check
         run: |
           cd mobile

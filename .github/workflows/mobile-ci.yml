@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
-        run: cd mobile && npm ci
+        run: cd mobile && npm install --legacy-peer-deps
 
       - name: TypeScript check
         run: cd mobile && npx tsc --noEmit
@@ -50,7 +50,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: cd mobile && npm ci
+        run: cd mobile && npm install --legacy-peer-deps
 
       - name: Build preview
         run: cd mobile && eas build --platform ios --profile preview --non-interactive
