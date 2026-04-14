@@ -23,6 +23,7 @@ export function createTRPCClient() {
         async headers() {
           const cookie = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
           if (cookie) {
+            console.log('[trpc] sending cookie, length:', cookie.length, 'prefix:', cookie.substring(0, 20));
             return { Cookie: `app_session_id=${cookie}` };
           }
           return {};
@@ -35,11 +36,13 @@ export function createTRPCClient() {
 
           // Try Set-Cookie header first (works in some environments)
           const setCookie = response.headers.get('set-cookie');
+          console.log('[trpc] set-cookie header:', setCookie?.substring(0, 80));
           if (setCookie) {
-            const match = setCookie.match(/app_session_id=([^;]+)/);
+            const match = setCookie.match(/app_session_id=([^;,\s]+)/);
             if (match?.[1]) {
-              console.log('[trpc] captured session from Set-Cookie header');
-              await SecureStore.setItemAsync(SESSION_COOKIE_KEY, match[1]);
+              const token = decodeURIComponent(match[1]);
+              console.log('[trpc] captured session from Set-Cookie, token length:', token.length, 'prefix:', token.substring(0, 20));
+              await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
               return response;
             }
           }
@@ -54,13 +57,13 @@ export function createTRPCClient() {
             for (const item of results) {
               const token = item?.result?.data?.json?.sessionToken;
               if (token && typeof token === 'string') {
-                console.log('[trpc] captured session from response body');
+                console.log('[trpc] captured session from response body, length:', token.length, 'prefix:', token.substring(0, 20));
                 await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
                 break;
               }
             }
-          } catch {
-            // not JSON or no token — that's fine
+          } catch (e: any) {
+            console.log('[trpc] body parse skip:', e?.message);
           }
 
           return response;
