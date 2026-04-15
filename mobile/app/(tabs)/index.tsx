@@ -622,8 +622,7 @@ export default function HomeScreen() {
   const [composerText, setComposerText]     = useState('');
   const [composerMedia, setComposerMedia]   = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
   const [composerLink, setComposerLink]     = useState('');
-  const [showStickyFeed, setShowStickyFeed] = useState(false);
-  const listScrollY = useRef(new Animated.Value(0)).current;
+  const feedScrollY = useRef(new Animated.Value(0)).current;
   const [showLinkInput, setShowLinkInput]   = useState(false);
   const [dismissedIds, setDismissedIds]     = useState<number[]>([]);
   const [isUploading, setIsUploading]       = useState(false);
@@ -849,15 +848,13 @@ export default function HomeScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [me, profile, nextEvent, announcements]);
 
-  // Sticky community feed bar — rendered outside ListHeaderComponent so it stays pinned
-  const FeedStickyBar = useMemo(() => (
+  // Feed bar — inline version (always rendered in ListHeaderComponent, scrolls normally)
+  const FeedBar = (
     <View style={{
       backgroundColor: colors.bg,
       paddingHorizontal: 20,
-      paddingTop: insets.top + 10,
+      paddingTop: 14,
       paddingBottom: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     }}>
       <SectionLabel title="Community Feed" />
       <TouchableOpacity
@@ -878,22 +875,59 @@ export default function HomeScreen() {
         <Ionicons name="image-outline" size={20} color={colors.muted} />
       </TouchableOpacity>
     </View>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [profile, showComposer, insets.top]);
+  );
+
+  // Sticky version — pinned above FlatList, fades in once inline bar scrolls off screen
+  const stickyOpacity = feedScrollY.interpolate({
+    inputRange: [340, 390],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const StickyFeedBar = (
+    <Animated.View style={{
+      opacity: stickyOpacity,
+      backgroundColor: colors.bg,
+      paddingHorizontal: 20,
+      paddingTop: insets.top + 10,
+      paddingBottom: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      zIndex: 10,
+    }}>
+      <SectionLabel title="Community Feed" />
+      <TouchableOpacity
+        onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.card,
+          borderRadius: 12,
+          padding: 14,
+          borderColor: colors.border,
+          borderWidth: 1,
+          marginBottom: 10,
+        }}
+      >
+        <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={32} />
+        <Text style={{ color: colors.muted, marginLeft: 10, flex: 1, fontSize: 14 }}>What's on your mind?</Text>
+        <Ionicons name="image-outline" size={20} color={colors.muted} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#2D1B4E' }} edges={['bottom']}>
       {isLoading ? (
         <ScrollView>
           {ListHeader}
-          {FeedStickyBar}
+          {FeedBar}
           <PostSkeleton />
           <PostSkeleton />
           <PostSkeleton />
         </ScrollView>
       ) : (
         <View style={{ flex: 1 }}>
-          {showStickyFeed && FeedStickyBar}
+          {StickyFeedBar}
           <FlatList
             data={posts}
             keyExtractor={(item: any) => String(item.id)}
@@ -910,11 +944,11 @@ export default function HomeScreen() {
                 isLiked={likedPostIds.has(item.id as number)}
               />
             )}
-            ListHeaderComponent={ListHeader}
-            onScroll={(e) => {
-              const y = e.nativeEvent.contentOffset.y;
-              setShowStickyFeed(y > 360);
-            }}
+            ListHeaderComponent={<>{ListHeader}{FeedBar}</>}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: feedScrollY } } }],
+              { useNativeDriver: false }
+            )}
             scrollEventThrottle={16}
           removeClippedSubviews
           maxToRenderPerBatch={10}
