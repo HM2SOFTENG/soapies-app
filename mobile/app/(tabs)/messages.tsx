@@ -1,16 +1,10 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
 import {
-  View,
-  Text,
-  SectionList,
-  RefreshControl,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Animated,
+  View, Text, SectionList, RefreshControl, TouchableOpacity,
+  TextInput, Animated, StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -19,37 +13,37 @@ import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import ConversationItem from '../../components/ConversationItem';
 
-// ── Skeleton loader ───────────────────────────────────────────────────────────
-function ConversationSkeleton() {
-  const opacity = useRef(new Animated.Value(0.4)).current;
-
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function Skeleton() {
+  const anim = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
-    const pulse = Animated.loop(
+    Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.85, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
-      ]),
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [opacity]);
-
+        Animated.timing(anim, { toValue: 0.8, duration: 700, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
   return (
-    <Animated.View
-      style={{
-        opacity,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-      }}
-    >
-      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: colors.border }} />
-      <View style={{ marginLeft: 14, gap: 8, flex: 1 }}>
-        <View style={{ width: '50%', height: 13, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ width: '75%', height: 11, borderRadius: 5, backgroundColor: colors.border }} />
+    <Animated.View style={[styles.skeletonRow, { opacity: anim }]}>
+      <View style={styles.skeletonAvatar} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <View style={[styles.skeletonLine, { width: '45%' }]} />
+        <View style={[styles.skeletonLine, { width: '70%', height: 11 }]} />
       </View>
     </Animated.View>
+  );
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+function SectionHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionBadge}>
+        <Text style={styles.sectionBadgeText}>{count}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -59,6 +53,13 @@ export default function MessagesScreen() {
   const { hasToken } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  // Entrance animation
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+  }, []);
 
   const { data, isLoading, refetch } = trpc.messages.conversations.useQuery(undefined, {
     enabled: hasToken,
@@ -69,12 +70,10 @@ export default function MessagesScreen() {
   const markAllRead = trpc.messages.markAllConversationsRead.useMutation({
     onSuccess: () => refetch(),
   });
-
   const markReadMutation = trpc.messages.markRead.useMutation({
     onSuccess: () => refetch(),
   });
 
-  // Normalize server fields
   const conversations = useMemo(() => {
     const raw = (data as any[]) ?? [];
     return raw.map(c => ({
@@ -86,34 +85,25 @@ export default function MessagesScreen() {
     }));
   }, [data]);
 
-  // Total unread badge
   const totalUnread = useMemo(
-    () => conversations.reduce((sum: number, c: any) => sum + (c.unreadCount ?? 0), 0),
-    [conversations],
+    () => conversations.reduce((s: number, c: any) => s + (c.unreadCount ?? 0), 0),
+    [conversations]
   );
 
-  // Filtered + sectioned
   const sections = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const filtered = q
       ? conversations.filter((c: any) => {
-          const name =
-            c.name ??
-            c.participants?.map((p: any) => p.displayName ?? p.name ?? '').join(' ') ??
-            '';
-          return (
-            name.toLowerCase().includes(q) ||
-            (c.lastMessage ?? '').toLowerCase().includes(q)
-          );
+          const name = c.name ?? c.participants?.map((p: any) => p.displayName ?? '').join(' ') ?? '';
+          return name.toLowerCase().includes(q) || (c.lastMessage ?? '').toLowerCase().includes(q);
         })
       : conversations;
 
     const channels = filtered.filter((c: any) => c.type === 'channel');
     const dms = filtered.filter((c: any) => c.type !== 'channel');
-
-    const result: { title: string; data: any[] }[] = [];
-    if (channels.length) result.push({ title: 'CHANNELS', data: channels });
-    if (dms.length) result.push({ title: 'DIRECT MESSAGES', data: dms });
+    const result: { title: string; count: number; data: any[] }[] = [];
+    if (channels.length) result.push({ title: 'CHANNELS', count: channels.length, data: channels });
+    if (dms.length)      result.push({ title: 'DIRECT MESSAGES', count: dms.length, data: dms });
     return result;
   }, [conversations, searchQuery]);
 
@@ -123,121 +113,71 @@ export default function MessagesScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  function handleLongPress(conv: any) {
-    Alert.alert(
-      conv.name ?? 'Conversation',
-      '',
-      [
-        {
-          text: 'Mark as Read',
-          onPress: () => markReadMutation.mutate({ conversationId: conv.id }),
-        },
-        {
-          text: 'Mute Notifications',
-          onPress: () => {
-            // TODO: implement mute
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
-  }
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={styles.container} edges={['top']}>
 
       {/* ── Header ── */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 20,
-          paddingTop: 8,
-          paddingBottom: 12,
-        }}
-      >
-        <Text style={{ color: colors.text, fontSize: 28, fontWeight: '900', flex: 1 }}>
-          Messages
-        </Text>
+      <Animated.View style={{ opacity: headerAnim }}>
+        <LinearGradient
+          colors={['#0D0820', '#0D0D0D']}
+          style={styles.header}
+        >
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>Messages</Text>
+              {totalUnread > 0 && (
+                <Text style={styles.headerSub}>
+                  {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
+                </Text>
+              )}
+            </View>
 
-        {/* Unread count badge next to title */}
-        {totalUnread > 0 && (
-          <View
-            style={{
-              backgroundColor: colors.pink,
-              borderRadius: 10,
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              marginLeft: 10,
-              marginRight: 6,
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>
-              {totalUnread > 99 ? '99+' : totalUnread}
-            </Text>
+            <View style={styles.headerActions}>
+              {totalUnread > 0 && (
+                <TouchableOpacity
+                  onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
+                  style={styles.headerBtn}
+                >
+                  <Ionicons name="checkmark-done" size={20} color={colors.pink} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => { Haptics.selectionAsync(); router.push('/members' as any); }}
+                style={[styles.headerBtn, styles.headerBtnPrimary]}
+              >
+                <Ionicons name="create-outline" size={19} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
 
-        {/* Mark all read */}
-        <TouchableOpacity
-          onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
-          disabled={markAllRead.isPending || totalUnread === 0}
-          style={{ marginRight: 4, padding: 8, opacity: totalUnread > 0 ? 1 : 0.35 }}
-        >
-          <Ionicons name="checkmark-done-outline" size={22} color={colors.muted} />
-        </TouchableOpacity>
-
-        {/* New DM (future) */}
-        <TouchableOpacity
-          onPress={() => { Haptics.selectionAsync(); router.push('/members' as any); }}
-          style={{ padding: 8 }}
-        >
-          <Ionicons name="create-outline" size={22} color={colors.pink} />
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Search bar ── */}
-      <View
-        style={{
-          marginHorizontal: 16,
-          marginBottom: 12,
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: colors.card,
-          borderRadius: 14,
-          paddingHorizontal: 14,
-          borderColor: colors.border,
-          borderWidth: 1,
-        }}
-      >
-        <Ionicons name="search-outline" size={17} color={colors.muted} />
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search conversations..."
-          placeholderTextColor={colors.muted}
-          style={{
-            flex: 1,
-            color: colors.text,
-            paddingVertical: 11,
-            paddingLeft: 10,
-            fontSize: 15,
-          }}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={colors.muted} />
-          </TouchableOpacity>
-        )}
-      </View>
+          {/* ── Search ── */}
+          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+            <Ionicons name="search" size={16} color={searchFocused ? colors.pink : colors.muted} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Search messages..."
+              placeholderTextColor={colors.muted}
+              style={styles.searchInput}
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={16} color={colors.muted} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </LinearGradient>
+      </Animated.View>
 
       {/* ── Content ── */}
       {isLoading ? (
-        <View>
-          {[1, 2, 3, 4, 5].map(i => <ConversationSkeleton key={i} />)}
+        <View style={{ paddingTop: 8 }}>
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} />)}
         </View>
       ) : (
         <SectionList
@@ -246,83 +186,89 @@ export default function MessagesScreen() {
           renderItem={({ item }) => (
             <ConversationItem
               conversation={item}
-              onPress={() =>
-                router.push({
-                  pathname: '/chat/[id]',
-                  params: { id: item.id },
-                } as any)
-              }
-              onLongPress={() => handleLongPress(item)}
+              onPress={() => router.push({ pathname: '/chat/[id]', params: { id: item.id } } as any)}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                markReadMutation.mutate({ conversationId: item.id });
+              }}
             />
           )}
           renderSectionHeader={({ section }) => (
-            <View
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                paddingTop: 14,
-                backgroundColor: colors.bg,
-              }}
-            >
-              <Text
-                style={{
-                  color: colors.muted,
-                  fontSize: 11,
-                  fontWeight: '700',
-                  letterSpacing: 1.2,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {section.title}
-              </Text>
-            </View>
+            <SectionHeader title={(section as any).title} count={(section as any).count} />
           )}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.pink}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
           }
           ListEmptyComponent={
-            searchQuery ? (
-              <View style={{ alignItems: 'center', paddingTop: 60 }}>
-                <Ionicons name="search-outline" size={48} color={colors.border} />
-                <Text style={{ color: colors.muted, marginTop: 12, fontSize: 15 }}>
-                  No conversations found
-                </Text>
-              </View>
-            ) : (
-              <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
-                <Text style={{ fontSize: 48, marginBottom: 12 }}>💬</Text>
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 18,
-                    fontWeight: '700',
-                    marginBottom: 6,
-                  }}
-                >
-                  No messages yet
-                </Text>
-                <Text
-                  style={{
-                    color: colors.muted,
-                    textAlign: 'center',
-                  }}
-                >
-                  Your community channels will appear here
-                </Text>
-              </View>
-            )
+            <View style={styles.empty}>
+              {searchQuery ? (
+                <>
+                  <Ionicons name="search-outline" size={52} color={colors.border} />
+                  <Text style={styles.emptyTitle}>No results</Text>
+                  <Text style={styles.emptyBody}>No conversations match "{searchQuery}"</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontSize: 52, marginBottom: 12 }}>💬</Text>
+                  <Text style={styles.emptyTitle}>No messages yet</Text>
+                  <Text style={styles.emptyBody}>Community channels will appear here once you join</Text>
+                </>
+              )}
+            </View>
           }
           stickySectionHeadersEnabled
           removeClippedSubviews
-          maxToRenderPerBatch={10}
-          windowSize={5}
           contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+
+  header: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  headerTitle: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  headerSub: { color: colors.pink, fontSize: 12, fontWeight: '600', marginTop: 2 },
+  headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  headerBtn: {
+    width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: `${colors.pink}18`,
+  },
+  headerBtnPrimary: {
+    backgroundColor: colors.pink,
+  },
+
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#1A1A2E', borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 11,
+    borderWidth: 1, borderColor: '#2D2D44',
+  },
+  searchBarFocused: { borderColor: `${colors.pink}66` },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
+
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10, paddingTop: 18,
+    backgroundColor: colors.bg,
+  },
+  sectionTitle: {
+    color: '#4B5563', fontSize: 11, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase',
+  },
+  sectionBadge: {
+    backgroundColor: '#1F1F2E', borderRadius: 8,
+    paddingHorizontal: 7, paddingVertical: 2,
+  },
+  sectionBadgeText: { color: '#6B7280', fontSize: 11, fontWeight: '700' },
+
+  skeletonRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 13 },
+  skeletonAvatar: { width: 54, height: 54, borderRadius: 17, backgroundColor: colors.border },
+  skeletonLine: { height: 13, borderRadius: 6, backgroundColor: colors.border },
+
+  empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
+  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 14, marginBottom: 6 },
+  emptyBody: { color: colors.muted, textAlign: 'center', lineHeight: 20 },
+});
