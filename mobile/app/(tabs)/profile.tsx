@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Share,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,29 @@ import { useToast } from '../../components/Toast';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; emoji: string }> = {
+  admin:   { label: 'Admin',   color: '#fff',         bg: '#6366F1',            emoji: '🛡️' },
+  angel:   { label: 'Angel',   color: colors.pink,    bg: `${colors.pink}22`,   emoji: '💗' },
+  member:  { label: 'Member',  color: colors.purple,  bg: `${colors.purple}22`, emoji: '✨' },
+  pending: { label: 'Pending', color: colors.muted,   bg: colors.card,          emoji: '⏳' },
+};
+
+const COMMUNITY_NAMES: Record<string, string> = {
+  soapies:  '🎉 Soapies',
+  groupies: '💑 Groupies',
+  gaypeez:  '🌈 Gaypeez',
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function capitalize(str: string) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
 function StatBox({ label, value }: { label: string; value: number | string }) {
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
@@ -29,37 +53,76 @@ function StatBox({ label, value }: { label: string; value: number | string }) {
   );
 }
 
+function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+      <View style={{
+        width: 32, height: 32, borderRadius: 10,
+        backgroundColor: `${colors.purple}22`,
+        alignItems: 'center', justifyContent: 'center',
+        marginRight: 12,
+      }}>
+        <Ionicons name={icon} size={16} color={colors.purple} />
+      </View>
+      <View>
+        <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          {label}
+        </Text>
+        <Text style={{ color: colors.text, fontSize: 14, fontWeight: '500', marginTop: 1 }}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
+
 export default function ProfileScreen() {
   const toast = useToast();
   const { logout, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const router = useRouter();
   const { hasToken } = useAuth();
-  const { data: me, isLoading, error: meError, fetchStatus: meFetchStatus } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
-  const { data: profileData, error: profileError } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+
+  const { data: me, isLoading } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+  const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const { data: creditsData } = trpc.credits.balance.useQuery(undefined, { enabled: hasToken });
   const { data: referralCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: hasToken });
+  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { enabled: hasToken });
+
+  // Merge auth.me + profile.me
+  const profile = useMemo(() => ({ ...(me as any), ...(profileData as any) }), [me, profileData]);
+
+  // Parse preferences JSON
+  const prefs = useMemo(() => {
+    try {
+      const raw = (profileData as any)?.preferences;
+      if (!raw) return null;
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch { return null; }
+  }, [profileData]);
+
+  const credits = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
+  const myCode = (referralCode as any)?.code ?? 'N/A';
+  const referralsCount = (referralCode as any)?.totalReferrals ?? 0;
+  const eventsCount = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
+
+  const memberRole: string | undefined = profile?.memberRole ?? profile?.role;
+  const roleConfig = memberRole ? (ROLE_CONFIG[memberRole] ?? ROLE_CONFIG.pending) : null;
+  const communityLabel = profile?.communityId ? (COMMUNITY_NAMES[profile.communityId] ?? profile.communityId) : null;
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: async () => {
-      console.log('[Profile] logout success, clearing session');
       toast.info('Logged out');
       await logout();
       router.replace('/(auth)/login');
     },
-    onError: async (err) => {
-      console.error('[Profile] logout error:', err.message);
-      // Still clear local session even if server logout fails
+    onError: async () => {
       await logout();
       router.replace('/(auth)/login');
     },
   });
-
-  // Merge auth.me (role/email) with profile.me (displayName, bio, avatar, stats)
-  const profile = { ...(me as any), ...(profileData as any) };
-
-  const credits = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
-  const myCode = (referralCode as any)?.code ?? 'N/A';
 
   function copyReferral() {
     Clipboard.setStringAsync(myCode);
@@ -84,10 +147,7 @@ export default function ProfileScreen() {
       {
         text: 'Sign Out',
         style: 'destructive',
-        onPress: () => {
-          console.log('[Profile] triggering logout');
-          logoutMutation.mutate();
-        },
+        onPress: () => logoutMutation.mutate(),
       },
     ]);
   }
@@ -103,88 +163,168 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
-        {/* Header gradient */}
+
+        {/* ── Gradient Header ── */}
         <LinearGradient
           colors={['#7C3AED22', '#EC489922', '#0D0D0D']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={{ paddingTop: 48, paddingBottom: 24, alignItems: 'center', paddingHorizontal: 20 }}
+          style={{ paddingTop: 48, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
         >
           <Avatar
             name={profile?.displayName ?? profile?.name ?? '?'}
             url={profile?.avatarUrl}
-            size={88}
-            style={{ marginBottom: 12 }}
+            size={100}
+            style={{ marginBottom: 14 }}
           />
-          <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800' }}>
+
+          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800' }}>
             {profile?.displayName ?? profile?.name ?? 'Member'}
           </Text>
-          {profile?.bio && (
-            <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 6 }}>
-              {profile.bio}
-            </Text>
+
+          {/* Role badge */}
+          {roleConfig && (
+            <View style={{
+              flexDirection: 'row', alignItems: 'center',
+              paddingHorizontal: 12, paddingVertical: 5,
+              borderRadius: 20,
+              backgroundColor: roleConfig.bg,
+              borderColor: `${roleConfig.color}33`,
+              borderWidth: 1,
+              marginTop: 8, gap: 4,
+            }}>
+              <Text style={{ fontSize: 14 }}>{roleConfig.emoji}</Text>
+              <Text style={{ color: roleConfig.color, fontWeight: '700', fontSize: 13 }}>{roleConfig.label}</Text>
+            </View>
           )}
 
           {/* Community badge */}
-          {profile?.community?.name && (
-            <View
-              style={{
-                marginTop: 10,
-                paddingHorizontal: 14,
-                paddingVertical: 5,
-                backgroundColor: colors.card,
-                borderRadius: 20,
-                borderColor: colors.border,
-                borderWidth: 1,
-              }}
-            >
+          {communityLabel && (
+            <View style={{
+              marginTop: 8,
+              paddingHorizontal: 14, paddingVertical: 5,
+              backgroundColor: colors.card,
+              borderRadius: 20,
+              borderColor: colors.border,
+              borderWidth: 1,
+            }}>
               <Text style={{ color: colors.purple, fontWeight: '700', fontSize: 13 }}>
-                {profile.community.name}
+                {communityLabel}
               </Text>
             </View>
           )}
+
+          {/* Bio */}
+          {profile?.bio && (
+            <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 }}>
+              {profile.bio}
+            </Text>
+          )}
         </LinearGradient>
 
-        {/* Stats */}
-        <View
-          style={{
-            flexDirection: 'row',
-            marginHorizontal: 20,
-            backgroundColor: colors.card,
-            borderRadius: 16,
-            padding: 20,
-            borderColor: colors.border,
-            borderWidth: 1,
-          }}
-        >
-          <StatBox label="Events" value={profile?.eventsAttended ?? 0} />
+        {/* ── Stats Row ── */}
+        <View style={{
+          flexDirection: 'row',
+          marginHorizontal: 20,
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          padding: 20,
+          borderColor: colors.border,
+          borderWidth: 1,
+        }}>
+          <StatBox label="Events" value={eventsCount} />
           <View style={{ width: 1, backgroundColor: colors.border }} />
           <StatBox label="Posts" value={profile?.postsCount ?? 0} />
           <View style={{ width: 1, backgroundColor: colors.border }} />
-          <StatBox label="Referrals" value={profile?.referralsCount ?? 0} />
+          <StatBox label="Referrals" value={referralsCount} />
         </View>
 
-        {/* Credits Balance */}
-        <View
-          style={{
-            marginHorizontal: 20,
-            marginTop: 12,
-            backgroundColor: colors.card,
-            borderRadius: 16,
-            padding: 16,
-            borderColor: colors.border,
-            borderWidth: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
+        {/* ── About Me ── */}
+        {(profile?.location || profile?.gender || profile?.orientation || prefs?.relationshipStatus) && (
           <View style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            marginHorizontal: 20, marginTop: 16,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>About Me</Text>
+            {profile?.location && (
+              <InfoRow icon="location-outline" label="Location" value={profile.location} />
+            )}
+            {profile?.gender && (
+              <InfoRow icon="person-outline" label="Gender" value={capitalize(profile.gender)} />
+            )}
+            {profile?.orientation && (
+              <InfoRow icon="heart-outline" label="Orientation" value={capitalize(profile.orientation)} />
+            )}
+            {prefs?.relationshipStatus && (
+              <InfoRow icon="people-outline" label="Relationship" value={prefs.relationshipStatus} />
+            )}
+          </View>
+        )}
+
+        {/* ── Interests ── */}
+        {prefs?.interests?.length > 0 && (
+          <View style={{
+            marginHorizontal: 20, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Interests</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {prefs.interests.map((interest: string) => (
+                <View key={interest} style={{
+                  paddingHorizontal: 12, paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: `${colors.pink}22`,
+                  borderColor: `${colors.pink}44`,
+                  borderWidth: 1,
+                }}>
+                  <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>{interest}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── Looking For ── */}
+        {prefs?.lookingFor?.length > 0 && (
+          <View style={{
+            marginHorizontal: 20, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Looking For</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {prefs.lookingFor.map((item: string) => (
+                <View key={item} style={{
+                  paddingHorizontal: 12, paddingVertical: 6,
+                  borderRadius: 20,
+                  backgroundColor: `${colors.purple}22`,
+                  borderColor: `${colors.purple}44`,
+                  borderWidth: 1,
+                }}>
+                  <Text style={{ color: colors.purple, fontSize: 13, fontWeight: '600' }}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── Credits Balance ── */}
+        <View style={{
+          marginHorizontal: 20, marginTop: 16,
+          backgroundColor: colors.card,
+          borderRadius: 16, padding: 16,
+          borderColor: colors.border, borderWidth: 1,
+          flexDirection: 'row', alignItems: 'center',
+        }}>
+          <View style={{
+            width: 40, height: 40, borderRadius: 20,
             backgroundColor: `${colors.pink}22`,
-            justifyContent: 'center',
-            alignItems: 'center',
+            justifyContent: 'center', alignItems: 'center',
             marginRight: 14,
           }}>
             <Ionicons name="star" size={20} color={colors.pink} />
@@ -197,18 +337,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Referral code */}
-        <View
-          style={{
-            margin: 20,
-            marginTop: 12,
-            backgroundColor: colors.card,
-            borderRadius: 16,
-            padding: 16,
-            borderColor: colors.border,
-            borderWidth: 1,
-          }}
-        >
+        {/* ── Referral Code ── */}
+        <View style={{
+          marginHorizontal: 20, marginTop: 12,
+          backgroundColor: colors.card,
+          borderRadius: 16, padding: 16,
+          borderColor: colors.border, borderWidth: 1,
+        }}>
           <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
             REFERRAL CODE
           </Text>
@@ -225,26 +360,22 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Actions */}
-        <View style={{ paddingHorizontal: 20, gap: 12 }}>
+        {/* ── Actions ── */}
+        <View style={{ paddingHorizontal: 20, marginTop: 16, gap: 12 }}>
+
+          {/* Admin Dashboard */}
           {isAdmin && (
             <TouchableOpacity
               onPress={() => router.push('/admin' as any)}
-              style={{
-                borderRadius: 14,
-                overflow: 'hidden',
-                marginBottom: 2,
-              }}
+              style={{ borderRadius: 14, overflow: 'hidden' }}
             >
               <LinearGradient
                 colors={[`${colors.purple}33`, `${colors.pink}33`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
-                  paddingVertical: 14,
-                  paddingHorizontal: 20,
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  paddingVertical: 14, paddingHorizontal: 20,
+                  flexDirection: 'row', alignItems: 'center',
                   borderRadius: 14,
                   borderColor: `${colors.purple}66`,
                   borderWidth: 1,
@@ -254,10 +385,8 @@ export default function ProfileScreen() {
                 <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 12, flex: 1 }}>Admin Dashboard</Text>
                 <View style={{
                   backgroundColor: `${colors.purple}44`,
-                  paddingHorizontal: 10,
-                  paddingVertical: 3,
-                  borderRadius: 20,
-                  marginRight: 8,
+                  paddingHorizontal: 10, paddingVertical: 3,
+                  borderRadius: 20, marginRight: 8,
                 }}>
                   <Text style={{ color: colors.purple, fontWeight: '800', fontSize: 11 }}>ADMIN</Text>
                 </View>
@@ -266,17 +395,14 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Edit Profile */}
           <TouchableOpacity
             onPress={() => router.push('/edit-profile' as any)}
             style={{
               backgroundColor: colors.card,
-              borderRadius: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderColor: colors.border,
-              borderWidth: 1,
+              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+              flexDirection: 'row', alignItems: 'center',
+              borderColor: colors.border, borderWidth: 1,
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.pink} />
@@ -284,17 +410,14 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
+          {/* My Tickets */}
           <TouchableOpacity
             onPress={() => router.push('/tickets' as any)}
             style={{
               backgroundColor: colors.card,
-              borderRadius: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderColor: colors.border,
-              borderWidth: 1,
+              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+              flexDirection: 'row', alignItems: 'center',
+              borderColor: colors.border, borderWidth: 1,
             }}
           >
             <Ionicons name="ticket-outline" size={20} color={colors.pink} />
@@ -302,17 +425,14 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
+          {/* Member Directory */}
           <TouchableOpacity
             onPress={() => router.push('/members' as any)}
             style={{
               backgroundColor: colors.card,
-              borderRadius: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderColor: colors.border,
-              borderWidth: 1,
+              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+              flexDirection: 'row', alignItems: 'center',
+              borderColor: colors.border, borderWidth: 1,
             }}
           >
             <Ionicons name="people-outline" size={20} color={colors.pink} />
@@ -320,18 +440,15 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
+          {/* Sign Out */}
           <TouchableOpacity
             onPress={handleLogout}
             disabled={logoutMutation.isPending}
             style={{
               backgroundColor: colors.card,
-              borderRadius: 14,
-              paddingVertical: 14,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderColor: colors.border,
-              borderWidth: 1,
+              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+              flexDirection: 'row', alignItems: 'center',
+              borderColor: colors.border, borderWidth: 1,
             }}
           >
             {logoutMutation.isPending ? (
@@ -342,6 +459,7 @@ export default function ProfileScreen() {
             <Text style={{ color: '#EF4444', fontWeight: '600', marginLeft: 12 }}>Sign Out</Text>
           </TouchableOpacity>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
