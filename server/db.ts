@@ -1832,7 +1832,9 @@ export async function upsertMemberSignal(userId: number, data: {
   longitude?: number;
 }): Promise<void> {
   const db = await getDb(); if (!db) return;
-  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h TTL
+  // Format as MySQL datetime string — drizzle sql tag passes Date as JS string which MySQL rejects
+  const expiresAtDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
+  const expiresAt = expiresAtDate.toISOString().slice(0, 19).replace('T', ' '); // '2026-01-01 12:00:00'
   // drizzle raw execute for upsert
   await db.execute(sql`
     INSERT INTO member_signals (userId, signalType, seekingGender, seekingDynamic, message, isQueerFriendly, latitude, longitude, expiresAt)
