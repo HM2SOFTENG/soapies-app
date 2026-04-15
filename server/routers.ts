@@ -1760,6 +1760,10 @@ export const appRouter = router({
       search: z.string().optional(),
       orientation: z.string().optional(),
       community: z.string().optional(), // explicit override (e.g. admin or filter)
+      gender: z.string().optional(),
+      memberRole: z.string().optional(),
+      lookingFor: z.string().optional(),
+      hasPhoto: z.boolean().optional(),
     })).query(async ({ ctx, input }) => {
       // 'all' = cross-community search (e.g. for connections/invitations)
       // undefined = default to user's own community

@@ -143,7 +143,7 @@ export default function MessagesScreen() {
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                onPress={() => { Haptics.selectionAsync(); router.push('/members' as any); }}
+                onPress={() => { Haptics.selectionAsync(); router.push('/members?mode=compose' as any); }}
                 style={[styles.headerBtn, styles.headerBtnPrimary]}
               >
                 <Ionicons name="create-outline" size={19} color="#fff" />

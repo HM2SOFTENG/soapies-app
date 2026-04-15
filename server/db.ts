@@ -2006,8 +2006,9 @@ export async function getReservationById(id: number) {
 
 // ─── MEMBER DISCOVERY ────────────────────────────────────────────────────────
 
-export async function browseMembers({ userId, page = 0, search, orientation, community }: {
+export async function browseMembers({ userId, page = 0, search, orientation, community, gender, memberRole, lookingFor, hasPhoto }: {
   userId: number; page?: number; search?: string; orientation?: string; community?: string;
+  gender?: string; memberRole?: string; lookingFor?: string; hasPhoto?: boolean;
 }) {
   const db = await getDb(); if (!db) return [];
   const conditions = [
@@ -2018,6 +2019,13 @@ export async function browseMembers({ userId, page = 0, search, orientation, com
   if (search) conditions.push(sql`${profiles.displayName} LIKE ${`%${search}%`}`);
   if (orientation) conditions.push(eq(profiles.orientation, orientation));
   if (community) conditions.push(eq(profiles.communityId, community));
+  if (gender) conditions.push(eq(profiles.gender, gender));
+  if (memberRole) conditions.push(eq(profiles.memberRole, memberRole as any));
+  if (hasPhoto) conditions.push(sql`${profiles.avatarUrl} IS NOT NULL AND ${profiles.avatarUrl} != ''`);
+  if (lookingFor) {
+    // preferences JSON contains lookingFor array — use JSON_CONTAINS
+    conditions.push(sql`JSON_CONTAINS(${profiles.preferences}, ${JSON.stringify([lookingFor])}, '$.lookingFor')`);
+  }
   return db.select({
     id: profiles.userId,
     displayName: profiles.displayName,
@@ -2026,6 +2034,8 @@ export async function browseMembers({ userId, page = 0, search, orientation, com
     orientation: profiles.orientation,
     location: profiles.location,
     communityId: profiles.communityId,
+    memberRole: profiles.memberRole,
+    preferences: profiles.preferences,
     createdAt: profiles.createdAt,
   }).from(profiles)
     .where(and(...conditions))
