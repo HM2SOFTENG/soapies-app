@@ -1,7 +1,7 @@
 # Soapies Mobile — Prioritized Backlog
 **Date:** 2026-04-15
 **Scope:** Mobile-only (`/mobile/**`). Server/DB/client changes are **out of scope**.
-**Cross-refs:** OpenClaw `HANDOFF-2026-04-15.md`, root `BACKLOG.md` (ITEM-###), Claude takeover doc §4.
+**Cross-refs:** `HANDOFF-2026-04-15.md`, root `BACKLOG.md` (ITEM-###), handoff doc §4.
 
 Priority bands: **P0** blocks App Store submission or is a live security/stability issue. **P1** is a bug or gap users will hit in the next release. **P2** is quality / polish. **P3** is tech debt.
 
@@ -106,7 +106,7 @@ Priority bands: **P0** blocks App Store submission or is a live security/stabili
 
 ## Notes / Hard Constraints
 
-- **Server changes forbidden** from this agent. Any item requiring `server/`, `drizzle/`, `client/`, or `.github/workflows/` changes goes into a "needs-OpenClaw" queue — we flag it but do not touch it.
+- **Server changes forbidden** from this agent. Any item requiring `server/`, `drizzle/`, `client/`, or `.github/workflows/` changes goes into a "needs-dev agent" queue — we flag it but do not touch it.
 - **DB password discipline:** never inline `DATABASE_URL` in a committed file. (Applies to any seed/scratch we might write under `mobile/scripts/`.)
 - **Deployment:** push to `main` triggers DO App Platform deploy for the server. Mobile changes ship via EAS build + OTA update, not DO.
 - **Test users:** `user1@testuser.soapies` … `user180@testuser.soapies`, password `TestPass123!`. Admin: `admin@soapiesplaygrp.club`.
