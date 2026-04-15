@@ -2229,7 +2229,7 @@ export async function getActiveSignals(userId: number, userLat?: number, userLon
 export async function getMemberSignal(userId: number): Promise<any | null> {
   const pool = await getRawPool(); if (!pool) return null;
   const [rows] = await pool.execute(
-    'SELECT * FROM member_signals WHERE userId = ? LIMIT 1',
+    'SELECT * FROM member_signals WHERE userId = ? ORDER BY id DESC LIMIT 1',
     [userId]
   );
   return (rows as any[])[0] ?? null;

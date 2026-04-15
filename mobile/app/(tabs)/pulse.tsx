@@ -912,19 +912,20 @@ export default function PulseScreen() {
     })();
   }, []);
 
-  // Sync signal form from server data
+  // Sync signal form from server data — runs on load AND every time the modal opens
+  const syncSignalForm = useCallback((s: any) => {
+    if (!s) return;
+    setMySignalType((s.signalType ?? 'offline') as SignalType);
+    const sgRaw = s.seekingGender ?? 'any';
+    setSeekingGender(sgRaw ? sgRaw.split(',').map((v: string) => v.trim()).filter(Boolean) : ['any']);
+    const sdRaw = s.seekingDynamic ?? '';
+    setSeekingDynamic(sdRaw ? sdRaw.split(',').map((v: string) => v.trim()).filter(Boolean) : []);
+    setSignalMessage(s.message ?? '');
+    setIsQueerFriendly(!!s.isQueerFriendly);
+  }, []);
+
   useEffect(() => {
-    if (mySignalData) {
-      const s = mySignalData as any;
-      setMySignalType((s.signalType ?? 'offline') as SignalType);
-      // Parse comma-joined strings back to arrays (e.g. "female,non-binary" → ['female','non-binary'])
-      const sgRaw = s.seekingGender ?? 'any';
-      setSeekingGender(sgRaw ? sgRaw.split(',').map((v: string) => v.trim()).filter(Boolean) : ['any']);
-      const sdRaw = s.seekingDynamic ?? '';
-      setSeekingDynamic(sdRaw ? sdRaw.split(',').map((v: string) => v.trim()).filter(Boolean) : []);
-      setSignalMessage(s.message ?? '');
-      setIsQueerFriendly(!!s.isQueerFriendly);
-    }
+    if (mySignalData) syncSignalForm(mySignalData);
   }, [mySignalData]);
 
   const signalMutation = trpc.members.signal.useMutation({
@@ -996,7 +997,7 @@ export default function PulseScreen() {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => setShowSignalModal(true)}
+          onPress={() => { refetchMySignal(); setShowSignalModal(true); }}
           style={{
             flexDirection: 'row', alignItems: 'center', gap: 6,
             paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
@@ -1093,7 +1094,7 @@ export default function PulseScreen() {
           top: pulseHeight / 2 - 40,
           alignItems: 'center',
         }}>
-          <TouchableOpacity onPress={() => setShowSignalModal(true)}>
+          <TouchableOpacity onPress={() => { refetchMySignal(); setShowSignalModal(true); }}>
             <View style={{
               width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
               borderWidth: 2.5, borderColor: myConfig.color,
