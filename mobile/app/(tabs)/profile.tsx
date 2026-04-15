@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import {
   View,
@@ -79,6 +79,7 @@ function InfoRow({ icon, label, value }: { icon: any; label: string; value: stri
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const toast = useToast();
   const { logout, user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -161,7 +162,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
 
         {/* ── Gradient Header ── */}
@@ -169,7 +170,7 @@ export default function ProfileScreen() {
           colors={['#7C3AED22', '#EC489922', '#0D0D0D']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={{ paddingTop: 48, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
+          style={{ paddingTop: insets.top + 20, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
         >
           <Avatar
             name={profile?.displayName ?? profile?.name ?? '?'}

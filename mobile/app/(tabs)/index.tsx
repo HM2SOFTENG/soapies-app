@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
@@ -53,6 +53,7 @@ function getGreeting(name: string) {
 // ── Animated Gradient Header ──────────────────────────────────────────────────
 
 function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const headerY = useRef(new Animated.Value(30)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
@@ -79,7 +80,7 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
       colors={['#2D1B4E', '#1A0A2E', colors.bg]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0.4, y: 1 }}
-      style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 }}
+      style={{ paddingHorizontal: 20, paddingTop: insets.top + 16, paddingBottom: 24 }}
     >
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerY }] }}>
         {/* Top row: greeting + avatar */}
@@ -879,7 +880,7 @@ export default function HomeScreen() {
   ), [me, profile, nextEvent, announcements]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#2D1B4E' }} edges={['bottom']}>
       {isLoading ? (
         <ScrollView>
           {ListHeader}

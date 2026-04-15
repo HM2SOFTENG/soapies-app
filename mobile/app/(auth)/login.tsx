@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
 import { trpc, saveToken } from '../../lib/trpc';
@@ -18,6 +19,7 @@ import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setUser, setHasToken } = useAuth();
   const [email, setEmail] = useState('');
@@ -74,7 +76,7 @@ export default function LoginScreen() {
           colors={['#7C3AED', '#EC4899']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ paddingHorizontal: 32, paddingTop: 80, paddingBottom: 48, alignItems: 'center' }}
+          style={{ paddingHorizontal: 32, paddingTop: insets.top + 40, paddingBottom: 48, alignItems: 'center' }}
         >
           <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>
             Soapies

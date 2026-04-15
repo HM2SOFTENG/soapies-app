@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, SectionList, RefreshControl, TouchableOpacity,
@@ -49,6 +49,7 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function MessagesScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { hasToken } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
@@ -114,13 +115,13 @@ export default function MessagesScreen() {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {/* ── Header ── */}
       <Animated.View style={{ opacity: headerAnim }}>
         <LinearGradient
           colors={['#0D0820', '#0D0D0D']}
-          style={styles.header}
+          style={[styles.header, { paddingTop: insets.top + 6 }]}
         >
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
@@ -226,9 +227,9 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: '#0D0820' },
 
-  header: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },
+  header: { paddingHorizontal: 20, paddingBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   headerTitle: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   headerSub: { color: colors.pink, fontSize: 12, fontWeight: '600', marginTop: 2 },

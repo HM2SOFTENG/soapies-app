@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, Modal, ScrollView, TextInput,
   Animated, Dimensions, Alert, Image, Switch, StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -226,6 +226,7 @@ function MemberBubble({ member, matchScore, x, y, onPress }: BubbleProps) {
 
 // ─── PulseScreen ───────────────────────────────────────────────────────────────
 export default function PulseScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { hasToken } = useAuth();
   const pulseHeight = SCREEN_HEIGHT - 190;
@@ -325,9 +326,9 @@ export default function PulseScreen() {
   const myConfig = SIGNAL_CONFIG[mySignalType];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }} edges={['bottom']}>
       {/* ── Header ── */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 12 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900' }}>Pulse 💗</Text>
           <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 1 }}>

@@ -139,7 +139,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <ToastProvider>
             <AuthProvider>
-              <StatusBar style="light" />
+              <StatusBar style="light" translucent backgroundColor="transparent" />
               <AuthGuard>
                 <Slot />
               </AuthGuard>

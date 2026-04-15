@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
@@ -317,6 +317,7 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
 function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: Animated.Value; isGoing?: boolean }) {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [imgError, setImgError] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -368,7 +369,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
   const emoji = event ? eventEmoji(event.title ?? '') : '🎉';
 
   return (
-    <Animated.View style={{ height: heroHeight, overflow: 'hidden' }}>
+    <Animated.View style={{ height: heroHeight, overflow: 'hidden', paddingTop: insets.top }}>
       {/* Background image or gradient */}
       <Animated.View style={{ position: 'absolute', inset: 0, transform: [{ scale: imageScale }] }}>
         {hasImage ? (
@@ -559,7 +560,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
       {/* Hero */}
       <HeroSection
         event={nextEvent}

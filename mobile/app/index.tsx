@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { colors } from '../lib/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -127,6 +128,7 @@ function PulseRing({ size, delay, color }: { size: number; delay: number; color:
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function LandingScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   // Entrance animations

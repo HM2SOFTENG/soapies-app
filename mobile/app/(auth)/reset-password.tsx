@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 
 export default function ResetPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
 
@@ -77,7 +79,7 @@ export default function ResetPasswordScreen() {
           colors={['#7C3AED', '#EC4899']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ paddingHorizontal: 32, paddingTop: 80, paddingBottom: 48, alignItems: 'center' }}
+          style={{ paddingHorizontal: 32, paddingTop: insets.top + 40, paddingBottom: 48, alignItems: 'center' }}
         >
           <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>
             Soapies
