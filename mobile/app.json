@@ -60,7 +60,8 @@
         {
           "cameraPermission": "Soapies uses the camera so you can take profile photos and attach images to posts and messages."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "scheme": "soapies"
   }

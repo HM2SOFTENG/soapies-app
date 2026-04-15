@@ -104,7 +104,8 @@ export default function ProfileScreen() {
     } catch { return null; }
   }, [profileData]);
 
-  const credits = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
+  const creditsRaw = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
+  const credits = `$${(Number(creditsRaw) / 100).toFixed(2)}`; // stored in cents
   const myCode = (referralCode as any)?.code ?? 'N/A';
   const referralsCount = (referralCode as any)?.totalReferrals ?? 0;
   const eventsCount = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
@@ -333,7 +334,7 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600' }}>CREDITS BALANCE</Text>
             <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 2 }}>
-              {typeof credits === 'number' ? credits.toLocaleString() : credits} credits
+              {credits}
             </Text>
           </View>
         </View>
