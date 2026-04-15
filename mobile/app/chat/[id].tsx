@@ -182,7 +182,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       >
         {/* Header */}
         <View
@@ -190,7 +190,8 @@ export default function ChatScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             paddingHorizontal: 14,
-            paddingVertical: 12,
+            paddingTop: insets.top + 12,
+            paddingBottom: 12,
             borderBottomColor: colors.border,
             borderBottomWidth: 1,
             gap: 12,
