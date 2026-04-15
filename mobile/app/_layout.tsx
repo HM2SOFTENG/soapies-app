@@ -1,6 +1,6 @@
 import '../global.css';
 import React, { useEffect, useRef } from 'react';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Slot, Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
@@ -141,7 +141,27 @@ export default function RootLayout() {
             <AuthProvider>
               <StatusBar style="light" translucent backgroundColor="transparent" />
               <AuthGuard>
-                <Slot />
+                <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#0D0D0D' } }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="pending-approval" />
+                  <Stack.Screen name="profile-setup" />
+                  <Stack.Screen name="edit-profile" />
+                  <Stack.Screen name="members" />
+                  <Stack.Screen name="tickets" />
+                  <Stack.Screen name="event/[id]" />
+                  <Stack.Screen name="chat/[id]" />
+                  <Stack.Screen name="member/[id]" />
+                  <Stack.Screen name="admin/index" />
+                  <Stack.Screen name="admin/events" />
+                  <Stack.Screen name="admin/event-ops" />
+                  <Stack.Screen name="admin/announcements" />
+                  <Stack.Screen name="admin/applications" />
+                  <Stack.Screen name="admin/reservations" />
+                  <Stack.Screen name="admin/checkin" />
+                </Stack>
               </AuthGuard>
             </AuthProvider>
           </ToastProvider>
