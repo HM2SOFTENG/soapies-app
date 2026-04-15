@@ -15,19 +15,28 @@ export async function createContext(
   let user: User | null = null;
 
   try {
-    // Parse session cookie and verify JWT
-    const cookies = opts.req.headers.cookie;
-    if (cookies) {
-      const { parse } = await import("cookie");
-      const parsed = parse(cookies);
-      const sessionCookie = parsed["app_session_id"];
-      const session = await sdk.verifySession(sessionCookie);
+    // 1. Try x-session-token header first (sent by native mobile app)
+    //    This avoids iOS native cookie jar doubling the Cookie header
+    const customToken = opts.req.headers["x-session-token"] as string | undefined;
+
+    // 2. Fall back to Cookie header (web app / curl)
+    let sessionToken: string | undefined = customToken;
+    if (!sessionToken) {
+      const cookies = opts.req.headers.cookie;
+      if (cookies) {
+        const { parse } = await import("cookie");
+        const parsed = parse(cookies);
+        sessionToken = parsed["app_session_id"];
+      }
+    }
+
+    if (sessionToken) {
+      const session = await sdk.verifySession(sessionToken);
       if (session) {
         user = await getUserByOpenId(session.openId);
       }
     }
   } catch (error) {
-    // Authentication is optional for public procedures.
     user = null;
   }
 

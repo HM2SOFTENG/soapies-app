@@ -66,10 +66,13 @@ export function createTRPCClient() {
         url: `${API_URL}/api/trpc`,
         transformer: superjson,
         async headers() {
-          // ALWAYS use in-memory token — never read SecureStore per-request
-          // SecureStore is only read once at app startup via loadTokenFromStorage()
           if (_memoryToken) {
-            return { Cookie: `app_session_id=${_memoryToken}` };
+            // Use a custom header to avoid iOS native cookie jar doubling the Cookie header
+            return {
+              'x-session-token': _memoryToken,
+              // Also send Cookie for web compatibility
+              'Cookie': `app_session_id=${_memoryToken}`,
+            };
           }
           return {};
         },
