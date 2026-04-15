@@ -640,6 +640,36 @@ export async function createMessage(data: any) {
   return r[0].insertId;
 }
 
+export async function findExistingDm(userIdA: number, userIdB: number): Promise<number | null> {
+  const db = await getDb(); if (!db) return null;
+  // Find a DM conversation where BOTH users are participants
+  const rows = await db
+    .select({ conversationId: conversationParticipants.conversationId })
+    .from(conversationParticipants)
+    .innerJoin(
+      conversations,
+      and(eq(conversations.id, conversationParticipants.conversationId), eq(conversations.type, 'dm'))
+    )
+    .where(eq(conversationParticipants.userId, userIdA));
+
+  const candidateIds = rows.map(r => r.conversationId);
+  if (candidateIds.length === 0) return null;
+
+  // Of those, find one where userIdB is also a participant
+  const match = await db
+    .select({ conversationId: conversationParticipants.conversationId })
+    .from(conversationParticipants)
+    .where(
+      and(
+        eq(conversationParticipants.userId, userIdB),
+        sql`${conversationParticipants.conversationId} IN (${sql.join(candidateIds.map(id => sql`${id}`), sql`, `)})`
+      )
+    )
+    .limit(1);
+
+  return match[0]?.conversationId ?? null;
+}
+
 export async function createConversation(data: any, participantIds: number[]) {
   const db = await getDb(); if (!db) return;
   const r = await db.insert(conversations).values(data);

@@ -878,7 +878,13 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       const { participantIds, ...data } = input;
       const allParticipants = Array.from(new Set([ctx.user.id, ...participantIds]));
-      return db.createConversation({ ...data, createdBy: ctx.user.id }, allParticipants);
+      // For DMs, return existing conversation if one already exists between these two users
+      const isDm = !input.type || input.type === 'dm';
+      if (isDm && participantIds.length === 1) {
+        const existing = await db.findExistingDm(ctx.user.id, participantIds[0]);
+        if (existing) return existing;
+      }
+      return db.createConversation({ ...data, type: isDm ? 'dm' : input.type, createdBy: ctx.user.id }, allParticipants);
     }),
 
     addReaction: protectedProcedure.input(z.object({
