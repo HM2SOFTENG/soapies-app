@@ -52,11 +52,12 @@ export default function ConnectionsScreen() {
   const { data: pendingForMe, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
   const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
   const trimmedQuery = searchQuery.trim();
-  const { data: searchResults, isLoading: searchLoading } = trpc.members.browse.useQuery(
-    { search: trimmedQuery || undefined, page: 0, community: 'all' },
+  const { data: searchResults, isLoading: searchLoading, error: searchError } = trpc.members.browse.useQuery(
+    { search: trimmedQuery, page: 0, community: 'all' },
     {
       enabled: hasToken && trimmedQuery.length > 0,
       staleTime: 0,
+      retry: 1,
     }
   );
 
@@ -227,7 +228,9 @@ export default function ConnectionsScreen() {
               </View>
             ) : members.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                <Text style={{ color: colors.muted, fontSize: 14 }}>No members found for "{trimmedQuery}"</Text>
+                <Text style={{ color: colors.muted, fontSize: 14 }}>
+                {searchError ? `Error: ${(searchError as any)?.message ?? 'Search failed'}` : `No members found for "${trimmedQuery}"`}
+              </Text>
               </View>
             ) : (
               members.map((m: any) => (
