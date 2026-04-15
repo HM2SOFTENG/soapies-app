@@ -114,13 +114,21 @@ export default function ChatScreen() {
         }}
       >
         {!isMine && (
-          <Avatar name={item.senderName} size="sm" />
+          <TouchableOpacity
+            onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Avatar name={item.senderName} size="sm" />
+          </TouchableOpacity>
         )}
         <View style={{ maxWidth: '75%' }}>
           {!isMine && item.senderName && (
-            <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 3, marginLeft: 4 }}>
-              {item.senderName}
-            </Text>
+            <TouchableOpacity onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)} activeOpacity={0.7}>
+              <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '600', marginBottom: 3, marginLeft: 4 }}>
+                {item.senderName}
+              </Text>
+            </TouchableOpacity>
           )}
           <View
             style={{
@@ -200,10 +208,22 @@ export default function ChatScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
-          <Avatar name={headerName} size="sm" />
-          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', flex: 1 }} numberOfLines={1}>
-            {headerName}
-          </Text>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}
+            onPress={() => {
+              const otherId = conversation?.otherUserId;
+              if (otherId && conversation?.type === 'dm') router.push(`/member/${otherId}` as any);
+            }}
+            activeOpacity={conversation?.type === 'dm' && conversation?.otherUserId ? 0.7 : 1}
+          >
+            <Avatar name={headerName} size="sm" />
+            <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+              {headerName}
+            </Text>
+            {conversation?.type === 'dm' && conversation?.otherUserId && (
+              <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Messages */}

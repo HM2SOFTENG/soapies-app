@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, Pressable, Animated } from 'react-native';
+import { View, Text, Pressable, Animated, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../lib/colors';
 
@@ -70,6 +71,7 @@ interface Props {
 
 // ── Component ────────────────────────────────────────────────────────────────
 export default React.memo(function ConversationItem({ conversation, onPress, onLongPress }: Props) {
+  const router = useRouter();
   const isChannel  = conversation.type === 'channel';
   const unread     = conversation.unreadCount ?? 0;
   const hasUnread  = unread > 0;
@@ -114,8 +116,17 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
         paddingVertical: 11,
         transform: [{ scale: pressAnim }],
       }}>
-        {/* ── Avatar ── */}
-        <View style={{ marginRight: 13, position: 'relative' }}>
+        {/* ── Avatar ── tap to view profile for DMs */}
+        <TouchableOpacity
+          style={{ marginRight: 13, position: 'relative' }}
+          activeOpacity={!isChannel && conversation.otherUserId ? 0.7 : 1}
+          onPress={() => {
+            if (!isChannel && conversation.otherUserId) {
+              Haptics.selectionAsync();
+              router.push(`/member/${conversation.otherUserId}` as any);
+            }
+          }}
+        >
           {isChannel ? (
             <LinearGradient
               colors={meta.gradient}
@@ -153,7 +164,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
               backgroundColor: '#10B981', borderWidth: 2, borderColor: colors.bg,
             }} />
           )}
-        </View>
+        </TouchableOpacity>
 
         {/* ── Body ── */}
         <View style={{ flex: 1, minWidth: 0 }}>

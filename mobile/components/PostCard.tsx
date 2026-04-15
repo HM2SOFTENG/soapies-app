@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { View, Text, Animated, Pressable, TouchableOpacity, Alert, Share, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -65,6 +66,14 @@ const PostCard = React.memo(function PostCard({
 }: PostCardProps) {
   const community = post.community ?? post.communityId;
   const badgeColor = useMemo(() => communityColor(community), [community]);
+  const router = useRouter();
+
+  function handleAuthorPress() {
+    const authorId = post.authorId;
+    if (!authorId || authorId === currentUserId) return; // own posts don't navigate
+    Haptics.selectionAsync();
+    router.push(`/member/${authorId}` as any);
+  }
   const timeAgo = useMemo(
     () => (post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : ''),
     [post.createdAt],
@@ -189,8 +198,12 @@ const PostCard = React.memo(function PostCard({
     >
       {/* Community accent line */}
       <View style={{ height: 2.5, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: badgeColor ?? colors.pink, opacity: 0.55 }} />
-      {/* Author row */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
+      {/* Author row — tappable to view profile */}
+      <TouchableOpacity
+        onPress={handleAuthorPress}
+        activeOpacity={post.authorId && post.authorId !== currentUserId ? 0.7 : 1}
+        style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}
+      >
         <Avatar name={post.resolvedAuthorName ?? post.authorName} url={post.resolvedAvatarUrl} size="sm" />
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
@@ -205,7 +218,7 @@ const PostCard = React.memo(function PostCard({
             </Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* Content */}
       {post.content ? (
