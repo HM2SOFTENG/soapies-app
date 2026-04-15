@@ -491,8 +491,9 @@ export default function EventsScreen() {
   const { user } = useAuth();
   const hasToken = !!user;
 
-  const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({ communityId: 'soapies' }, {
+  const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({}, {
     staleTime: 60_000,
+    enabled: hasToken, // server auto-scopes to user's community
   });
 
   const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, {

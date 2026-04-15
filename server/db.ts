@@ -282,9 +282,12 @@ export async function getEvents(communityId?: string) {
   return db.select().from(events).orderBy(desc(events.startDate));
 }
 
-export async function getPublishedEvents() {
+export async function getPublishedEvents(communityId?: string) {
   const db = await getDb(); if (!db) return [];
-  return db.select().from(events).where(eq(events.status, "published")).orderBy(asc(events.startDate));
+  const conditions = [eq(events.status, "published")];
+  // Community-scope: show events for the user's community OR events with no community (global events)
+  if (communityId) conditions.push(sql`(${events.communityId} = ${communityId} OR ${events.communityId} IS NULL)`);
+  return db.select().from(events).where(and(...conditions)).orderBy(asc(events.startDate));
 }
 
 export async function getEventById(id: number) {
@@ -711,14 +714,19 @@ export async function getAnnouncements(communityId?: string) {
   return db.select().from(announcements).orderBy(desc(announcements.createdAt));
 }
 
-export async function getActiveAnnouncements(userId?: number) {
+export async function getActiveAnnouncements(userId?: number, communityId?: string) {
   const db = await getDb(); if (!db) return [];
   const now = new Date();
+  const conditions: any[] = [
+    eq(announcements.isActive, true),
+    sql`(${announcements.expiresAt} IS NULL OR ${announcements.expiresAt} > ${now})`,
+  ];
+  // Scope to community: show community-specific OR global (null communityId) announcements
+  if (communityId) {
+    conditions.push(sql`(${announcements.communityId} = ${communityId} OR ${announcements.communityId} IS NULL)`);
+  }
   const rows = await db.select().from(announcements)
-    .where(and(
-      eq(announcements.isActive, true),
-      sql`(${announcements.expiresAt} IS NULL OR ${announcements.expiresAt} > ${now})`
-    ))
+    .where(and(...conditions))
     .orderBy(desc(announcements.createdAt));
 
   if (!userId) return rows;

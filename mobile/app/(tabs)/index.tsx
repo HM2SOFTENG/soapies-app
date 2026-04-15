@@ -646,14 +646,14 @@ export default function HomeScreen() {
     isLoading,
     refetch: refetchPosts,
   } = trpc.wall.posts.useQuery(
-    { communityId: 'soapies', limit: 50 },
+    { limit: 50 }, // server auto-scopes to user's community
     { staleTime: 30_000, refetchOnWindowFocus: false, refetchInterval: 60_000, enabled: hasToken },
   );
 
   const { data: announcementsRaw } = trpc.announcements.active.useQuery(undefined, { staleTime: 60_000, enabled: hasToken });
   const dismissAnnouncement = trpc.announcements.dismiss.useMutation();
 
-  const { data: eventsRaw } = trpc.events.list.useQuery({ communityId: 'soapies' }, { staleTime: 120_000 });
+  const { data: eventsRaw } = trpc.events.list.useQuery({}, { staleTime: 120_000, enabled: hasToken }); // server auto-scopes to user's community
 
   const myLikes = trpc.wall.myLikes.useQuery(undefined, { staleTime: 30_000, refetchOnWindowFocus: false, enabled: hasToken });
 

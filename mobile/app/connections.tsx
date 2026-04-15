@@ -50,7 +50,7 @@ export default function ConnectionsScreen() {
   const { data: myConnections, refetch: refetchConnections } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
   const { data: pendingForMe, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
   const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
-  const { data: searchResults } = trpc.members.browse.useQuery({ search: searchQuery, page: 0 }, { enabled: hasToken && searchQuery.length > 1 });
+  const { data: searchResults } = trpc.members.browse.useQuery({ search: searchQuery, page: 0, community: 'all' }, { enabled: hasToken && searchQuery.length > 1 }); // cross-community search for connections
 
   const sendRequest = trpc.partners.sendConnectionRequest.useMutation({
     onSuccess: () => {

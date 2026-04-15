@@ -14,7 +14,7 @@ import { useAuth } from '../lib/auth';
 const PAGE_SIZE = 20;
 
 const COMMUNITY_FILTERS = [
-  { label: 'All', value: undefined },
+  { label: 'My Community', value: undefined }, // defaults to user's own community server-side
   { label: '🎉 Soapies', value: 'soapies' },
   { label: '💑 Groupus', value: 'groupus' },
   { label: '🌈 Gaypeez', value: 'gaypeez' },

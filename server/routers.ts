@@ -389,8 +389,14 @@ export const appRouter = router({
 
   // ─── EVENTS ──────────────────────────────────────────────────────────────
   events: router({
-    list: publicProcedure.input(z.object({ communityId: z.string().optional() }).nullish()).query(async ({ input }) => {
-      return db.getPublishedEvents();
+    list: protectedProcedure.input(z.object({ communityId: z.string().optional() }).nullish()).query(async ({ ctx, input }) => {
+      // Scope to user's community if no explicit communityId provided
+      let communityId = input?.communityId;
+      if (!communityId) {
+        const profile = await db.getProfileByUserId(ctx.user.id);
+        communityId = (profile as any)?.communityId ?? undefined;
+      }
+      return db.getPublishedEvents(communityId);
     }),
     all: adminProcedure.query(async () => {
       return db.getEvents();
@@ -752,8 +758,14 @@ export const appRouter = router({
 
   // ─── WALL POSTS ──────────────────────────────────────────────────────────
   wall: router({
-    posts: protectedProcedure.input(z.object({ communityId: z.string().optional(), limit: z.number().optional() }).nullish()).query(async ({ input }) => {
-      return db.getWallPosts(input?.communityId, input?.limit);
+    posts: protectedProcedure.input(z.object({ communityId: z.string().optional(), limit: z.number().optional() }).nullish()).query(async ({ ctx, input }) => {
+      // Always scope to user's community if no explicit communityId provided
+      let communityId = input?.communityId;
+      if (!communityId) {
+        const profile = await db.getProfileByUserId(ctx.user.id);
+        communityId = (profile as any)?.communityId ?? undefined;
+      }
+      return db.getWallPosts(communityId, input?.limit);
     }),
     create: protectedProcedure.input(z.object({
       content: z.string(),
@@ -1049,9 +1061,11 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ communityId: z.string().optional() }).optional()).query(async ({ input }) => {
       return db.getAnnouncements(input?.communityId);
     }),
-    active: publicProcedure.query(async ({ ctx }) => {
-      const userId = ctx.user?.id;
-      return db.getActiveAnnouncements(userId);
+    active: protectedProcedure.query(async ({ ctx }) => {
+      const userId = ctx.user.id;
+      const profile = await db.getProfileByUserId(userId);
+      const communityId = (profile as any)?.communityId ?? undefined;
+      return db.getActiveAnnouncements(userId, communityId);
     }),
     dismiss: protectedProcedure.input(z.object({ announcementId: z.number() })).mutation(async ({ ctx, input }) => {
       await db.dismissAnnouncement(ctx.user.id, input.announcementId);
@@ -1745,9 +1759,17 @@ export const appRouter = router({
       page: z.number().default(0),
       search: z.string().optional(),
       orientation: z.string().optional(),
-      community: z.string().optional(),
+      community: z.string().optional(), // explicit override (e.g. admin or filter)
     })).query(async ({ ctx, input }) => {
-      return db.browseMembers({ userId: ctx.user.id, ...input });
+      // 'all' = cross-community search (e.g. for connections/invitations)
+      // undefined = default to user's own community
+      let community = input.community;
+      if (!community) {
+        const profile = await db.getProfileByUserId(ctx.user.id);
+        community = (profile as any)?.communityId ?? undefined;
+      }
+      // Pass undefined to browseMembers if 'all' so no community filter is applied
+      return db.browseMembers({ userId: ctx.user.id, ...input, community: community === 'all' ? undefined : community });
     }),
     byId: protectedProcedure
       .input(z.object({ userId: z.number() }))
