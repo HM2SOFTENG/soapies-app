@@ -222,7 +222,7 @@ export default function EditProfileScreen() {
                   <Image
                     source={{ uri: avatarUrl }}
                     style={{ width: 100, height: 100 }}
-                    onError={(e) => // console.log('[Avatar] image load error:', e.nativeEvent.error)}
+                    onError={() => {}}
                   />
                 ) : (
                   <View style={{ flex: 1, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
