@@ -11,8 +11,8 @@ export const SESSION_COOKIE_KEY = 'app_session_cookie';
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
 console.log('[trpc] API_URL:', API_URL);
 
-// In-memory token cache — avoids SecureStore async read latency on every request
-// SecureStore is still used for persistence across app restarts
+// In-memory token — PRIMARY source of truth for all requests
+// SecureStore is ONLY used to persist across cold app restarts
 let _memoryToken: string | null = null;
 
 export function setMemoryToken(token: string | null) {
@@ -26,9 +26,8 @@ export function getMemoryToken(): string | null {
 export async function loadTokenFromStorage(): Promise<string | null> {
   try {
     const token = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
-    if (token) {
-      _memoryToken = token;
-    }
+    console.log('[loadToken] SecureStore read, length:', token?.length ?? 0, 'parts:', token?.split('.').length ?? 0);
+    if (token) _memoryToken = token;
     return token;
   } catch (e) {
     console.warn('[trpc] SecureStore load failed:', e);
@@ -37,22 +36,26 @@ export async function loadTokenFromStorage(): Promise<string | null> {
 }
 
 export async function saveToken(token: string): Promise<void> {
-  // Set in memory FIRST (synchronous, immediate)
+  console.log('[saveToken] length:', token.length, 'parts:', token.split('.').length);
+  // Always update memory immediately
   _memoryToken = token;
-  // Then persist to SecureStore (async, for next app launch)
+  // Delete first, then write — avoids iOS Keychain update race
   try {
+    await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
     await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
+    const verify = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
+    console.log('[saveToken] verify length:', verify?.length, 'ok:', verify === token);
   } catch (e) {
     console.warn('[trpc] SecureStore save failed:', e);
   }
 }
 
 export async function clearToken(): Promise<void> {
+  console.log('[clearToken] clearing memory + SecureStore');
   _memoryToken = null;
-  try {
-    await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
-  } catch (e) {
-    console.warn('[trpc] SecureStore delete failed:', e);
+  // Clear all known key variants
+  for (const key of [SESSION_COOKIE_KEY, 'app_session_id', 'session_token', 'sessionToken']) {
+    await SecureStore.deleteItemAsync(key).catch(() => {});
   }
 }
 
@@ -63,15 +66,15 @@ export function createTRPCClient() {
         url: `${API_URL}/api/trpc`,
         transformer: superjson,
         async headers() {
-          // Use in-memory token first (instant), fall back to SecureStore
-          const token = _memoryToken ?? await SecureStore.getItemAsync(SESSION_COOKIE_KEY).catch(() => null);
-          if (token) {
-            return { Cookie: `app_session_id=${token}` };
+          // ALWAYS use in-memory token — never read SecureStore per-request
+          // SecureStore is only read once at app startup via loadTokenFromStorage()
+          if (_memoryToken) {
+            return { Cookie: `app_session_id=${_memoryToken}` };
           }
           return {};
         },
         async fetch(url, options) {
-          const path = String(url).split('/api/trpc/')[1]?.substring(0, 40) ?? String(url).substring(0, 40);
+          const path = String(url).split('/api/trpc/')[1]?.substring(0, 50) ?? '';
           const res = await global.fetch(url as string, options as any);
           if (res.status === 401) console.warn('[trpc] 401 on', path);
           return res;
