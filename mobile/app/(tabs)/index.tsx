@@ -865,7 +865,7 @@ export default function HomeScreen() {
     <View style={{
       backgroundColor: colors.bg,
       paddingHorizontal: 20,
-      paddingTop: 14,
+      paddingTop: insets.top + 10,
       paddingBottom: 4,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
@@ -890,7 +890,7 @@ export default function HomeScreen() {
       </TouchableOpacity>
     </View>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [profile, showComposer]);
+  ), [profile, showComposer, insets.top]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#2D1B4E' }} edges={['bottom']}>
