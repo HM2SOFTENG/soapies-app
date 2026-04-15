@@ -516,6 +516,7 @@ export const appRouter = router({
       isVolunteer: z.boolean().optional(),
       partnerUserId: z.number().optional(),
       testResultUrl: z.string().optional(),
+      creditsUsed: z.number().optional(), // cents to apply from credit balance
     })).mutation(async ({ ctx, input }) => {
       // Verify user is approved before allowing reservation
       const reservingProfile = await db.getProfileByUserId(ctx.user.id);
@@ -550,7 +551,21 @@ export const appRouter = router({
       if (cap && cap.capacity && cap.capacity > 0 && (cap.currentAttendees ?? 0) >= cap.capacity) {
         throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `This event is at capacity (${cap.capacity} attendees).` });
       }
-      const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending", notes: input.isVolunteer ? 'volunteer' : undefined });
+      // Handle credit payment — validate balance and deduct
+      let paymentStatus: 'pending' | 'paid' | 'partial' = 'pending';
+      const creditsToUse = input.creditsUsed ?? 0;
+      if (creditsToUse > 0 || input.paymentMethod === 'credits') {
+        const balance = await db.getCreditBalance(ctx.user.id);
+        if (creditsToUse > balance) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Insufficient credits. You have $${(balance / 100).toFixed(2)} available.` });
+        }
+        // Deduct credits as a negative entry
+        await db.addCredit(ctx.user.id, -creditsToUse, 'debit', `Credits applied to event reservation — ${creditsToUse} cents`);
+        // Determine payment status
+        const ticketPriceCents = Math.round(parseFloat(input.totalAmount ?? '0') * 100);
+        paymentStatus = creditsToUse >= ticketPriceCents ? 'paid' : 'partial';
+      }
+      const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, creditsUsed: String(creditsToUse / 100), status: "pending", paymentStatus, notes: input.isVolunteer ? 'volunteer' : undefined });
       // Increment attendee count after successful reservation
       if (reservationId) {
         try { await db.incrementEventAttendees(input.eventId); } catch (err) { console.error("[Capacity] Failed to increment attendees:", err); }

@@ -43,6 +43,7 @@ export default function EventDetailScreen() {
   const [modalStep, setModalStep] = useState<'ticket' | 'partner'>('ticket');
   const [isQueerPlay, setIsQueerPlay] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
+  const [useCredits, setUseCredits] = useState(false);
 
   // Waiver gate (P1-4 / ITEM-025). Bump this when the waiver text materially changes.
   const WAIVER_VERSION = '2026-04';
@@ -57,6 +58,8 @@ export default function EventDetailScreen() {
 
   const { data: profileData } = trpc.profile.me.useQuery();
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
+  const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
+  const creditBalanceCents = typeof creditBalanceData === 'number' ? creditBalanceData : ((creditBalanceData as any)?.balance ?? 0);
 
   const { data: primaryPartnerData } = trpc.partners.myPrimaryPartner.useQuery();
   const primaryPartner = primaryPartnerData as any;
@@ -197,12 +200,26 @@ export default function EventDetailScreen() {
     ? new Date(ev.startDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : '';
 
-  function getPriceForTicketType(t: TicketType) {
+  function getTicketPriceCents(t: TicketType): number {
     switch (t) {
-      case 'single_female': return ev.priceSingleFemale ? `$${parseFloat(ev.priceSingleFemale).toFixed(0)}` : 'Free';
-      case 'single_male': return ev.priceSingleMale ? `$${parseFloat(ev.priceSingleMale).toFixed(0)}` : 'Free';
-      case 'couple': return ev.priceCouple ? `$${parseFloat(ev.priceCouple).toFixed(0)}` : 'Free';
+      case 'single_female': return ev.priceSingleFemale ? Math.round(parseFloat(ev.priceSingleFemale) * 100) : 0;
+      case 'single_male': return ev.priceSingleMale ? Math.round(parseFloat(ev.priceSingleMale) * 100) : 0;
+      case 'couple': return ev.priceCouple ? Math.round(parseFloat(ev.priceCouple) * 100) : 0;
     }
+  }
+
+  function getPriceForTicketType(t: TicketType) {
+    const priceCents = getTicketPriceCents(t);
+    if (priceCents === 0) return 'Free';
+    if (useCredits && creditBalanceCents > 0) {
+      const creditsApplied = Math.min(creditBalanceCents, priceCents);
+      const remaining = priceCents - creditsApplied;
+      const creditsDisplay = `$${(creditsApplied / 100).toFixed(2)} credits`;
+      return remaining === 0
+        ? `Free (${creditsDisplay})`
+        : `$${(remaining / 100).toFixed(2)} + ${creditsDisplay}`;
+    }
+    return `$${(priceCents / 100).toFixed(0)}`;
   }
 
   function handleVolunteerToggle() {
@@ -223,11 +240,16 @@ export default function EventDetailScreen() {
   // Actual reservation mutation call — separated so the waiver gate can
   // defer it, then re-invoke post-sign without re-entering the modal flow.
   function doReserve() {
+    const priceCents = ev ? getTicketPriceCents(ticketType) : 0;
+    const creditsApplied = useCredits ? Math.min(creditBalanceCents, priceCents) : 0;
+    const remaining = priceCents - creditsApplied;
     reserveMutation.mutate({
       eventId: Number(id),
       ticketType,
-      paymentMethod: 'venmo',
+      totalAmount: (priceCents / 100).toFixed(2),
+      paymentMethod: creditsApplied > 0 && remaining === 0 ? 'credits' : creditsApplied > 0 ? 'venmo' : 'venmo',
       paymentStatus: 'pending',
+      creditsUsed: creditsApplied,
       partnerUserId: partnerUserId ?? undefined,
       isQueerPlay,
       orientationSignal: isQueerPlay ? 'queer' : 'straight',
@@ -556,6 +578,26 @@ export default function EventDetailScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                {/* Credits toggle */}
+                {creditBalanceCents > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setUseCredits(v => !v)}
+                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, padding: 14, borderColor: useCredits ? colors.pink : colors.border, borderWidth: 1, marginBottom: 12 }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: useCredits ? colors.pink : colors.border, backgroundColor: useCredits ? colors.pink : 'transparent', marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
+                      {useCredits && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text, fontWeight: '700' }}>⭐ Apply credits — ${(creditBalanceCents / 100).toFixed(2)} available</Text>
+                      <Text style={{ color: colors.muted, fontSize: 12 }}>
+                        {useCredits && getTicketPriceCents(ticketType) > 0
+                          ? `Saves $${(Math.min(creditBalanceCents, getTicketPriceCents(ticketType)) / 100).toFixed(2)} on this ticket`
+                          : 'Use your credit balance to reduce ticket cost'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
 
                 {/* Volunteer add-on */}
                 <TouchableOpacity

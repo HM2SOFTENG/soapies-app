@@ -135,7 +135,9 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
         {/* Stat chips row — show "—" while loading so "0" doesn't look like a real value (ITEM-010 / P1-6) */}
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
           <StatChip icon="calendar-outline" value={reservationsLoading ? '—' : String(attended)} label="Events" loading={reservationsLoading} />
-          <StatChip icon="gift-outline"     value={creditsLoading ? '—' : String(credits)}       label="Credits" loading={creditsLoading} />
+          <TouchableOpacity onPress={() => (router as any).push('/(tabs)/events')} activeOpacity={0.75}>
+            <StatChip icon="gift-outline"     value={creditsLoading ? '—' : String(credits)}       label="Credits" loading={creditsLoading} />
+          </TouchableOpacity>
           <StatChip icon="star-outline"     value={String(memberSince)}                          label="Since" />
         </View>
       </Animated.View>
