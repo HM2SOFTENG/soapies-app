@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   Alert,
   Modal,
   FlatList,
+  Image,
+  TextInput,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
@@ -51,6 +55,22 @@ const WRISTBAND_CONFIG: Record<string, { color: string; emoji: string }> = {
   green:   { color: '#10B981', emoji: '💚' },
 };
 
+const WRISTBAND_COLORS: Record<string, string> = {
+  rainbow: '#FF6B6B',
+  pink: '#EC4899',
+  purple: '#A855F7',
+  blue: '#3B82F6',
+  green: '#10B981',
+};
+
+const WRISTBAND_EMOJI: Record<string, string> = {
+  rainbow: '🌈',
+  pink: '💗',
+  purple: '💜',
+  blue: '💙',
+  green: '💚',
+};
+
 function DutyCheckbox({ item, completed, onToggle }: { item: { id: string; label: string; icon: any }; completed: boolean; onToggle: () => void }) {
   return (
     <TouchableOpacity
@@ -85,6 +105,58 @@ function DutyCheckbox({ item, completed, onToggle }: { item: { id: string; label
   );
 }
 
+function AttendeeCard({ reservation, onCheckin }: { reservation: any; onCheckin: () => void }) {
+  const isCheckedIn = reservation.status === 'checked_in';
+  const wristband = reservation.wristbandColor ?? 'purple';
+  const wColor = WRISTBAND_COLORS[wristband] ?? '#A855F7';
+
+  return (
+    <View style={{
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 10,
+      borderColor: isCheckedIn ? '#10B981' : colors.border,
+      borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    }}>
+      {/* Wristband color indicator strip on left */}
+      <View style={{ width: 6, borderRadius: 3, backgroundColor: wColor, marginRight: 12, alignSelf: 'stretch' }} />
+
+      {/* Avatar placeholder with wristband emoji */}
+      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${wColor}33`, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+        <Text style={{ fontSize: 18 }}>{WRISTBAND_EMOJI[wristband] ?? '👤'}</Text>
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
+          {reservation.displayName ?? reservation.user?.name ?? 'Guest'}
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>
+          {reservation.ticketType?.replace('_', ' ')} · {wristband} wristband
+        </Text>
+        {reservation.isQueerPlay && (
+          <Text style={{ color: '#FF6B6B', fontSize: 11, fontWeight: '600' }}>🌈 Queer Play Zone</Text>
+        )}
+      </View>
+
+      {isCheckedIn ? (
+        <View style={{ backgroundColor: '#10B98133', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+          <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700' }}>✓ IN</Text>
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={onCheckin}
+          style={{ backgroundColor: colors.pink, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}
+        >
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Check In</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 export default function EventOpsScreen() {
   const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle: string }>();
   const router = useRouter();
@@ -93,7 +165,16 @@ export default function EventOpsScreen() {
   const [completedSetup, setCompletedSetup] = useState<Record<string, boolean>>({});
   const [completedTeardown, setCompletedTeardown] = useState<Record<string, boolean>>({});
   const [showExportModal, setShowExportModal] = useState(false);
-  const [activeSection, setActiveSection] = useState<'volunteers' | 'duties' | 'stats' | 'actions'>('volunteers');
+  const [activeSection, setActiveSection] = useState<'volunteers' | 'duties' | 'stats' | 'actions' | 'checkin'>('volunteers');
+
+  // Check-in tab state
+  const [checkinMode, setCheckinMode] = useState<'list' | 'scanner'>('list');
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [checkinSearch, setCheckinSearch] = useState('');
+  const [scanned, setScanned] = useState(false);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const scanCooldown = useRef(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   const storageKey = `event-ops-duties-${eventId}`;
 
@@ -127,7 +208,7 @@ export default function EventOpsScreen() {
   }
 
   // Data
-  const { data: reservationsData, isLoading, refetch } = trpc.admin.eventReservations.useQuery(
+  const { data: reservationsData, isLoading, refetch: refetchReservations } = trpc.admin.eventReservations.useQuery(
     { eventId: Number(eventId) },
     { enabled: !!eventId }
   );
@@ -135,12 +216,12 @@ export default function EventOpsScreen() {
 
   // Mutations
   const creditVolunteerMutation = trpc.admin.creditVolunteer.useMutation({
-    onSuccess: () => { Alert.alert('✅ Credit Issued', 'Volunteer has been credited their ticket amount.'); refetch(); },
+    onSuccess: () => { Alert.alert('✅ Credit Issued', 'Volunteer has been credited their ticket amount.'); refetchReservations(); },
     onError: (e) => Alert.alert('Error', e.message),
   });
 
   const markNoShowMutation = trpc.admin.markVolunteerNoShow.useMutation({
-    onSuccess: () => { Alert.alert('⚠️ Marked No-Show', 'Volunteer has been marked as no-show.'); refetch(); },
+    onSuccess: () => { Alert.alert('⚠️ Marked No-Show', 'Volunteer has been marked as no-show.'); refetchReservations(); },
     onError: (e) => Alert.alert('Error', e.message),
   });
 
@@ -148,6 +229,13 @@ export default function EventOpsScreen() {
     onSuccess: (data: any) => Alert.alert('📨 Reminders Sent', `Sent reminders to ${data.count} attendees.`),
     onError: (e) => Alert.alert('Error', e.message),
   });
+
+  const manualCheckinMutation = trpc.reservations.updateStatus.useMutation({
+    onSuccess: () => refetchReservations(),
+    onError: (e) => Alert.alert('Check-In Error', e.message),
+  });
+
+  const checkInMutation = trpc.reservations.checkInByQR.useMutation();
 
   // Computed stats
   const volunteers = reservations.filter((r: any) => r.notes === 'volunteer' || r.notes === 'volunteer_completed' || r.notes === 'volunteer_noshow' || r.ticketType === 'volunteer');
@@ -163,10 +251,62 @@ export default function EventOpsScreen() {
   }, {} as Record<string, number>);
   const checkedIn = reservations.filter((r: any) => r.status === 'checked_in').length;
 
+  // Filtered attendees for check-in list
+  const filteredReservations = reservations.filter((r: any) => {
+    if (!checkinSearch.trim()) return true;
+    const q = checkinSearch.toLowerCase();
+    return (
+      (r.displayName ?? '').toLowerCase().includes(q) ||
+      (r.user?.name ?? '').toLowerCase().includes(q)
+    );
+  });
+
   function getVolunteerStatus(r: any): { label: string; color: string } {
     if (r.notes === 'volunteer_completed') return { label: 'Completed', color: '#10B981' };
     if (r.notes === 'volunteer_noshow') return { label: 'No Show', color: '#EF4444' };
     return { label: 'Pending', color: '#F59E0B' };
+  }
+
+  async function processQRScan(qrCode: string) {
+    if (isCheckingIn || !qrCode.trim()) return;
+    setIsCheckingIn(true);
+    try {
+      const result = await checkInMutation.mutateAsync({
+        qrCode: qrCode.trim(),
+        eventId: Number(eventId),
+      });
+      const res = result as any;
+      setScanResult({
+        success: true,
+        guestName: res.guestName ?? 'Guest',
+        ticketType: res.ticketType,
+        wristbandColor: res.wristbandColor ?? 'purple',
+        isQueerPlay: res.isQueerPlay,
+        avatarUrl: res.avatarUrl ?? null,
+        alreadyCheckedIn: res.alreadyCheckedIn ?? false,
+      });
+      refetchReservations();
+    } catch (err: any) {
+      setScanResult({ success: false, error: err.message ?? 'Check-in failed' });
+    } finally {
+      setIsCheckingIn(false);
+      setScanned(true);
+      setTimeout(() => {
+        setScanned(false);
+        scanCooldown.current = false;
+      }, 3000);
+    }
+  }
+
+  function handleBarCodeScanned({ data }: { data: string }) {
+    if (scanned || scanCooldown.current) return;
+    scanCooldown.current = true;
+    processQRScan(data);
+  }
+
+  function handleConfirmCheckin() {
+    // Check-in already completed server-side on scan; just close the modal
+    setScanResult(null);
   }
 
   const sections = [
@@ -174,6 +314,7 @@ export default function EventOpsScreen() {
     { key: 'duties', label: 'Duties', icon: 'checkbox-outline' as const },
     { key: 'stats', label: 'Stats', icon: 'bar-chart-outline' as const },
     { key: 'actions', label: 'Actions', icon: 'flash-outline' as const },
+    { key: 'checkin', label: 'Check-In', icon: 'qr-code-outline' as const },
   ];
 
   return (
@@ -442,7 +583,238 @@ export default function EventOpsScreen() {
           </View>
         )}
 
+        {/* ── Check-In ── */}
+        {activeSection === 'checkin' && (
+          <View>
+            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>
+              🎟️ Check-In · {checkedIn}/{reservations.length}
+            </Text>
+
+            {/* Mode toggle */}
+            <View style={{ flexDirection: 'row', backgroundColor: colors.bg, borderRadius: 12, padding: 4, marginBottom: 16, borderColor: colors.border, borderWidth: 1 }}>
+              <TouchableOpacity
+                onPress={() => setCheckinMode('list')}
+                style={{ flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: checkinMode === 'list' ? colors.pink : 'transparent', alignItems: 'center' }}
+              >
+                <Text style={{ color: checkinMode === 'list' ? '#fff' : colors.muted, fontWeight: '600' }}>📋 Guest List</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setCheckinMode('scanner')}
+                style={{ flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: checkinMode === 'scanner' ? colors.pink : 'transparent', alignItems: 'center' }}
+              >
+                <Text style={{ color: checkinMode === 'scanner' ? '#fff' : colors.muted, fontWeight: '600' }}>📷 QR Scanner</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ── List Mode ── */}
+            {checkinMode === 'list' && (
+              <View>
+                {/* Search bar */}
+                <TextInput
+                  value={checkinSearch}
+                  onChangeText={setCheckinSearch}
+                  placeholder="Search by name…"
+                  placeholderTextColor={colors.muted}
+                  style={{
+                    backgroundColor: colors.card,
+                    color: colors.text,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    fontSize: 14,
+                    marginBottom: 14,
+                  }}
+                />
+
+                {filteredReservations.length === 0 ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                    <Ionicons name="people-outline" size={40} color={colors.muted} />
+                    <Text style={{ color: colors.muted, marginTop: 10, fontSize: 14 }}>
+                      {checkinSearch ? 'No matching attendees' : 'No attendees yet'}
+                    </Text>
+                  </View>
+                ) : (
+                  filteredReservations.map((r: any) => (
+                    <AttendeeCard
+                      key={r.id}
+                      reservation={r}
+                      onCheckin={() => manualCheckinMutation.mutate({ id: r.id, status: 'checked_in' })}
+                    />
+                  ))
+                )}
+              </View>
+            )}
+
+            {/* ── Scanner Mode ── */}
+            {checkinMode === 'scanner' && (
+              <View>
+                {!permission ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                    <ActivityIndicator color={colors.pink} size="large" />
+                  </View>
+                ) : !permission.granted ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                    <Ionicons name="camera-outline" size={48} color={colors.muted} style={{ marginBottom: 16 }} />
+                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
+                      Camera Permission Required
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
+                      We need camera access to scan QR codes at check-in.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={requestPermission}
+                      style={{ backgroundColor: colors.pink, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '700' }}>Grant Permission</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    {/* Camera viewfinder */}
+                    <View style={{ height: 320, borderRadius: 16, overflow: 'hidden', position: 'relative', marginBottom: 16 }}>
+                      <CameraView
+                        style={StyleSheet.absoluteFillObject}
+                        facing="back"
+                        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                      />
+                      {/* Scan overlay */}
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ width: 200, height: 200, position: 'relative' }}>
+                          {[
+                            { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
+                            { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
+                            { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3 },
+                            { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3 },
+                          ].map((style, i) => (
+                            <View
+                              key={i}
+                              style={{
+                                position: 'absolute',
+                                width: 32,
+                                height: 32,
+                                borderColor: scanned ? '#10B981' : colors.pink,
+                                ...style,
+                              }}
+                            />
+                          ))}
+                        </View>
+                        <Text style={{ color: 'rgba(255,255,255,0.85)', marginTop: 16, fontSize: 13 }}>
+                          {isCheckingIn ? 'Processing…' : scanned ? 'Hold on…' : 'Align QR code within the frame'}
+                        </Text>
+                        {isCheckingIn && <ActivityIndicator color={colors.pink} style={{ marginTop: 8 }} />}
+                      </View>
+                    </View>
+
+                    <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center' }}>
+                      Point the camera at a guest's QR code to check them in automatically
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
       </ScrollView>
+
+      {/* Scan Result Modal */}
+      <Modal visible={!!scanResult} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{
+            backgroundColor: colors.card,
+            borderRadius: 24,
+            padding: 28,
+            width: '100%',
+            alignItems: 'center',
+            borderColor: scanResult?.success ? '#10B981' : '#EF4444',
+            borderWidth: 2,
+          }}>
+            {scanResult?.success ? (
+              <>
+                {/* Avatar */}
+                <View style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: `${WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7'}33`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                  borderWidth: 3,
+                  borderColor: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
+                }}>
+                  {scanResult.avatarUrl ? (
+                    <Image
+                      source={{ uri: scanResult.avatarUrl }}
+                      style={{ width: 80, height: 80, borderRadius: 40 }}
+                    />
+                  ) : (
+                    <Text style={{ fontSize: 36 }}>{WRISTBAND_EMOJI[scanResult.wristbandColor ?? 'purple'] ?? '👤'}</Text>
+                  )}
+                </View>
+
+                <Text style={{ color: colors.text, fontSize: 24, fontWeight: '900', marginBottom: 4 }}>
+                  {scanResult.guestName ?? 'Guest'}
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}>
+                  {scanResult.ticketType?.replace(/_/g, ' ')}
+                </Text>
+
+                {/* Wristband badge */}
+                <View style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  marginBottom: 20,
+                  backgroundColor: `${WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7'}22`,
+                  borderWidth: 1,
+                  borderColor: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
+                }}>
+                  <Text style={{ color: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7', fontWeight: '700' }}>
+                    {WRISTBAND_EMOJI[scanResult.wristbandColor ?? 'purple']} {scanResult.wristbandColor} wristband
+                  </Text>
+                </View>
+
+                {scanResult.isQueerPlay && (
+                  <View style={{ backgroundColor: '#FF6B6B22', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 16 }}>
+                    <Text style={{ color: '#FF6B6B', fontWeight: '700' }}>🌈 Queer Play Zone</Text>
+                  </View>
+                )}
+
+                {scanResult.alreadyCheckedIn ? (
+                  <View style={{ backgroundColor: '#F59E0B22', padding: 12, borderRadius: 10, marginBottom: 16, width: '100%' }}>
+                    <Text style={{ color: '#F59E0B', fontWeight: '700', textAlign: 'center' }}>⚠️ Already Checked In</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity onPress={handleConfirmCheckin} style={{ width: '100%', marginBottom: 10 }}>
+                    <LinearGradient
+                      colors={['#10B981', '#059669']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{ borderRadius: 14, padding: 16, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>✅ Checked In!</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 48, marginBottom: 12 }}>❌</Text>
+                <Text style={{ color: '#EF4444', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Ticket Not Found</Text>
+                <Text style={{ color: colors.muted, textAlign: 'center' }}>{scanResult?.error ?? 'Invalid QR code'}</Text>
+              </>
+            )}
+
+            <TouchableOpacity onPress={() => setScanResult(null)} style={{ marginTop: 12 }}>
+              <Text style={{ color: colors.muted, fontSize: 15 }}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Export Modal */}
       <Modal visible={showExportModal} animationType="slide" transparent>

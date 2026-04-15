@@ -255,13 +255,6 @@ export default function AdminEventsScreen() {
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
                   <TouchableOpacity
-                    onPress={() => router.push(`/admin/checkin?eventId=${ev.id}&eventTitle=${encodeURIComponent(ev.title ?? '')}` as any)}
-                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: `${colors.pink}22`, borderRadius: 10, paddingVertical: 10, borderColor: `${colors.pink}44`, borderWidth: 1 }}
-                  >
-                    <Ionicons name="qr-code-outline" size={16} color={colors.pink} />
-                    <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 13 }}>Check-In Scanner</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     onPress={() => router.push(`/admin/event-ops?eventId=${ev.id}&eventTitle=${encodeURIComponent(ev.title ?? '')}` as any)}
                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: `${colors.purple}22`, borderRadius: 10, paddingVertical: 10, borderColor: `${colors.purple}44`, borderWidth: 1 }}
                   >

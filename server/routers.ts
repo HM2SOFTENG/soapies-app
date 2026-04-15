@@ -603,17 +603,30 @@ export const appRouter = router({
       const reservation = await db.getReservationById(ticket.reservationId);
       if (!reservation) throw new TRPCError({ code: 'NOT_FOUND', message: 'Reservation not found' });
       if (reservation.eventId !== input.eventId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'QR code is for a different event' });
-      if (reservation.status === 'checked_in') throw new TRPCError({ code: 'CONFLICT', message: 'Already checked in' });
+      if (reservation.status === 'checked_in') {
+        const profile = (reservation as any).userId ? await db.getProfileByUserId((reservation as any).userId).catch(() => null) : null;
+        return {
+          success: true,
+          alreadyCheckedIn: true,
+          guestName: (profile as any)?.displayName ?? (reservation as any).displayName ?? null,
+          avatarUrl: (profile as any)?.avatarUrl ?? null,
+          ticketType: (reservation as any).ticketType,
+          wristbandColor: (reservation as any).wristbandColor ?? 'purple',
+          isQueerPlay: Boolean((reservation as any).isQueerPlay),
+        };
+      }
       if (reservation.status === 'cancelled') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Reservation is cancelled' });
       await db.updateReservation(reservation.id, { status: 'checked_in' });
       const profile = (reservation as any).userId ? await db.getProfileByUserId((reservation as any).userId).catch(() => null) : null;
       const updatedRes = await db.getReservationById(reservation.id);
       return {
         success: true,
+        alreadyCheckedIn: false,
         guestName: (reservation as any).displayName ?? (profile as any)?.displayName ?? null,
+        avatarUrl: (profile as any)?.avatarUrl ?? null,
         ticketType: (reservation as any).ticketType,
         wristbandColor: (updatedRes as any)?.wristbandColor ?? (reservation as any).wristbandColor ?? 'purple',
-        isQueerPlay: (reservation as any).isQueerPlay,
+        isQueerPlay: Boolean((reservation as any).isQueerPlay),
       };
     }),
 
