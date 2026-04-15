@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
@@ -31,6 +32,15 @@ const SIGNAL_CONFIG = {
 
 type SignalType = keyof typeof SIGNAL_CONFIG;
 
+const DISTANCE_OPTIONS = [
+  { label: '5km',   value: 5 },
+  { label: '10km',  value: 10 },
+  { label: '25km',  value: 25 },
+  { label: '50km',  value: 50 },
+  { label: '100km', value: 100 },
+  { label: 'Any',   value: 999 },
+];
+
 function cap(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
@@ -41,6 +51,7 @@ function calculateMatchScore(
   myPrefs: any,
   mySignalType: string,
   seekingGender: string,
+  maxDistance: number,
 ): number {
   let score = 0;
 
@@ -79,10 +90,10 @@ function calculateMatchScore(
   // Queer friendly
   if (member.isQueerFriendly && myProfile?.orientation !== 'straight') score += 10;
 
-  // Distance bonus
+  // Distance bonus — extra points for being within maxDistance / 4
   if (member.distance != null) {
     const d = parseFloat(String(member.distance));
-    if (d < 1) score += 25;
+    if (d < maxDistance / 4) score += 25;
     else if (d < 5) score += 15;
     else if (d < 20) score += 5;
   }
@@ -224,6 +235,120 @@ function MemberBubble({ member, matchScore, x, y, onPress }: BubbleProps) {
   );
 }
 
+// ─── PulseRing ────────────────────────────────────────────────────────────────
+function PulseRing({ delay, color = '#EC4899', canvasHeight }: { delay: number; color?: string; canvasHeight: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(anim, { toValue: 1, duration: 4000, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [0.1, 2.2] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.4, 0.15, 0] });
+  const size = SCREEN_WIDTH * 0.5;
+
+  return (
+    <Animated.View style={{
+      position: 'absolute',
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      borderWidth: 1.5,
+      borderColor: color,
+      left: SCREEN_WIDTH / 2 - size / 2,
+      top: canvasHeight / 2 - size / 2,
+      transform: [{ scale }],
+      opacity,
+    }} />
+  );
+}
+
+// ─── SpinningRing ─────────────────────────────────────────────────────────────
+function SpinningRing({ size, duration, clockwise, color, canvasHeight }: {
+  size: number;
+  duration: number;
+  clockwise: boolean;
+  color: string;
+  canvasHeight: number;
+}) {
+  const spinAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(spinAnim, { toValue: 1, duration, useNativeDriver: true })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const rotate = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: clockwise ? ['0deg', '360deg'] : ['360deg', '0deg'],
+  });
+
+  return (
+    <Animated.View style={{
+      position: 'absolute',
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      borderWidth: 1,
+      borderColor: color,
+      left: SCREEN_WIDTH / 2 - size / 2,
+      top: canvasHeight / 2 - size / 2,
+      transform: [{ rotate }],
+    }} />
+  );
+}
+
+// ─── FloatingDot ──────────────────────────────────────────────────────────────
+function FloatingDot({ index }: { index: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  const duration = 6000 + (index * 400);
+  const delay = index * 1100;
+  const x = 40 + (index * (SCREEN_WIDTH - 80) / 5);
+  const startY = SCREEN_HEIGHT * 0.6 - (index % 3) * 80;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(anim, { toValue: 1, duration, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -80] });
+  const opacity = anim.interpolate({ inputRange: [0, 0.2, 0.8, 1], outputRange: [0, 0.5, 0.4, 0] });
+  const dotColor = index % 2 === 0 ? '#EC4899' : '#A855F7';
+  const dotSize = 3 + (index % 3);
+
+  return (
+    <Animated.View style={{
+      position: 'absolute',
+      width: dotSize,
+      height: dotSize,
+      borderRadius: dotSize / 2,
+      backgroundColor: dotColor,
+      left: x,
+      top: startY,
+      transform: [{ translateY }],
+      opacity,
+    }} />
+  );
+}
+
 // ─── PulseScreen ───────────────────────────────────────────────────────────────
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
@@ -241,6 +366,7 @@ export default function PulseScreen() {
   const [seekingDynamic, setSeekingDynamic] = useState('');
   const [signalMessage, setSignalMessage] = useState('');
   const [isQueerFriendly, setIsQueerFriendly] = useState(false);
+  const [maxDistance, setMaxDistance] = useState<number>(50);
 
   const { data: profileData } = trpc.profile.me.useQuery(undefined, { enabled: hasToken });
   const { data: mySignalData, refetch: refetchMySignal } = trpc.members.mySignal.useQuery(
@@ -261,6 +387,16 @@ export default function PulseScreen() {
   }, [myProfile]);
 
   const members = useMemo(() => (signalsData as any[]) ?? [], [signalsData]);
+
+  // Load persisted maxDistance from AsyncStorage on mount
+  useEffect(() => {
+    AsyncStorage.getItem('pulse_max_distance').then((val) => {
+      if (val !== null) {
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed)) setMaxDistance(parsed);
+      }
+    }).catch(() => {});
+  }, []);
 
   // Request location once on mount
   useEffect(() => {
@@ -295,6 +431,9 @@ export default function PulseScreen() {
   });
 
   function handleSaveSignal() {
+    // Persist distance preference
+    AsyncStorage.setItem('pulse_max_distance', String(maxDistance)).catch(() => {});
+
     signalMutation.mutate({
       signalType: mySignalType,
       seekingGender: seekingGender || undefined,
@@ -312,10 +451,11 @@ export default function PulseScreen() {
       members
         .map((m) => ({
           ...m,
-          matchScore: calculateMatchScore(m, myProfile, myPrefs, mySignalType, seekingGender),
+          matchScore: calculateMatchScore(m, myProfile, myPrefs, mySignalType, seekingGender, maxDistance),
         }))
+        .filter((m) => m.distance == null || m.distance <= maxDistance)
         .sort((a, b) => b.matchScore - a.matchScore),
-    [members, myProfile, myPrefs, mySignalType, seekingGender],
+    [members, myProfile, myPrefs, mySignalType, seekingGender, maxDistance],
   );
 
   const positions = useMemo(
@@ -326,7 +466,7 @@ export default function PulseScreen() {
   const myConfig = SIGNAL_CONFIG[mySignalType];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0F' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0D0820' }} edges={['bottom']}>
       {/* ── Header ── */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 12 }}>
         <View style={{ flex: 1 }}>
@@ -350,11 +490,40 @@ export default function PulseScreen() {
 
       {/* ── Bubble canvas ── */}
       <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {/* Ambient glow */}
-        <View style={[styles.glow, { width: 320, height: 320, borderRadius: 160,
-          backgroundColor: '#EC489907', top: pulseHeight * 0.25, alignSelf: 'center' }]} />
-        <View style={[styles.glow, { width: 480, height: 480, borderRadius: 240,
-          backgroundColor: '#A855F704', top: pulseHeight * 0.1, alignSelf: 'center' }]} />
+
+        {/* Depth gradient background */}
+        <LinearGradient
+          colors={['#0D0820', '#080810', '#0A0015']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        {/* Slow-rotating outer rings */}
+        <SpinningRing
+          size={SCREEN_WIDTH * 1.4}
+          duration={30000}
+          clockwise={true}
+          color="#EC489918"
+          canvasHeight={pulseHeight}
+        />
+        <SpinningRing
+          size={SCREEN_WIDTH * 1.2}
+          duration={45000}
+          clockwise={false}
+          color="#A855F714"
+          canvasHeight={pulseHeight}
+        />
+
+        {/* Sonar pulse rings */}
+        <PulseRing delay={0}    color="#EC4899" canvasHeight={pulseHeight} />
+        <PulseRing delay={1333} color="#A855F7" canvasHeight={pulseHeight} />
+        <PulseRing delay={2666} color="#EC4899" canvasHeight={pulseHeight} />
+
+        {/* Floating particles */}
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <FloatingDot key={i} index={i} />
+        ))}
 
         {/* Member bubbles — sorted by matchScore (highest = largest) */}
         {scoredMembers.map((member, i) => (
@@ -507,6 +676,27 @@ export default function PulseScreen() {
                 </View>
               </ScrollView>
 
+              {/* Distance Range */}
+              <Text style={styles.label}>Distance Range</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {DISTANCE_OPTIONS.map((d) => (
+                    <TouchableOpacity
+                      key={d.value}
+                      onPress={() => setMaxDistance(d.value)}
+                      style={{
+                        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                        backgroundColor: maxDistance === d.value ? '#A855F730' : '#1A1A24',
+                        borderColor: maxDistance === d.value ? '#A855F7' : '#2D2D3A',
+                        borderWidth: 1,
+                      }}
+                    >
+                      <Text style={{ color: maxDistance === d.value ? '#A855F7' : '#6B7280', fontWeight: '600' }}>{d.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+
               {/* Message */}
               <Text style={styles.label}>Message (optional)</Text>
               <TextInput
@@ -653,7 +843,6 @@ export default function PulseScreen() {
 }
 
 const styles = StyleSheet.create({
-  glow: { position: 'absolute' },
   label: {
     color: '#9CA3AF', fontSize: 11, fontWeight: '700',
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
