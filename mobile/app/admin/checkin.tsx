@@ -21,7 +21,17 @@ interface ScanResult {
   ticketType?: string;
   status?: string;
   message?: string;
+  wristbandColor?: string;
+  isQueerPlay?: boolean;
 }
+
+const WRISTBAND_CONFIG: Record<string, { color: string; label: string; emoji: string }> = {
+  rainbow: { color: '#FF6B6B', label: 'Rainbow Wristband — Queer Play Zone', emoji: '🌈' },
+  pink:    { color: '#EC4899', label: 'Pink Wristband — Soapies Angel', emoji: '💗' },
+  purple:  { color: '#A855F7', label: 'Purple Wristband — Payment Confirmed', emoji: '💜' },
+  blue:    { color: '#3B82F6', label: 'Blue Wristband — Test Results Verified', emoji: '💙' },
+  green:   { color: '#10B981', label: 'Green Wristband — Standard Entry', emoji: '💚' },
+};
 
 const TICKET_TYPE_LABELS: Record<string, string> = {
   single_female: 'Single Woman',
@@ -56,6 +66,8 @@ export default function AdminCheckinScreen() {
         guestName: res.guestName ?? res.name ?? 'Guest',
         ticketType: res.ticketType,
         status: res.status ?? 'checked_in',
+        wristbandColor: res.wristbandColor,
+        isQueerPlay: res.isQueerPlay,
       });
     } catch (err: any) {
       setLastResult({
@@ -197,21 +209,39 @@ export default function AdminCheckinScreen() {
             borderWidth: 1,
           }}>
             {lastResult.success ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Ionicons name="checkmark-circle" size={28} color="#10B981" />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#10B981', fontWeight: '800', fontSize: 16 }}>
-                    ✅ Checked In!
-                  </Text>
-                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginTop: 2 }}>
-                    {lastResult.guestName}
-                  </Text>
-                  {lastResult.ticketType && (
-                    <Text style={{ color: colors.muted, fontSize: 13, marginTop: 1 }}>
-                      {TICKET_TYPE_LABELS[lastResult.ticketType] ?? lastResult.ticketType}
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Ionicons name="checkmark-circle" size={28} color="#10B981" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#10B981', fontWeight: '800', fontSize: 16 }}>
+                      ✅ Checked In!
                     </Text>
-                  )}
+                    <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginTop: 2 }}>
+                      {lastResult.guestName}
+                    </Text>
+                    {lastResult.ticketType && (
+                      <Text style={{ color: colors.muted, fontSize: 13, marginTop: 1 }}>
+                        {TICKET_TYPE_LABELS[lastResult.ticketType] ?? lastResult.ticketType}
+                      </Text>
+                    )}
+                  </View>
                 </View>
+                {lastResult.wristbandColor && (
+                  <View style={{
+                    marginTop: 12,
+                    padding: 14,
+                    borderRadius: 12,
+                    backgroundColor: `${WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888'}22`,
+                    borderColor: WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888',
+                    borderWidth: 2,
+                    alignItems: 'center',
+                  }}>
+                    <Text style={{ fontSize: 32, marginBottom: 4 }}>{WRISTBAND_CONFIG[lastResult.wristbandColor]?.emoji ?? '⬜'}</Text>
+                    <Text style={{ color: WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888', fontWeight: '800', fontSize: 16 }}>
+                      {WRISTBAND_CONFIG[lastResult.wristbandColor]?.label ?? 'Standard Wristband'}
+                    </Text>
+                  </View>
+                )}
               </View>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

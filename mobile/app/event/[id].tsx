@@ -23,7 +23,6 @@ const TICKET_TYPES = [
   { key: 'single_female', label: 'Single Woman' },
   { key: 'single_male', label: 'Single Man' },
   { key: 'couple', label: 'Couple' },
-  { key: 'volunteer', label: 'Volunteer' },
 ] as const;
 
 type TicketType = typeof TICKET_TYPES[number]['key'];
@@ -39,6 +38,8 @@ export default function EventDetailScreen() {
   const [showPartnerPicker, setShowPartnerPicker] = useState(false);
   const [partnerSearch, setPartnerSearch] = useState('');
   const [modalStep, setModalStep] = useState<'ticket' | 'partner'>('ticket');
+  const [isQueerPlay, setIsQueerPlay] = useState(false);
+  const [isVolunteer, setIsVolunteer] = useState(false);
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: event, isLoading } = trpc.events.byId.useQuery(
@@ -56,7 +57,6 @@ export default function EventDetailScreen() {
 
   const availableTicketTypes = TICKET_TYPES.filter(t => {
     if (t.key === 'couple') return true;
-    if (t.key === 'volunteer') return true;
     if (!userGender) return true;
     const isMale = ['male', 'man', 'non-binary', 'nonbinary'].includes(userGender);
     const isFemale = ['female', 'woman'].includes(userGender);
@@ -173,7 +173,21 @@ export default function EventDetailScreen() {
       case 'single_female': return ev.priceSingleFemale ? `$${parseFloat(ev.priceSingleFemale).toFixed(0)}` : 'Free';
       case 'single_male': return ev.priceSingleMale ? `$${parseFloat(ev.priceSingleMale).toFixed(0)}` : 'Free';
       case 'couple': return ev.priceCouple ? `$${parseFloat(ev.priceCouple).toFixed(0)}` : 'Free';
-      case 'volunteer': return 'Free';
+    }
+  }
+
+  function handleVolunteerToggle() {
+    if (!isVolunteer) {
+      Alert.alert(
+        '🙌 Volunteer Agreement',
+        'By volunteering you agree to:\n\n• Pay full ticket price upfront via Venmo @KELLEN-BRENNAN\n• Arrive early and/or stay late to help with setup/teardown\n• Complete your assigned duties\n\nIf you fulfill your volunteer duties, admin will credit your full ticket price back to your account.\n\nIf you fail to show or complete duties without a valid excuse, you will NOT receive a refund and may face suspension from the community.\n\nDo you agree?',
+        [
+          { text: 'I Agree — Sign Me Up! 🙌', onPress: () => setIsVolunteer(true) },
+          { text: 'Cancel', style: 'cancel', onPress: () => setIsVolunteer(false) },
+        ]
+      );
+    } else {
+      setIsVolunteer(false);
     }
   }
 
@@ -184,6 +198,9 @@ export default function EventDetailScreen() {
       paymentMethod: 'venmo',
       paymentStatus: 'pending',
       partnerUserId: partnerUserId ?? undefined,
+      isQueerPlay,
+      orientationSignal: isQueerPlay ? 'queer' : 'straight',
+      isVolunteer,
     });
   }
 
@@ -501,6 +518,42 @@ export default function EventDetailScreen() {
                     {t.key === 'couple' && <Ionicons name="chevron-forward" size={20} color={colors.muted} />}
                   </TouchableOpacity>
                 ))}
+
+                {/* Queer Play Zone opt-in */}
+                <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, borderColor: `${colors.purple}44`, borderWidth: 1, marginBottom: 12 }}>
+                  <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 8 }}>🌈 Queer Play Zone</Text>
+                  <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 12 }}>
+                    Would you like to opt into the Queer Play Zone? You'll receive a rainbow wristband at check-in, granting access to queer-friendly play spaces.
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setIsQueerPlay(true)}
+                      style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: isQueerPlay ? `${colors.purple}33` : colors.bg, borderColor: isQueerPlay ? colors.purple : colors.border, borderWidth: 1, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: isQueerPlay ? colors.purple : colors.muted, fontWeight: '600' }}>🌈 Yes, opt in</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setIsQueerPlay(false)}
+                      style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: !isQueerPlay ? `${colors.pink}22` : colors.bg, borderColor: !isQueerPlay ? colors.pink : colors.border, borderWidth: 1, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: !isQueerPlay ? colors.pink : colors.muted, fontWeight: '600' }}>No thanks</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Volunteer add-on */}
+                <TouchableOpacity
+                  onPress={handleVolunteerToggle}
+                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, padding: 14, borderColor: isVolunteer ? '#10B981' : colors.border, borderWidth: 1, marginBottom: 12 }}
+                >
+                  <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: isVolunteer ? '#10B981' : colors.border, backgroundColor: isVolunteer ? '#10B981' : 'transparent', marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
+                    {isVolunteer && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '700' }}>🙌 I want to volunteer</Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>Help with setup/teardown and potentially get your ticket reimbursed</Text>
+                  </View>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleReserve}

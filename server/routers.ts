@@ -449,6 +449,7 @@ export const appRouter = router({
       paymentStatus: z.enum(["pending", "paid", "refunded", "partial", "failed"]).optional(),
       orientationSignal: z.enum(["straight", "queer"]).optional(),
       isQueerPlay: z.boolean().optional(),
+      isVolunteer: z.boolean().optional(),
       partnerUserId: z.number().optional(),
       testResultUrl: z.string().optional(),
     })).mutation(async ({ ctx, input }) => {
@@ -485,7 +486,7 @@ export const appRouter = router({
       if (cap && cap.capacity && cap.capacity > 0 && (cap.currentAttendees ?? 0) >= cap.capacity) {
         throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `This event is at capacity (${cap.capacity} attendees).` });
       }
-      const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending" });
+      const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, status: "pending", paymentStatus: "pending", notes: input.isVolunteer ? 'volunteer' : undefined });
       // Increment attendee count after successful reservation
       if (reservationId) {
         try { await db.incrementEventAttendees(input.eventId); } catch (err) { console.error("[Capacity] Failed to increment attendees:", err); }
@@ -605,7 +606,15 @@ export const appRouter = router({
       if (reservation.status === 'checked_in') throw new TRPCError({ code: 'CONFLICT', message: 'Already checked in' });
       if (reservation.status === 'cancelled') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Reservation is cancelled' });
       await db.updateReservation(reservation.id, { status: 'checked_in' });
-      return { success: true, guestName: (reservation as any).displayName ?? null };
+      const profile = (reservation as any).userId ? await db.getProfileByUserId((reservation as any).userId).catch(() => null) : null;
+      const updatedRes = await db.getReservationById(reservation.id);
+      return {
+        success: true,
+        guestName: (reservation as any).displayName ?? (profile as any)?.displayName ?? null,
+        ticketType: (reservation as any).ticketType,
+        wristbandColor: (updatedRes as any)?.wristbandColor ?? (reservation as any).wristbandColor ?? 'purple',
+        isQueerPlay: (reservation as any).isQueerPlay,
+      };
     }),
 
     createCheckoutSession: protectedProcedure
@@ -1924,6 +1933,42 @@ export const appRouter = router({
       page: z.number().default(0),
     })).query(async ({ input }) => {
       return db.getAllReservations(input);
+    }),
+    eventReservations: adminProcedure.input(z.object({ eventId: z.number() })).query(async ({ input }) => {
+      return db.getAllReservations({ eventId: input.eventId });
+    }),
+    creditVolunteer: adminProcedure.input(z.object({ reservationId: z.number() })).mutation(async ({ ctx, input }) => {
+      const res = await db.getReservationById(input.reservationId);
+      if (!res) throw new TRPCError({ code: 'NOT_FOUND' });
+      const amount = parseFloat((res as any).totalAmount?.toString() ?? '0');
+      if (amount > 0) {
+        await db.addCredit((res as any).userId!, amount, 'volunteer_refund', 'Volunteer duty completed — ticket refunded');
+      }
+      await db.updateReservation(input.reservationId, { notes: 'volunteer_completed' });
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'volunteer_credited', targetType: 'reservation', targetId: input.reservationId });
+      await notif.sendNotification({ userId: (res as any).userId!, type: 'system', title: '🙌 Volunteer Credit Issued', body: `Your volunteer duties were confirmed! $${amount.toFixed(0)} has been credited to your account.` }).catch(() => {});
+      return { success: true };
+    }),
+    markVolunteerNoShow: adminProcedure.input(z.object({ reservationId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.updateReservation(input.reservationId, { notes: 'volunteer_noshow', status: 'no_show' });
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'volunteer_noshow', targetType: 'reservation', targetId: input.reservationId });
+      const res = await db.getReservationById(input.reservationId);
+      if ((res as any)?.userId) {
+        await notif.sendNotification({ userId: (res as any).userId, type: 'system', title: '⚠️ Volunteer No-Show', body: 'You were marked as a volunteer no-show for the last event. No ticket credit will be issued. Please contact admin if this was an error.' }).catch(() => {});
+      }
+      return { success: true };
+    }),
+    sendEventReminders: adminProcedure.input(z.object({ eventId: z.number() })).mutation(async ({ input }) => {
+      const allRes = await db.getAllReservations({ eventId: input.eventId });
+      const pending = (allRes as any[]).filter((r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled');
+      let count = 0;
+      for (const r of pending) {
+        if (r.userId) {
+          await notif.sendNotification({ userId: r.userId, type: 'system', title: '⏰ Payment Reminder', body: 'You have a pending ticket payment. Please send payment via Venmo @KELLEN-BRENNAN to confirm your spot.' }).catch(() => {});
+          count++;
+        }
+      }
+      return { success: true, count };
     }),
     rejectReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.updateReservation(input.id, { paymentStatus: "failed", status: "cancelled" });

@@ -275,6 +275,8 @@ export default function TicketsScreen() {
   });
   const [payingId, setPayingId] = useState<number | null>(null);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
+  const [showPaymentAgreement, setShowPaymentAgreement] = useState(false);
+  const [pendingPayTicket, setPendingPayTicket] = useState<any>(null);
 
   const { data, isLoading, refetch } = trpc.reservations.myTickets.useQuery(undefined, {
     staleTime: 0,
@@ -294,6 +296,11 @@ export default function TicketsScreen() {
 
   function handleViewQR(code: string, title: string) {
     setQrModal({ visible: true, code, title });
+  }
+
+  function onPayNowPress(ticket: any) {
+    setPendingPayTicket(ticket);
+    setShowPaymentAgreement(true);
   }
 
   async function handlePayNow(ticket: any) {
@@ -461,7 +468,7 @@ export default function TicketsScreen() {
                       key={ticket.id}
                       ticket={ticket}
                       onViewQR={handleViewQR}
-                      onPayNow={handlePayNow}
+                      onPayNow={onPayNowPress}
                       onUploadTest={handleUploadTestResult}
                       uploadingId={uploadingId}
                       payingId={payingId}
@@ -481,7 +488,7 @@ export default function TicketsScreen() {
                       key={ticket.id}
                       ticket={ticket}
                       onViewQR={handleViewQR}
-                      onPayNow={handlePayNow}
+                      onPayNow={onPayNowPress}
                       onUploadTest={handleUploadTestResult}
                       uploadingId={uploadingId}
                       payingId={payingId}
@@ -493,6 +500,43 @@ export default function TicketsScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Community Agreement Modal */}
+      <Modal visible={showPaymentAgreement} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '85%' }}>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
+              🎉 Community Agreement
+            </Text>
+            <ScrollView style={{ marginBottom: 20 }}>
+              <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 22 }}>
+                By attending a Soapies event, you agree to:
+                {`\n\n`}🤝 Respect all community members and their boundaries at all times
+                {`\n\n`}🚫 No means no — consent is mandatory and non-negotiable
+                {`\n\n`}🔒 What happens at Soapies stays at Soapies — absolute discretion
+                {`\n\n`}📵 No photography or recording without explicit consent of all parties
+                {`\n\n`}🍷 Drink responsibly — we want everyone to have a safe, fun time
+                {`\n\n`}🧹 This is a COMMUNITY-operated event. Help with setup or teardown is highly welcomed and deeply appreciated — even 15 minutes makes a difference!
+                {`\n\n`}⚕️ Please test before attending. Your safety and the safety of others matters.
+                {`\n\n`}❤️ We are a sex-positive, inclusive community. Judgment-free zone.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              onPress={() => {
+                setShowPaymentAgreement(false);
+                if (pendingPayTicket) handlePayNow(pendingPayTicket);
+              }}
+            >
+              <LinearGradient colors={[colors.pink, colors.purple]} start={{x:0,y:0}} end={{x:1,y:0}} style={{ borderRadius: 14, padding: 16, alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>I Agree — Proceed to Payment 💸</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowPaymentAgreement(false)} style={{ marginTop: 12, alignItems: 'center' }}>
+              <Text style={{ color: colors.muted }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* QR Code Modal */}
       <Modal visible={qrModal.visible} animationType="fade" transparent>
