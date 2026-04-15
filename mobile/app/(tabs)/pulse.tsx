@@ -45,6 +45,164 @@ function cap(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 }
 
+// ── MatchFactor ─────────────────────────────────────────────────────────────
+interface MatchFactor {
+  key: string;
+  label: string;
+  emoji: string;
+  points: number;
+  maxPoints: number;
+  matched: boolean;
+  detail?: string;
+}
+
+function calculateMatchBreakdown(
+  member: any,
+  myProfile: any,
+  myPrefs: any,
+  mySignalType: string,
+  seekingGender: string,
+  maxDistance: number,
+): MatchFactor[] {
+  const factors: MatchFactor[] = [];
+
+  // 1. Gender Match
+  const sgLower = (seekingGender ?? '').toLowerCase();
+  const memberGender = (member.gender ?? '').toLowerCase();
+  const genderMatched = sgLower === 'any' || sgLower === memberGender;
+  factors.push({
+    key: 'gender', label: 'Gender Match', emoji: '👤',
+    points: genderMatched ? 25 : 0, maxPoints: 25, matched: genderMatched,
+    detail: sgLower === 'any'
+      ? 'Open to anyone'
+      : genderMatched
+        ? `Seeking ${memberGender} · they're ${memberGender}`
+        : `Seeking ${sgLower} · they're ${memberGender || 'unknown'}`,
+  });
+
+  // 2. Orientation Compatibility
+  const myOrientation = (myProfile?.orientation ?? '').toLowerCase();
+  const theirOrientation = (member.orientation ?? '').toLowerCase();
+  const biPanSet = new Set(['bisexual', 'pansexual']);
+  const orientMatched = !!myOrientation && !!theirOrientation && (
+    myOrientation === theirOrientation ||
+    biPanSet.has(myOrientation) ||
+    biPanSet.has(theirOrientation)
+  );
+  let orientDetail: string;
+  if (!myOrientation || !theirOrientation) {
+    orientDetail = 'Orientation not set';
+  } else if (myOrientation === theirOrientation) {
+    orientDetail = `Both ${myOrientation}`;
+  } else {
+    orientDetail = `You're ${myOrientation} · they're ${theirOrientation}`;
+  }
+  factors.push({
+    key: 'orientation', label: 'Orientation Compat', emoji: '💞',
+    points: orientMatched ? 20 : 0, maxPoints: 20, matched: orientMatched,
+    detail: orientDetail,
+  });
+
+  // 3. Same Community
+  const sameCommunity = !!(myProfile?.communityId && member.communityId === myProfile.communityId);
+  factors.push({
+    key: 'community', label: 'Same Community', emoji: '🎉',
+    points: sameCommunity ? 15 : 0, maxPoints: 15, matched: sameCommunity,
+    detail: sameCommunity ? 'Both in the same community' : 'Different communities',
+  });
+
+  // 4. Shared Interests
+  const myInterests: string[] = Array.isArray(myPrefs?.interests) ? myPrefs.interests : [];
+  let theirPrefs: any = {};
+  try {
+    theirPrefs = typeof member.preferences === 'string'
+      ? JSON.parse(member.preferences || '{}')
+      : (member.preferences ?? {});
+  } catch {}
+  const theirInterests: string[] = Array.isArray(theirPrefs?.interests) ? theirPrefs.interests : [];
+  const sharedInterests = myInterests.filter((i: string) => theirInterests.includes(i));
+  const interestPoints = Math.min(sharedInterests.length * 5, 20);
+  factors.push({
+    key: 'interests', label: 'Shared Interests', emoji: '✨',
+    points: interestPoints, maxPoints: 20, matched: sharedInterests.length > 0,
+    detail: sharedInterests.length > 0
+      ? `${sharedInterests.length} shared: ${sharedInterests.slice(0, 3).join(', ')}`
+      : 'No overlap found',
+  });
+
+  // 5. Signal Alignment
+  const bothLooking = mySignalType === 'looking' && member.signalType === 'looking';
+  const signalDetail =
+    mySignalType === 'looking' && member.signalType === 'looking' ? 'Both actively looking' :
+    mySignalType === 'available' && member.signalType === 'looking' ? "You're available · they're looking" :
+    mySignalType === 'looking' && member.signalType === 'available' ? "You're looking · they're available" :
+    `You: ${mySignalType} · Them: ${member.signalType ?? 'unknown'}`;
+  factors.push({
+    key: 'signal', label: 'Signal Alignment', emoji: '📡',
+    points: bothLooking ? 10 : 0, maxPoints: 10, matched: bothLooking,
+    detail: signalDetail,
+  });
+
+  // 6. Queer Friendly — skip if myProfile.orientation === 'straight'
+  if (myOrientation !== 'straight') {
+    const queerFriendly = !!(member.isQueerFriendly);
+    factors.push({
+      key: 'queer', label: 'Queer Friendly', emoji: '🏳️\u200d🌈',
+      points: queerFriendly ? 10 : 0, maxPoints: 10, matched: queerFriendly,
+      detail: queerFriendly ? "They're queer friendly" : 'Not marked queer friendly',
+    });
+  }
+
+  // 7. Proximity
+  let proximityPoints = 0;
+  let proximityDetail = 'Location unavailable';
+  if (member.distance != null) {
+    const d = parseFloat(String(member.distance));
+    if (d < maxDistance / 4) { proximityPoints = 25; proximityDetail = `${d.toFixed(1)} km away 🔥`; }
+    else if (d < 5)           { proximityPoints = 15; proximityDetail = `${d.toFixed(1)} km away`; }
+    else if (d < 20)          { proximityPoints = 5;  proximityDetail = `${d.toFixed(1)} km away`; }
+    else                      { proximityPoints = 0;  proximityDetail = `${d.toFixed(1)} km away`; }
+  }
+  factors.push({
+    key: 'proximity', label: 'Proximity', emoji: '📍',
+    points: proximityPoints, maxPoints: 25, matched: proximityPoints > 0,
+    detail: proximityDetail,
+  });
+
+  // 8. Relationship Style
+  const myRelStyle = (myPrefs?.relationshipStatus ?? '').toLowerCase();
+  const theirRelStyle = (theirPrefs?.relationshipStatus ?? '').toLowerCase();
+  const openEnmSet = new Set(['open relationship', 'ethically non-monogamous', 'enm']);
+  const relMatched = !!myRelStyle && !!theirRelStyle && (
+    myRelStyle === theirRelStyle ||
+    (openEnmSet.has(myRelStyle) && openEnmSet.has(theirRelStyle))
+  );
+  factors.push({
+    key: 'relstyle', label: 'Relationship Style', emoji: '💑',
+    points: relMatched ? 10 : 0, maxPoints: 10, matched: relMatched,
+    detail: relMatched
+      ? `Both ${myRelStyle}`
+      : myRelStyle && theirRelStyle
+        ? `${cap(myRelStyle)} × ${cap(theirRelStyle)}`
+        : 'Style not set',
+  });
+
+  // 9. Looking For Match
+  const myLookingFor: string[] = Array.isArray(myPrefs?.lookingFor) ? myPrefs.lookingFor : [];
+  const theirLookingFor: string[] = Array.isArray(theirPrefs?.lookingFor) ? theirPrefs.lookingFor : [];
+  const lookingOverlap = myLookingFor.filter((l: string) => theirLookingFor.includes(l));
+  factors.push({
+    key: 'lookingfor', label: 'Looking For Match', emoji: '🎯',
+    points: lookingOverlap.length > 0 ? 10 : 0, maxPoints: 10,
+    matched: lookingOverlap.length > 0,
+    detail: lookingOverlap.length > 0
+      ? `Both want: ${lookingOverlap.slice(0, 3).join(', ')}`
+      : 'No overlap',
+  });
+
+  return factors;
+}
+
 function calculateMatchScore(
   member: any,
   myProfile: any,
@@ -53,55 +211,9 @@ function calculateMatchScore(
   seekingGender: string,
   maxDistance: number,
 ): number {
-  let score = 0;
-
-  // Gender match
-  if (seekingGender && member.gender) {
-    const s = seekingGender.toLowerCase();
-    const g = member.gender.toLowerCase();
-    if (s === 'any' || s === g) score += 30;
-  }
-
-  // Orientation compat
-  if (myProfile?.orientation && member.orientation) {
-    const mine = myProfile.orientation.toLowerCase();
-    const theirs = member.orientation.toLowerCase();
-    if (
-      mine === theirs ||
-      mine === 'bisexual' || theirs === 'bisexual' ||
-      mine === 'pansexual' || theirs === 'pansexual'
-    ) score += 20;
-  }
-
-  // Same community
-  if (myProfile?.communityId && member.communityId === myProfile.communityId) score += 15;
-
-  // Shared interests
-  const myInterests: string[] = myPrefs?.interests ?? [];
-  let theirPrefs: any = {};
-  try {
-    theirPrefs = typeof member.preferences === 'string'
-      ? JSON.parse(member.preferences || '{}')
-      : (member.preferences ?? {});
-  } catch {}
-  const shared = myInterests.filter((i: string) => (theirPrefs?.interests ?? []).includes(i));
-  score += shared.length * 5;
-
-  // Queer friendly
-  if (member.isQueerFriendly && myProfile?.orientation !== 'straight') score += 10;
-
-  // Distance bonus — extra points for being within maxDistance / 4
-  if (member.distance != null) {
-    const d = parseFloat(String(member.distance));
-    if (d < maxDistance / 4) score += 25;
-    else if (d < 5) score += 15;
-    else if (d < 20) score += 5;
-  }
-
-  // Both looking
-  if (mySignalType === 'looking' && member.signalType === 'looking') score += 10;
-
-  return Math.min(score, 100);
+  const factors = calculateMatchBreakdown(member, myProfile, myPrefs, mySignalType, seekingGender, maxDistance);
+  const raw = factors.reduce((s, f) => s + f.points, 0);
+  return Math.min(Math.round((raw / 145) * 100), 100);
 }
 
 // Deterministic spiral layout — no random per render
@@ -349,6 +461,297 @@ function FloatingDot({ index }: { index: number }) {
   );
 }
 
+// ─── MemberDetailModal ───────────────────────────────────────────────────────
+interface MemberDetailModalProps {
+  member: any | null;
+  myProfile: any;
+  myPrefs: any;
+  mySignalType: string;
+  seekingGender: string;
+  maxDistance: number;
+  onClose: () => void;
+  onViewProfile: (userId: number) => void;
+  onMessage: (userId: number) => void;
+}
+
+function getFactorColor(factor: MatchFactor): string {
+  if (!factor.matched) return '#374151';
+  switch (factor.key) {
+    case 'proximity':    return '#10B981';
+    case 'community':   return '#A855F7';
+    case 'gender':      return '#EC4899';
+    case 'orientation': return '#F472B6';
+    case 'interests':   return '#FBBF24';
+    case 'signal':      return '#60A5FA';
+    case 'queer':       return '#F59E0B';
+    case 'relstyle':    return '#C084FC';
+    case 'lookingfor':  return '#34D399';
+    default:            return '#EC4899';
+  }
+}
+
+function MemberDetailModal({
+  member, myProfile, myPrefs, mySignalType, seekingGender, maxDistance,
+  onClose, onViewProfile, onMessage,
+}: MemberDetailModalProps) {
+  const sigColor = member
+    ? (SIGNAL_COLORS[member.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280')
+    : '#6B7280';
+
+  const factors = React.useMemo(
+    () => member
+      ? calculateMatchBreakdown(member, myProfile, myPrefs, mySignalType, seekingGender, maxDistance)
+      : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [member?.userId, mySignalType, seekingGender, maxDistance],
+  );
+
+  const matchScore = React.useMemo(
+    () => Math.min(Math.round(factors.reduce((s, f) => s + f.points, 0) / 145 * 100), 100),
+    [factors],
+  );
+
+  // Score count-up
+  const [displayScore, setDisplayScore] = useState(0);
+  useEffect(() => {
+    if (!member) { setDisplayScore(0); return; }
+    setDisplayScore(0);
+    let current = 0;
+    const increment = Math.max(1, Math.ceil(matchScore / 20));
+    const iv = setInterval(() => {
+      current += increment;
+      if (current >= matchScore) { setDisplayScore(matchScore); clearInterval(iv); }
+      else { setDisplayScore(current); }
+    }, 30);
+    return () => clearInterval(iv);
+  }, [member?.userId, matchScore]);
+
+  // Ring opacity
+  const ringOpacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!member) { ringOpacity.setValue(0); return; }
+    ringOpacity.setValue(0);
+    Animated.timing(ringOpacity, { toValue: 1, duration: 900, useNativeDriver: true }).start();
+  }, [member?.userId]);
+
+  // Avatar pulse for high match
+  const avatarPulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!member || matchScore < 70) { avatarPulse.setValue(1); return; }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(avatarPulse, { toValue: 1.08, duration: 900, useNativeDriver: true }),
+        Animated.timing(avatarPulse, { toValue: 1.0,  duration: 900, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [member?.userId, matchScore]);
+
+  // Row stagger
+  const rowAnims = useRef<Animated.Value[]>([]);
+  useEffect(() => {
+    if (!member || factors.length === 0) return;
+    rowAnims.current = factors.map(() => new Animated.Value(0));
+    Animated.stagger(
+      60,
+      rowAnims.current.map((a) =>
+        Animated.timing(a, { toValue: 1, duration: 300, useNativeDriver: true })
+      )
+    ).start();
+  }, [member?.userId, factors.length]);
+
+  const matchLabel =
+    matchScore >= 80 ? 'Strong Match 🔥' :
+    matchScore >= 60 ? 'Good Vibe ✨' :
+    matchScore >= 40 ? 'Worth a Chat 💬' : 'Just Saying Hi 👋';
+
+  if (!member) return null;
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
+        <View style={{
+          backgroundColor: '#0F0F1A',
+          borderTopLeftRadius: 28, borderTopRightRadius: 28,
+          maxHeight: SCREEN_HEIGHT * 0.92,
+          minHeight: SCREEN_HEIGHT * 0.85,
+        }}>
+          {/* Drag handle row */}
+          <View style={{ paddingTop: 12, paddingHorizontal: 20, alignItems: 'center' }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A' }} />
+            <TouchableOpacity onPress={onClose} style={{ position: 'absolute', right: 20, top: 8 }}>
+              <Text style={{ color: '#6B7280', fontSize: 18, fontWeight: '700' }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 44 }}>
+            {/* ── Hero ── */}
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <Animated.View style={{ transform: [{ scale: avatarPulse }], marginBottom: 12 }}>
+                <View style={{
+                  width: 112, height: 112, borderRadius: 56,
+                  backgroundColor: `${sigColor}18`,
+                  alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <View style={{
+                    width: 96, height: 96, borderRadius: 48, overflow: 'hidden',
+                    borderWidth: 2.5, borderColor: sigColor,
+                  }}>
+                    {member.avatarUrl ? (
+                      <Image source={{ uri: member.avatarUrl }} style={{ width: 96, height: 96 }} />
+                    ) : (
+                      <LinearGradient colors={['#EC4899', '#A855F7']}
+                        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 32 }}>
+                          {member.displayName?.[0]?.toUpperCase() ?? '?'}
+                        </Text>
+                      </LinearGradient>
+                    )}
+                  </View>
+                </View>
+              </Animated.View>
+
+              <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 6 }}>
+                {member.displayName}
+              </Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: sigColor }} />
+                <Text style={{ color: sigColor, fontSize: 13, fontWeight: '600' }}>
+                  {SIGNAL_CONFIG[member.signalType as keyof typeof SIGNAL_CONFIG]?.label ?? cap(member.signalType ?? 'Offline')}
+                </Text>
+              </View>
+
+              {member.message ? (
+                <Text numberOfLines={2} style={{
+                  color: '#9CA3AF', fontSize: 13, fontStyle: 'italic',
+                  textAlign: 'center', lineHeight: 20, marginBottom: 10, paddingHorizontal: 16,
+                }}>
+                  "{member.message}"
+                </Text>
+              ) : null}
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
+                {member.gender      ? <Chip label={cap(member.gender)}      color="#A855F7" /> : null}
+                {member.orientation ? <Chip label={cap(member.orientation)} color="#EC4899" /> : null}
+                {member.isQueerFriendly ? <Chip label="🌈 QF" color="#F59E0B" /> : null}
+              </View>
+            </View>
+
+            {/* ── Match Score Arc ── */}
+            <View style={{ alignItems: 'center', marginBottom: 28 }}>
+              <View style={{ width: 110, height: 110, borderRadius: 55, alignItems: 'center', justifyContent: 'center' }}>
+                {/* Base ring */}
+                <View style={{
+                  position: 'absolute', width: 110, height: 110, borderRadius: 55,
+                  borderWidth: 4, borderColor: '#2D2D3A',
+                }} />
+                {/* Colored overlay (opacity-animated) */}
+                <Animated.View style={{
+                  position: 'absolute', width: 110, height: 110, borderRadius: 55,
+                  borderWidth: 4, borderColor: '#EC4899',
+                  opacity: ringOpacity,
+                }} />
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900', lineHeight: 34 }}>
+                    {displayScore}
+                  </Text>
+                  <Text style={{ color: '#9CA3AF', fontSize: 11, fontWeight: '600' }}>% Match</Text>
+                </View>
+              </View>
+              <Text style={{ color: '#E5E7EB', fontWeight: '700', fontSize: 15, marginTop: 10 }}>
+                {matchLabel}
+              </Text>
+            </View>
+
+            {/* ── Breakdown rows ── */}
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15, marginBottom: 14 }}>
+              Why you match
+            </Text>
+
+            {factors.map((factor, i) => {
+              const fColor = getFactorColor(factor);
+              const anim = rowAnims.current[i] ?? new Animated.Value(1);
+              return (
+                <Animated.View
+                  key={factor.key}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', marginBottom: 12,
+                    opacity: anim,
+                    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+                  }}
+                >
+                  {/* Emoji box */}
+                  <View style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    backgroundColor: factor.matched ? `${fColor}22` : '#1A1A24',
+                    borderWidth: factor.matched ? 1 : 0,
+                    borderColor: factor.matched ? `${fColor}44` : 'transparent',
+                    alignItems: 'center', justifyContent: 'center', marginRight: 10,
+                  }}>
+                    <Text style={{ fontSize: 18 }}>{factor.emoji}</Text>
+                  </View>
+
+                  {/* Label + detail */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      color: factor.matched ? '#fff' : '#6B7280',
+                      fontWeight: factor.matched ? '700' : '500', fontSize: 13,
+                    }}>
+                      {factor.label}
+                    </Text>
+                    {factor.detail ? (
+                      <Text style={{ color: factor.matched ? '#9CA3AF' : '#4B5563', fontSize: 11, marginTop: 1 }}>
+                        {factor.detail}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {/* Points pill */}
+                  <View style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 3,
+                    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+                    backgroundColor: factor.matched ? `${fColor}22` : '#1A1A2480',
+                  }}>
+                    <Text style={{ color: factor.matched ? fColor : '#374151', fontWeight: '700', fontSize: 12 }}>
+                      +{factor.points}
+                    </Text>
+                    {factor.matched ? <Text style={{ color: '#10B981', fontSize: 11 }}>✓</Text> : null}
+                  </View>
+                </Animated.View>
+              );
+            })}
+
+            {/* ── Action buttons ── */}
+            <View style={{ marginTop: 20, gap: 10 }}>
+              <TouchableOpacity onPress={() => onMessage(member.userId)}>
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 14, padding: 15, alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>💬 Message</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => onViewProfile(member.userId)}
+                style={{
+                  borderRadius: 14, padding: 15, alignItems: 'center',
+                  borderWidth: 1.5, borderColor: '#EC4899', backgroundColor: 'transparent',
+                }}
+              >
+                <Text style={{ color: '#EC4899', fontWeight: '700', fontSize: 15 }}>View Full Profile</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── PulseScreen ───────────────────────────────────────────────────────────────
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
@@ -427,6 +830,14 @@ export default function PulseScreen() {
 
   const signalMutation = trpc.members.signal.useMutation({
     onSuccess: () => { refetchSignals(); refetchMySignal(); },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const createConversation = trpc.messages.createConversation.useMutation({
+    onSuccess: (convId: any) => {
+      setSelectedMember(null);
+      router.push(`/chat/${convId}` as any);
+    },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
@@ -743,101 +1154,22 @@ export default function PulseScreen() {
       </Modal>
 
       {/* ── Member detail modal ── */}
-      <Modal visible={!!selectedMember} transparent animationType="fade">
-        <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
-          activeOpacity={1}
-          onPress={() => setSelectedMember(null)}
-        >
-          {selectedMember && (
-            <TouchableOpacity activeOpacity={1} style={{ width: '100%' }}>
-              {(() => {
-                const sc = SIGNAL_COLORS[selectedMember.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280';
-                const isHighMatch = selectedMember.matchScore >= 70;
-                return (
-                  <View style={{
-                    backgroundColor: '#111118', borderRadius: 24, padding: 24,
-                    alignItems: 'center', borderColor: `${sc}55`, borderWidth: 1,
-                  }}>
-                    {/* Avatar */}
-                    <View style={{
-                      width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
-                      marginBottom: 12, borderWidth: 2.5, borderColor: sc,
-                    }}>
-                      {selectedMember.avatarUrl ? (
-                        <Image source={{ uri: selectedMember.avatarUrl }} style={{ width: 88, height: 88 }} />
-                      ) : (
-                        <LinearGradient colors={['#EC4899', '#A855F7']}
-                          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ color: '#fff', fontSize: 30, fontWeight: '700' }}>
-                            {selectedMember.displayName?.[0] ?? '?'}
-                          </Text>
-                        </LinearGradient>
-                      )}
-                    </View>
-
-                    <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 6 }}>
-                      {selectedMember.displayName}
-                    </Text>
-
-                    {/* Match badge */}
-                    <View style={{
-                      paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, marginBottom: 12,
-                      backgroundColor: isHighMatch ? '#EC489922' : '#A855F722',
-                    }}>
-                      <Text style={{ color: isHighMatch ? '#EC4899' : '#A855F7', fontWeight: '800', fontSize: 14 }}>
-                        {selectedMember.matchScore}% Match ✨
-                      </Text>
-                    </View>
-
-                    {selectedMember.message ? (
-                      <Text style={{
-                        color: '#9CA3AF', textAlign: 'center', marginBottom: 12,
-                        fontStyle: 'italic', fontSize: 14, lineHeight: 20,
-                      }}>
-                        "{selectedMember.message}"
-                      </Text>
-                    ) : null}
-
-                    {/* Chips */}
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 20 }}>
-                      {selectedMember.gender ? <Chip label={cap(selectedMember.gender)} color="#A855F7" /> : null}
-                      {selectedMember.seekingDynamic ? (
-                        <Chip label={selectedMember.seekingDynamic.replace(/_/g, ' ')} color="#EC4899" />
-                      ) : null}
-                      {selectedMember.distance != null ? (
-                        <Chip label={`${selectedMember.distance} km away`} color="#10B981" />
-                      ) : null}
-                      {selectedMember.isQueerFriendly ? <Chip label="🌈 Queer Friendly" color="#F59E0B" /> : null}
-                    </View>
-
-                    {/* CTA */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedMember(null);
-                        router.push(`/member/${selectedMember.userId}` as any);
-                      }}
-                      style={{ width: '100%', marginBottom: 10 }}
-                    >
-                      <LinearGradient
-                        colors={['#EC4899', '#A855F7']}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                        style={{ borderRadius: 14, padding: 14, alignItems: 'center' }}
-                      >
-                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>View Profile</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={() => setSelectedMember(null)}>
-                      <Text style={{ color: '#6B7280', fontSize: 14 }}>Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })()}
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
-      </Modal>
+      <MemberDetailModal
+        member={selectedMember}
+        myProfile={myProfile}
+        myPrefs={myPrefs}
+        mySignalType={mySignalType}
+        seekingGender={seekingGender}
+        maxDistance={maxDistance}
+        onClose={() => setSelectedMember(null)}
+        onViewProfile={(userId) => {
+          setSelectedMember(null);
+          router.push(`/member/${userId}` as any);
+        }}
+        onMessage={(userId) => {
+          createConversation.mutate({ participantIds: [userId] });
+        }}
+      />
     </SafeAreaView>
   );
 }
