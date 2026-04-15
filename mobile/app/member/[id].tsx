@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,7 +15,54 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import Avatar from '../../components/Avatar';
-import { communityColor, formatDistanceToNow } from '../../lib/utils';
+import { communityColor } from '../../lib/utils';
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function timeAgo(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const diff = Date.now() - d.getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  return `${days}d ago`;
+}
+
+function safeParsePrefs(raw: any): Record<string, any> {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+const ORIENTATION_COLORS: Record<string, string> = {
+  straight: '#f9a8d4',
+  gay: '#c084fc',
+  lesbian: '#fda4af',
+  bisexual: '#a78bfa',
+  queer: '#67e8f9',
+  pansexual: '#fde68a',
+};
+
+const SIGNAL_COLORS: Record<string, string> = {
+  available: '#22c55e',
+  looking: '#eab308',
+  busy: '#f97316',
+  offline: '#6b7280',
+};
+
+const SIGNAL_LABELS: Record<string, string> = {
+  available: 'Available',
+  looking: 'Looking',
+  busy: 'Busy',
+  offline: 'Offline',
+};
+
+// ── component ─────────────────────────────────────────────────────────────────
 
 export default function MemberProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +71,11 @@ export default function MemberProfileScreen() {
 
   const { data: member, isLoading } = trpc.members.byId.useQuery(
     { userId: Number(id) },
+    { enabled: !!id },
+  );
+
+  const { data: wallPosts, isLoading: wallLoading } = trpc.members.wall.useQuery(
+    { userId: Number(id), limit: 30 },
     { enabled: !!id },
   );
 
@@ -55,17 +108,30 @@ export default function MemberProfileScreen() {
   }
 
   const displayName = m.displayName ?? m.name ?? 'Member';
+  const firstName = displayName.split(' ')[0];
   const community = m.communityId ?? m.community?.name;
   const badgeColor = communityColor(community);
   const joinedDate = m.createdAt
-    ? new Date(m.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    ? new Date(m.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : null;
 
+  const prefs = safeParsePrefs(m.preferences);
+  const interests: string[] = Array.isArray(prefs.interests) ? prefs.interests : [];
+  const lookingFor: string[] = Array.isArray(prefs.lookingFor) ? prefs.lookingFor : [];
+  const relationshipStatus: string | undefined = prefs.relationshipStatus;
+
+  const signal = m.signal as any;
+  const showSignal = signal && signal.signalType && signal.signalType !== 'offline';
+  const signalColor = signal ? (SIGNAL_COLORS[signal.signalType] ?? SIGNAL_COLORS.offline) : SIGNAL_COLORS.offline;
+
+  const orientationColor = m.orientation ? (ORIENTATION_COLORS[m.orientation.toLowerCase()] ?? colors.pink) : null;
+
+  const hasAbout = !!(m.bio || m.location || m.orientation || m.gender || relationshipStatus);
+
+  const posts = (wallPosts ?? []) as any[];
+
   function handleMessage() {
-    createConversation.mutate({
-      type: 'dm',
-      participantIds: [Number(id)],
-    });
+    createConversation.mutate({ type: 'dm', participantIds: [Number(id)] });
   }
 
   return (
@@ -86,88 +152,369 @@ export default function MemberProfileScreen() {
         <Ionicons name="arrow-back" size={20} color="#fff" />
       </TouchableOpacity>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Hero gradient */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+
+        {/* ── A. Hero header ─────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#7C3AED33', '#EC489933', '#0D0D0D']}
+          colors={['#7C3AED55', '#EC489955', '#0D0D0D']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={{ paddingTop: insets.top + 60, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
+          style={{
+            paddingTop: insets.top + 60,
+            paddingBottom: 28,
+            alignItems: 'center',
+            paddingHorizontal: 20,
+          }}
         >
-          <Avatar name={displayName} url={m.avatarUrl} size={88} style={{ marginBottom: 14 }} />
-          <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800' }}>{displayName}</Text>
+          {/* Avatar with glow ring */}
+          <View
+            style={{
+              borderRadius: 60,
+              padding: 3,
+              backgroundColor: `${badgeColor}44`,
+              shadowColor: badgeColor,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.8,
+              shadowRadius: 12,
+              marginBottom: 14,
+            }}
+          >
+            <Avatar name={displayName} url={m.avatarUrl} size={100} />
+          </View>
 
-          {community && (
-            <View
-              style={{
-                marginTop: 8,
-                paddingHorizontal: 14,
-                paddingVertical: 5,
+          <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800', textAlign: 'center' }}>
+            {displayName}
+          </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+            {community && (
+              <View style={{
+                paddingHorizontal: 12, paddingVertical: 4,
                 backgroundColor: `${badgeColor}22`,
+                borderRadius: 20, borderColor: `${badgeColor}44`, borderWidth: 1,
+              }}>
+                <Text style={{ color: badgeColor, fontWeight: '700', fontSize: 12 }}>
+                  {community.charAt(0).toUpperCase() + community.slice(1)}
+                </Text>
+              </View>
+            )}
+
+            {orientationColor && m.orientation && (
+              <View style={{
+                paddingHorizontal: 12, paddingVertical: 4,
+                backgroundColor: `${orientationColor}22`,
+                borderRadius: 20, borderColor: `${orientationColor}55`, borderWidth: 1,
+              }}>
+                <Text style={{ color: orientationColor, fontWeight: '700', fontSize: 12 }}>
+                  {m.orientation.charAt(0).toUpperCase() + m.orientation.slice(1)}
+                </Text>
+              </View>
+            )}
+
+            {m.memberRole && m.memberRole !== 'member' && (
+              <View style={{
+                paddingHorizontal: 12, paddingVertical: 4,
+                backgroundColor: m.memberRole === 'admin' ? '#ef444422' : '#f59e0b22',
                 borderRadius: 20,
-                borderColor: `${badgeColor}44`,
+                borderColor: m.memberRole === 'admin' ? '#ef444455' : '#f59e0b55',
                 borderWidth: 1,
-              }}
-            >
-              <Text style={{ color: badgeColor, fontWeight: '700', fontSize: 13 }}>
-                {community.charAt(0).toUpperCase() + community.slice(1)}
-              </Text>
-            </View>
-          )}
+              }}>
+                <Text style={{
+                  color: m.memberRole === 'admin' ? '#ef4444' : '#f59e0b',
+                  fontWeight: '700', fontSize: 12,
+                }}>
+                  {m.memberRole === 'admin' ? '⚙️ Admin' : '👼 Angel'}
+                </Text>
+              </View>
+            )}
+          </View>
         </LinearGradient>
 
-        {/* Bio */}
-        {m.bio && (
-          <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-            <Text style={{ color: colors.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>
-              {m.bio}
-            </Text>
+        {/* ── B. Signal status bar ───────────────────────────────────────── */}
+        {showSignal && (
+          <View style={{
+            marginHorizontal: 16, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderLeftWidth: 4,
+            borderLeftColor: signalColor,
+            padding: 14,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <View style={{
+                width: 10, height: 10, borderRadius: 5,
+                backgroundColor: signalColor,
+                shadowColor: signalColor, shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.8, shadowRadius: 4,
+              }} />
+              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
+                {SIGNAL_LABELS[signal.signalType] ?? signal.signalType}
+              </Text>
+
+              {signal.seekingGender && (
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 3,
+                  backgroundColor: `${colors.pink}22`,
+                  borderRadius: 12, borderColor: `${colors.pink}44`, borderWidth: 1,
+                }}>
+                  <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>
+                    Seeking: {signal.seekingGender}
+                  </Text>
+                </View>
+              )}
+
+              {signal.isQueerFriendly && (
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 3,
+                  backgroundColor: '#67e8f922',
+                  borderRadius: 12, borderColor: '#67e8f944', borderWidth: 1,
+                }}>
+                  <Text style={{ color: '#67e8f9', fontSize: 12, fontWeight: '600' }}>
+                    🏳️‍🌈 Queer Friendly
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {signal.message ? (
+              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 8, fontStyle: 'italic' }}>
+                "{signal.message}"
+              </Text>
+            ) : null}
           </View>
         )}
 
-        {/* Stats */}
-        <View
-          style={{
-            flexDirection: 'row',
-            marginHorizontal: 20,
-            backgroundColor: colors.card,
-            borderRadius: 16,
-            padding: 20,
-            borderColor: colors.border,
-            borderWidth: 1,
-            marginBottom: 16,
-          }}
-        >
-          {[
-            { label: 'Events', value: m.eventsAttended ?? 0 },
-            { label: 'Posts', value: m.postsCount ?? 0 },
+        {/* ── C. Stats row ───────────────────────────────────────────────── */}
+        <View style={{
+          flexDirection: 'row',
+          marginHorizontal: 16, marginTop: 12,
+          backgroundColor: colors.card,
+          borderRadius: 16, padding: 20,
+          borderColor: colors.border, borderWidth: 1,
+        }}>
+          {([
+            { label: 'Events', value: String(m.eventsAttended ?? 0) },
+            { label: 'Posts', value: String(m.postsCount ?? 0) },
             joinedDate ? { label: 'Joined', value: joinedDate } : null,
-          ].filter(Boolean).map((stat: any, i, arr) => (
+          ] as Array<{ label: string; value: string } | null>).filter((x): x is { label: string; value: string } => !!x).map((stat, i, arr) => (
             <React.Fragment key={stat.label}>
               <View style={{ alignItems: 'center', flex: 1 }}>
                 <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{stat.value}</Text>
                 <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{stat.label}</Text>
               </View>
-              {i < arr.length - 1 && <View style={{ width: 1, backgroundColor: colors.border }} />}
+              {i < arr.length - 1 && (
+                <View style={{ width: 1, backgroundColor: colors.border }} />
+              )}
             </React.Fragment>
           ))}
         </View>
+
+        {/* ── D. About section ───────────────────────────────────────────── */}
+        {hasAbout && (
+          <View style={{
+            marginHorizontal: 16, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 12 }}>
+              About
+            </Text>
+
+            {m.bio ? (
+              <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21, marginBottom: 12 }}>
+                {m.bio}
+              </Text>
+            ) : null}
+
+            {m.location ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="location-outline" size={15} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 14 }}>{m.location}</Text>
+              </View>
+            ) : null}
+
+            {m.gender ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="person-outline" size={15} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 14 }}>
+                  {m.gender.charAt(0).toUpperCase() + m.gender.slice(1)}
+                </Text>
+              </View>
+            ) : null}
+
+            {m.orientation && orientationColor ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Ionicons name="heart-outline" size={15} color={orientationColor} />
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 3,
+                  backgroundColor: `${orientationColor}22`,
+                  borderRadius: 12, borderColor: `${orientationColor}55`, borderWidth: 1,
+                }}>
+                  <Text style={{ color: orientationColor, fontSize: 13, fontWeight: '600' }}>
+                    {m.orientation.charAt(0).toUpperCase() + m.orientation.slice(1)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {relationshipStatus ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="ribbon-outline" size={15} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 14 }}>
+                  {relationshipStatus.charAt(0).toUpperCase() + relationshipStatus.slice(1)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {/* ── E. Interests & Looking For chips ──────────────────────────── */}
+        {interests.length > 0 && (
+          <View style={{
+            marginHorizontal: 16, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 10 }}>
+              Interests
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {interests.map((tag) => (
+                <View key={tag} style={{
+                  paddingHorizontal: 12, paddingVertical: 5,
+                  backgroundColor: `${colors.pink}22`,
+                  borderRadius: 20, borderColor: `${colors.pink}44`, borderWidth: 1,
+                }}>
+                  <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {lookingFor.length > 0 && (
+          <View style={{
+            marginHorizontal: 16, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 10 }}>
+              Looking For
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {lookingFor.map((tag) => (
+                <View key={tag} style={{
+                  paddingHorizontal: 12, paddingVertical: 5,
+                  backgroundColor: `${colors.purple}22`,
+                  borderRadius: 20, borderColor: `${colors.purple}44`, borderWidth: 1,
+                }}>
+                  <Text style={{ color: colors.purple, fontSize: 13, fontWeight: '600' }}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── F. Wall posts ──────────────────────────────────────────────── */}
+        <View style={{ marginHorizontal: 16, marginTop: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>🧱 Posts</Text>
+            {posts.length > 0 && (
+              <View style={{
+                paddingHorizontal: 8, paddingVertical: 2,
+                backgroundColor: `${colors.pink}33`,
+                borderRadius: 10,
+              }}>
+                <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700' }}>{posts.length}</Text>
+              </View>
+            )}
+          </View>
+
+          {wallLoading ? (
+            <ActivityIndicator color={colors.pink} style={{ marginVertical: 24 }} />
+          ) : posts.length === 0 ? (
+            <Text style={{ color: colors.muted, textAlign: 'center', paddingVertical: 24, fontSize: 15 }}>
+              No posts yet 🌸
+            </Text>
+          ) : (
+            posts.map((post: any) => (
+              <View key={post.post?.id ?? post.id} style={{
+                backgroundColor: colors.card,
+                borderRadius: 16,
+                padding: 14,
+                borderColor: colors.border,
+                borderWidth: 1,
+                marginBottom: 12,
+              }}>
+                {/* Author row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <Avatar
+                    name={post.profile?.displayName ?? displayName}
+                    url={post.profile?.avatarUrl ?? m.avatarUrl}
+                    size={36}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>
+                      {post.profile?.displayName ?? displayName}
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 11 }}>
+                      {timeAgo(post.post?.createdAt ?? post.createdAt)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Content */}
+                {(post.post?.content ?? post.content) ? (
+                  <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
+                    {post.post?.content ?? post.content}
+                  </Text>
+                ) : null}
+
+                {/* Media */}
+                {(post.post?.mediaUrl ?? post.mediaUrl) ? (
+                  <Image
+                    source={{ uri: post.post?.mediaUrl ?? post.mediaUrl }}
+                    style={{ width: '100%', height: 240, borderRadius: 12, marginBottom: 8 }}
+                    resizeMode="cover"
+                  />
+                ) : null}
+
+                {/* Counts */}
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="heart-outline" size={14} color={colors.muted} />
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      {post.post?.likesCount ?? post.likesCount ?? 0}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Ionicons name="chatbubble-outline" size={14} color={colors.muted} />
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>
+                      {post.post?.commentsCount ?? post.commentsCount ?? 0}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
       </ScrollView>
 
-      {/* Message button */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: 20,
-          paddingBottom: insets.bottom + 16,
-          backgroundColor: colors.bg,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-        }}
-      >
+      {/* ── G. Message button (sticky footer) ─────────────────────────── */}
+      <View style={{
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        padding: 20,
+        paddingBottom: insets.bottom + 16,
+        backgroundColor: colors.bg,
+        borderTopColor: colors.border,
+        borderTopWidth: 1,
+      }}>
         <TouchableOpacity
           onPress={handleMessage}
           disabled={createConversation.isPending}
@@ -193,7 +540,7 @@ export default function MemberProfileScreen() {
               <>
                 <Ionicons name="chatbubble-outline" size={20} color="#fff" />
                 <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-                  Message {displayName.split(' ')[0]}
+                  Message {firstName}
                 </Text>
               </>
             )}
