@@ -576,12 +576,14 @@ function MemberDetailModal({
         activeOpacity={1}
         onPress={onClose}
       >
-        <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{
-          backgroundColor: '#0F0F1A',
-          borderTopLeftRadius: 28, borderTopRightRadius: 28,
-          maxHeight: SCREEN_HEIGHT * 0.92,
-          minHeight: SCREEN_HEIGHT * 0.85,
-        }}>
+        <View
+          onStartShouldSetResponder={() => true}
+          style={{
+            backgroundColor: '#0F0F1A',
+            borderTopLeftRadius: 28, borderTopRightRadius: 28,
+            maxHeight: SCREEN_HEIGHT * 0.92,
+            minHeight: SCREEN_HEIGHT * 0.85,
+          }}>
           {/* Drag handle + close button row */}
           <View style={{ paddingTop: 14, paddingHorizontal: 20, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A' }} />
@@ -761,7 +763,7 @@ function MemberDetailModal({
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </Modal>
   );
