@@ -464,10 +464,17 @@ export async function getPublicProfile(userId: number) {
     .select({ count: sql<number>`COUNT(*)` })
     .from(wallPosts)
     .where(eq(wallPosts.authorId, userId));
-  const photoCount = Number(postCountResult[0]?.count ?? 0);
+  const postsCount = Number(postCountResult[0]?.count ?? 0);
+
+  // Count confirmed/checked-in reservations (events attended)
+  const eventCountResult = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(reservations)
+    .where(and(eq(reservations.userId, userId), sql`${reservations.status} IN ('confirmed', 'checked_in')`));
+  const eventsAttended = Number(eventCountResult[0]?.count ?? 0);
 
   const { applicationStatus, ...safeProfile } = profile;
-  return { ...safeProfile, photoCount };
+  return { ...safeProfile, postsCount, eventsAttended, photoCount: postsCount };
 }
 
 export async function getUserWallPosts(userId: number, limit = 20) {
