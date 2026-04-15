@@ -186,12 +186,16 @@ async function startServer() {
   } catch (err) {
     console.warn("[Startup] App settings seed skipped:", err);
   }
-  // Migrate: member_signals table for Zone feature
+  // Migrate: member_signals table for Zone/Pulse feature
+  // Uses raw mysql2 (not drizzle) to avoid ORM template issues
   try {
-    const dbConn = await import('../db');
-    const rawDb = await dbConn.getDb();
-    if (rawDb) {
-      await rawDb.execute(`
+    if (process.env.DATABASE_URL) {
+      const mysql2 = await import('mysql2/promise');
+      const migConn = await mysql2.createConnection({
+        uri: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      });
+      await migConn.execute(`
         CREATE TABLE IF NOT EXISTS member_signals (
           id INT AUTO_INCREMENT PRIMARY KEY,
           userId INT NOT NULL,
@@ -199,15 +203,16 @@ async function startServer() {
           seekingGender VARCHAR(64),
           seekingDynamic VARCHAR(128),
           message VARCHAR(200),
-          isQueerFriendly BOOLEAN DEFAULT FALSE,
+          isQueerFriendly TINYINT(1) DEFAULT 0,
           latitude DECIMAL(10,7),
           longitude DECIMAL(10,7),
-          expiresAt TIMESTAMP NULL,
-          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          expiresAt DATETIME NULL,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           UNIQUE KEY unique_user (userId)
         )
       `);
+      await migConn.end();
       console.log('[Migration] member_signals table ready');
     }
   } catch (err) {
