@@ -34,20 +34,144 @@ import { useToast } from '../../components/Toast';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ── Quick Actions ─────────────────────────────────────────────────────────────
+// ── Role config ───────────────────────────────────────────────────────────────
 
-const quickActions = [
-  { label: 'Events', icon: 'calendar' as const, route: '/(tabs)/events', color: colors.pink },
-  { label: 'Messages', icon: 'chatbubbles' as const, route: '/messages', color: colors.purple },
-  { label: 'Members', icon: 'people' as const, route: '/members', color: '#10B981' },
-  { label: 'My Tickets', icon: 'ticket-outline' as const, route: '/tickets', color: '#F59E0B' },
-  { label: 'Credits', icon: 'gift' as const, route: '/credits', color: '#EC4899' },
-  { label: 'Invite', icon: 'share-social' as const, route: '/referrals', color: '#8B5CF6' },
+const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  admin:   { label: 'Admin',   color: '#fff',    bg: '#6366F1' },
+  angel:   { label: 'Angel',   color: '#EC4899', bg: '#EC489922' },
+  member:  { label: 'Member',  color: '#A855F7', bg: '#A855F722' },
+  pending: { label: 'Pending', color: '#9CA3AF', bg: '#1A1A2E' },
+};
+
+function getGreeting(name: string) {
+  const h = new Date().getHours();
+  const emoji = h < 12 ? '☀️' : h < 17 ? '👋' : h < 21 ? '🌆' : '🌙';
+  const word  = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
+  return { greeting: `${word}, ${name?.split(' ')[0] ?? 'there'}`, emoji };
+}
+
+// ── Animated Gradient Header ──────────────────────────────────────────────────
+
+function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
+  const router = useRouter();
+  const headerY = useRef(new Animated.Value(30)).current;
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(headerY,       { toValue: 0, duration: 700, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const displayName = profile?.displayName ?? me?.name ?? 'there';
+  const { greeting, emoji } = getGreeting(displayName);
+
+  const role = (me?.role ?? profile?.role ?? 'member') as string;
+  const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.member;
+
+  const memberSince = new Date(me?.createdAt ?? Date.now()).getFullYear();
+  const credits     = me?.credits      ?? profile?.credits      ?? 0;
+  const attended    = me?.eventsAttended ?? profile?.eventsAttended ?? 0;
+
+  return (
+    <LinearGradient
+      colors={['#2D1B4E', '#1A0A2E', colors.bg]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.4, y: 1 }}
+      style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 }}
+    >
+      <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerY }] }}>
+        {/* Top row: greeting + avatar */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', lineHeight: 34 }}>
+              {greeting} {emoji}
+            </Text>
+
+            {/* Role badge + community */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 7, gap: 8, flexWrap: 'wrap' }}>
+              <View
+                style={{
+                  backgroundColor: roleConfig.bg,
+                  borderRadius: 20,
+                  paddingHorizontal: 10,
+                  paddingVertical: 3,
+                }}
+              >
+                <Text style={{ color: roleConfig.color, fontSize: 12, fontWeight: '700' }}>{roleConfig.label}</Text>
+              </View>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>Soapies Community</Text>
+            </View>
+          </View>
+
+          {/* Avatar → profile tab */}
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.selectionAsync();
+              try { (router as any).push('/(tabs)/profile'); } catch (_) {}
+            }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              borderWidth: 2,
+              borderColor: `${colors.purple}88`,
+              overflow: 'hidden',
+            }}
+          >
+            <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={44} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Stat chips row */}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+          <StatChip icon="calendar-outline" value={String(attended)} label="Events" />
+          <StatChip icon="gift-outline"     value={String(credits)}  label="Credits" />
+          <StatChip icon="star-outline"     value={String(memberSince)} label="Since" />
+        </View>
+      </Animated.View>
+    </LinearGradient>
+  );
+}
+
+function StatChip({ icon, value, label }: { icon: any; value: string; label: string }) {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: 'rgba(255,255,255,0.07)',
+        borderRadius: 12,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 6,
+      }}
+    >
+      <Ionicons name={icon} size={14} color={colors.purple} />
+      <View>
+        <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700', lineHeight: 16 }}>{value}</Text>
+        <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 13 }}>{label}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Quick Actions (2×2 grid) ──────────────────────────────────────────────────
+
+const ACTIONS = [
+  { icon: 'calendar'        as const, label: 'Events',     color: '#EC4899', route: '/(tabs)/events' },
+  { icon: 'ticket-outline'  as const, label: 'My Tickets', color: '#A855F7', route: '/tickets' },
+  { icon: 'people'          as const, label: 'Members',    color: '#6366F1', route: '/members' },
+  { icon: 'radio-button-on' as const, label: 'Pulse 💗',   color: '#10B981', route: '/(tabs)/pulse' },
 ];
 
 function QuickActionGrid() {
   const router = useRouter();
-  const scales = useRef(quickActions.map(() => new Animated.Value(1))).current;
+  const scales = useRef(ACTIONS.map(() => new Animated.Value(1))).current;
 
   function onPressIn(i: number) {
     Animated.spring(scales[i], { toValue: 0.92, useNativeDriver: true, speed: 40 }).start();
@@ -55,17 +179,14 @@ function QuickActionGrid() {
   function onPressOut(i: number) {
     Animated.spring(scales[i], { toValue: 1, useNativeDriver: true, speed: 20 }).start();
   }
-  function onPress(item: typeof quickActions[number]) {
+  function onPress(item: typeof ACTIONS[number]) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      router.push(item.route as any);
-    } catch (_) {}
+    try { (router as any).push(item.route as any); } catch (_) {}
   }
 
-  // 3-column grid
-  const rows: typeof quickActions[] = [];
-  for (let i = 0; i < quickActions.length; i += 3) {
-    rows.push(quickActions.slice(i, i + 3));
+  const rows: (typeof ACTIONS)[] = [];
+  for (let i = 0; i < ACTIONS.length; i += 2) {
+    rows.push(ACTIONS.slice(i, i + 2));
   }
 
   return (
@@ -73,7 +194,7 @@ function QuickActionGrid() {
       {rows.map((row, ri) => (
         <View key={ri} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
           {row.map((item, ci) => {
-            const idx = ri * 3 + ci;
+            const idx = ri * 2 + ci;
             return (
               <Animated.View key={item.label} style={{ transform: [{ scale: scales[idx] }], flex: 1, marginHorizontal: 4 }}>
                 <TouchableOpacity
@@ -83,27 +204,27 @@ function QuickActionGrid() {
                   onPress={() => onPress(item)}
                   style={{
                     backgroundColor: colors.card,
-                    borderRadius: 14,
+                    borderRadius: 16,
                     borderColor: colors.border,
                     borderWidth: 1,
-                    paddingVertical: 14,
+                    paddingVertical: 18,
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 8,
                   }}
                 >
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
                       backgroundColor: `${item.color}22`,
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}
                   >
-                    <Ionicons name={item.icon} size={20} color={item.color} />
+                    <Ionicons name={item.icon} size={22} color={item.color} />
                   </View>
-                  <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600', textAlign: 'center' }}>
+                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700', textAlign: 'center' }}>
                     {item.label}
                   </Text>
                 </TouchableOpacity>
@@ -469,19 +590,39 @@ function CommentsSheet({
   );
 }
 
+// ── Section label ─────────────────────────────────────────────────────────────
+
+function SectionLabel({ title }: { title: string }) {
+  return (
+    <Text
+      style={{
+        color: colors.muted,
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        paddingHorizontal: 20,
+        marginBottom: 10,
+      }}
+    >
+      {title}
+    </Text>
+  );
+}
+
 // ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const toast = useToast();
-  const [refreshing, setRefreshing] = useState(false);
-  const [showComposer, setShowComposer] = useState(false);
-  const [composerText, setComposerText] = useState('');
-  const [composerMedia, setComposerMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
-  const [composerLink, setComposerLink] = useState('');
-  const [showLinkInput, setShowLinkInput] = useState(false);
-  const [dismissedIds, setDismissedIds] = useState<number[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [commentsPost, setCommentsPost] = useState<{ id: number; authorId?: number } | null>(null);
+  const [refreshing, setRefreshing]         = useState(false);
+  const [showComposer, setShowComposer]     = useState(false);
+  const [composerText, setComposerText]     = useState('');
+  const [composerMedia, setComposerMedia]   = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
+  const [composerLink, setComposerLink]     = useState('');
+  const [showLinkInput, setShowLinkInput]   = useState(false);
+  const [dismissedIds, setDismissedIds]     = useState<number[]>([]);
+  const [isUploading, setIsUploading]       = useState(false);
+  const [commentsPost, setCommentsPost]     = useState<{ id: number; authorId?: number } | null>(null);
 
   // ── Data ────────────────────────────────────────────────────────────────────
   const { hasToken } = useAuth();
@@ -562,12 +703,12 @@ export default function HomeScreen() {
     const rawPosts = (postsData as any[]) ?? [];
     return rawPosts.map((p: any) => ({
       ...p,
-      authorName: p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
-      resolvedAuthorName: p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
-      resolvedAvatarUrl: p.avatarUrl ?? p.profile?.avatarUrl ?? null,
-      likesCount: p.likesCount ?? p._count?.likes ?? 0,
-      commentsCount: p.commentsCount ?? p._count?.comments ?? 0,
-      isLiked: likedPostIds.has(p.id),
+      authorName:           p.authorName         ?? p.profile?.displayName ?? 'Soapies Member',
+      resolvedAuthorName:   p.authorName         ?? p.profile?.displayName ?? 'Soapies Member',
+      resolvedAvatarUrl:    p.avatarUrl          ?? p.profile?.avatarUrl   ?? null,
+      likesCount:           p.likesCount         ?? p._count?.likes        ?? 0,
+      commentsCount:        p.commentsCount      ?? p._count?.comments     ?? 0,
+      isLiked:              likedPostIds.has(p.id),
     }));
   }, [postsData, likedPostIds]);
 
@@ -578,7 +719,7 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refetchPosts]);
 
-  const handleLike = useCallback((postId: number) => likeMutation.mutate({ postId }), [likeMutation]);
+  const handleLike    = useCallback((postId: number) => likeMutation.mutate({ postId }), [likeMutation]);
   const handleComment = useCallback((post: any) => setCommentsPost({ id: post.id, authorId: post.authorId }), []);
 
   function handleDismiss(id: number) {
@@ -629,9 +770,8 @@ export default function HomeScreen() {
       if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
       const json = await res.json();
       if (!json.url) throw new Error('No URL returned');
-      // Replace local URI with the uploaded URL so the preview shows the remote image
       setComposerMedia({ uri: json.url, type: 'image' });
-    } catch (e: any) {
+    } catch (_e: any) {
       toast.error('Upload failed');
     } finally {
       setIsUploading(false);
@@ -646,7 +786,6 @@ export default function HomeScreen() {
     let mediaType: string | undefined;
 
     if (composerMedia) {
-      // Must finish uploading before posting
       setIsUploading(true);
       const formData = new FormData();
       formData.append('photo', { uri: composerMedia.uri, type: 'image/jpeg', name: 'post-image.jpg' } as any);
@@ -656,98 +795,67 @@ export default function HomeScreen() {
         if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
         const json = await res.json();
         if (!json.url) throw new Error('No URL returned from upload');
-        mediaUrl = json.url;
+        mediaUrl  = json.url;
         mediaType = 'image';
-      } catch (e: any) {
+      } catch (_e: any) {
         setIsUploading(false);
         toast.error('Upload failed');
-        return; // Stop — don't post without the image
+        return;
       } finally {
         setIsUploading(false);
       }
     }
 
     createPostMutation.mutate({
-      content: composerText.trim() || ' ',
+      content:    composerText.trim() || ' ',
       communityId: 'soapies',
       visibility: 'members',
       mediaUrl,
       mediaType,
-      linkUrl: composerLink || undefined,
+      linkUrl:    composerLink || undefined,
     } as any);
   }
 
   async function handleShare(post: any) {
     try {
       await Share.share({
-        message: `${post.content ?? ''}
-
-— Shared from Soapies Community`,
+        message: `${post.content ?? ''}\n\n— Shared from Soapies Community`,
         title: 'Soapies Community Post',
       });
     } catch (_) {}
   }
 
-  const displayName = profile?.displayName ?? me?.name ?? 'there';
-
   // ── List header (rendered above posts) ──────────────────────────────────────
   const ListHeader = useMemo(() => (
     <View>
-      {/* Greeting + search */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
-        <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800', marginBottom: 10 }}>
-          Hey {displayName} 👋
-        </Text>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.card,
-            borderRadius: 12,
-            borderColor: colors.border,
-            borderWidth: 1,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-          }}
-        >
-          <Ionicons name="search" size={16} color={colors.muted} />
-          <Text style={{ color: colors.muted, marginLeft: 8, fontSize: 14 }}>Search community…</Text>
-        </TouchableOpacity>
+      {/* ── Animated gradient header ── */}
+      <AnimatedHeader me={me} profile={profile} />
+
+      {/* ── Quick Actions ── */}
+      <View style={{ paddingTop: 20, paddingBottom: 6 }}>
+        <SectionLabel title="Quick Actions" />
+        <QuickActionGrid />
       </View>
 
-      {/* Quick actions */}
-      <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 10 }}>
-        Quick Actions
-      </Text>
-      <QuickActionGrid />
-
-      {/* Announcements */}
-      {announcements.length > 0 && (
-        <View style={{ marginBottom: 4 }}>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 10 }}>
-            Announcements
-          </Text>
-          <AnnouncementSection announcements={announcements} onDismiss={handleDismiss} />
-        </View>
-      )}
-
-      {/* Next event teaser */}
+      {/* ── Upcoming Event ── */}
       {nextEvent && (
         <View style={{ marginBottom: 4 }}>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 10 }}>
-            Upcoming
-          </Text>
+          <SectionLabel title="Upcoming" />
           <EventTeaser event={nextEvent} />
         </View>
       )}
 
-      {/* Feed header + composer */}
+      {/* ── Announcements ── */}
+      {announcements.length > 0 && (
+        <View style={{ marginBottom: 4 }}>
+          <SectionLabel title="Announcements" />
+          <AnnouncementSection announcements={announcements} onDismiss={handleDismiss} />
+        </View>
+      )}
+
+      {/* ── Community Feed header + composer trigger ── */}
       <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
-        <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
-          Community Feed
-        </Text>
-        {/* Composer trigger */}
+        <SectionLabel title="Community Feed" />
         <TouchableOpacity
           onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
           style={{
@@ -767,10 +875,11 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
     </View>
-  ), [displayName, announcements, nextEvent, profile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [me, profile, nextEvent, announcements]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       {isLoading ? (
         <ScrollView>
           {ListHeader}
@@ -833,7 +942,7 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* Post Composer Modal */}
+      {/* ── Post Composer Modal ── */}
       <Modal visible={showComposer} animationType="slide" transparent onRequestClose={() => setShowComposer(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
@@ -881,7 +990,6 @@ export default function HomeScreen() {
                 }}
               />
 
-              {/* Image preview */}
               {composerMedia && (
                 <View style={{ position: 'relative', marginBottom: 10 }}>
                   <Image
@@ -898,7 +1006,6 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {/* Link input */}
               {showLinkInput && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 10, borderColor: '#10B981', borderWidth: 1, paddingHorizontal: 12, marginBottom: 10, gap: 8 }}>
                   <Ionicons name="link-outline" size={16} color="#10B981" />
@@ -919,7 +1026,6 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {/* Attachment toolbar */}
               <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 10, borderTopColor: colors.border, borderTopWidth: 1, marginBottom: 12 }}>
                 <TouchableOpacity onPress={pickImage} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
                   <Ionicons name="image-outline" size={22} color={colors.pink} />
@@ -970,7 +1076,7 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Comments Sheet */}
+      {/* ── Comments Sheet ── */}
       <CommentsSheet
         postId={commentsPost?.id ?? null}
         postAuthorId={commentsPost?.authorId}
