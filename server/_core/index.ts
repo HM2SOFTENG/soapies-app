@@ -282,6 +282,10 @@ async function startServer() {
   // Initialize WebSocket server
   await initializeWebSocket(server);
 
+  // Startup cleanup: remove OTP codes older than 24 hours
+  const { cleanupExpiredOtps } = await import("../auth");
+  cleanupExpiredOtps().catch(() => {});
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     const { setupVite } = await import("./vite");

@@ -77,14 +77,22 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         subMessage: "We can't wait to see you at our next event!",
       };
     case 'submitted':
+      return {
+        emoji: '⏳',
+        title: 'Application Received!',
+        color: colors.purple,
+        bgColor: 'rgba(168,85,247,0.1)',
+        message: 'Application received! Our team reviews within 24-48 hours.',
+        subMessage: "You'll receive an email and push notification as soon as there's an update.",
+      };
     case 'under_review':
     default:
       return {
-        emoji: '⏳',
+        emoji: '🔍',
         title: 'Application Under Review',
         color: colors.purple,
         bgColor: 'rgba(168,85,247,0.1)',
-        message: "Your application is being reviewed by our team. We'll notify you as soon as there's an update!",
+        message: 'Your application is being reviewed by our team.',
         subMessage: 'This usually takes 24-48 hours.',
       };
   }

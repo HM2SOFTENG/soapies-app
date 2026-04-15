@@ -13,6 +13,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -197,6 +198,9 @@ export default function OnboardingScreen() {
   // Step 6
   const [interests, setInterests] = useState<string[]>([]);
   const [lookingFor, setLookingFor] = useState<string[]>([]);
+
+  // Step 7
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
 
   // tRPC mutations
   const registerMutation = trpc.auth.register.useMutation();
@@ -1174,11 +1178,35 @@ export default function OnboardingScreen() {
             </Text>
           </View>
 
+          {/* Waiver acknowledgment */}
+          <TouchableOpacity
+            onPress={() => setWaiverAccepted(!waiverAccepted)}
+            style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginBottom: 20 }}
+            activeOpacity={0.8}
+          >
+            <View style={{
+              width: 22, height: 22, borderRadius: 6, borderWidth: 2,
+              borderColor: waiverAccepted ? colors.pink : colors.border,
+              backgroundColor: waiverAccepted ? colors.pink : 'transparent',
+              alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, marginTop: 1,
+            }}>
+              {waiverAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+            </View>
+            <Text style={{ color: colors.muted, flex: 1, lineHeight: 20, fontSize: 13 }}>
+              I am 18+ years old, agree to the{' '}
+              <Text style={{ color: colors.pink }} onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}>
+                Community Guidelines &amp; Terms
+              </Text>
+              , and understand this is an adult members-only platform.
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={submitMutation.isPending}
+            disabled={submitMutation.isPending || !waiverAccepted}
             activeOpacity={0.85}
-            style={{ borderRadius: 14, overflow: 'hidden' }}
+            style={{ borderRadius: 14, overflow: 'hidden', opacity: waiverAccepted ? 1 : 0.4 }}
           >
             <LinearGradient
               colors={['#EC4899', '#A855F7']}

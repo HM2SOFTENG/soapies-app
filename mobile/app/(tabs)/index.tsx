@@ -72,9 +72,13 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   const role = (me?.role ?? profile?.role ?? 'member') as string;
   const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.member;
 
-  const memberSince = new Date(me?.createdAt ?? Date.now()).getFullYear();
-  const credits     = me?.credits      ?? profile?.credits      ?? 0;
-  const attended    = me?.eventsAttended ?? profile?.eventsAttended ?? 0;
+  const memberSince = new Date(me?.createdAt ?? profile?.createdAt ?? Date.now()).getFullYear();
+
+  const { data: creditBalance } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
+  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
+
+  const credits = typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
+  const attended = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
 
   return (
     <LinearGradient

@@ -19,7 +19,7 @@ export const appRouter = router({
     me: publicProcedure.query(opts => {
       const u = opts.ctx.user;
       if (!u) return null;
-      const { passwordHash, ...safe } = u as any;
+      const { passwordHash, ...safe } = u;
       return safe;
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -340,7 +340,7 @@ export const appRouter = router({
           type: 'system',
           title: '📋 New Application',
           body: `${userProfile.displayName ?? 'A new user'} has submitted an application. Review it in the admin dashboard.`,
-          email: (admin as any).email ?? undefined,
+          email: admin.email ?? undefined,
         }).catch(console.error);
       }
 
@@ -374,7 +374,7 @@ export const appRouter = router({
       signature: z.string().min(1),
       version: z.string(),
     })).mutation(async ({ ctx, input }) => {
-      const ip = (ctx.req as any).ip ?? undefined;
+      const ip = (ctx.req as { ip?: string }).ip ?? undefined;
       await db.signWaiver(ctx.user.id, input.version, input.signature, ip);
       return { success: true };
     }),
@@ -414,7 +414,7 @@ export const appRouter = router({
       priceCouple: z.string().optional(),
       status: z.enum(["draft", "published", "cancelled", "completed"]).optional(),
     })).mutation(async ({ ctx, input }) => {
-      const data: any = { ...input, createdBy: ctx.user.id, startDate: new Date(input.startDate) };
+      const data: Record<string, unknown> = { ...input, createdBy: ctx.user.id, startDate: new Date(input.startDate) };
       if (input.endDate) data.endDate = new Date(input.endDate);
       return db.createEvent(data);
     }),
@@ -433,9 +433,10 @@ export const appRouter = router({
       priceSingleFemale: z.string().optional(),
       priceCouple: z.string().optional(),
     })).mutation(async ({ input }) => {
-      const { id, ...data } = input;
-      if (data.startDate) (data as any).startDate = new Date(data.startDate);
-      if (data.endDate) (data as any).endDate = new Date(data.endDate);
+      const { id, startDate, endDate, ...rest } = input;
+      const data: Record<string, unknown> = { ...rest };
+      if (startDate) data.startDate = new Date(startDate);
+      if (endDate) data.endDate = new Date(endDate);
       await db.updateEvent(id, data);
       return { success: true };
     }),

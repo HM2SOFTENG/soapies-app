@@ -152,6 +152,16 @@ export async function verifyOtp(data: {
   return otp;
 }
 
+// Startup cleanup: delete all OTPs older than 24 hours
+export async function cleanupExpiredOtps() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await db.delete(otpCodes).where(lt(otpCodes.expiresAt, cutoff));
+  } catch (_) {}
+}
+
 // Send email OTP via SendGrid
 export async function sendEmailOtp(email: string, code: string) {
   if (!ENV.sendgridApiKey) {
