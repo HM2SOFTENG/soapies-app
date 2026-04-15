@@ -571,18 +571,32 @@ function MemberDetailModal({
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
-        <View style={{
+      <TouchableOpacity
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{
           backgroundColor: '#0F0F1A',
           borderTopLeftRadius: 28, borderTopRightRadius: 28,
           maxHeight: SCREEN_HEIGHT * 0.92,
           minHeight: SCREEN_HEIGHT * 0.85,
         }}>
-          {/* Drag handle row */}
-          <View style={{ paddingTop: 12, paddingHorizontal: 20, alignItems: 'center' }}>
+          {/* Drag handle + close button row */}
+          <View style={{ paddingTop: 14, paddingHorizontal: 20, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A' }} />
-            <TouchableOpacity onPress={onClose} style={{ position: 'absolute', right: 20, top: 8 }}>
-              <Text style={{ color: '#6B7280', fontSize: 18, fontWeight: '700' }}>✕</Text>
+            <TouchableOpacity
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onClose(); }}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              style={{
+                position: 'absolute', right: 0, top: 0,
+                width: 36, height: 36, borderRadius: 18,
+                backgroundColor: '#1E1E2E',
+                borderWidth: 1, borderColor: '#2D2D3A',
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="close" size={18} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
 
@@ -747,8 +761,8 @@ function MemberDetailModal({
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
