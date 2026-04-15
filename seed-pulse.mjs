@@ -113,10 +113,10 @@ async function main() {
     const longitude = isOffline ? null : lon.toFixed(7);
 
     // Expiry: available/looking = 2-4h, busy = 1-2h, offline = expired (1 min from now for cleanup)
-    let expiryHours = 3;
-    if (scenario.signalType === 'looking') expiryHours = 2.5;
-    if (scenario.signalType === 'busy') expiryHours = 1.5;
-    if (scenario.signalType === 'offline') expiryHours = -23; // already expired
+    let expiryHours = 72; // 3 days for test data
+    if (scenario.signalType === 'looking') expiryHours = 72;
+    if (scenario.signalType === 'busy') expiryHours = 72;
+    if (scenario.signalType === 'offline') expiryHours = -1; // already expired
 
     const expiresAt = futureExpiry(expiryHours);
 
