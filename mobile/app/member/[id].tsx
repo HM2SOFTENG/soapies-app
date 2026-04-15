@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { trpc } from '../../lib/trpc';
@@ -480,7 +481,7 @@ export default function MemberProfileScreen() {
                   <Image
                     source={{ uri: post.post?.mediaUrl ?? post.mediaUrl }}
                     style={{ width: '100%', height: 240, borderRadius: 12, marginBottom: 8 }}
-                    resizeMode="cover"
+                    contentFit="cover"
                   />
                 ) : null}
 
@@ -520,10 +521,7 @@ export default function MemberProfileScreen() {
           disabled={createConversation.isPending}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={[colors.pink, colors.purple]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          <BrandGradient
             style={{
               borderRadius: 14,
               paddingVertical: 16,
@@ -544,7 +542,7 @@ export default function MemberProfileScreen() {
                 </Text>
               </>
             )}
-          </LinearGradient>
+          </BrandGradient>
         </TouchableOpacity>
       </View>
     </View>

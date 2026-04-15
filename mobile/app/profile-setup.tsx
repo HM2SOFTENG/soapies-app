@@ -6,14 +6,15 @@ import {
   TextInput,
   Alert,
   ScrollView,
-  Image,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { uploadPhoto } from '../lib/uploadPhoto';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
@@ -230,10 +231,7 @@ export default function ProfileSetupScreen() {
           activeOpacity={0.85}
           style={{ borderRadius: 14, overflow: 'hidden' }}
         >
-          <LinearGradient
-            colors={[colors.pink, colors.purple]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+          <BrandGradient
             style={[
               styles.nextBtn,
               (isBusy || (step === 0 && !avatarUrl)) && { opacity: 0.5 },
@@ -244,7 +242,7 @@ export default function ProfileSetupScreen() {
             ) : (
               <Text style={styles.nextBtnText}>{isLastStep ? 'Finish' : 'Next'}</Text>
             )}
-          </LinearGradient>
+          </BrandGradient>
         </TouchableOpacity>
 
         {isLastStep && (

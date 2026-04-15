@@ -8,13 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
   StyleSheet,
   Animated,
   Dimensions,
   Alert,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -499,12 +499,22 @@ export default function OnboardingScreen() {
       {/* Header (step > 1) */}
       {currentStep > 1 && (
         <View style={styles.header}>
+          {/*
+            Back button is disabled on step 3 (email OTP verification) because
+            the account has already been created at step 2 — going back would
+            silently re-hit the register mutation and 409. On every other step
+            (2, 4–7) the user can safely step back to revise input.
+            Fixes ITEM-020.
+          */}
           <TouchableOpacity
-            onPress={() => currentStep > 2 && goTo(currentStep - 1)}
+            onPress={() => {
+              if (currentStep === 3) return;
+              goTo(currentStep - 1);
+            }}
             style={styles.backBtn}
-            disabled={currentStep <= 2}
+            disabled={currentStep === 3}
           >
-            {currentStep > 2 && <Ionicons name="chevron-back" size={24} color={colors.text} />}
+            {currentStep !== 3 && <Ionicons name="chevron-back" size={24} color={colors.text} />}
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <Text style={styles.headerTitle}>{STEPS[currentStep - 1]?.title}</Text>

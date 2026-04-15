@@ -37,7 +37,7 @@ export default function ResetPasswordScreen() {
       );
     },
     onError: (err: any) => {
-      console.error('[ResetPassword] error:', err.message);
+      if (__DEV__) console.error('[ResetPassword] error:', err.message);
       Alert.alert('Reset Failed', err.message ?? 'Invalid or expired code. Please try again.');
     },
   });

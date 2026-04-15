@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Image,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
@@ -272,10 +273,7 @@ export default function AdminApplicationsScreen() {
               style={{ borderRadius: 20, overflow: 'hidden' }}
             >
               {isActive ? (
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, gap: 6 }}
                 >
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{tab.label}</Text>
@@ -293,7 +291,7 @@ export default function AdminApplicationsScreen() {
                       </Text>
                     </View>
                   )}
-                </LinearGradient>
+                </BrandGradient>
               ) : (
                 <View
                   style={{
@@ -368,10 +366,7 @@ export default function AdminApplicationsScreen() {
                 }}
               >
                 {/* Top gradient stripe */}
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{ height: 3 }}
                 />
 
@@ -387,7 +382,7 @@ export default function AdminApplicationsScreen() {
                       <Image
                         source={{ uri: firstPhoto }}
                         style={{ width: 48, height: 48, borderRadius: 24, marginRight: 12 }}
-                        resizeMode="cover"
+                        contentFit="cover"
                       />
                     ) : (
                       <View style={{ marginRight: 12 }}>
@@ -501,7 +496,7 @@ export default function AdminApplicationsScreen() {
                                     <Image
                                       source={{ uri }}
                                       style={{ width: 90, height: 90, borderRadius: 10 }}
-                                      resizeMode="cover"
+                                      contentFit="cover"
                                     />
                                   </TouchableOpacity>
                                 );
@@ -662,10 +657,7 @@ export default function AdminApplicationsScreen() {
                               disabled={isMutating}
                               style={{ borderRadius: 12, overflow: 'hidden' }}
                             >
-                              <LinearGradient
-                                colors={[colors.pink, colors.purple]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
+                              <BrandGradient
                                 style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
                               >
                                 {isMutating ? (
@@ -675,7 +667,7 @@ export default function AdminApplicationsScreen() {
                                     ✅ Approve for Interview
                                   </Text>
                                 )}
-                              </LinearGradient>
+                              </BrandGradient>
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleWaitlist(profileId, displayName)}
@@ -772,14 +764,11 @@ export default function AdminApplicationsScreen() {
                                   style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}
                                 >
                                   {selectedRole === r.key ? (
-                                    <LinearGradient
-                                      colors={[colors.pink, colors.purple]}
-                                      start={{ x: 0, y: 0 }}
-                                      end={{ x: 1, y: 0 }}
+                                    <BrandGradient
                                       style={{ paddingVertical: 10, alignItems: 'center' }}
                                     >
                                       <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{r.label}</Text>
-                                    </LinearGradient>
+                                    </BrandGradient>
                                   ) : (
                                     <View
                                       style={{

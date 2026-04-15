@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
@@ -360,14 +361,11 @@ export default function InterviewSlotsScreen() {
                     onPress={addTime}
                     style={{ borderRadius: 10, overflow: 'hidden' }}
                   >
-                    <LinearGradient
-                      colors={[colors.pink, colors.purple]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
+                    <BrandGradient
                       style={{ paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center', alignItems: 'center' }}
                     >
                       <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Add</Text>
-                    </LinearGradient>
+                    </BrandGradient>
                   </TouchableOpacity>
                 </View>
 
@@ -414,14 +412,11 @@ export default function InterviewSlotsScreen() {
                       style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}
                     >
                       {duration === d ? (
-                        <LinearGradient
-                          colors={[colors.pink, colors.purple]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
+                        <BrandGradient
                           style={{ paddingVertical: 10, alignItems: 'center' }}
                         >
                           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{d}m</Text>
-                        </LinearGradient>
+                        </BrandGradient>
                       ) : (
                         <View
                           style={{
@@ -464,10 +459,7 @@ export default function InterviewSlotsScreen() {
                 disabled={bulkCreateMutation.isPending || previewSlots.length === 0}
                 style={{ borderRadius: 12, overflow: 'hidden', opacity: previewSlots.length === 0 ? 0.5 : 1 }}
               >
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{
                     paddingVertical: 14,
                     alignItems: 'center',
@@ -481,7 +473,7 @@ export default function InterviewSlotsScreen() {
                       Create {previewSlots.length > 0 ? previewSlots.length : ''} Slots
                     </Text>
                   )}
-                </LinearGradient>
+                </BrandGradient>
               </TouchableOpacity>
             </View>
           )}
@@ -509,17 +501,14 @@ export default function InterviewSlotsScreen() {
                 style={{ borderRadius: 20, overflow: 'hidden' }}
               >
                 {isActive ? (
-                  <LinearGradient
-                    colors={[colors.pink, colors.purple]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
+                  <BrandGradient
                     style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, gap: 5 }}
                   >
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{tab.label}</Text>
                     <View style={{ backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 }}>
                       <Text style={{ color: '#fff', fontWeight: '800', fontSize: 11 }}>{count}</Text>
                     </View>
-                  </LinearGradient>
+                  </BrandGradient>
                 ) : (
                   <View
                     style={{

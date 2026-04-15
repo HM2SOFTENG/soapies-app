@@ -35,7 +35,7 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-function isValidJWT(token: string | null): boolean {
+export function isValidJWT(token: string | null): boolean {
   if (!token) return false;
   const parts = token.split('.');
   return parts.length === 3 && token.length < 300 && token.length > 100;

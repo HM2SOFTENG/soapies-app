@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -102,10 +103,7 @@ function TicketCard({
       }}
     >
       {/* Top stripe */}
-      <LinearGradient
-        colors={[colors.pink, colors.purple]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+      <BrandGradient
         style={{ height: 4 }}
       />
 
@@ -196,10 +194,7 @@ function TicketCard({
                 overflow: 'hidden',
               }}
             >
-              <LinearGradient
-                colors={[colors.pink, colors.purple]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+              <BrandGradient
                 style={{
                   paddingVertical: 10,
                   flexDirection: 'row',
@@ -217,7 +212,7 @@ function TicketCard({
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pay ${getTicketAmount(ticket)} via Venmo</Text>
                   </>
                 )}
-              </LinearGradient>
+              </BrandGradient>
             </TouchableOpacity>
           )}
 
@@ -434,14 +429,11 @@ export default function TicketsScreen() {
                   overflow: 'hidden',
                 }}
               >
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{ paddingHorizontal: 28, paddingVertical: 14 }}
                 >
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Browse Events</Text>
-                </LinearGradient>
+                </BrandGradient>
               </TouchableOpacity>
             </View>
           ) : (
@@ -529,9 +521,9 @@ export default function TicketsScreen() {
                 if (pendingPayTicket) handlePayNow(pendingPayTicket);
               }}
             >
-              <LinearGradient colors={[colors.pink, colors.purple]} start={{x:0,y:0}} end={{x:1,y:0}} style={{ borderRadius: 14, padding: 16, alignItems: 'center' }}>
+              <BrandGradient style={{ borderRadius: 14, padding: 16, alignItems: 'center' }}>
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>I Agree — Proceed to Payment 💸</Text>
-              </LinearGradient>
+              </BrandGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowPaymentAgreement(false)} style={{ marginTop: 12, alignItems: 'center' }}>
               <Text style={{ color: colors.muted }}>Cancel</Text>

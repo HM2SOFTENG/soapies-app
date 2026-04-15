@@ -16,12 +16,13 @@ import {
   Animated,
   TouchableOpacity,
   Dimensions,
-  Image,
   Share,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -74,8 +75,8 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
 
   const memberSince = new Date(me?.createdAt ?? profile?.createdAt ?? Date.now()).getFullYear();
 
-  const { data: creditBalance } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
-  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
+  const { data: creditBalance, isLoading: creditsLoading } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
+  const { data: myReservationsData, isLoading: reservationsLoading } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
 
   const credits = typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
   const attended = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
@@ -130,18 +131,18 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
           </TouchableOpacity>
         </View>
 
-        {/* Stat chips row */}
+        {/* Stat chips row — show "—" while loading so "0" doesn't look like a real value (ITEM-010 / P1-6) */}
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-          <StatChip icon="calendar-outline" value={String(attended)} label="Events" />
-          <StatChip icon="gift-outline"     value={String(credits)}  label="Credits" />
-          <StatChip icon="star-outline"     value={String(memberSince)} label="Since" />
+          <StatChip icon="calendar-outline" value={reservationsLoading ? '—' : String(attended)} label="Events" loading={reservationsLoading} />
+          <StatChip icon="gift-outline"     value={creditsLoading ? '—' : String(credits)}       label="Credits" loading={creditsLoading} />
+          <StatChip icon="star-outline"     value={String(memberSince)}                          label="Since" />
         </View>
       </Animated.View>
     </LinearGradient>
   );
 }
 
-function StatChip({ icon, value, label }: { icon: any; value: string; label: string }) {
+function StatChip({ icon, value, label, loading }: { icon: any; value: string; label: string; loading?: boolean }) {
   return (
     <View
       style={{
@@ -159,7 +160,16 @@ function StatChip({ icon, value, label }: { icon: any; value: string; label: str
     >
       <Ionicons name={icon} size={14} color={colors.purple} />
       <View>
-        <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700', lineHeight: 16 }}>{value}</Text>
+        <Text
+          style={{
+            color: loading ? colors.muted : colors.text,
+            fontSize: 13,
+            fontWeight: '700',
+            lineHeight: 16,
+          }}
+        >
+          {value}
+        </Text>
         <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 13 }}>{label}</Text>
       </View>
     </View>
@@ -878,6 +888,7 @@ export default function HomeScreen() {
         </ScrollView>
       ) : (
         <View style={{ flex: 1 }}>
+          {/* perf: removeClippedSubviews, windowSize, initialNumToRender, maxToRenderPerBatch, updateCellsBatchingPeriod for heavy post cards */}
           <FlatList
             data={posts}
             keyExtractor={(item: any) => String(item.id)}
@@ -918,15 +929,12 @@ export default function HomeScreen() {
                 onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
                 style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}
               >
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{ borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Create Post</Text>
-                </LinearGradient>
+                </BrandGradient>
               </Pressable>
             </View>
           }
@@ -987,7 +995,7 @@ export default function HomeScreen() {
                   <Image
                     source={{ uri: composerMedia.uri }}
                     style={{ width: '100%', height: 160, borderRadius: 12 }}
-                    resizeMode="cover"
+                    contentFit="cover"
                   />
                   <TouchableOpacity
                     onPress={() => setComposerMedia(null)}
@@ -1045,10 +1053,7 @@ export default function HomeScreen() {
                   opacity: ((!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending || isUploading) ? 0.5 : 1,
                 })}
               >
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
                 >
                   {isUploading ? (
@@ -1061,7 +1066,7 @@ export default function HomeScreen() {
                   ) : (
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Post</Text>
                   )}
-                </LinearGradient>
+                </BrandGradient>
               </Pressable>
             </View>
           </View>

@@ -14,6 +14,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
@@ -314,16 +315,13 @@ export default function AdminEventsScreen() {
               </View>
 
               <TouchableOpacity onPress={handleSubmit} disabled={isMutating} activeOpacity={0.85}>
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
                 >
                   {isMutating ? <ActivityIndicator color="#fff" /> : (
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{editEvent ? 'Save Changes' : 'Create Event'}</Text>
                   )}
-                </LinearGradient>
+                </BrandGradient>
               </TouchableOpacity>
             </ScrollView>
           </SafeAreaView>
