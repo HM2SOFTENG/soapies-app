@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
+import { uploadPhoto } from '../lib/uploadPhoto';
 import Avatar from '../components/Avatar';
 import { useToast } from '../components/Toast';
 
@@ -112,10 +113,7 @@ export default function EditProfileScreen() {
       name: 'avatar.jpg',
     } as any);
     try {
-      const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
-      const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Upload failed');
-      const { url } = await res.json();
+      const url = await uploadPhoto(result.assets[0].uri);
       console.log('[EditProfile] uploaded URL:', url);
       setAvatarUrl(url);
       toast.success('Photo updated!');

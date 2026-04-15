@@ -238,10 +238,12 @@ async function startServer() {
       req.on("end", async () => {
         try {
           const body = Buffer.concat(chunks);
-          const contentType = req.headers["content-type"] || "image/jpeg";
-          const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+          // Client sends raw binary with X-Image-Type header (or falls back to content-type)
+          // This avoids multipart/form-data parsing complexity
+          const imageType = (req.headers["x-image-type"] as string) || "image/jpeg";
+          const ext = imageType.includes("png") ? "png" : imageType.includes("webp") ? "webp" : "jpg";
           const key = `photos/${nanoid()}.${ext}`;
-          const { url } = await storagePut(key, body, contentType);
+          const { url } = await storagePut(key, body, imageType);
           res.json({ url });
         } catch (err: any) {
           res.status(500).json({ error: err.message });

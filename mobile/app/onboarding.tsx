@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { uploadPhoto } from '../lib/uploadPhoto';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
@@ -69,15 +70,7 @@ function calculateAge(year: string, month: string, day: string): number | null {
 }
 
 // ─── Photo upload ─────────────────────────────────────────────────────────────
-
-async function uploadPhoto(uri: string): Promise<string> {
-  const formData = new FormData();
-  formData.append('photo', { uri, type: 'image/jpeg', name: 'photo.jpg' } as any);
-  const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-  if (!res.ok) throw new Error('Upload failed');
-  const { url } = await res.json();
-  return url;
-}
+// uploadPhoto moved to lib/uploadPhoto.ts
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

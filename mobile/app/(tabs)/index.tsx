@@ -28,6 +28,7 @@ import { useRouter } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
+import { uploadPhoto } from '../../lib/uploadPhoto';
 import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
 import { useToast } from '../../components/Toast';
@@ -766,15 +767,9 @@ export default function HomeScreen() {
 
   async function uploadAndAttach(uri: string, mimeType: string) {
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('photo', { uri, type: mimeType, name: 'attachment' } as any);
-    const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
     try {
-      const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-      const json = await res.json();
-      if (!json.url) throw new Error('No URL returned');
-      setComposerMedia({ uri: json.url, type: 'image' });
+      const url = await uploadPhoto(uri);
+      setComposerMedia({ uri: url, type: 'image' });
     } catch (_e: any) {
       toast.error('Upload failed');
     } finally {
@@ -791,15 +786,8 @@ export default function HomeScreen() {
 
     if (composerMedia) {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append('photo', { uri: composerMedia.uri, type: 'image/jpeg', name: 'post-image.jpg' } as any);
-      const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
       try {
-        const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-        if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-        const json = await res.json();
-        if (!json.url) throw new Error('No URL returned from upload');
-        mediaUrl  = json.url;
+        mediaUrl  = await uploadPhoto(composerMedia.uri);
         mediaType = 'image';
       } catch (_e: any) {
         setIsUploading(false);

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { uploadPhoto } from '../lib/uploadPhoto';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -86,13 +87,9 @@ export default function ProfileSetupScreen() {
 
     setIsUploading(true);
     const asset = result.assets[0];
-    const formData = new FormData();
-    formData.append('photo', { uri: asset.uri, type: 'image/jpeg', name: 'avatar.jpg' } as any);
 
     try {
-      const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-      if (!res.ok) throw new Error('Upload failed');
-      const { url } = await res.json();
+      const url = await uploadPhoto(asset.uri);
       console.log('[ProfileSetup] uploaded URL:', url);
       setAvatarUrl(url);
     } catch (e: any) {
