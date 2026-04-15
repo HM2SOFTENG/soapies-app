@@ -59,15 +59,36 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [meQuery.error]);
 
+  const profileQuery = trpc.profile.me.useQuery(undefined, {
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+
   // Routing logic
   useEffect(() => {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inSetupScreen = segments[0] === 'profile-setup';
 
     // User is set (either from login or cold-start validation)
     if (user) {
-      if (inAuthGroup) router.replace('/(tabs)');
+      // Wait for profile query to resolve before making routing decisions
+      if (profileQuery.isLoading) return;
+
+      const profile = profileQuery.data as any;
+
+      // If profile setup not complete, redirect to setup (unless already there)
+      if (profile && !profile.profileSetupComplete && !inSetupScreen) {
+        router.replace('/profile-setup');
+        return;
+      }
+
+      // Setup complete (or no profile yet) — redirect away from auth/setup screens
+      if (inAuthGroup || inSetupScreen) {
+        router.replace('/(tabs)');
+      }
       return;
     }
 
@@ -76,7 +97,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       if (!inAuthGroup) router.replace('/(auth)/login');
       return;
     }
-  }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, segments]);
+  }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, profileQuery.isLoading, profileQuery.data, segments]);
 
   // Don't render until token is loaded into memory
   if (isLoading) {

@@ -10,11 +10,14 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import Avatar from '../components/Avatar';
@@ -74,6 +77,33 @@ export default function EditProfileScreen() {
   }, [profile, me]);
 
   const [saving, setSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function handlePickAvatar() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('photo', {
+      uri: result.assets[0].uri,
+      type: 'image/jpeg',
+      name: 'avatar.jpg',
+    } as any);
+    try {
+      const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+      const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
+      const { url } = await res.json();
+      setAvatarUrl(url);
+    } catch {
+      Alert.alert('Upload failed', 'Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -108,7 +138,6 @@ export default function EditProfileScreen() {
   const fields = [
     { label: 'DISPLAY NAME', value: displayName, setter: setDisplayName, placeholder: 'Your display name', multiline: false },
     { label: 'BIO', value: bio, setter: setBio, placeholder: 'Tell the community about yourself...', multiline: true },
-    { label: 'AVATAR URL', value: avatarUrl, setter: setAvatarUrl, placeholder: 'https://...', multiline: false },
     { label: 'GENDER', value: gender, setter: setGender, placeholder: 'e.g. Female, Male, Non-binary', multiline: false },
     { label: 'ORIENTATION', value: orientation, setter: setOrientation, placeholder: 'e.g. Bisexual, Straight, Queer', multiline: false },
     { label: 'LOCATION', value: location, setter: setLocation, placeholder: 'City, State', multiline: false },
@@ -160,11 +189,20 @@ export default function EditProfileScreen() {
         >
           {/* Avatar section */}
           <View style={{ alignItems: 'center', paddingVertical: 28 }}>
-            <Avatar
-              name={(me as any)?.name ?? '?'}
-              url={avatarUrl || (me as any)?.avatarUrl}
-              size={80}
-            />
+            <TouchableOpacity onPress={handlePickAvatar} style={{ alignSelf: 'center' }}>
+              <View style={{ width: 100, height: 100, borderRadius: 50, overflow: 'hidden', borderWidth: 2, borderColor: colors.pink }}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={{ width: 100, height: 100 }} />
+                ) : (
+                  <View style={{ flex: 1, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="person" size={40} color={colors.muted} />
+                  </View>
+                )}
+              </View>
+              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.pink, borderRadius: 14, padding: 6 }}>
+                {isUploading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="camera" size={14} color="#fff" />}
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Fields */}
