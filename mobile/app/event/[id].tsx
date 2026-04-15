@@ -241,52 +241,26 @@ export default function EventDetailScreen() {
   function renderCTA() {
     if (existingReservation) {
       return (
-        <View style={{ gap: 10 }}>
-          <View
-            style={{
-              borderRadius: 14,
-              paddingVertical: 14,
-              alignItems: 'center',
-              backgroundColor: `${colors.purple}22`,
-              borderColor: `${colors.purple}44`,
-              borderWidth: 1,
-            }}
+        <View style={{ flex: 1 }}>
+          <LinearGradient
+            colors={['#10B981', '#059669']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
           >
-            <Text style={{ color: colors.purple, fontWeight: '700', fontSize: 16 }}>
-              ✅ Already Reserved ({existingReservation.status})
+            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+              You're Going! {existingReservation.status === 'pending' ? '(Payment Pending)' : '✅'}
             </Text>
-          </View>
-          {existingReservation.paymentStatus === 'pending' && existingReservation.status !== 'cancelled' && (
+          </LinearGradient>
+          {existingReservation.paymentStatus === 'pending' && (
             <TouchableOpacity
-              onPress={() => handlePayNow(existingReservation.id)}
-              disabled={checkoutMutation.isPending}
-              activeOpacity={0.85}
+              onPress={() => router.push('/tickets' as any)}
+              style={{ marginTop: 8, alignItems: 'center' }}
             >
-              <LinearGradient
-                colors={[colors.pink, colors.purple]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', opacity: checkoutMutation.isPending ? 0.7 : 1 }}
-              >
-                {checkoutMutation.isPending ? <ActivityIndicator color="#fff" /> : (
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>💳 Pay Now</Text>
-                )}
-              </LinearGradient>
+              <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>Pay Now → View Tickets</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={() => router.push('/tickets' as any)}
-            style={{
-              borderRadius: 14,
-              paddingVertical: 12,
-              alignItems: 'center',
-              borderColor: colors.border,
-              borderWidth: 1,
-              backgroundColor: colors.card,
-            }}
-          >
-            <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 14 }}>View My Tickets</Text>
-          </TouchableOpacity>
         </View>
       );
     }

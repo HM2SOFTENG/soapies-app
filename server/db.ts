@@ -1758,8 +1758,12 @@ export async function getAllReservations({ eventId, status, page = 0 }: { eventI
     status: reservations.status,
     totalAmount: reservations.totalAmount,
     createdAt: reservations.createdAt,
+    wristbandColor: reservations.wristbandColor,
+    isQueerPlay: reservations.isQueerPlay,
+    notes: reservations.notes,
     eventTitle: events.title,
-    memberName: profiles.displayName,
+    displayName: profiles.displayName,
+    avatarUrl: profiles.avatarUrl,
   }).from(reservations)
     .leftJoin(events, eq(reservations.eventId, events.id))
     .leftJoin(profiles, eq(reservations.userId, profiles.userId))

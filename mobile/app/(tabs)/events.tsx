@@ -21,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
+import { useAuth } from '../../lib/auth';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HERO_MAX = 320;
@@ -175,7 +176,7 @@ function PriceTags({ event }: { event: any }) {
 
 // ── Animated Event Card ───────────────────────────────────────────────────────
 
-function AnimatedEventCard({ event, index }: { event: any; index: number }) {
+function AnimatedEventCard({ event, index, isGoing }: { event: any; index: number; isGoing?: boolean }) {
   const router = useRouter();
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -255,6 +256,15 @@ function AnimatedEventCard({ event, index }: { event: any; index: number }) {
                   <Text style={{ color: colors.pink, fontSize: 10, fontWeight: '800' }}>🔥 {spotsLeft} left</Text>
                 </View>
               )}
+              {isGoing && (
+                <View style={{
+                  paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
+                  backgroundColor: '#10B98122', borderColor: '#10B981', borderWidth: 1,
+                  flexDirection: 'row', alignItems: 'center', gap: 4,
+                }}>
+                  <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '800' }}>✅ You're Going</Text>
+                </View>
+              )}
               {event.status === 'published' && (
                 <View style={{ marginLeft: 'auto' }}>
                   <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '700' }}>{daysUntil(event.startDate)}</Text>
@@ -306,7 +316,7 @@ function AnimatedEventCard({ event, index }: { event: any; index: number }) {
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
-function HeroSection({ event, scrollY }: { event: any | null; scrollY: Animated.Value }) {
+function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: Animated.Value; isGoing?: boolean }) {
   const router = useRouter();
   const [imgError, setImgError] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -428,15 +438,22 @@ function HeroSection({ event, scrollY }: { event: any | null; scrollY: Animated.
                 router.push({ pathname: '/event/[id]', params: { id: String(event.id) } });
               }}
             >
-              <LinearGradient
-                colors={[colors.pink, colors.purple]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={styles.heroBtn}
-              >
-                <Ionicons name="ticket-outline" size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Reserve My Spot</Text>
-                <Ionicons name="arrow-forward" size={14} color="#fff" />
-              </LinearGradient>
+              {isGoing ? (
+                <LinearGradient colors={['#10B981', '#059669']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.heroBtn}>
+                  <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>You're Going! ✅</Text>
+                </LinearGradient>
+              ) : (
+                <LinearGradient
+                  colors={[colors.pink, colors.purple]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.heroBtn}
+                >
+                  <Ionicons name="ticket-outline" size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Reserve My Spot</Text>
+                  <Ionicons name="arrow-forward" size={14} color="#fff" />
+                </LinearGradient>
+              )}
             </TouchableOpacity>
           </Animated.View>
         </Animated.View>
@@ -470,10 +487,18 @@ export default function EventsScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('Upcoming');
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const { user } = useAuth();
+  const hasToken = !!user;
 
   const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({ communityId: 'soapies' }, {
     staleTime: 60_000,
   });
+
+  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, {
+    enabled: hasToken,
+    staleTime: 30_000,
+  });
+  const myReservations = (myReservationsData as any[]) ?? [];
 
   const events = useMemo(() => {
     const raw = (eventsData as any)?.events ?? eventsData ?? [];
@@ -516,8 +541,9 @@ export default function EventsScreen() {
 
   const renderItem = useCallback(({ item, index }: { item: any; index: number }) => {
     if (item.type === 'divider') return <MonthDivider month={item.month} />;
-    return <AnimatedEventCard event={item.event} index={index} />;
-  }, []);
+    const isGoing = myReservations.some((r: any) => r.eventId === item.event.id && r.status !== 'cancelled');
+    return <AnimatedEventCard event={item.event} index={index} isGoing={isGoing} />;
+  }, [myReservations]);
 
   const filterAnim = useRef(new Animated.Value(0)).current;
   const filterScale = useRef(
@@ -535,7 +561,11 @@ export default function EventsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       {/* Hero */}
-      <HeroSection event={nextEvent} scrollY={scrollY} />
+      <HeroSection
+        event={nextEvent}
+        scrollY={scrollY}
+        isGoing={nextEvent ? myReservations.some((r: any) => r.eventId === nextEvent.id && r.status !== 'cancelled') : false}
+      />
 
       {/* Filter tabs */}
       <View style={styles.filterRow}>

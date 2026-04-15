@@ -131,7 +131,7 @@ function AttendeeCard({ reservation, onCheckin }: { reservation: any; onCheckin:
 
       <View style={{ flex: 1 }}>
         <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
-          {reservation.displayName ?? reservation.user?.name ?? 'Guest'}
+          {reservation.displayName ?? reservation.memberName ?? reservation.user?.name ?? 'Guest'}
         </Text>
         <Text style={{ color: colors.muted, fontSize: 12 }}>
           {reservation.ticketType?.replace('_', ' ')} · {wristband} wristband
@@ -256,7 +256,7 @@ export default function EventOpsScreen() {
     if (!checkinSearch.trim()) return true;
     const q = checkinSearch.toLowerCase();
     return (
-      (r.displayName ?? '').toLowerCase().includes(q) ||
+      (r.displayName ?? r.memberName ?? '').toLowerCase().includes(q) ||
       (r.user?.name ?? '').toLowerCase().includes(q)
     );
   });
@@ -387,7 +387,7 @@ export default function EventOpsScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
-                          {v.displayName ?? v.userName ?? `User #${v.userId}`}
+                          {v.displayName ?? v.memberName ?? v.userName ?? `User #${v.userId}`}
                         </Text>
                         <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
                           {TICKET_TYPE_LABELS[v.ticketType] ?? v.ticketType ?? 'Volunteer'}
@@ -836,7 +836,7 @@ export default function EventOpsScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
-                        {item.displayName ?? item.userName ?? `#${item.userId}`}
+                        {item.displayName ?? item.memberName ?? item.userName ?? `#${item.userId}`}
                       </Text>
                       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
                         {TICKET_TYPE_LABELS[item.ticketType] ?? item.ticketType} · {item.status}
