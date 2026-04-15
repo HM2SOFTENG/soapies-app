@@ -23,7 +23,7 @@ import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../components/Toast';
-import { saveToken } from '../lib/trpc';
+import { saveToken, setMemoryToken, SESSION_COOKIE_KEY } from '../lib/trpc';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
@@ -176,6 +176,9 @@ export default function OnboardingScreen() {
   const [otpCode, setOtpCode] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
   const resendTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Temp session token — stored in memory only during onboarding, NOT saved to SecureStore
+  // Only saved to SecureStore after admin approves the application
+  const pendingSessionToken = useRef<string | null>(null);
 
   // Step 4
   const [displayName, setDisplayName] = useState('');
@@ -266,11 +269,11 @@ export default function OnboardingScreen() {
         name: email.split('@')[0],
       }) as any;
 
-      // If server returns sessionToken in response (new API), save it
+      // Store token in memory ONLY (for making authenticated API calls during onboarding)
+      // NOT saved to SecureStore — user is NOT logged in until admin approves
       if (result?.sessionToken) {
-        await saveToken(result.sessionToken);
-        setHasToken(true);
-        if (result?.user) setUser(result.user);
+        pendingSessionToken.current = result.sessionToken;
+        setMemoryToken(result.sessionToken); // allows tRPC calls to auth during onboarding steps
       }
 
       goTo(3);
@@ -293,11 +296,10 @@ export default function OnboardingScreen() {
         code: otpCode,
       }) as any;
 
-      // Save session token returned from verify
+      // Update memory token from verify (do NOT save to SecureStore or log in)
       if (result?.sessionToken) {
-        await saveToken(result.sessionToken);
-        setHasToken(true);
-        if (result?.user) setUser(result.user);
+        pendingSessionToken.current = result.sessionToken;
+        setMemoryToken(result.sessionToken);
       }
 
       goTo(4);
@@ -458,6 +460,9 @@ export default function OnboardingScreen() {
   const handleSubmit = async () => {
     try {
       await submitMutation.mutateAsync();
+      // Clear memory token — user is NOT logged in, awaiting approval
+      setMemoryToken(null);
+      pendingSessionToken.current = null;
       router.replace('/pending-approval');
     } catch (e: any) {
       toast.error(e.message || 'Failed to submit application');

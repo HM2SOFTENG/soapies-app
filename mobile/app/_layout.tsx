@@ -118,7 +118,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // No user + meQuery done + no error = server confirmed no session
     if (!meQuery.isLoading && meQuery.fetchStatus === 'idle' && !meQuery.data) {
-      if (!inAuthGroup && !inOnboarding) router.replace('/(auth)/login');
+      // Allow onboarding and pending-approval without full auth
+      if (!inAuthGroup && !inOnboarding && !inPending) router.replace('/(auth)/login');
       return;
     }
   }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, profileQuery.isLoading, profileQuery.data, segments]);
