@@ -620,6 +620,8 @@ export default function HomeScreen() {
   const [composerText, setComposerText]     = useState('');
   const [composerMedia, setComposerMedia]   = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
   const [composerLink, setComposerLink]     = useState('');
+  const [showStickyFeed, setShowStickyFeed] = useState(false);
+  const listScrollY = useRef(new Animated.Value(0)).current;
   const [showLinkInput, setShowLinkInput]   = useState(false);
   const [dismissedIds, setDismissedIds]     = useState<number[]>([]);
   const [isUploading, setIsUploading]       = useState(false);
@@ -854,58 +856,77 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* ── Community Feed header + composer trigger ── */}
-      <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
-        <SectionLabel title="Community Feed" />
-        <TouchableOpacity
-          onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.card,
-            borderRadius: 12,
-            padding: 14,
-            borderColor: colors.border,
-            borderWidth: 1,
-            marginBottom: 12,
-          }}
-        >
-          <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={32} />
-          <Text style={{ color: colors.muted, marginLeft: 10, flex: 1, fontSize: 14 }}>What's on your mind?</Text>
-          <Ionicons name="image-outline" size={20} color={colors.muted} />
-        </TouchableOpacity>
-      </View>
     </View>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ), [me, profile, nextEvent, announcements]);
+
+  // Sticky community feed bar — rendered outside ListHeaderComponent so it stays pinned
+  const FeedStickyBar = useMemo(() => (
+    <View style={{
+      backgroundColor: colors.bg,
+      paddingHorizontal: 20,
+      paddingTop: 14,
+      paddingBottom: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    }}>
+      <SectionLabel title="Community Feed" />
+      <TouchableOpacity
+        onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.card,
+          borderRadius: 12,
+          padding: 14,
+          borderColor: colors.border,
+          borderWidth: 1,
+          marginBottom: 10,
+        }}
+      >
+        <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={32} />
+        <Text style={{ color: colors.muted, marginLeft: 10, flex: 1, fontSize: 14 }}>What's on your mind?</Text>
+        <Ionicons name="image-outline" size={20} color={colors.muted} />
+      </TouchableOpacity>
+    </View>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [profile, showComposer]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#2D1B4E' }} edges={['bottom']}>
       {isLoading ? (
         <ScrollView>
           {ListHeader}
+          {FeedStickyBar}
           <PostSkeleton />
           <PostSkeleton />
           <PostSkeleton />
         </ScrollView>
       ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item: any) => String(item.id)}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              onLike={(id) => handleLike(id)}
-              onComment={(p) => handleComment(p)}
-              onShare={handleShare}
-              onDelete={(id) => deletePostMutation.mutate({ postId: id })}
-              onPress={() => handleComment(item)}
-              onRefresh={onRefresh}
-              currentUserId={currentUserId}
-              isLiked={likedPostIds.has(item.id as number)}
-            />
-          )}
-          ListHeaderComponent={ListHeader}
+        <View style={{ flex: 1 }}>
+          {showStickyFeed && FeedStickyBar}
+          <FlatList
+            data={posts}
+            keyExtractor={(item: any) => String(item.id)}
+            renderItem={({ item }) => (
+              <PostCard
+                post={item}
+                onLike={(id) => handleLike(id)}
+                onComment={(p) => handleComment(p)}
+                onShare={handleShare}
+                onDelete={(id) => deletePostMutation.mutate({ postId: id })}
+                onPress={() => handleComment(item)}
+                onRefresh={onRefresh}
+                currentUserId={currentUserId}
+                isLiked={likedPostIds.has(item.id as number)}
+              />
+            )}
+            ListHeaderComponent={ListHeader}
+            onScroll={(e) => {
+              const y = e.nativeEvent.contentOffset.y;
+              setShowStickyFeed(y > 360);
+            }}
+            scrollEventThrottle={16}
           removeClippedSubviews
           maxToRenderPerBatch={10}
           windowSize={5}
@@ -941,6 +962,7 @@ export default function HomeScreen() {
             </View>
           }
         />
+        </View>
       )}
 
       {/* ── Post Composer Modal ── */}
