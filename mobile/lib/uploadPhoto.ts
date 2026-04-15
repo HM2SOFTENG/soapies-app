@@ -4,13 +4,24 @@
  * Uses expo-file-system to read the file as base64, then decodes to binary
  * before sending as raw application/octet-stream. This is reliable on both
  * iOS and Android — unlike fetch(localUri) which can fail on iOS file:// URIs.
+ *
+ * Auth: sends `x-session-token` + `Cookie: app_session_id=...` headers to
+ * match the tRPC client pattern in lib/trpc.ts. Root BACKLOG ITEM-001
+ * tracks the server-side requirement that `/api/upload-photo` verify this
+ * token — once that lands, no client change is needed.
  */
 import * as FileSystem from 'expo-file-system/legacy';
+import { getMemoryToken } from './trpc';
 
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
 
 export async function uploadPhoto(uri: string): Promise<string> {
+  const token = getMemoryToken();
+  if (!token) {
+    throw new Error('You need to be signed in to upload photos.');
+  }
+
   const ext = uri.split('.').pop()?.toLowerCase().split('?')[0] ?? 'jpg';
   const mimeMap: Record<string, string> = {
     jpg: 'image/jpeg', jpeg: 'image/jpeg',
@@ -35,6 +46,8 @@ export async function uploadPhoto(uri: string): Promise<string> {
     headers: {
       'Content-Type': 'application/octet-stream',
       'X-Image-Type': mimeType,
+      'x-session-token': token,
+      'Cookie': `app_session_id=${token}`,
     },
     body: bytes,
   });
