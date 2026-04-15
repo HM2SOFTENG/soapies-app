@@ -1780,15 +1780,20 @@ export const appRouter = router({
       lookingFor: z.string().optional(),
       hasPhoto: z.boolean().optional(),
     })).query(async ({ ctx, input }) => {
-      // 'all' = cross-community search (e.g. for connections/invitations)
-      // undefined = default to user's own community
+      // If a search term is provided without explicit community, search across all communities
+      // If no search, default to user's own community
       let community = input.community;
-      if (!community) {
-        const profile = await db.getProfileByUserId(ctx.user.id);
-        community = (profile as any)?.communityId ?? undefined;
+      if (community === 'all') {
+        community = undefined; // explicit all-community request
+      } else if (!community) {
+        if (input.search) {
+          community = undefined; // search without community = cross-community
+        } else {
+          const profile = await db.getProfileByUserId(ctx.user.id);
+          community = (profile as any)?.communityId ?? undefined;
+        }
       }
-      // Pass undefined to browseMembers if 'all' so no community filter is applied
-      return db.browseMembers({ userId: ctx.user.id, ...input, community: community === 'all' ? undefined : community });
+      return db.browseMembers({ userId: ctx.user.id, ...input, community });
     }),
     byId: protectedProcedure
       .input(z.object({ userId: z.number() }))

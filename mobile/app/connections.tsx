@@ -53,7 +53,7 @@ export default function ConnectionsScreen() {
   const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
   const trimmedQuery = searchQuery.trim();
   const { data: searchResults, isLoading: searchLoading, error: searchError } = trpc.members.browse.useQuery(
-    { search: trimmedQuery, page: 0, community: 'all' },
+    { search: trimmedQuery, page: 0 }, // no community filter — server returns cross-community for search
     {
       enabled: hasToken && trimmedQuery.length > 0,
       staleTime: 0,
