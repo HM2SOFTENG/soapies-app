@@ -457,7 +457,7 @@ export default function EventDetailScreen() {
             ev.venue ? { icon: 'location-outline' as const, text: ev.venue } : null,
             ev.capacity ? {
               icon: 'people-outline' as const,
-              text: `${ev.currentAttendees ?? 0} / ${ev.capacity} attending`,
+              text: `${ev.capacity} spots available`,
             } : null,
           ].filter(Boolean).map((item: any, i) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
