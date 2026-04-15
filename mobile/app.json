@@ -7,21 +7,60 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0D0D0D"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.soapies.app"
+      "bundleIdentifier": "com.soapies.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Soapies uses the camera so you can take profile photos and attach images to posts and messages.",
+        "NSPhotoLibraryUsageDescription": "Soapies accesses your photo library so you can upload profile photos and attach images to posts and messages.",
+        "NSPhotoLibraryAddUsageDescription": "Soapies saves event photos to your library when you choose to download them.",
+        "NSLocationWhenInUseUsageDescription": "Soapies uses your approximate location to show you nearby members in Pulse and nearby events.",
+        "NSMicrophoneUsageDescription": "Soapies uses the microphone if you choose to record a voice note in a message.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D0D0D"
       },
-      "package": "com.soapies.app"
+      "package": "com.soapies.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "INTERNET",
+        "VIBRATE"
+      ]
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Soapies accesses your photos so you can upload profile pictures and attach images to posts and messages.",
+          "cameraPermission": "Soapies uses the camera so you can take profile photos and attach images to posts and messages."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Soapies uses your approximate location to show you nearby members in Pulse and nearby events."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Soapies uses the camera so you can take profile photos and attach images to posts and messages."
+        }
+      ]
     ],
     "scheme": "soapies"
   }

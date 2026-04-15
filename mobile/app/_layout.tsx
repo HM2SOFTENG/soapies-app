@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
 import { ToastProvider } from '../components/Toast';
 import LoadingScreen from '../components/LoadingScreen';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -134,41 +135,43 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <ToastProvider>
-            <AuthProvider>
-              <StatusBar style="light" translucent backgroundColor="transparent" />
-              <AuthGuard>
-                <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#0D0D0D' } }}>
-                  <Stack.Screen name="index" />
-                  <Stack.Screen name="(auth)" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="onboarding" />
-                  <Stack.Screen name="pending-approval" />
-                  <Stack.Screen name="profile-setup" />
-                  <Stack.Screen name="edit-profile" />
-                  <Stack.Screen name="members" />
-                  <Stack.Screen name="tickets" />
-                  <Stack.Screen name="event/[id]" />
-                  <Stack.Screen name="chat/[id]" />
-                  <Stack.Screen name="member/[id]" />
-                  <Stack.Screen name="admin/index" />
-                  <Stack.Screen name="admin/events" />
-                  <Stack.Screen name="admin/event-ops" />
-                  <Stack.Screen name="admin/announcements" />
-                  <Stack.Screen name="admin/applications" />
-                  <Stack.Screen name="admin/reservations" />
-                  <Stack.Screen name="admin/checkin" />
-                  <Stack.Screen name="settings" />
-                  <Stack.Screen name="admin/settings" />
-                </Stack>
-              </AuthGuard>
-            </AuthProvider>
-          </ToastProvider>
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <ErrorBoundary>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <ToastProvider>
+              <AuthProvider>
+                <StatusBar style="light" translucent backgroundColor="transparent" />
+                <AuthGuard>
+                  <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#0D0D0D' } }}>
+                    <Stack.Screen name="index" />
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="onboarding" />
+                    <Stack.Screen name="pending-approval" />
+                    <Stack.Screen name="profile-setup" />
+                    <Stack.Screen name="edit-profile" />
+                    <Stack.Screen name="members" />
+                    <Stack.Screen name="tickets" />
+                    <Stack.Screen name="event/[id]" />
+                    <Stack.Screen name="chat/[id]" />
+                    <Stack.Screen name="member/[id]" />
+                    <Stack.Screen name="admin/index" />
+                    <Stack.Screen name="admin/events" />
+                    <Stack.Screen name="admin/event-ops" />
+                    <Stack.Screen name="admin/announcements" />
+                    <Stack.Screen name="admin/applications" />
+                    <Stack.Screen name="admin/reservations" />
+                    <Stack.Screen name="admin/checkin" />
+                    <Stack.Screen name="settings" />
+                    <Stack.Screen name="admin/settings" />
+                  </Stack>
+                </AuthGuard>
+              </AuthProvider>
+            </ToastProvider>
+          </SafeAreaProvider>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </ErrorBoundary>
   );
 }
