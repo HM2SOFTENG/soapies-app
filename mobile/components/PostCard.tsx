@@ -175,17 +175,20 @@ const PostCard = React.memo(function PostCard({
         backgroundColor: colors.card,
         borderRadius: 16,
         marginHorizontal: 16,
-        marginBottom: 12,
-        borderColor: colors.border,
+        marginBottom: 0,
+        borderColor: `${colors.border}cc`,
         borderWidth: 1,
         overflow: 'visible',
-        shadowColor: '#000',
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
+        shadowColor: '#EC4899',
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 3,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
     >
+      {/* Community accent line */}
+      <View style={{ height: 2.5, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: badgeColor ?? colors.pink, opacity: 0.55 }} />
       {/* Author row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}>
         <Avatar name={post.resolvedAuthorName ?? post.authorName} url={post.resolvedAvatarUrl} size="sm" />

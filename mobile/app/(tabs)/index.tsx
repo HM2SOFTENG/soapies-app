@@ -907,6 +907,9 @@ export default function HomeScreen() {
               />
             )}
             ListHeaderComponent={<>{ListHeader}{FeedBar}</>}
+            ItemSeparatorComponent={() => (
+              <View style={{ height: 12, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: `${colors.border}66` }} />
+            )}
             scrollEventThrottle={16}
           removeClippedSubviews
           maxToRenderPerBatch={10}
