@@ -213,7 +213,12 @@ const PostCard = React.memo(function PostCard({
       {/* Media image */}
       {post.mediaUrl && post.mediaType !== 'link' ? (
         <View style={{ width: '100%', height: 200, backgroundColor: '#1a1a1a' }}>
-          <Image source={{ uri: post.mediaUrl }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
+          <Image
+            source={{ uri: post.mediaUrl }}
+            style={{ width: '100%', height: 200 }}
+            resizeMode="cover"
+            onError={(e) => console.log('[PostCard] image load error:', e.nativeEvent.error, 'url:', post.mediaUrl)}
+          />
         </View>
       ) : null}
 

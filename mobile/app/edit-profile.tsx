@@ -21,6 +21,23 @@ import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import Avatar from '../components/Avatar';
+import { useToast } from '../components/Toast';
+
+// ── Locked field for sensitive profile data ──────────────────────────────────
+function LockedField({ label, value, onRequestChange }: { label: string; value: string; onRequestChange: () => void }) {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', marginBottom: 6 }}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, borderColor: colors.border, borderWidth: 1, padding: 14 }}>
+        <Text style={{ flex: 1, color: colors.text, fontSize: 15 }}>{value || 'Not set'}</Text>
+        <Ionicons name="lock-closed" size={16} color={colors.muted} style={{ marginRight: 8 }} />
+        <TouchableOpacity onPress={onRequestChange}>
+          <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>Request Change</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -29,20 +46,21 @@ export default function EditProfileScreen() {
   const { data: profileData, isLoading } = trpc.profile.me.useQuery();
   const { data: meData } = trpc.auth.me.useQuery();
 
+  const toast = useToast();
+
   const upsertMutation = trpc.profile.upsert.useMutation({
     onSuccess: async () => {
       console.log('[EditProfile] profile upserted successfully');
       await utils.profile.me.invalidate();
       await utils.auth.me.invalidate();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Profile Updated', 'Your profile has been saved.', [
-        { text: 'Done', onPress: () => router.back() },
-      ]);
+      toast.success('Profile updated!');
+      router.back();
     },
     onError: (err) => {
       console.error('[EditProfile] upsert error:', err.message);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', err.message ?? 'Failed to save profile. Please try again.');
+      toast.error('Failed to save profile');
     },
   });
 
@@ -96,10 +114,13 @@ export default function EditProfileScreen() {
     try {
       const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
       const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
       const { url } = await res.json();
+      console.log('[EditProfile] uploaded URL:', url);
       setAvatarUrl(url);
+      toast.success('Photo updated!');
     } catch {
-      Alert.alert('Upload failed', 'Please try again.');
+      toast.error('Photo upload failed. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -135,13 +156,21 @@ export default function EditProfileScreen() {
     );
   }
 
-  const fields = [
+  function handleRequestChange(field: string) {
+    Alert.alert(
+      'Request Change',
+      `To change your ${field}, please contact an admin. Changes to sensitive profile fields require admin approval to maintain community integrity.`,
+      [
+        { text: 'OK' },
+        { text: 'Message Admin', onPress: () => router.push('/messages' as any) },
+      ]
+    );
+  }
+
+  const editableFields = [
     { label: 'DISPLAY NAME', value: displayName, setter: setDisplayName, placeholder: 'Your display name', multiline: false },
     { label: 'BIO', value: bio, setter: setBio, placeholder: 'Tell the community about yourself...', multiline: true },
-    { label: 'GENDER', value: gender, setter: setGender, placeholder: 'e.g. Female, Male, Non-binary', multiline: false },
-    { label: 'ORIENTATION', value: orientation, setter: setOrientation, placeholder: 'e.g. Bisexual, Straight, Queer', multiline: false },
     { label: 'LOCATION', value: location, setter: setLocation, placeholder: 'City, State', multiline: false },
-    { label: 'DATE OF BIRTH (YYYY-MM-DD)', value: dateOfBirth, setter: setDateOfBirth, placeholder: '1990-01-15', multiline: false },
   ];
 
   return (
@@ -192,7 +221,11 @@ export default function EditProfileScreen() {
             <TouchableOpacity onPress={handlePickAvatar} style={{ alignSelf: 'center' }}>
               <View style={{ width: 100, height: 100, borderRadius: 50, overflow: 'hidden', borderWidth: 2, borderColor: colors.pink }}>
                 {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={{ width: 100, height: 100 }} />
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={{ width: 100, height: 100 }}
+                    onError={(e) => console.log('[Avatar] image load error:', e.nativeEvent.error)}
+                  />
                 ) : (
                   <View style={{ flex: 1, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons name="person" size={40} color={colors.muted} />
@@ -207,7 +240,7 @@ export default function EditProfileScreen() {
 
           {/* Fields */}
           <View style={{ paddingHorizontal: 20, gap: 20 }}>
-            {fields.map((field) => (
+            {editableFields.map((field) => (
               <View key={field.label}>
                 <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
                   {field.label}
@@ -234,6 +267,23 @@ export default function EditProfileScreen() {
                 />
               </View>
             ))}
+
+            {/* Locked sensitive fields */}
+            <LockedField
+              label="Date of Birth"
+              value={dateOfBirth}
+              onRequestChange={() => handleRequestChange('date of birth')}
+            />
+            <LockedField
+              label="Gender"
+              value={gender}
+              onRequestChange={() => handleRequestChange('gender')}
+            />
+            <LockedField
+              label="Orientation / Sexuality"
+              value={orientation}
+              onRequestChange={() => handleRequestChange('orientation')}
+            />
 
             {/* Save button */}
             <Pressable

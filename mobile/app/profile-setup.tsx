@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
+import { useToast } from '../components/Toast';
 
 const STEPS = ['Photo', 'About', 'Identity', 'Location'];
 
@@ -29,6 +30,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.on
 export default function ProfileSetupScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const toast = useToast();
 
   const [step, setStep] = useState(0);
 
@@ -39,7 +41,10 @@ export default function ProfileSetupScreen() {
   // Step 2 — About
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
+  // DOB split fields
+  const [dobYear, setDobYear] = useState('');
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobDay, setDobDay] = useState('');
 
   // Step 3 — Identity
   const [gender, setGender] = useState('');
@@ -55,6 +60,7 @@ export default function ProfileSetupScreen() {
       } catch {
         // Even if this fails, proceed to tabs
       }
+      toast.success('Profile setup complete! Welcome 🎉');
       router.replace('/(tabs)');
     },
     onError: (e) => Alert.alert('Error', e.message),
@@ -87,9 +93,10 @@ export default function ProfileSetupScreen() {
       const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Upload failed');
       const { url } = await res.json();
+      console.log('[ProfileSetup] uploaded URL:', url);
       setAvatarUrl(url);
     } catch (e) {
-      Alert.alert('Upload Failed', 'Could not upload photo. Please try again.');
+      toast.error('Photo upload failed. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -128,11 +135,31 @@ export default function ProfileSetupScreen() {
     }
   }
 
+  function calculateAge(year: string, month: string, day: string): number | null {
+    if (!year || !month || !day) return null;
+    const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return isNaN(age) || age < 0 ? null : age;
+  }
+
   function handleFinish() {
     if (!avatarUrl) { Alert.alert('Photo Required', 'Please add a profile photo.'); return; }
     if (!displayName.trim()) { Alert.alert('Name Required', 'Please add your display name.'); return; }
     if (!gender) { Alert.alert('Gender Required', 'Please select your gender.'); return; }
     if (!orientation) { Alert.alert('Orientation Required', 'Please select your orientation.'); return; }
+
+    const currentAge = calculateAge(dobYear, dobMonth, dobDay);
+    if (currentAge !== null && currentAge < 18) {
+      Alert.alert('Age Restriction', 'You must be 18 or older to join.');
+      return;
+    }
+
+    const dateOfBirth = dobYear && dobMonth && dobDay
+      ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+      : undefined;
 
     upsertMutation.mutate({
       displayName: displayName.trim(),
@@ -141,7 +168,7 @@ export default function ProfileSetupScreen() {
       gender: gender.toLowerCase(),
       orientation: orientation.toLowerCase(),
       location: location.trim() || undefined,
-      dateOfBirth: dateOfBirth || undefined,
+      dateOfBirth,
     });
   }
 
@@ -184,7 +211,9 @@ export default function ProfileSetupScreen() {
           <StepAbout
             displayName={displayName} setDisplayName={setDisplayName}
             bio={bio} setBio={setBio}
-            dateOfBirth={dateOfBirth} setDateOfBirth={setDateOfBirth}
+            dobYear={dobYear} setDobYear={setDobYear}
+            dobMonth={dobMonth} setDobMonth={setDobMonth}
+            dobDay={dobDay} setDobDay={setDobDay}
           />
         )}
         {step === 2 && (
@@ -283,12 +312,29 @@ function StepPhoto({
 function StepAbout({
   displayName, setDisplayName,
   bio, setBio,
-  dateOfBirth, setDateOfBirth,
+  dobYear, setDobYear,
+  dobMonth, setDobMonth,
+  dobDay, setDobDay,
 }: {
   displayName: string; setDisplayName: (v: string) => void;
   bio: string; setBio: (v: string) => void;
-  dateOfBirth: string; setDateOfBirth: (v: string) => void;
+  dobYear: string; setDobYear: (v: string) => void;
+  dobMonth: string; setDobMonth: (v: string) => void;
+  dobDay: string; setDobDay: (v: string) => void;
 }) {
+  function calculateAge(year: string, month: string, day: string): number | null {
+    if (!year || !month || !day) return null;
+    const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return isNaN(age) || age < 0 ? null : age;
+  }
+
+  const currentAge = calculateAge(dobYear, dobMonth, dobDay);
+  const isAdult = currentAge !== null && currentAge >= 18;
+
   return (
     <View style={styles.stepContainer}>
       <Text style={styles.stepHeading}>About You</Text>
@@ -319,16 +365,53 @@ function StepAbout({
         />
       </View>
 
+      {/* Date of Birth — split MM / DD / YYYY inputs with live age display */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
-        <TextInput
-          value={dateOfBirth}
-          onChangeText={setDateOfBirth}
-          placeholder="MM/DD/YYYY"
-          placeholderTextColor="#6B7280"
-          keyboardType="numbers-and-punctuation"
-          style={styles.input}
-        />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TextInput
+            value={dobMonth}
+            onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
+            placeholder="MM"
+            placeholderTextColor="#6B7280"
+            keyboardType="numeric"
+            maxLength={2}
+            style={[styles.input, { flex: 1 }]}
+          />
+          <TextInput
+            value={dobDay}
+            onChangeText={(v) => setDobDay(v.replace(/\D/g, '').slice(0, 2))}
+            placeholder="DD"
+            placeholderTextColor="#6B7280"
+            keyboardType="numeric"
+            maxLength={2}
+            style={[styles.input, { flex: 1 }]}
+          />
+          <TextInput
+            value={dobYear}
+            onChangeText={(v) => setDobYear(v.replace(/\D/g, '').slice(0, 4))}
+            placeholder="YYYY"
+            placeholderTextColor="#6B7280"
+            keyboardType="numeric"
+            maxLength={4}
+            style={[styles.input, { flex: 2 }]}
+          />
+        </View>
+        {currentAge !== null && (
+          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
+            {isAdult ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B98122', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                <Text style={{ color: '#10B981', fontWeight: '700', marginLeft: 4 }}>{currentAge} years old ✓</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444422', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Ionicons name="close-circle" size={16} color="#EF4444" />
+                <Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 4 }}>Must be 18+ to join</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );

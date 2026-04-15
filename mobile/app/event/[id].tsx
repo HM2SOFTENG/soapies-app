@@ -18,6 +18,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useToast } from '../../components/Toast';
 
 const TICKET_TYPES = [
   { key: 'single_female', label: 'Single Woman' },
@@ -28,6 +29,7 @@ const TICKET_TYPES = [
 type TicketType = typeof TICKET_TYPES[number]['key'];
 
 export default function EventDetailScreen() {
+  const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,14 +93,11 @@ export default function EventDetailScreen() {
       setModalStep('ticket');
       utils.reservations.myTickets.invalidate();
       utils.reservations.myReservations.invalidate();
-      Alert.alert('🎉 Reserved!', 'Your spot is reserved. Check your tickets for payment details.', [
-        { text: 'View Tickets', onPress: () => router.push('/tickets' as any) },
-        { text: 'Stay Here', style: 'cancel' },
-      ]);
+      toast.success('🎉 Spot reserved! Check your tickets.');
     },
     onError: (e) => {
       console.log('[EventDetail] reserve error:', e.message);
-      Alert.alert('Error', e.message);
+      toast.error(e.message);
     },
   });
 

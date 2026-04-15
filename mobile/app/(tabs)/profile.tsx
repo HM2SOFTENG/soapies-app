@@ -16,6 +16,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import Avatar from '../../components/Avatar';
 import { useAuth } from '../../lib/auth';
+import { useToast } from '../../components/Toast';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 
@@ -29,6 +30,7 @@ function StatBox({ label, value }: { label: string; value: number | string }) {
 }
 
 export default function ProfileScreen() {
+  const toast = useToast();
   const { logout, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const router = useRouter();
@@ -41,6 +43,7 @@ export default function ProfileScreen() {
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: async () => {
       console.log('[Profile] logout success, clearing session');
+      toast.info('Logged out');
       await logout();
       router.replace('/(auth)/login');
     },

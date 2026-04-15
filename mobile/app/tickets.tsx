@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import QRCode from 'react-native-qrcode-svg';
 import { trpc } from '../lib/trpc';
+import { useToast } from '../components/Toast';
 import { colors } from '../lib/colors';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -269,6 +270,7 @@ function TicketCard({
 
 export default function TicketsScreen() {
   const router = useRouter();
+  const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const [qrModal, setQrModal] = useState<{ visible: boolean; code: string; title: string }>({
     visible: false, code: '', title: '',
@@ -377,7 +379,7 @@ export default function TicketsScreen() {
       });
       const { url } = await uploadRes.json();
       await submitTestResult({ reservationId: ticket.id, eventId: ticket.eventId, resultUrl: url });
-      Alert.alert('✅ Submitted', 'Your test result has been submitted for review.');
+      toast.success('Test result submitted for review ✅');
       refetch();
     } catch (err: any) {
       Alert.alert('Upload Failed', err.message);

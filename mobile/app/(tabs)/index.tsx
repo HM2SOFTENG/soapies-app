@@ -30,6 +30,7 @@ import { useAuth } from '../../lib/auth';
 import { colors } from '../../lib/colors';
 import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
+import { useToast } from '../../components/Toast';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -471,6 +472,7 @@ function CommentsSheet({
 // ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+  const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [composerText, setComposerText] = useState('');
@@ -522,12 +524,16 @@ export default function HomeScreen() {
       setComposerLink('');
       setShowLinkInput(false);
       setShowComposer(false);
+      toast.success('Post shared!');
     },
     onError: (err) => Alert.alert('Error', err.message),
   });
 
   const deletePostMutation = trpc.wall.deletePost.useMutation({
-    onSuccess: () => utils.wall.posts.invalidate(),
+    onSuccess: () => {
+      utils.wall.posts.invalidate();
+      toast.success('Post deleted');
+    },
     onError: (err) => Alert.alert('Error', err.message),
   });
 
@@ -626,7 +632,7 @@ export default function HomeScreen() {
       // Replace local URI with the uploaded URL so the preview shows the remote image
       setComposerMedia({ uri: json.url, type: 'image' });
     } catch (e: any) {
-      Alert.alert('Upload Failed', e.message ?? 'Could not upload file. Please try again.');
+      toast.error('Upload failed');
     } finally {
       setIsUploading(false);
     }
@@ -654,7 +660,7 @@ export default function HomeScreen() {
         mediaType = 'image';
       } catch (e: any) {
         setIsUploading(false);
-        Alert.alert('Upload Failed', e.message ?? 'Could not upload image. Please try again.');
+        toast.error('Upload failed');
         return; // Stop — don't post without the image
       } finally {
         setIsUploading(false);

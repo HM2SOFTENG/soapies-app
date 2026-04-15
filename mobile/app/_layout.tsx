@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import { trpc, createTRPCClient, SESSION_COOKIE_KEY } from '../lib/trpc';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
+import { ToastProvider } from '../components/Toast';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,12 +113,14 @@ export default function RootLayout() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <AuthProvider>
-            <StatusBar style="light" />
-            <AuthGuard>
-              <Slot />
-            </AuthGuard>
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <StatusBar style="light" />
+              <AuthGuard>
+                <Slot />
+              </AuthGuard>
+            </AuthProvider>
+          </ToastProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
     </trpc.Provider>
