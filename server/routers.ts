@@ -528,6 +528,58 @@ export const appRouter = router({
           console.error("[Referral] Failed to process conversion:", err);
         }
         // Auto-wall-post disabled — clutters the feed with system noise
+
+        // ── Couple ticket: create partner reservation + notify ─────────────
+        if (input.ticketType === 'couple' && input.partnerUserId) {
+          try {
+            await db.createReservation({
+              userId: input.partnerUserId,
+              eventId: input.eventId,
+              ticketType: 'couple',
+              status: 'pending',
+              paymentStatus: 'pending',
+              paymentMethod: input.paymentMethod ?? 'venmo',
+              partnerUserId: ctx.user.id,
+            });
+            await db.incrementEventAttendees(input.eventId);
+          } catch (err) {
+            console.error('[Couple] Failed to create partner reservation:', err);
+          }
+
+          // Notify partner via push/in-app
+          try {
+            const requesterProfile = await db.getProfileByUserId(ctx.user.id);
+            const eventData = await db.getEventById(input.eventId);
+            await notif.sendNotification({
+              userId: input.partnerUserId,
+              type: 'system',
+              title: '\u{1F491} Couple Ticket Invitation',
+              body: `${requesterProfile?.displayName ?? 'A member'} has linked you as their partner for ${(eventData as any)?.title ?? 'an upcoming event'}. Complete your reservation by paying via Venmo @KELLEN-BRENNAN.`,
+            }).catch(() => {});
+
+            // Send a DM to partner
+            try {
+              const convs = await db.getUserConversations(ctx.user.id);
+              let dmConv = (convs as any[]).find((c: any) => c.type === 'dm' && c.otherUserId === input.partnerUserId);
+              if (!dmConv) {
+                const dmId = await db.createConversation(
+                  { type: 'dm', createdBy: ctx.user.id },
+                  [ctx.user.id, input.partnerUserId],
+                );
+                dmConv = { id: dmId };
+              }
+              await db.createMessage({
+                conversationId: dmConv.id,
+                senderId: ctx.user.id,
+                content: `\u{1F491} I've linked you as my partner for **${(eventData as any)?.title ?? 'our next event'}**! Please send your payment to @KELLEN-BRENNAN on Venmo to confirm your spot. See you there! \u{1F389}`,
+              });
+            } catch (err) {
+              console.error('[Couple] Failed to send partner DM:', err);
+            }
+          } catch (err) {
+            console.error('[Couple] Failed to notify partner:', err);
+          }
+        }
       }
       return reservationId;
     }),

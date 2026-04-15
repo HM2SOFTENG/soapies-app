@@ -1716,6 +1716,7 @@ export async function browseMembers({ userId, page = 0, search, orientation, com
     id: profiles.userId,
     displayName: profiles.displayName,
     avatarUrl: profiles.avatarUrl,
+    gender: profiles.gender,
     orientation: profiles.orientation,
     location: profiles.location,
     communityId: profiles.communityId,

@@ -517,7 +517,11 @@ export default function TicketsScreen() {
 
             {/* QR Code */}
             <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 16 }}>
-              {qrModal.code ? (
+              {qrModal.code && qrModal.code.startsWith('data:image') ? (
+                <View style={{ width: 220, height: 220, justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center' }}>Ticket pending</Text>
+                </View>
+              ) : qrModal.code ? (
                 <QRCode
                   value={qrModal.code}
                   size={220}

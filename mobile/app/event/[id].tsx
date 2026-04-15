@@ -8,6 +8,8 @@ import {
   Image,
   Alert,
   Modal,
+  FlatList,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,6 +35,10 @@ export default function EventDetailScreen() {
   const utils = trpc.useUtils();
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [ticketType, setTicketType] = useState<TicketType>('single_female');
+  const [partnerUserId, setPartnerUserId] = useState<number | null>(null);
+  const [showPartnerPicker, setShowPartnerPicker] = useState(false);
+  const [partnerSearch, setPartnerSearch] = useState('');
+  const [modalStep, setModalStep] = useState<'ticket' | 'partner'>('ticket');
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: event, isLoading } = trpc.events.byId.useQuery(
@@ -42,6 +48,11 @@ export default function EventDetailScreen() {
 
   const { data: profileData } = trpc.profile.me.useQuery();
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
+
+  const { data: membersData } = trpc.members.browse.useQuery(
+    { page: 0 },
+    { enabled: showTicketModal && ticketType === 'couple' },
+  );
 
   const availableTicketTypes = TICKET_TYPES.filter(t => {
     if (t.key === 'couple') return true;
@@ -76,6 +87,8 @@ export default function EventDetailScreen() {
   const reserveMutation = trpc.reservations.create.useMutation({
     onSuccess: () => {
       setShowTicketModal(false);
+      setPartnerUserId(null);
+      setModalStep('ticket');
       utils.reservations.myTickets.invalidate();
       utils.reservations.myReservations.invalidate();
       Alert.alert('🎉 Reserved!', 'Your spot is reserved. Check your tickets for payment details.', [
@@ -170,8 +183,33 @@ export default function EventDetailScreen() {
       ticketType,
       paymentMethod: 'venmo',
       paymentStatus: 'pending',
+      partnerUserId: partnerUserId ?? undefined,
     });
   }
+
+  function handleOpenTicketModal() {
+    setModalStep('ticket');
+    setPartnerUserId(null);
+    setPartnerSearch('');
+    setShowTicketModal(true);
+  }
+
+  // Filter members by opposite gender for couple ticket partner selection
+  const allMembers = (membersData as any[]) ?? [];
+  const filteredMembers = allMembers.filter((m: any) => {
+    const mGender = (m.gender ?? '').toLowerCase();
+    const search = partnerSearch.toLowerCase();
+    const matchesSearch = !search || (m.displayName ?? '').toLowerCase().includes(search);
+    if (!matchesSearch) return false;
+    if (!userGender) return true;
+    const isMale = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'].includes(userGender);
+    const isFemale = ['female', 'woman', 'trans female', 'transfemale'].includes(userGender);
+    if (isMale) return ['female', 'woman', 'trans female', 'transfemale'].includes(mGender);
+    if (isFemale) return ['male', 'man', 'trans male', 'transmale'].includes(mGender);
+    return true; // non-binary sees all
+  });
+
+  const selectedPartner = allMembers.find((m: any) => m.id === partnerUserId);
 
   function handleJoinWaitlist() {
     joinWaitlistMutation.mutate({ eventId: Number(id) });
@@ -276,7 +314,7 @@ export default function EventDetailScreen() {
     }
 
     return (
-      <TouchableOpacity onPress={() => setShowTicketModal(true)} activeOpacity={0.85}>
+      <TouchableOpacity onPress={handleOpenTicketModal} activeOpacity={0.85}>
         <LinearGradient
           colors={[colors.pink, colors.purple]}
           start={{ x: 0, y: 0 }}
@@ -426,60 +464,260 @@ export default function EventDetailScreen() {
               borderTopWidth: 1,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>Select Ticket Type</Text>
-              <TouchableOpacity onPress={() => setShowTicketModal(false)}>
+            {modalStep === 'ticket' ? (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>Select Ticket Type</Text>
+                  <TouchableOpacity onPress={() => setShowTicketModal(false)}>
+                    <Ionicons name="close" size={24} color={colors.muted} />
+                  </TouchableOpacity>
+                </View>
+
+                {availableTicketTypes.map(t => (
+                  <TouchableOpacity
+                    key={t.key}
+                    onPress={() => {
+                      setTicketType(t.key);
+                      if (t.key === 'couple') {
+                        setModalStep('partner');
+                      }
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: ticketType === t.key ? `${colors.pink}22` : colors.card,
+                      borderColor: ticketType === t.key ? colors.pink : colors.border,
+                      borderWidth: 1,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>{t.label}</Text>
+                      <Text style={{ color: colors.muted, fontSize: 13 }}>{getPriceForTicketType(t.key)}</Text>
+                    </View>
+                    {ticketType === t.key && t.key !== 'couple' && <Ionicons name="checkmark-circle" size={22} color={colors.pink} />}
+                    {t.key === 'couple' && <Ionicons name="chevron-forward" size={20} color={colors.muted} />}
+                  </TouchableOpacity>
+                ))}
+
+                <TouchableOpacity
+                  onPress={handleReserve}
+                  disabled={reserveMutation.isPending || ticketType === 'couple'}
+                  activeOpacity={0.85}
+                  style={{ marginTop: 8 }}
+                >
+                  <LinearGradient
+                    colors={[colors.pink, colors.purple]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      borderRadius: 14,
+                      paddingVertical: 16,
+                      alignItems: 'center',
+                      opacity: (reserveMutation.isPending || ticketType === 'couple') ? 0.4 : 1,
+                    }}
+                  >
+                    {reserveMutation.isPending ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            ) : (
+              /* Partner selection step */
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                  <TouchableOpacity onPress={() => setModalStep('ticket')} style={{ marginRight: 12 }}>
+                    <Ionicons name="arrow-back" size={22} color={colors.text} />
+                  </TouchableOpacity>
+                  <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>Select Your Partner</Text>
+                  <TouchableOpacity onPress={() => setShowTicketModal(false)}>
+                    <Ionicons name="close" size={24} color={colors.muted} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Selected partner card */}
+                {selectedPartner ? (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 14,
+                    borderRadius: 12,
+                    backgroundColor: `${colors.pink}15`,
+                    borderColor: colors.pink,
+                    borderWidth: 1,
+                    marginBottom: 14,
+                    gap: 12,
+                  }}>
+                    {selectedPartner.avatarUrl ? (
+                      <Image source={{ uri: selectedPartner.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                    ) : (
+                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${colors.purple}44`, justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name="person" size={22} color={colors.purple} />
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{selectedPartner.displayName ?? 'Member'}</Text>
+                      {selectedPartner.orientation ? (
+                        <Text style={{ color: colors.muted, fontSize: 12 }}>{selectedPartner.orientation}</Text>
+                      ) : null}
+                    </View>
+                    <TouchableOpacity onPress={() => setPartnerUserId(null)} style={{ padding: 4 }}>
+                      <Ionicons name="close-circle" size={22} color={colors.muted} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={{
+                    padding: 14,
+                    borderRadius: 12,
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderWidth: 1,
+                    marginBottom: 14,
+                    alignItems: 'center',
+                  }}>
+                    <Text style={{ color: colors.muted, fontSize: 14 }}>No partner selected yet</Text>
+                  </View>
+                )}
+
+                {/* Browse Members button */}
+                <TouchableOpacity
+                  onPress={() => setShowPartnerPicker(true)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: `${colors.purple}22`,
+                    borderColor: `${colors.purple}44`,
+                    borderWidth: 1,
+                    marginBottom: 16,
+                    gap: 8,
+                  }}
+                >
+                  <Ionicons name="people-outline" size={18} color={colors.purple} />
+                  <Text style={{ color: colors.purple, fontWeight: '600', fontSize: 14 }}>Browse Members</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleReserve}
+                  disabled={reserveMutation.isPending || !partnerUserId}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={[colors.pink, colors.purple]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      borderRadius: 14,
+                      paddingVertical: 16,
+                      alignItems: 'center',
+                      opacity: (reserveMutation.isPending || !partnerUserId) ? 0.4 : 1,
+                    }}
+                  >
+                    {reserveMutation.isPending ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Partner picker modal */}
+      <Modal visible={showPartnerPicker} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
+          <View
+            style={{
+              backgroundColor: colors.bg,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 20,
+              paddingBottom: insets.bottom + 16,
+              borderColor: colors.border,
+              borderTopWidth: 1,
+              maxHeight: '80%',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', flex: 1 }}>Choose Partner</Text>
+              <TouchableOpacity onPress={() => setShowPartnerPicker(false)}>
                 <Ionicons name="close" size={24} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
-            {availableTicketTypes.map(t => (
-              <TouchableOpacity
-                key={t.key}
-                onPress={() => setTicketType(t.key)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 14,
-                  borderRadius: 12,
-                  backgroundColor: ticketType === t.key ? `${colors.pink}22` : colors.card,
-                  borderColor: ticketType === t.key ? colors.pink : colors.border,
-                  borderWidth: 1,
-                  marginBottom: 10,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>{t.label}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>{getPriceForTicketType(t.key)}</Text>
-                </View>
-                {ticketType === t.key && <Ionicons name="checkmark-circle" size={22} color={colors.pink} />}
-              </TouchableOpacity>
-            ))}
+            {/* Search */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: colors.card,
+              borderRadius: 10,
+              borderColor: colors.border,
+              borderWidth: 1,
+              paddingHorizontal: 12,
+              marginBottom: 12,
+            }}>
+              <Ionicons name="search-outline" size={16} color={colors.muted} />
+              <TextInput
+                value={partnerSearch}
+                onChangeText={setPartnerSearch}
+                placeholder="Search members…"
+                placeholderTextColor={colors.muted}
+                style={{ flex: 1, color: colors.text, fontSize: 14, paddingVertical: 10, paddingLeft: 8 }}
+              />
+            </View>
 
-            <TouchableOpacity
-              onPress={handleReserve}
-              disabled={reserveMutation.isPending}
-              activeOpacity={0.85}
-              style={{ marginTop: 8 }}
-            >
-              <LinearGradient
-                colors={[colors.pink, colors.purple]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  borderRadius: 14,
-                  paddingVertical: 16,
-                  alignItems: 'center',
-                  opacity: reserveMutation.isPending ? 0.7 : 1,
-                }}
-              >
-                {reserveMutation.isPending ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+            <FlatList
+              data={filteredMembers}
+              keyExtractor={(item: any) => String(item.id)}
+              renderItem={({ item }: { item: any }) => (
+                <TouchableOpacity
+                  onPress={() => {
+                    setPartnerUserId(item.id);
+                    setShowPartnerPicker(false);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 12,
+                    borderRadius: 10,
+                    backgroundColor: partnerUserId === item.id ? `${colors.pink}22` : 'transparent',
+                    marginBottom: 4,
+                    gap: 12,
+                  }}
+                >
+                  {item.avatarUrl ? (
+                    <Image source={{ uri: item.avatarUrl }} style={{ width: 42, height: 42, borderRadius: 21 }} />
+                  ) : (
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: `${colors.purple}44`, justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="person" size={20} color={colors.purple} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{item.displayName ?? 'Member'}</Text>
+                    {item.orientation ? (
+                      <Text style={{ color: colors.muted, fontSize: 12 }}>{item.orientation}</Text>
+                    ) : null}
+                  </View>
+                  {partnerUserId === item.id && <Ionicons name="checkmark-circle" size={20} color={colors.pink} />}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>No members found</Text>
+                </View>
+              }
+              style={{ maxHeight: 320 }}
+            />
           </View>
         </View>
       </Modal>
