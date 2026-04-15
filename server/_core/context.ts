@@ -34,6 +34,10 @@ export async function createContext(
       const session = await sdk.verifySession(sessionToken);
       if (session) {
         user = await getUserByOpenId(session.openId);
+        // Suspended users are treated as unauthenticated
+        if (user?.isSuspended) {
+          user = null;
+        }
       }
     }
   } catch (error) {

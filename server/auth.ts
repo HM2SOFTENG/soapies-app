@@ -1,4 +1,4 @@
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { users, otpCodes } from "../drizzle/schema";
 import { getDb } from "./db";
@@ -138,6 +138,17 @@ export async function verifyOtp(data: {
 
   // Mark as used
   await db.update(otpCodes).set({ usedAt: now }).where(eq(otpCodes.id, otp.id));
+
+  // Cleanup: delete expired OTPs for this target
+  try {
+    await db.delete(otpCodes).where(
+      and(
+        eq(otpCodes.target, data.target),
+        lt(otpCodes.expiresAt, now),
+      )
+    );
+  } catch (_) {}
+
   return otp;
 }
 

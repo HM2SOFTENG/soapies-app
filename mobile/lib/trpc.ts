@@ -41,7 +41,7 @@ export async function saveToken(token: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
     await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
-    const verify = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
+    // Note: removed post-write verify read (ITEM-043) — unnecessary SecureStore round-trip
   } catch (e) {
     console.warn('[trpc] SecureStore save failed:', e);
   }
@@ -76,6 +76,7 @@ export function createTRPCClient() {
           const path = String(url).split('/api/trpc/')[1]?.substring(0, 50) ?? '';
           const res = await global.fetch(url as string, options as any);
           if (res.status === 401) console.warn('[trpc] 401 on', path);
+          if (res.status >= 500) console.warn('[trpc] Server error on', path, res.status);
           return res;
         },
       }),
