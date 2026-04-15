@@ -79,7 +79,7 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   const { data: myReservationsData, isLoading: reservationsLoading } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
 
   const creditsRaw = typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
-  const credits = `$${(Number(creditsRaw) / 100).toFixed(2)}`; // stored in cents
+  const credits = `$${Number(creditsRaw).toFixed(2)}`; // stored as dollars
   const attended = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
 
   return (

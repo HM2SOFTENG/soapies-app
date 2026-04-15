@@ -105,7 +105,7 @@ export default function ProfileScreen() {
   }, [profileData]);
 
   const creditsRaw = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
-  const credits = `$${(Number(creditsRaw) / 100).toFixed(2)}`; // stored in cents
+  const credits = `$${Number(creditsRaw).toFixed(2)}`; // stored as dollars
   const myCode = (referralCode as any)?.code ?? 'N/A';
   const referralsCount = (referralCode as any)?.totalReferrals ?? 0;
   const eventsCount = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;

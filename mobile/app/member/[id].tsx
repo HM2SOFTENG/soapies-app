@@ -80,6 +80,12 @@ export default function MemberProfileScreen() {
     { enabled: !!id },
   );
 
+  const { data: connectionsData } = trpc.partners.connectionsFor.useQuery(
+    { userId: Number(id) },
+    { enabled: !!id },
+  );
+  const connections = (connectionsData as any[]) ?? [];
+
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (conversationId: any) => {
       router.push(`/chat/${conversationId}` as any);
@@ -421,7 +427,39 @@ export default function MemberProfileScreen() {
           </View>
         )}
 
-        {/* ── F. Wall posts ──────────────────────────────────────────────── */}
+        {/* ── F. Connections ─────────────────────────────────────────────── */}
+        {connections.length > 0 && (
+          <View style={{
+            marginHorizontal: 16, marginTop: 12,
+            backgroundColor: colors.card,
+            borderRadius: 16, padding: 16,
+            borderColor: colors.border, borderWidth: 1,
+          }}>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 12 }}>💗 Connections</Text>
+            {connections.map((conn: any) => (
+              <TouchableOpacity
+                key={conn.groupId}
+                onPress={() => conn.partnerUserId && router.push(`/member/${conn.partnerUserId}` as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}
+              >
+                <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={36} style={{ marginRight: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{conn.partnerDisplayName}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                    <View style={{ backgroundColor: `${colors.pink}22`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: `${colors.pink}44` }}>
+                      <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '600' }}>
+                        {conn.relationshipType?.replace(/_/g, ' ')}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={colors.muted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* ── G. Wall posts ──────────────────────────────────────────────── */}
         <View style={{ marginHorizontal: 16, marginTop: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>🧱 Posts</Text>

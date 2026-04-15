@@ -1511,6 +1511,9 @@ export const appRouter = router({
       await db.updatePartnerInvitation(input.invitationId, { status: 'cancelled' });
       return { success: true };
     }),
+    connectionsFor: protectedProcedure.input(z.object({ userId: z.number() })).query(async ({ input }) => {
+      return db.getMyPartnerConnections(input.userId);
+    }),
     myConnections: protectedProcedure.query(async ({ ctx }) => {
       return db.getMyPartnerConnections(ctx.user.id);
     }),
