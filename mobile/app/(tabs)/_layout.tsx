@@ -126,6 +126,19 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="zone"
+        options={{
+          title: 'Zone',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'radio-button-on' : 'radio-button-off'}
+              size={size}
+              color={focused ? '#EC4899' : color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

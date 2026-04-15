@@ -186,6 +186,34 @@ async function startServer() {
   } catch (err) {
     console.warn("[Startup] App settings seed skipped:", err);
   }
+  // Migrate: member_signals table for Zone feature
+  try {
+    const dbConn = await import('../db');
+    const rawDb = await dbConn.getDb();
+    if (rawDb) {
+      await rawDb.execute(`
+        CREATE TABLE IF NOT EXISTS member_signals (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          userId INT NOT NULL,
+          signalType ENUM('available', 'looking', 'busy', 'offline') DEFAULT 'offline',
+          seekingGender VARCHAR(64),
+          seekingDynamic VARCHAR(128),
+          message VARCHAR(200),
+          isQueerFriendly BOOLEAN DEFAULT FALSE,
+          latitude DECIMAL(10,7),
+          longitude DECIMAL(10,7),
+          expiresAt TIMESTAMP NULL,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          UNIQUE KEY unique_user (userId)
+        )
+      `);
+      console.log('[Migration] member_signals table ready');
+    }
+  } catch (err) {
+    console.warn('[Migration] member_signals skipped:', err);
+  }
+
   // Initialize Web Push
   try {
     const { initWebPush } = await import("../services/webpush");

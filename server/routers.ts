@@ -1678,6 +1678,27 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return db.getUserWallPosts(input.userId, input.limit ?? 20);
       }),
+    signal: protectedProcedure.input(z.object({
+      signalType: z.enum(['available', 'looking', 'busy', 'offline']),
+      seekingGender: z.string().optional(),
+      seekingDynamic: z.string().optional(),
+      message: z.string().max(200).optional(),
+      isQueerFriendly: z.boolean().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      await db.upsertMemberSignal(ctx.user.id, input);
+      return { success: true };
+    }),
+    mySignal: protectedProcedure.query(async ({ ctx }) => {
+      return db.getMemberSignal(ctx.user.id);
+    }),
+    activeSignals: protectedProcedure.input(z.object({
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+    })).query(async ({ ctx, input }) => {
+      return db.getActiveSignals(ctx.user.id, input.latitude, input.longitude);
+    }),
   }),
   communities: router({
     landing: publicProcedure.input(z.object({ communityId: z.string() })).query(async ({ input }) => {

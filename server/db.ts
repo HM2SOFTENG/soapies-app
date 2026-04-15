@@ -1819,3 +1819,75 @@ export async function deletePushSubscription(endpoint: string) {
   const db = await getDb(); if (!db) return;
   await db.delete(pushSubscriptions).where(sql`${pushSubscriptions.endpoint} = ${endpoint}`);
 }
+
+// ─── MEMBER SIGNALS (Zone feature) ───────────────────────────────────────────
+
+export async function upsertMemberSignal(userId: number, data: {
+  signalType: string;
+  seekingGender?: string;
+  seekingDynamic?: string;
+  message?: string;
+  isQueerFriendly?: boolean;
+  latitude?: number;
+  longitude?: number;
+}): Promise<void> {
+  const db = await getDb(); if (!db) return;
+  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h TTL
+  // drizzle raw execute for upsert
+  await db.execute(sql`
+    INSERT INTO member_signals (userId, signalType, seekingGender, seekingDynamic, message, isQueerFriendly, latitude, longitude, expiresAt)
+    VALUES (
+      ${userId}, ${data.signalType},
+      ${data.seekingGender ?? null}, ${data.seekingDynamic ?? null},
+      ${data.message ?? null}, ${data.isQueerFriendly ? 1 : 0},
+      ${data.latitude ?? null}, ${data.longitude ?? null},
+      ${expiresAt}
+    )
+    ON DUPLICATE KEY UPDATE
+      signalType    = VALUES(signalType),
+      seekingGender = VALUES(seekingGender),
+      seekingDynamic= VALUES(seekingDynamic),
+      message       = VALUES(message),
+      isQueerFriendly = VALUES(isQueerFriendly),
+      latitude      = VALUES(latitude),
+      longitude     = VALUES(longitude),
+      expiresAt     = VALUES(expiresAt),
+      updatedAt     = NOW()
+  `);
+}
+
+export async function getActiveSignals(userId: number, userLat?: number, userLon?: number): Promise<any[]> {
+  const db = await getDb(); if (!db) return [];
+  const distExpr = (userLat && userLon)
+    ? sql`ROUND(
+        111.045 * DEGREES(ACOS(LEAST(1.0,
+          COS(RADIANS(${userLat})) * COS(RADIANS(ms.latitude))
+          * COS(RADIANS(ms.longitude) - RADIANS(${userLon}))
+          + SIN(RADIANS(${userLat})) * SIN(RADIANS(ms.latitude))
+        ))), 1)`
+    : sql`NULL`;
+  const rows = await db.execute(sql`
+    SELECT
+      ms.userId, ms.signalType, ms.seekingGender, ms.seekingDynamic,
+      ms.message, ms.isQueerFriendly, ms.latitude, ms.longitude, ms.expiresAt,
+      p.displayName, p.avatarUrl, p.gender, p.orientation, p.communityId, p.preferences,
+      ${distExpr} AS distance
+    FROM member_signals ms
+    JOIN profiles p ON p.userId = ms.userId
+    WHERE ms.userId != ${userId}
+      AND ms.signalType != 'offline'
+      AND (ms.expiresAt IS NULL OR ms.expiresAt > NOW())
+      AND p.applicationStatus = 'approved'
+    ORDER BY ms.updatedAt DESC
+    LIMIT 50
+  `);
+  return (rows as any)[0] as any[];
+}
+
+export async function getMemberSignal(userId: number): Promise<any | null> {
+  const db = await getDb(); if (!db) return null;
+  const rows = await db.execute(sql`
+    SELECT * FROM member_signals WHERE userId = ${userId} LIMIT 1
+  `);
+  return ((rows as any)[0] as any[])[0] ?? null;
+}
