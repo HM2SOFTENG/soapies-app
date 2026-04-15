@@ -72,6 +72,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inSetupScreen = segments[0] === 'profile-setup';
+    const inOnboarding = segments[0] === 'onboarding';
+    const inPending = segments[0] === 'pending-approval';
 
     // User is set (either from login or cold-start validation)
     if (user) {
@@ -80,13 +82,34 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
       const profile = profileQuery.data as any;
 
-      // If profile setup not complete, redirect to setup (unless already there)
-      if (profile && !profile.profileSetupComplete && !inSetupScreen) {
-        router.replace('/profile-setup');
+      // No profile yet → onboarding
+      if (!profile && !inOnboarding) {
+        router.replace('/onboarding');
         return;
       }
 
-      // Setup complete (or no profile yet) — redirect away from auth/setup screens
+      // Profile exists but setup not complete → onboarding
+      if (profile && !profile.profileSetupComplete && !inSetupScreen && !inOnboarding) {
+        router.replace('/onboarding');
+        return;
+      }
+
+      // Submitted/pending/waitlisted → pending approval screen
+      const pendingStatuses = ['submitted', 'under_review', 'waitlisted', 'interview_scheduled', 'interview_complete'];
+      if (profile && pendingStatuses.includes(profile.applicationStatus) && !inPending) {
+        router.replace('/pending-approval');
+        return;
+      }
+
+      // Approved → main app
+      if (profile && profile.applicationStatus === 'approved') {
+        if (inAuthGroup || inSetupScreen || inOnboarding || inPending) {
+          router.replace('/(tabs)');
+        }
+        return;
+      }
+
+      // Fallback: redirect away from auth/setup screens
       if (inAuthGroup || inSetupScreen) {
         router.replace('/(tabs)');
       }
@@ -95,7 +118,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // No user + meQuery done + no error = server confirmed no session
     if (!meQuery.isLoading && meQuery.fetchStatus === 'idle' && !meQuery.data) {
-      if (!inAuthGroup) router.replace('/(auth)/login');
+      if (!inAuthGroup && !inOnboarding) router.replace('/(auth)/login');
       return;
     }
   }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, profileQuery.isLoading, profileQuery.data, segments]);

@@ -56,7 +56,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true, userId: user.id, message: "Account created. Please verify your email." };
+        return { success: true, userId: user.id, sessionToken, message: "Account created. Please verify your email." };
       }),
 
     // Login with email/password
@@ -171,7 +171,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true };
+        return { success: true, sessionToken, user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: true } };
       }),
 
     // Resend email verification
@@ -269,6 +269,7 @@ export const appRouter = router({
       communityId: z.string().optional(),
       dateOfBirth: z.string().optional(),
       referredByCode: z.string().max(32).optional(),
+      preferences: z.any().optional(),
     })).mutation(async ({ ctx, input }) => {
       const data: any = { ...input, userId: ctx.user.id };
       if (input.dateOfBirth) data.dateOfBirth = new Date(input.dateOfBirth);
@@ -283,10 +284,61 @@ export const appRouter = router({
       return result;
     }),
     submitApplication: protectedProcedure.mutation(async ({ ctx }) => {
-      const profile = await db.getProfileByUserId(ctx.user.id);
-      if (!profile) throw new Error("Profile not found");
-      await db.markProfileComplete(profile.id);
-      await db.createApplicationLog({ profileId: profile.id, action: "submitted", performedBy: ctx.user.id });
+      const userProfile = await db.getProfileByUserId(ctx.user.id);
+      if (!userProfile) throw new Error("Profile not found");
+      await db.markProfileComplete(userProfile.id);
+      await db.createApplicationLog({ profileId: userProfile.id, action: "submitted", performedBy: ctx.user.id });
+
+      // 1. Email confirmation to applicant
+      const userRecord = await db.getUserById(ctx.user.id);
+      if (userRecord?.email) {
+        await notif.sendNotification({
+          userId: ctx.user.id,
+          type: 'system',
+          title: '🎉 Application Received!',
+          body: `Hi ${userProfile.displayName ?? 'there'}, we've received your application to join Soapies! Our team will review it within 24-48 hours.`,
+          email: userRecord.email,
+          data: {
+            emailSubject: 'Your Soapies Application Has Been Received',
+            emailHtml: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <h1 style="color: #7c3aed; font-size: 28px; font-weight: 800;">Soapies</h1>
+                  <div style="height: 3px; background: linear-gradient(to right, #ec4899, #7c3aed); border-radius: 2px; margin: 16px 0;"></div>
+                </div>
+                <h2 style="color: #1f2937;">🎉 Application Received!</h2>
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                  Hi <strong>${userProfile.displayName ?? 'there'}</strong>,
+                </p>
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                  We've received your application to join the <strong>Soapies community</strong>! Our team will review your application within <strong>24-48 hours</strong>.
+                </p>
+                <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">
+                  You'll receive an email and push notification as soon as there's an update on your application status.
+                </p>
+                <p style="color: #9ca3af; font-size: 14px; margin-top: 32px;">
+                  Questions? Reply to this email or message us through the app.
+                </p>
+                <div style="height: 3px; background: linear-gradient(to right, #ec4899, #7c3aed); border-radius: 2px; margin: 24px 0;"></div>
+                <p style="color: #9ca3af; font-size: 12px; text-align: center;">Soapies Community — soapiesplaygrp.club</p>
+              </div>
+            `,
+          },
+        }).catch(console.error);
+      }
+
+      // 2. Notify all admins
+      const admins = await db.getAdminUsers();
+      for (const admin of admins) {
+        await notif.sendNotification({
+          userId: admin.id,
+          type: 'system',
+          title: '📋 New Application',
+          body: `${userProfile.displayName ?? 'A new user'} has submitted an application. Review it in the admin dashboard.`,
+          email: (admin as any).email ?? undefined,
+        }).catch(console.error);
+      }
+
       return { success: true };
     }),
     photos: protectedProcedure.query(async ({ ctx }) => {
