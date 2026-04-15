@@ -26,7 +26,6 @@ export function getMemoryToken(): string | null {
 export async function loadTokenFromStorage(): Promise<string | null> {
   try {
     const token = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
-    console.log('[loadToken] SecureStore read, length:', token?.length ?? 0, 'parts:', token?.split('.').length ?? 0);
     if (token) _memoryToken = token;
     return token;
   } catch (e) {
@@ -36,7 +35,6 @@ export async function loadTokenFromStorage(): Promise<string | null> {
 }
 
 export async function saveToken(token: string): Promise<void> {
-  console.log('[saveToken] length:', token.length, 'parts:', token.split('.').length);
   // Always update memory immediately
   _memoryToken = token;
   // Delete first, then write — avoids iOS Keychain update race
@@ -44,14 +42,12 @@ export async function saveToken(token: string): Promise<void> {
     await SecureStore.deleteItemAsync(SESSION_COOKIE_KEY);
     await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
     const verify = await SecureStore.getItemAsync(SESSION_COOKIE_KEY);
-    console.log('[saveToken] verify length:', verify?.length, 'ok:', verify === token);
   } catch (e) {
     console.warn('[trpc] SecureStore save failed:', e);
   }
 }
 
 export async function clearToken(): Promise<void> {
-  console.log('[clearToken] clearing memory + SecureStore');
   _memoryToken = null;
   // Clear all known key variants
   for (const key of [SESSION_COOKIE_KEY, 'app_session_id', 'session_token', 'sessionToken']) {
