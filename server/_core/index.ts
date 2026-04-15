@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic } from "./static";
 import { initializeWebSocket } from "./websocket";
+import { sdk } from "./sdk";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
@@ -39,6 +40,8 @@ async function startServer() {
   // ── SECURITY HEADERS ─────────────────────────────────────────────────────
   app.use(helmet({
     // Allow inline scripts/styles needed by Vite + React
+    // TODO: Re-enable CSP once Vite inline scripts are refactored
+    // For now disabled to support Vite HMR in development
     contentSecurityPolicy: false,
     // Allow embedding in iframes from same origin only (blocks clickjacking)
     frameguard: { action: "sameorigin" },
@@ -181,7 +184,7 @@ async function startServer() {
     const keys = settings.map((s: any) => s.key);
     if (!keys.includes("venmo_handle")) {
       await db.upsertAppSetting("venmo_handle", "@SoapiesEvents");
-      console.log("[Startup] Seeded default app setting: venmo_handle");
+      // console.log("[Startup] Seeded default app setting: venmo_handle");
     }
   } catch (err) {
     console.warn("[Startup] App settings seed skipped:", err);
@@ -213,7 +216,7 @@ async function startServer() {
         )
       `);
       await migConn.end();
-      console.log('[Migration] member_signals table ready');
+      // console.log('[Migration] member_signals table ready');
     }
   } catch (err) {
     console.warn('[Migration] member_signals skipped:', err);
@@ -228,8 +231,21 @@ async function startServer() {
   }
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
-  // Photo upload API
+  // Photo upload API — requires valid session
   app.post("/api/upload-photo", async (req, res) => {
+    // Verify session token (x-session-token header or app_session_id cookie)
+    let sessionToken: string | undefined = req.headers["x-session-token"] as string | undefined;
+    if (!sessionToken) {
+      const cookieHeader = req.headers.cookie;
+      if (cookieHeader) {
+        const { parse } = await import("cookie");
+        const parsed = parse(cookieHeader);
+        sessionToken = parsed["app_session_id"];
+      }
+    }
+    if (!sessionToken) return res.status(401).json({ error: "Unauthorized" });
+    const session = await sdk.verifySession(sessionToken);
+    if (!session) return res.status(401).json({ error: "Invalid session" });
     try {
       const { storagePut } = await import("../storage");
       const { nanoid } = await import("nanoid");
@@ -278,11 +294,11 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    console.warn(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    console.warn(`Server running on http://localhost:${port}/`);
   });
 }
 

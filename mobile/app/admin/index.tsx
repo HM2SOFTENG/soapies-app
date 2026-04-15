@@ -106,6 +106,7 @@ export default function AdminDashboard() {
     { label: 'Applications', icon: 'person-add', route: '/admin/applications', color: colors.pink },
     { label: 'Reservations', icon: 'ticket', route: '/admin/reservations', color: '#10B981' },
     { label: 'Announcements', icon: 'megaphone', route: '/admin/announcements', color: '#F59E0B' },
+    { label: 'Settings', icon: 'settings', route: '/admin/settings', color: '#6366F1' },
   ];
 
   return (

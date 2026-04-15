@@ -90,7 +90,7 @@ export default function ProfileSetupScreen() {
 
     try {
       const url = await uploadPhoto(asset.uri);
-      console.log('[ProfileSetup] uploaded URL:', url);
+      // console.log('[ProfileSetup] uploaded URL:', url);
       setAvatarUrl(url);
     } catch (e: any) {
       toast.error('Photo upload failed. Please try again.');

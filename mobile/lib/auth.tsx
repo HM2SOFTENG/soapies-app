@@ -68,17 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (token && !isValidJWT(token)) {
-          console.log('[Auth] Clearing malformed token, length:', token.length);
+          // console.log('[Auth] Clearing malformed token, length:', token.length);
           await clearToken();
           setHasToken(false);
         } else if (token) {
           // Load valid token into memory
           const { setMemoryToken } = await import('./trpc');
           setMemoryToken(token);
-          console.log('[Auth] Valid token on mount, length:', token.length);
+          // console.log('[Auth] Valid token on mount, length:', token.length);
           setHasToken(true);
         } else {
-          console.log('[Auth] No token on mount');
+          // console.log('[Auth] No token on mount');
           setHasToken(false);
         }
       } catch (e) {
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { queryClient } = await import('../app/_layout');
       queryClient.clear();
     } catch (e) {
-      console.log('[auth] queryClient clear skip:', e);
+      // console.log('[auth] queryClient clear skip:', e);
     }
   }
 

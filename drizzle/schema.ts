@@ -1,5 +1,6 @@
 import {
   int,
+  index,
   mysqlEnum,
   mysqlTable,
   text,
@@ -81,7 +82,9 @@ export const profiles = mysqlTable("profiles", {
   referralConvertedAt: timestamp("referralConvertedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("profiles_userId_idx").on(table.userId),
+}));
 
 export type Profile = typeof profiles.$inferSelect;
 export type InsertProfile = typeof profiles.$inferInsert;
@@ -142,6 +145,7 @@ export const partnerInvitations = mysqlTable("partner_invitations", {
 });
 
 // ─── USER GROUPS (membership in community groups) ────────────────────────────
+// UNUSED - scheduled for removal (no db.ts queries or router procedures reference this table)
 
 export const userGroups = mysqlTable("user_groups", {
   id: int("id").autoincrement().primaryKey(),
@@ -216,7 +220,10 @@ export const reservations = mysqlTable("reservations", {
   testResultUrl: text("testResultUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("reservations_userId_idx").on(table.userId),
+  eventIdIdx: index("reservations_eventId_idx").on(table.eventId),
+}));
 
 export type Reservation = typeof reservations.$inferSelect;
 
@@ -373,7 +380,9 @@ export const conversationParticipants = mysqlTable("conversation_participants", 
   lastReadAt: timestamp("lastReadAt"),
   isMuted: boolean("isMuted").default(false),
   joinedAt: timestamp("joinedAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("conv_participants_userId_idx").on(table.userId),
+}));
 
 // ─── MESSAGES ────────────────────────────────────────────────────────────────
 
@@ -389,7 +398,9 @@ export const messages = mysqlTable("messages", {
   isDeleted: boolean("isDeleted").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  conversationIdIdx: index("messages_conversationId_idx").on(table.conversationId),
+}));
 
 export type Message = typeof messages.$inferSelect;
 
@@ -404,6 +415,7 @@ export const messageReactions = mysqlTable("message_reactions", {
 });
 
 // ─── MESSAGE READS ───────────────────────────────────────────────────────────
+// UNUSED - scheduled for removal (read tracking uses conversationParticipants.lastReadAt instead)
 
 export const messageReads = mysqlTable("message_reads", {
   id: int("id").autoincrement().primaryKey(),
@@ -423,6 +435,7 @@ export const pinnedMessages = mysqlTable("pinned_messages", {
 });
 
 // ─── TYPING INDICATORS ──────────────────────────────────────────────────────
+// UNUSED - scheduled for implementation via WebSocket broadcast or removal
 
 export const typingIndicators = mysqlTable("typing_indicators", {
   id: int("id").autoincrement().primaryKey(),
@@ -466,7 +479,9 @@ export const wallPosts = mysqlTable("wall_posts", {
   commentsCount: int("commentsCount").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  authorIdIdx: index("wall_posts_authorId_idx").on(table.authorId),
+}));
 
 export type WallPost = typeof wallPosts.$inferSelect;
 
@@ -519,7 +534,9 @@ export const notifications = mysqlTable("notifications", {
   isRead: boolean("isRead").default(false),
   readAt: timestamp("readAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("notifications_userId_idx").on(table.userId),
+}));
 
 // ─── NOTIFICATION QUEUE ──────────────────────────────────────────────────────
 
@@ -604,6 +621,7 @@ export const pushSubscriptions = mysqlTable("push_subscriptions", {
 });
 
 // ─── SMS NOTIFICATIONS ───────────────────────────────────────────────────────
+// UNUSED - scheduled for removal (SMS sent inline via Twilio, never recorded here)
 
 export const smsNotifications = mysqlTable("sms_notifications", {
   id: int("id").autoincrement().primaryKey(),
@@ -812,3 +830,26 @@ export const resourceAcknowledgments = mysqlTable("resource_acknowledgments", {
   resourceId: varchar("resourceId", { length: 64 }).notNull(),
   acknowledgedAt: timestamp("acknowledgedAt").defaultNow().notNull(),
 });
+
+// ─── MEMBER SIGNALS (Zone/Pulse feature) ───────────────────────────────────────
+// NOTE: This table was originally created via raw SQL at server startup (ITEM-039).
+// It is now tracked here so drizzle-kit push/diff can manage it.
+// Unique index: userId (one active signal per user). updatedAt is indexed for expiry queries.
+
+export const memberSignals = mysqlTable("member_signals", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  signalType: mysqlEnum("signalType", ["available", "looking", "busy", "offline"]).default("offline"),
+  seekingGender: varchar("seekingGender", { length: 64 }),
+  seekingDynamic: varchar("seekingDynamic", { length: 128 }),
+  message: varchar("message", { length: 200 }),
+  isQueerFriendly: boolean("isQueerFriendly").default(false),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MemberSignal = typeof memberSignals.$inferSelect;
+export type InsertMemberSignal = typeof memberSignals.$inferInsert;

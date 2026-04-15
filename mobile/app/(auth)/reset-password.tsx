@@ -29,7 +29,7 @@ export default function ResetPasswordScreen() {
 
   const resetMutation = trpc.auth.resetPassword.useMutation({
     onSuccess: () => {
-      console.log('[ResetPassword] password reset successfully');
+      // console.log('[ResetPassword] password reset successfully');
       Alert.alert(
         'Password Reset!',
         'Your password has been updated. Please sign in with your new password.',
@@ -60,7 +60,7 @@ export default function ResetPasswordScreen() {
       return;
     }
 
-    console.log('[ResetPassword] resetting for:', email.trim());
+    // console.log('[ResetPassword] resetting for:', email.trim());
     resetMutation.mutate({
       email: email.trim().toLowerCase(),
       code: code.trim(),

@@ -411,6 +411,21 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
+          {/* Settings */}
+          <TouchableOpacity
+            onPress={() => router.push('/settings' as any)}
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
+              flexDirection: 'row', alignItems: 'center',
+              borderColor: colors.border, borderWidth: 1,
+            }}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.muted} />
+            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>Settings</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+
           {/* My Tickets */}
           <TouchableOpacity
             onPress={() => router.push('/tickets' as any)}

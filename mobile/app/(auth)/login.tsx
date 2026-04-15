@@ -58,7 +58,7 @@ export default function LoginScreen() {
       Alert.alert('Missing fields', 'Please enter your email and password.');
       return;
     }
-    console.log('[Login] attempting:', email.trim().toLowerCase());
+    // console.log('[Login] attempting:', email.trim().toLowerCase());
     loginMutation.mutate({ email: email.trim().toLowerCase(), password });
   }
 

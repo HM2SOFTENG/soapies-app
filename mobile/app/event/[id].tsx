@@ -96,19 +96,19 @@ export default function EventDetailScreen() {
       toast.success('🎉 Spot reserved! Check your tickets.');
     },
     onError: (e: any) => {
-      console.log('[EventDetail] reserve error:', e.message);
+      // console.log('[EventDetail] reserve error:', e.message);
       toast.error(e.message);
     },
   });
 
   const joinWaitlistMutation = trpc.reservations.joinWaitlist.useMutation({
     onSuccess: () => {
-      console.log('[EventDetail] joined waitlist for event:', id);
+      // console.log('[EventDetail] joined waitlist for event:', id);
       refetchWaitlist();
       Alert.alert('✅ Added to Waitlist', "We'll notify you if a spot opens up!");
     },
     onError: (e: any) => {
-      console.log('[EventDetail] waitlist error:', e.message);
+      // console.log('[EventDetail] waitlist error:', e.message);
       Alert.alert('Error', e.message);
     },
   });
@@ -116,12 +116,12 @@ export default function EventDetailScreen() {
   const checkoutMutation = trpc.reservations.createCheckoutSession.useMutation({
     onSuccess: async (result: any) => {
       if (result?.url) {
-        console.log('[EventDetail] opening stripe checkout:', result.url);
+        // console.log('[EventDetail] opening stripe checkout:', result.url);
         await WebBrowser.openBrowserAsync(result.url);
       }
     },
     onError: (e: any) => {
-      console.log('[EventDetail] checkout error:', e.message);
+      // console.log('[EventDetail] checkout error:', e.message);
       Alert.alert('Payment Error', e.message);
     },
   });
@@ -232,7 +232,7 @@ export default function EventDetailScreen() {
   }
 
   function handlePayNow(reservationId: number) {
-    console.log('[EventDetail] pay now for reservation:', reservationId);
+    // console.log('[EventDetail] pay now for reservation:', reservationId);
     checkoutMutation.mutate({ reservationId });
   }
 
@@ -338,6 +338,7 @@ export default function EventDetailScreen() {
           />
           <TouchableOpacity
             onPress={() => router.back()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={{
               position: 'absolute',
               top: insets.top + 10,

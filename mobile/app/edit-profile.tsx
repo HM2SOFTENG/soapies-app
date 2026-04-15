@@ -51,7 +51,7 @@ export default function EditProfileScreen() {
 
   const upsertMutation = trpc.profile.upsert.useMutation({
     onSuccess: async () => {
-      console.log('[EditProfile] profile upserted successfully');
+      // console.log('[EditProfile] profile upserted successfully');
       await utils.profile.me.invalidate();
       await utils.auth.me.invalidate();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -114,7 +114,7 @@ export default function EditProfileScreen() {
     } as any);
     try {
       const url = await uploadPhoto(result.assets[0].uri);
-      console.log('[EditProfile] uploaded URL:', url);
+      // console.log('[EditProfile] uploaded URL:', url);
       setAvatarUrl(url);
       toast.success('Photo updated!');
     } catch {
@@ -137,7 +137,7 @@ export default function EditProfileScreen() {
       if (location.trim()) payload.location = location.trim();
       if (dateOfBirth.trim()) payload.dateOfBirth = dateOfBirth.trim();
 
-      console.log('[EditProfile] saving:', JSON.stringify(payload));
+      // console.log('[EditProfile] saving:', JSON.stringify(payload));
       await upsertMutation.mutateAsync(payload);
     } catch (err: any) {
       // error handled in onError
@@ -222,7 +222,7 @@ export default function EditProfileScreen() {
                   <Image
                     source={{ uri: avatarUrl }}
                     style={{ width: 100, height: 100 }}
-                    onError={(e) => console.log('[Avatar] image load error:', e.nativeEvent.error)}
+                    onError={(e) => // console.log('[Avatar] image load error:', e.nativeEvent.error)}
                   />
                 ) : (
                   <View style={{ flex: 1, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }}>

@@ -216,7 +216,7 @@ export async function seedAdminAccount(): Promise<void> {
   const adminPassword = ENV.adminPassword;
 
   if (!adminPassword) {
-    console.log("[Seed] ADMIN_PASSWORD not set, skipping admin seed.");
+    // console.log("[Seed] ADMIN_PASSWORD not set, skipping admin seed.");
     return;
   }
 
@@ -231,7 +231,7 @@ export async function seedAdminAccount(): Promise<void> {
     // Only sync role — never overwrite the password hash on restart
     // Password is managed via the app's change-password flow
     await db.update(users).set({ role: "admin" }).where(eq(users.id, existing.id));
-    console.log(`[Seed] Admin account ${adminEmail} role confirmed.`);
+    // console.log(`[Seed] Admin account ${adminEmail} role confirmed.`);
     return;
   }
 
@@ -248,5 +248,5 @@ export async function seedAdminAccount(): Promise<void> {
     role: "admin",
     lastSignedIn: new Date(),
   });
-  console.log(`[Seed] Admin account created: ${adminEmail}`);
+  // console.log(`[Seed] Admin account created: ${adminEmail}`);
 }

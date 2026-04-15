@@ -9,7 +9,7 @@ export const trpc = createTRPCReact<AppRouter>();
 export const SESSION_COOKIE_KEY = 'app_session_cookie';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
-console.log('[trpc] API_URL:', API_URL);
+// console.log('[trpc] API_URL:', API_URL);
 
 // In-memory token — PRIMARY source of truth for all requests
 // SecureStore is ONLY used to persist across cold app restarts

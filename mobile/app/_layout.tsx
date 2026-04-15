@@ -161,6 +161,8 @@ export default function RootLayout() {
                   <Stack.Screen name="admin/applications" />
                   <Stack.Screen name="admin/reservations" />
                   <Stack.Screen name="admin/checkin" />
+                  <Stack.Screen name="settings" />
+                  <Stack.Screen name="admin/settings" />
                 </Stack>
               </AuthGuard>
             </AuthProvider>

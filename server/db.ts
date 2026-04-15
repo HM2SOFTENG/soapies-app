@@ -97,9 +97,17 @@ export async function unsuspendUser(userId: number) {
 
 export async function deleteUser(userId: number) {
   const db = await getDb(); if (!db) return;
-  // Delete related records
-  await db.delete(profiles).where(eq(profiles.userId, userId));
-  await db.delete(users).where(eq(users.id, userId));
+  await db.transaction(async (tx) => {
+    // Delete related records in dependency order, then the user
+    await tx.delete(notifications).where(eq(notifications.userId, userId));
+    await tx.delete(referralCodes).where(eq(referralCodes.userId, userId));
+    await tx.delete(conversationParticipants).where(eq(conversationParticipants.userId, userId));
+    await tx.delete(messages).where(eq(messages.senderId, userId));
+    await tx.delete(wallPosts).where(eq(wallPosts.authorId, userId));
+    await tx.delete(reservations).where(eq(reservations.userId, userId));
+    await tx.delete(profiles).where(eq(profiles.userId, userId));
+    await tx.delete(users).where(eq(users.id, userId));
+  });
 }
 
 export async function updateUserMemberRole(userId: number, memberRole: "member" | "angel" | "admin") {
@@ -325,6 +333,16 @@ export async function getReservationsByUser(userId: number) {
 
 export async function updateReservation(id: number, data: any) {
   const db = await getDb(); if (!db) return;
+  // When cancelling, decrement the event's currentAttendees (avoid going below 0)
+  if (data.status === 'cancelled') {
+    const existing = await db.select({ eventId: reservations.eventId, status: reservations.status })
+      .from(reservations).where(eq(reservations.id, id)).limit(1);
+    if (existing.length && existing[0].status !== 'cancelled') {
+      await db.update(events)
+        .set({ currentAttendees: sql`GREATEST(0, ${events.currentAttendees} - 1)` })
+        .where(eq(events.id, existing[0].eventId));
+    }
+  }
   await db.update(reservations).set(data).where(eq(reservations.id, id));
 }
 
@@ -951,6 +969,40 @@ export async function incrementPromoCodeUsage(id: number) {
   await db.update(eventPromotionalPricing).set({ currentUses: sql`${eventPromotionalPricing.currentUses} + 1` }).where(eq(eventPromotionalPricing.id, id));
 }
 
+/**
+ * Atomically validate and redeem a promo code.
+ * Uses SELECT FOR UPDATE inside a transaction to prevent concurrent over-redemption.
+ * Returns the promo row on success, or null if invalid/exhausted.
+ */
+export async function redeemPromoCode(code: string) {
+  const db = await getDb(); if (!db) return null;
+  let promo: typeof eventPromotionalPricing.$inferSelect | null = null;
+  await db.transaction(async (tx) => {
+    // Lock the row for the duration of this transaction
+    const rows = await tx
+      .select()
+      .from(eventPromotionalPricing)
+      .where(eq(eventPromotionalPricing.code, code))
+      .limit(1)
+      .for('update');
+    if (!rows.length) return;
+    const p = rows[0];
+    // Validate: active, not expired, under usage limit
+    const now = new Date();
+    if (!p.isActive) return;
+    if (p.validFrom && now < p.validFrom) return;
+    if (p.validUntil && now > p.validUntil) return;
+    if (p.maxUses !== null && p.currentUses !== null && p.currentUses >= p.maxUses) return;
+    // Atomically increment usage
+    await tx
+      .update(eventPromotionalPricing)
+      .set({ currentUses: sql`${eventPromotionalPricing.currentUses} + 1` })
+      .where(eq(eventPromotionalPricing.id, p.id));
+    promo = p;
+  });
+  return promo;
+}
+
 // ─── EVENT OPERATORS ────────────────────────────────────────────────────────
 
 export async function getEventOperators(eventId: number) {
@@ -1158,27 +1210,30 @@ export async function softDeleteMessage(messageId: number, userId: number) {
 
 export async function getUnreadCounts(userId: number): Promise<Record<number, number>> {
   const db = await getDb(); if (!db) return {};
-  // Get user's participant records with lastReadAt
-  const parts = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
-  const result: Record<number, number> = {};
-  for (const part of parts) {
-    const lastRead = part.lastReadAt;
-    // If user has never read this conversation, treat as 0 unread (not all-time unread)
-    // This prevents phantom badges for channels auto-joined without any new messages
-    if (!lastRead) {
-      result[part.conversationId] = 0;
-      continue;
-    }
-    const count = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(messages)
-      .where(and(
-        eq(messages.conversationId, part.conversationId),
+  // Single GROUP BY query instead of N+1 per-conversation queries.
+  // When lastReadAt IS NULL we treat as 0 unread (no phantom badges for newly joined channels).
+  const rows = await db
+    .select({
+      conversationId: conversationParticipants.conversationId,
+      unreadCount: sql<number>`COUNT(${messages.id})`,
+    })
+    .from(conversationParticipants)
+    .leftJoin(
+      messages,
+      and(
+        eq(messages.conversationId, conversationParticipants.conversationId),
         sql`${messages.senderId} != ${userId}`,
         sql`${messages.isDeleted} = false`,
-        sql`${messages.createdAt} > ${lastRead}`,
-      ));
-    result[part.conversationId] = Number(count[0]?.count ?? 0);
+        sql`${conversationParticipants.lastReadAt} IS NOT NULL`,
+        sql`${messages.createdAt} > ${conversationParticipants.lastReadAt}`,
+      ),
+    )
+    .where(eq(conversationParticipants.userId, userId))
+    .groupBy(conversationParticipants.conversationId);
+
+  const result: Record<number, number> = {};
+  for (const row of rows) {
+    result[row.conversationId] = Number(row.unreadCount ?? 0);
   }
   return result;
 }

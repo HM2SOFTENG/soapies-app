@@ -272,7 +272,12 @@ export const appRouter = router({
       preferences: z.any().optional(),
     })).mutation(async ({ ctx, input }) => {
       const data: any = { ...input, userId: ctx.user.id };
-      if (input.dateOfBirth) data.dateOfBirth = new Date(input.dateOfBirth);
+      if (input.dateOfBirth) {
+        const dob = new Date(input.dateOfBirth);
+        const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000));
+        if (age < 18) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Must be 18 or older to join.' });
+        data.dateOfBirth = dob;
+      }
       const result = await db.upsertProfile(data);
       // Apply referral code if provided
       if (input.referredByCode) {
@@ -823,6 +828,10 @@ export const appRouter = router({
       attachmentType: z.string().optional(),
       replyToId: z.number().optional(),
     })).mutation(async ({ ctx, input }) => {
+      // Verify sender is a participant in this conversation
+      const participants = await db.getConversationParticipants(input.conversationId);
+      const isParticipant = (participants as any[]).some((p: any) => p.userId === ctx.user.id);
+      if (!isParticipant) throw new TRPCError({ code: 'FORBIDDEN', message: 'You are not a participant in this conversation.' });
       const msgId = await db.createMessage({ ...input, senderId: ctx.user.id });
       // Broadcast new message to all conversation watchers via WebSocket
       notifyMessageCreated(input.conversationId, {

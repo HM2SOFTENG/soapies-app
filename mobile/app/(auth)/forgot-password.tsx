@@ -24,7 +24,7 @@ export default function ForgotPasswordScreen() {
 
   const requestReset = trpc.auth.requestPasswordReset.useMutation({
     onSuccess: () => {
-      console.log('[ForgotPassword] OTP sent to:', email);
+      // console.log('[ForgotPassword] OTP sent to:', email);
       Alert.alert(
         'Check Your Email',
         'If an account exists with that email, a reset code has been sent.',
@@ -51,7 +51,7 @@ export default function ForgotPasswordScreen() {
       Alert.alert('Missing email', 'Please enter your email address.');
       return;
     }
-    console.log('[ForgotPassword] requesting reset for:', email.trim());
+    // console.log('[ForgotPassword] requesting reset for:', email.trim());
     requestReset.mutate({ email: email.trim().toLowerCase() });
   }
 
