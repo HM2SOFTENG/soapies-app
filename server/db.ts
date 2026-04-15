@@ -1820,7 +1820,24 @@ export async function deletePushSubscription(endpoint: string) {
   await db.delete(pushSubscriptions).where(sql`${pushSubscriptions.endpoint} = ${endpoint}`);
 }
 
-// ─── MEMBER SIGNALS (Zone feature) ───────────────────────────────────────────
+// ─── MEMBER SIGNALS (Zone/Pulse feature) ────────────────────────────────────
+// Uses raw mysql2 pool to avoid drizzle sql-template mangling of booleans/datetimes
+
+let _rawPool: any = null;
+async function getRawPool() {
+  if (_rawPool) return _rawPool;
+  if (!process.env.DATABASE_URL) return null;
+  try {
+    const mysql2 = await import('mysql2/promise');
+    _rawPool = mysql2.createPool({
+      uri: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      waitForConnections: true,
+      connectionLimit: 5,
+    });
+    return _rawPool;
+  } catch { return null; }
+}
 
 export async function upsertMemberSignal(userId: number, data: {
   signalType: string;
@@ -1831,67 +1848,75 @@ export async function upsertMemberSignal(userId: number, data: {
   latitude?: number;
   longitude?: number;
 }): Promise<void> {
-  const db = await getDb(); if (!db) return;
-  // Format as MySQL datetime string — drizzle sql tag passes Date as JS string which MySQL rejects
-  const expiresAtDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
-  const expiresAt = expiresAtDate.toISOString().slice(0, 19).replace('T', ' '); // '2026-01-01 12:00:00'
-  // drizzle raw execute for upsert
-  await db.execute(sql`
-    INSERT INTO member_signals (userId, signalType, seekingGender, seekingDynamic, message, isQueerFriendly, latitude, longitude, expiresAt)
-    VALUES (
-      ${userId}, ${data.signalType},
-      ${data.seekingGender ?? null}, ${data.seekingDynamic ?? null},
-      ${data.message ?? null}, ${data.isQueerFriendly ? 1 : 0},
-      ${data.latitude ?? null}, ${data.longitude ?? null},
-      ${expiresAt}
-    )
-    ON DUPLICATE KEY UPDATE
-      signalType    = VALUES(signalType),
-      seekingGender = VALUES(seekingGender),
-      seekingDynamic= VALUES(seekingDynamic),
-      message       = VALUES(message),
-      isQueerFriendly = VALUES(isQueerFriendly),
-      latitude      = VALUES(latitude),
-      longitude     = VALUES(longitude),
-      expiresAt     = VALUES(expiresAt),
-      updatedAt     = NOW()
-  `);
+  const pool = await getRawPool(); if (!pool) return;
+  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000)
+    .toISOString().slice(0, 19).replace('T', ' ');
+  await pool.execute(
+    `INSERT INTO member_signals
+       (userId, signalType, seekingGender, seekingDynamic, message, isQueerFriendly, latitude, longitude, expiresAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       signalType      = VALUES(signalType),
+       seekingGender   = VALUES(seekingGender),
+       seekingDynamic  = VALUES(seekingDynamic),
+       message         = VALUES(message),
+       isQueerFriendly = VALUES(isQueerFriendly),
+       latitude        = VALUES(latitude),
+       longitude       = VALUES(longitude),
+       expiresAt       = VALUES(expiresAt),
+       updatedAt       = NOW()`,
+    [
+      userId,
+      data.signalType,
+      data.seekingGender ?? null,
+      data.seekingDynamic ?? null,
+      data.message ?? null,
+      data.isQueerFriendly ? 1 : 0,
+      data.latitude ?? null,
+      data.longitude ?? null,
+      expiresAt,
+    ]
+  );
 }
 
 export async function getActiveSignals(userId: number, userLat?: number, userLon?: number): Promise<any[]> {
-  const db = await getDb(); if (!db) return [];
-  const distExpr = (userLat && userLon)
-    ? sql`ROUND(
-        111.045 * DEGREES(ACOS(LEAST(1.0,
-          COS(RADIANS(${userLat})) * COS(RADIANS(ms.latitude))
-          * COS(RADIANS(ms.longitude) - RADIANS(${userLon}))
-          + SIN(RADIANS(${userLat})) * SIN(RADIANS(ms.latitude))
-        ))), 1)`
-    : sql`NULL`;
-  const rows = await db.execute(sql`
-    SELECT
-      ms.userId, ms.signalType, ms.seekingGender, ms.seekingDynamic,
-      ms.message, ms.isQueerFriendly, ms.latitude, ms.longitude, ms.expiresAt,
-      p.displayName, p.avatarUrl, p.gender, p.orientation, p.communityId, p.preferences,
-      ${distExpr} AS distance
-    FROM member_signals ms
-    JOIN profiles p ON p.userId = ms.userId
-    WHERE ms.userId != ${userId}
-      AND ms.signalType != 'offline'
-      AND (ms.expiresAt IS NULL OR ms.expiresAt > NOW())
-      AND p.applicationStatus = 'approved'
-    ORDER BY ms.updatedAt DESC
-    LIMIT 50
-  `);
-  return (rows as any)[0] as any[];
+  const pool = await getRawPool(); if (!pool) return [];
+  const distanceCol = (userLat != null && userLon != null)
+    ? `ROUND(111.045 * DEGREES(ACOS(LEAST(1.0,
+         COS(RADIANS(?)) * COS(RADIANS(ms.latitude))
+         * COS(RADIANS(ms.longitude) - RADIANS(?))
+         + SIN(RADIANS(?)) * SIN(RADIANS(ms.latitude))
+       ))), 1)`
+    : 'NULL';
+  const params: any[] = [];
+  if (userLat != null && userLon != null) params.push(userLat, userLon, userLat);
+  params.push(userId);
+  const [rows] = await pool.execute(
+    `SELECT
+       ms.userId, ms.signalType, ms.seekingGender, ms.seekingDynamic,
+       ms.message, ms.isQueerFriendly, ms.latitude, ms.longitude, ms.expiresAt,
+       p.displayName, p.avatarUrl, p.gender, p.orientation, p.communityId, p.preferences,
+       ${distanceCol} AS distance
+     FROM member_signals ms
+     JOIN profiles p ON p.userId = ms.userId
+     WHERE ms.userId != ?
+       AND ms.signalType != 'offline'
+       AND (ms.expiresAt IS NULL OR ms.expiresAt > NOW())
+       AND p.applicationStatus = 'approved'
+     ORDER BY ms.updatedAt DESC
+     LIMIT 50`,
+    params
+  );
+  return rows as any[];
 }
 
 export async function getMemberSignal(userId: number): Promise<any | null> {
-  const db = await getDb(); if (!db) return null;
-  const rows = await db.execute(sql`
-    SELECT * FROM member_signals WHERE userId = ${userId} LIMIT 1
-  `);
-  return ((rows as any)[0] as any[])[0] ?? null;
+  const pool = await getRawPool(); if (!pool) return null;
+  const [rows] = await pool.execute(
+    'SELECT * FROM member_signals WHERE userId = ? LIMIT 1',
+    [userId]
+  );
+  return (rows as any[])[0] ?? null;
 }
 
 export async function addCredit(userId: number, amount: number, creditType: string, description: string): Promise<void> {
