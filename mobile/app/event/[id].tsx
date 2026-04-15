@@ -52,6 +52,16 @@ export default function EventDetailScreen() {
   const { data: profileData } = trpc.profile.me.useQuery();
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
 
+  const { data: primaryPartnerData } = trpc.partners.myPrimaryPartner.useQuery();
+  const primaryPartner = primaryPartnerData as any;
+
+  // Pre-fill partner when couple ticket is selected and user has a primary partner
+  useEffect(() => {
+    if (ticketType === 'couple' && primaryPartner?.partnerUserId && !partnerUserId) {
+      setPartnerUserId(primaryPartner.partnerUserId);
+    }
+  }, [ticketType, primaryPartner]);
+
   const { data: membersData } = trpc.members.browse.useQuery(
     { page: 0 },
     { enabled: showTicketModal && ticketType === 'couple' },
@@ -630,6 +640,18 @@ export default function EventDetailScreen() {
                   <Ionicons name="people-outline" size={18} color={colors.purple} />
                   <Text style={{ color: colors.purple, fontWeight: '600', fontSize: 14 }}>Browse Members</Text>
                 </TouchableOpacity>
+
+                {/* Primary partner pre-fill chip */}
+                {primaryPartner && partnerUserId === primaryPartner.partnerUserId && (
+                  <TouchableOpacity
+                    onPress={() => setPartnerUserId(null)}
+                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: `${colors.pink}18`, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: `${colors.pink}55`, marginBottom: 12, gap: 6, alignSelf: 'flex-start' }}
+                  >
+                    <Text style={{ fontSize: 14 }}>💗</Text>
+                    <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 13 }}>With {primaryPartner.partnerProfile?.displayName ?? 'Partner'}</Text>
+                    <Ionicons name="close-circle" size={14} color={colors.pink} />
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                   onPress={handleReserve}

@@ -116,3 +116,4 @@ mysql_data/
 .manus-logs/
 
 CREDENTIALS.md
+seed-150-users.mjs

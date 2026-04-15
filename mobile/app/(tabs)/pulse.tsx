@@ -251,12 +251,14 @@ interface BubbleProps {
   x: number;
   y: number;
   onPress: () => void;
+  isPartner?: boolean;
 }
 
-function MemberBubble({ member, matchScore, x, y, onPress }: BubbleProps) {
+function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false }: BubbleProps) {
   const pulse = useRef(new Animated.Value(1)).current;
-  const sigColor = SIGNAL_COLORS[member.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280';
-  const size = Math.round(36 + (matchScore / 100) * 36); // 36–72px
+  const sigColor = isPartner ? '#EC4899' : (SIGNAL_COLORS[member.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280');
+  let size = Math.round(36 + (matchScore / 100) * 36); // 36–72px
+  if (isPartner) size = Math.max(size, 56);
 
   useEffect(() => {
     if (matchScore >= 70) {
@@ -320,6 +322,13 @@ function MemberBubble({ member, matchScore, x, y, onPress }: BubbleProps) {
           width: 11, height: 11, borderRadius: 6,
           backgroundColor: sigColor, borderWidth: 2, borderColor: '#0A0A0F',
         }} />
+
+        {/* Partner badge */}
+        {isPartner && (
+          <View style={{ position: 'absolute', top: 4, left: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#0A0A0F', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 11 }}>💗</Text>
+          </View>
+        )}
 
         {/* Match % badge */}
         {matchScore >= 55 && (
@@ -789,6 +798,8 @@ export default function PulseScreen() {
   const [maxDistance, setMaxDistance] = useState<number>(50);
 
   const { data: profileData } = trpc.profile.me.useQuery(undefined, { enabled: hasToken });
+  const { data: primaryPartnerData } = trpc.partners.myPrimaryPartner.useQuery(undefined, { enabled: hasToken });
+  const primaryPartner = primaryPartnerData as any;
   const { data: mySignalData, refetch: refetchMySignal } = trpc.members.mySignal.useQuery(
     undefined,
     { enabled: hasToken },
@@ -883,6 +894,7 @@ export default function PulseScreen() {
       members
         .map((m) => ({
           ...m,
+          isPartner: primaryPartner ? m.userId === primaryPartner.partnerUserId : false,
           matchScore: calculateMatchScore(m, myProfile, myPrefs, mySignalType, seekingGender, maxDistance),
         }))
         // Strict gender filter: if specific genders chosen (not 'any'), hide non-matching members
@@ -973,6 +985,7 @@ export default function PulseScreen() {
             x={positions[i]?.x ?? SCREEN_WIDTH / 2}
             y={positions[i]?.y ?? pulseHeight / 2}
             onPress={() => setSelectedMember(member)}
+            isPartner={member.isPartner}
           />
         ))}
 

@@ -253,6 +253,9 @@ export default function SettingsScreen() {
 
   const { data: meData } = trpc.auth.me.useQuery(undefined, { enabled: hasToken, staleTime: 60_000 });
   const me = meData as any;
+
+  const { data: pendingConnections } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
+  const pendingCount = (pendingConnections as any[])?.length ?? 0;
   const email = me?.email ?? '';
   const phone = me?.phone ?? '';
 
@@ -363,6 +366,29 @@ export default function SettingsScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+
+        {/* ── CONNECTIONS ── */}
+        <SectionHeader title="Connections" />
+        <View style={{ marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
+          <TouchableOpacity
+            onPress={() => router.push('/connections' as any)}
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, paddingVertical: 14, paddingHorizontal: 16 }}
+          >
+            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${colors.pink}22`, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+              <Text style={{ fontSize: 16 }}>💗</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>Connections & Partners</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>Manage your connections</Text>
+            </View>
+            {pendingCount > 0 && (
+              <View style={{ backgroundColor: colors.pink, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginRight: 8 }}>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{pendingCount}</Text>
+              </View>
+            )}
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </TouchableOpacity>
+        </View>
 
         {/* ── ACCOUNT ── */}
         <SectionHeader title="Account" />

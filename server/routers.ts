@@ -1429,6 +1429,69 @@ export const appRouter = router({
       await db.updatePartnerInvitation(input.id, { status: "cancelled" });
       return { success: true };
     }),
+    sendConnectionRequest: protectedProcedure.input(z.object({
+      targetUserId: z.number(),
+      relationshipType: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      const invitationId = await db.createPartnerInvitationByUserId({
+        inviterId: ctx.user.id,
+        inviteeUserId: input.targetUserId,
+        relationshipType: input.relationshipType,
+      });
+      const inviterProfile = await db.getProfileByUserId(ctx.user.id);
+      const inviterName = (inviterProfile as any)?.displayName ?? ctx.user.name ?? 'Someone';
+      await db.createNotification({
+        userId: input.targetUserId,
+        type: 'connection_request',
+        title: `${inviterName} wants to connect`,
+        body: `as ${input.relationshipType.replace(/_/g, ' ')} · Tap to accept`,
+        data: JSON.stringify({ invitationId, inviterId: ctx.user.id, relationshipType: input.relationshipType, screen: '/connections' }),
+        isRead: false,
+      });
+      return { success: true, invitationId };
+    }),
+    pendingForMe: protectedProcedure.query(async ({ ctx }) => {
+      return db.getPendingInvitationsForUser(ctx.user.id);
+    }),
+    acceptConnection: protectedProcedure.input(z.object({ invitationId: z.number() })).mutation(async ({ ctx, input }) => {
+      const invitation = await db.getPartnerInvitationById(input.invitationId);
+      if (!invitation || invitation.status !== 'pending') throw new TRPCError({ code: 'NOT_FOUND', message: 'Invitation not found or already processed' });
+      const expectedEmail = `user:${ctx.user.id}`;
+      if (invitation.inviteeEmail !== expectedEmail) throw new TRPCError({ code: 'FORBIDDEN', message: 'Not your invitation' });
+      await db.updatePartnerInvitation(input.invitationId, { status: 'accepted' });
+      if (invitation.relationshipGroupId) {
+        const profile = await db.getProfileByUserId(ctx.user.id);
+        if (profile) await db.addRelationshipGroupMember({ groupId: invitation.relationshipGroupId, profileId: (profile as any).id, role: 'member' });
+      }
+      const myProfile = await db.getProfileByUserId(ctx.user.id);
+      const myName = (myProfile as any)?.displayName ?? 'Someone';
+      const relGroup = invitation.relationshipGroupId
+        ? await db.getRelationshipGroupById(invitation.relationshipGroupId) : null;
+      const relType = (relGroup as any)?.type ?? 'partners';
+      await db.createNotification({
+        userId: invitation.inviterId,
+        type: 'connection_accepted',
+        title: `${myName} accepted your connection!`,
+        body: `You're now connected as ${relType.replace(/_/g, ' ')} 💗`,
+        data: JSON.stringify({ screen: '/connections' }),
+        isRead: false,
+      });
+      return { success: true };
+    }),
+    declineConnection: protectedProcedure.input(z.object({ invitationId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.updatePartnerInvitation(input.invitationId, { status: 'cancelled' });
+      return { success: true };
+    }),
+    myConnections: protectedProcedure.query(async ({ ctx }) => {
+      return db.getMyPartnerConnections(ctx.user.id);
+    }),
+    removeConnection: protectedProcedure.input(z.object({ groupId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.removePartnerConnection(ctx.user.id, input.groupId);
+      return { success: true };
+    }),
+    myPrimaryPartner: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserPrimaryRelationshipGroup(ctx.user.id);
+    }),
   }),
 
   // ─── BLOCKED USERS ────────────────────────────────────────────────────────

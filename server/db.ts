@@ -1218,6 +1218,189 @@ export async function updatePartnerInvitation(id: number, data: any) {
   await db.update(partnerInvitations).set(data).where(eq(partnerInvitations.id, id));
 }
 
+export async function getPartnerInvitationById(id: number) {
+  const db = await getDb(); if (!db) return null;
+  const r = await db.select().from(partnerInvitations).where(eq(partnerInvitations.id, id)).limit(1);
+  return r[0] ?? null;
+}
+
+export async function getRelationshipGroupById(id: number) {
+  const db = await getDb(); if (!db) return null;
+  const r = await db.select().from(relationshipGroups).where(eq(relationshipGroups.id, id)).limit(1);
+  return r[0] ?? null;
+}
+
+// ─── PARTNER CONNECTIONS (user-to-user) ─────────────────────────────────────
+
+/**
+ * Send a partner invite directly to another userId.
+ * Creates a relationship group, adds inviter as primary member, then creates the invitation.
+ */
+export async function createPartnerInvitationByUserId(data: {
+  inviterId: number;
+  inviteeUserId: number;
+  relationshipType: string;
+  relationshipGroupId?: number;
+}): Promise<number | null> {
+  const db = await getDb(); if (!db) return null;
+  // Create relationship group first
+  let groupId = data.relationshipGroupId;
+  if (!groupId) {
+    const grpResult = await db.insert(relationshipGroups).values({ type: data.relationshipType });
+    groupId = grpResult[0].insertId;
+    // Add inviter's profile as primary member
+    const inviterProfile = await db.select({ id: profiles.id }).from(profiles).where(eq(profiles.userId, data.inviterId)).limit(1);
+    if (inviterProfile[0]) {
+      await db.insert(relationshipGroupMembers).values({ groupId, profileId: inviterProfile[0].id, role: 'primary' });
+    }
+  }
+  const token = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const r = await db.insert(partnerInvitations).values({
+    inviterId: data.inviterId,
+    inviteeEmail: `user:${data.inviteeUserId}`,
+    token,
+    status: 'pending',
+    relationshipGroupId: groupId,
+    expiresAt,
+  });
+  return r[0].insertId ?? null;
+}
+
+/** Get pending invitations sent TO this userId (encoded as 'user:<id>'). */
+export async function getPendingInvitationsForUser(userId: number): Promise<any[]> {
+  const db = await getDb(); if (!db) return [];
+  const rows = await db
+    .select()
+    .from(partnerInvitations)
+    .leftJoin(users, eq(users.id, partnerInvitations.inviterId))
+    .leftJoin(profiles, eq(profiles.userId, partnerInvitations.inviterId))
+    .where(
+      and(
+        eq(partnerInvitations.inviteeEmail, `user:${userId}`),
+        eq(partnerInvitations.status, 'pending'),
+        or(
+          sql`${partnerInvitations.expiresAt} IS NULL`,
+          sql`${partnerInvitations.expiresAt} > NOW()`,
+        ),
+      ),
+    )
+    .orderBy(desc(partnerInvitations.createdAt));
+  // Enrich with relationship type from the group
+  return Promise.all(rows.map(async (r) => {
+    const inv = (r as any).partner_invitations;
+    let relationshipType = 'couple';
+    if (inv?.relationshipGroupId) {
+      const grp = await db!.select({ type: relationshipGroups.type }).from(relationshipGroups).where(eq(relationshipGroups.id, inv.relationshipGroupId)).limit(1);
+      relationshipType = grp[0]?.type ?? 'couple';
+    }
+    return {
+      ...inv,
+      inviterName: (r as any).profiles?.displayName ?? (r as any).users?.name ?? 'Someone',
+      inviterAvatarUrl: (r as any).profiles?.avatarUrl ?? null,
+      inviterDisplayName: (r as any).profiles?.displayName ?? (r as any).users?.name ?? 'Someone',
+      relationshipType,
+    };
+  }));
+}
+
+/** Get active partner connections for a userId. */
+export async function getMyPartnerConnections(userId: number): Promise<any[]> {
+  const db = await getDb(); if (!db) return [];
+  const profile = await getProfileByUserId(userId);
+  if (!profile) return [];
+  // Get all relationship groups this user is a member of
+  const memberships = await db
+    .select()
+    .from(relationshipGroupMembers)
+    .where(eq(relationshipGroupMembers.profileId, profile.id));
+  if (memberships.length === 0) return [];
+  const groupIds = memberships.map(m => m.groupId);
+  // Get groups with 2+ members (completed connections)
+  const allMemberships = await db
+    .select()
+    .from(relationshipGroupMembers)
+    .where(sql`${relationshipGroupMembers.groupId} IN (${sql.join(groupIds.map(id => sql`${id}`), sql`, `)})`);
+  const byGroup: Record<number, typeof allMemberships> = {};
+  for (const m of allMemberships) {
+    byGroup[m.groupId] = byGroup[m.groupId] ?? [];
+    byGroup[m.groupId].push(m);
+  }
+  const activeGroupIds = groupIds.filter(gid => (byGroup[gid]?.length ?? 0) >= 2);
+  if (activeGroupIds.length === 0) return [];
+  const groups = await db
+    .select()
+    .from(relationshipGroups)
+    .where(sql`${relationshipGroups.id} IN (${sql.join(activeGroupIds.map(id => sql`${id}`), sql`, `)})`)
+    .orderBy(desc(relationshipGroups.createdAt));
+  // For each group, find the other member
+  const result: any[] = [];
+  for (const group of groups) {
+    const members = byGroup[group.id] ?? [];
+    const otherMember = members.find(m => m.profileId !== profile.id);
+    if (!otherMember) continue;
+    const otherProfile = await db.select().from(profiles).where(eq(profiles.id, otherMember.profileId)).limit(1);
+    const op = otherProfile[0];
+    if (!op) continue;
+    const otherUser = await getUserById(op.userId);
+    result.push({
+      groupId: group.id,
+      relationshipType: group.type ?? 'couple',
+      connectedSince: group.createdAt,
+      partnerId: op.userId,
+      partnerProfileId: op.id,
+      partnerDisplayName: op.displayName ?? otherUser?.name ?? 'Member',
+      partnerAvatarUrl: op.avatarUrl ?? null,
+      partnerCommunityId: op.communityId ?? null,
+    });
+  }
+  return result;
+}
+
+/** Remove a partner connection (leave the group; delete if empty). */
+export async function removePartnerConnection(userId: number, groupId: number): Promise<void> {
+  const db = await getDb(); if (!db) return;
+  const profile = await getProfileByUserId(userId);
+  if (!profile) return;
+  await db.delete(relationshipGroupMembers).where(
+    and(
+      eq(relationshipGroupMembers.groupId, groupId),
+      eq(relationshipGroupMembers.profileId, profile.id),
+    ),
+  );
+  // If group is now empty, delete it
+  const remaining = await db.select().from(relationshipGroupMembers).where(eq(relationshipGroupMembers.groupId, groupId));
+  if (remaining.length === 0) {
+    await db.delete(relationshipGroups).where(eq(relationshipGroups.id, groupId));
+  }
+  // Also cancel any pending invitations for this group
+  await db.update(partnerInvitations)
+    .set({ status: 'cancelled' })
+    .where(and(eq(partnerInvitations.relationshipGroupId, groupId), eq(partnerInvitations.status, 'pending')));
+}
+
+/** Get the user's primary relationship group (first couple-type group with 2 members). */
+export async function getUserPrimaryRelationshipGroup(userId: number): Promise<{
+  groupId: number;
+  partnerUserId: number;
+  partnerProfile: any;
+  relationshipType: string;
+} | null> {
+  const connections = await getMyPartnerConnections(userId);
+  if (connections.length === 0) return null;
+  const first = connections[0];
+  return {
+    groupId: first.groupId,
+    partnerUserId: first.partnerId,
+    partnerProfile: {
+      displayName: first.partnerDisplayName,
+      avatarUrl: first.partnerAvatarUrl,
+      communityId: first.partnerCommunityId,
+    },
+    relationshipType: first.relationshipType,
+  };
+}
+
 // ─── BLOCKED USERS ──────────────────────────────────────────────────────────
 
 export async function getBlockedUsers(blockerId: number) {
