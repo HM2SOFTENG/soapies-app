@@ -702,9 +702,16 @@ export const appRouter = router({
       communityId: z.string().optional(),
       mediaUrl: z.string().optional(),
       mediaType: z.string().optional(),
+      linkUrl: z.string().url().optional(),
       visibility: z.enum(["public", "members", "community"]).optional(),
     })).mutation(async ({ ctx, input }) => {
-      return db.createWallPost({ ...input, authorId: ctx.user.id });
+      const { linkUrl, ...rest } = input;
+      return db.createWallPost({
+        ...rest,
+        mediaUrl: rest.mediaUrl ?? linkUrl,
+        mediaType: linkUrl ? 'link' : rest.mediaType,
+        authorId: ctx.user.id,
+      });
     }),
     like: protectedProcedure.input(z.object({ postId: z.number() })).mutation(async ({ ctx, input }) => {
       const liked = await db.toggleWallPostLike(input.postId, ctx.user.id);

@@ -16,7 +16,11 @@ import {
   Animated,
   TouchableOpacity,
   Dimensions,
+  Image,
+  Share,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -470,6 +474,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const [composerText, setComposerText] = useState('');
+  const [composerMedia, setComposerMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
+  const [composerLink, setComposerLink] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
   const [dismissedIds, setDismissedIds] = useState<number[]>([]);
   const [commentsPost, setCommentsPost] = useState<{ id: number; authorId?: number } | null>(null);
 
@@ -478,6 +485,7 @@ export default function HomeScreen() {
 
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const me = meData as any;
+  const currentUserId = me?.id as number | undefined;
 
   const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const profile = profileData as any;
@@ -509,8 +517,16 @@ export default function HomeScreen() {
     onSuccess: () => {
       utils.wall.posts.invalidate();
       setComposerText('');
+      setComposerMedia(null);
+      setComposerLink('');
+      setShowLinkInput(false);
       setShowComposer(false);
     },
+    onError: (err) => Alert.alert('Error', err.message),
+  });
+
+  const deletePostMutation = trpc.wall.deletePost.useMutation({
+    onSuccess: () => utils.wall.posts.invalidate(),
     onError: (err) => Alert.alert('Error', err.message),
   });
 
@@ -563,10 +579,92 @@ export default function HomeScreen() {
     dismissAnnouncement.mutate({ announcementId: id });
   }
 
-  function submitPost() {
-    if (!composerText.trim()) return;
+  async function pickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [4, 3],
+    });
+    if (!result.canceled) {
+      setComposerMedia({ uri: result.assets[0].uri, type: 'image' });
+    }
+  }
+
+  async function openCamera() {
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [4, 3],
+    });
+    if (!result.canceled) {
+      setComposerMedia({ uri: result.assets[0].uri, type: 'image' });
+    }
+  }
+
+  async function pickFile() {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*', 'video/*'],
+      copyToCacheDirectory: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      await uploadAndAttach(result.assets[0].uri, result.assets[0].mimeType ?? 'application/octet-stream');
+    }
+  }
+
+  async function uploadAndAttach(uri: string, mimeType: string) {
+    const formData = new FormData();
+    formData.append('photo', { uri, type: mimeType, name: 'attachment' } as any);
+    const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+    try {
+      const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
+      const { url } = await res.json();
+      setComposerMedia({ uri: url, type: 'image' });
+    } catch (_) {
+      Alert.alert('Upload failed', 'Could not upload file.');
+    }
+  }
+
+  async function uploadMediaAndPost() {
+    if (!composerText.trim() && !composerMedia && !composerLink) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    createPostMutation.mutate({ content: composerText.trim(), communityId: 'soapies', visibility: 'members' } as any);
+
+    let mediaUrl: string | undefined;
+    let mediaType: string | undefined;
+
+    if (composerMedia) {
+      const formData = new FormData();
+      formData.append('photo', { uri: composerMedia.uri, type: 'image/jpeg', name: 'post-image.jpg' } as any);
+      const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+      try {
+        const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
+        const { url } = await res.json();
+        mediaUrl = url;
+        mediaType = 'image';
+      } catch (_) {
+        Alert.alert('Upload failed', 'Could not upload image. Post will be text only.');
+      }
+    }
+
+    createPostMutation.mutate({
+      content: composerText.trim() || ' ',
+      communityId: 'soapies',
+      visibility: 'members',
+      mediaUrl,
+      mediaType,
+      linkUrl: composerLink || undefined,
+    } as any);
+  }
+
+  async function handleShare(post: any) {
+    try {
+      await Share.share({
+        message: `${post.content ?? ''}
+
+— Shared from Soapies Community`,
+        title: 'Soapies Community Post',
+      });
+    } catch (_) {}
   }
 
   const displayName = profile?.displayName ?? me?.name ?? 'there';
@@ -666,10 +764,14 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <PostCard
               post={item}
-              onLike={() => handleLike(item.id as number)}
-              onComment={() => handleComment(item)}
+              onLike={(id) => handleLike(id)}
+              onComment={(p) => handleComment(p)}
+              onShare={handleShare}
+              onDelete={(id) => deletePostMutation.mutate({ postId: id })}
               onPress={() => handleComment(item)}
               onRefresh={onRefresh}
+              currentUserId={currentUserId}
+              isLiked={likedPostIds.has(item.id as number)}
             />
           )}
           ListHeaderComponent={ListHeader}
@@ -729,7 +831,7 @@ export default function HomeScreen() {
                 <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={36} />
                 <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 10 }}>New Post</Text>
                 <TouchableOpacity
-                  onPress={() => { setShowComposer(false); setComposerText(''); }}
+                  onPress={() => { setShowComposer(false); setComposerText(''); setComposerMedia(null); setComposerLink(''); setShowLinkInput(false); }}
                 >
                   <Ionicons name="close" size={24} color={colors.muted} />
                 </TouchableOpacity>
@@ -752,18 +854,76 @@ export default function HomeScreen() {
                   paddingVertical: 12,
                   color: colors.text,
                   fontSize: 15,
-                  minHeight: 130,
+                  minHeight: 100,
                   textAlignVertical: 'top',
-                  marginBottom: 16,
+                  marginBottom: 12,
                 }}
               />
 
+              {/* Image preview */}
+              {composerMedia && (
+                <View style={{ position: 'relative', marginBottom: 10 }}>
+                  <Image
+                    source={{ uri: composerMedia.uri }}
+                    style={{ width: '100%', height: 160, borderRadius: 12 }}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setComposerMedia(null)}
+                    style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Ionicons name="close" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Link input */}
+              {showLinkInput && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 10, borderColor: '#10B981', borderWidth: 1, paddingHorizontal: 12, marginBottom: 10, gap: 8 }}>
+                  <Ionicons name="link-outline" size={16} color="#10B981" />
+                  <TextInput
+                    value={composerLink}
+                    onChangeText={setComposerLink}
+                    placeholder="Paste a link..."
+                    placeholderTextColor={colors.muted}
+                    style={{ flex: 1, color: colors.text, paddingVertical: 10, fontSize: 14 }}
+                    keyboardType="url"
+                    autoCapitalize="none"
+                  />
+                  {composerLink ? (
+                    <TouchableOpacity onPress={() => setComposerLink('')}>
+                      <Ionicons name="close-circle" size={18} color={colors.muted} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              )}
+
+              {/* Attachment toolbar */}
+              <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 10, borderTopColor: colors.border, borderTopWidth: 1, marginBottom: 12 }}>
+                <TouchableOpacity onPress={pickImage} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="image-outline" size={22} color={colors.pink} />
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={openCamera} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="camera-outline" size={22} color={colors.purple} />
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowLinkInput(!showLinkInput)} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="link-outline" size={22} color="#10B981" />
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>Link</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={pickFile} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="document-attach-outline" size={22} color="#F59E0B" />
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>File</Text>
+                </TouchableOpacity>
+              </View>
+
               <Pressable
-                onPress={submitPost}
-                disabled={!composerText.trim() || createPostMutation.isPending}
+                onPress={uploadMediaAndPost}
+                disabled={(!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending}
                 style={({ pressed }) => ({
                   transform: [{ scale: pressed ? 0.97 : 1 }],
-                  opacity: !composerText.trim() || createPostMutation.isPending ? 0.5 : 1,
+                  opacity: ((!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending) ? 0.5 : 1,
                 })}
               >
                 <LinearGradient
