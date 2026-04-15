@@ -89,7 +89,7 @@ export default function AdminLayout({ children, title }: { children: React.React
     );
   }
 
-  const initials = user?.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "AD";
+  const initials = user?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "AD";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50/50 via-white to-purple-50/50 flex">
