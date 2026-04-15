@@ -614,6 +614,7 @@ function SectionLabel({ title }: { title: string }) {
 // ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const toast = useToast();
   const [refreshing, setRefreshing]         = useState(false);
   const [showComposer, setShowComposer]     = useState(false);
