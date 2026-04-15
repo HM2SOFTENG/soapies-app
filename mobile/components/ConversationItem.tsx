@@ -49,6 +49,10 @@ export interface Conversation {
   lastMessage?: string | null;
   lastMessageAt?: string | Date | null;
   unreadCount?: number | null;
+  // Server returns these for DMs (flat, from getUserConversations enrichment)
+  otherUserAvatarUrl?: string | null;
+  otherUserId?: number | null;
+  // Legacy participants array (fallback)
   participants?: Array<{
     displayName?: string | null;
     name?: string | null;
@@ -73,10 +77,13 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
 
   const displayName = isChannel
     ? (conversation.name ?? 'Channel')
-    : (conversation.participants?.map(p => p.displayName ?? p.name ?? '').filter(Boolean).join(', ') || 'Direct Message');
+    : (conversation.name || conversation.participants?.map(p => p.displayName ?? p.name ?? '').filter(Boolean).join(', ') || 'Direct Message');
 
   const meta     = getChannelMeta(displayName);
-  const dmAvatar = !isChannel ? (conversation.participants?.[0]?.avatarUrl ?? null) : null;
+  // Server enriches DMs with otherUserAvatarUrl; fall back to participants array
+  const dmAvatar = !isChannel
+    ? (conversation.otherUserAvatarUrl ?? conversation.participants?.[0]?.avatarUrl ?? null)
+    : null;
   const initials = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   const preview = conversation.lastMessage?.trim()

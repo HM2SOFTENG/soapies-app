@@ -803,19 +803,21 @@ export const appRouter = router({
       const userProfile = await db.getProfileByUserId(ctx.user.id);
       const userGender = (userProfile as any)?.gender?.toLowerCase() ?? '';
       const userRole = ctx.user.role;
+      const memberRole = (userProfile as any)?.memberRole ?? '';
+      // Gender channels: even admins only see their own gender channel
+      const isMale = userGender === 'male' || userGender === 'man';
+      const isFemale = userGender === 'female' || userGender === 'woman';
       return convs.filter((c: any) => {
         if (c.type !== 'channel') return true;
         const name = (c.name || '').toLowerCase();
-        if ((name.includes('mens') || name === "mens chat") && !name.includes('women')) {
-          if (userRole === 'admin') return true;
-          return userGender === 'male' || userGender === 'man';
+        if ((name.includes('mens') || name === 'mens chat') && !name.includes('women')) {
+          return isMale; // male-only, regardless of role
         }
         if (name.includes('women') || name.includes('ladies')) {
-          if (userRole === 'admin') return true;
-          return userGender === 'female' || userGender === 'woman';
+          return isFemale; // female-only, regardless of role
         }
         if (name.includes('admin')) return userRole === 'admin';
-        if (name.includes('angel')) return userRole === 'admin' || (userRole as string) === 'angel';
+        if (name.includes('angel')) return userRole === 'admin' || memberRole === 'angel';
         return true;
       });
     }),
@@ -1703,6 +1705,11 @@ export const appRouter = router({
     mySignal: protectedProcedure.query(async ({ ctx }) => {
       return db.getMemberSignal(ctx.user.id);
     }),
+    signalById: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getMemberSignal(input.userId);
+      }),
     activeSignals: protectedProcedure.input(z.object({
       latitude: z.number().optional(),
       longitude: z.number().optional(),

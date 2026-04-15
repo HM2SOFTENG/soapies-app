@@ -18,6 +18,7 @@ import {
   testResultSubmissions,
   waitlist as waitlistTable,
   pushSubscriptions,
+  memberSignals,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -449,6 +450,7 @@ export async function getPublicProfile(userId: number) {
       communityId: profiles.communityId,
       createdAt: profiles.createdAt,
       applicationStatus: profiles.applicationStatus,
+      preferences: profiles.preferences,
     })
     .from(profiles)
     .where(eq(profiles.userId, userId))
@@ -473,8 +475,17 @@ export async function getPublicProfile(userId: number) {
     .where(and(eq(reservations.userId, userId), sql`${reservations.status} IN ('confirmed', 'checked_in')`));
   const eventsAttended = Number(eventCountResult[0]?.count ?? 0);
 
+  // Fetch active member signal
+  const signalRows = await db.select().from(memberSignals)
+    .where(and(
+      eq(memberSignals.userId, userId),
+      sql`(${memberSignals.expiresAt} IS NULL OR ${memberSignals.expiresAt} > NOW())`
+    ))
+    .limit(1);
+  const signal = signalRows[0] ?? null;
+
   const { applicationStatus, ...safeProfile } = profile;
-  return { ...safeProfile, postsCount, eventsAttended, photoCount: postsCount };
+  return { ...safeProfile, postsCount, eventsAttended, photoCount: postsCount, signal };
 }
 
 export async function getUserWallPosts(userId: number, limit = 20) {
@@ -515,26 +526,38 @@ export async function getUserConversations(userId: number) {
   const parts = await db.select().from(conversationParticipants).where(eq(conversationParticipants.userId, userId));
   const participantIds = new Set(parts.map(p => p.conversationId));
 
-  // Get the user's communityId from their profile
-  const profile = await db.select({ communityId: profiles.communityId }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
-  const communityId = profile[0]?.communityId ?? null;
+  // Get the user's profile for community + gender filtering
+  const profileRows = await db.select({
+    communityId: profiles.communityId,
+    gender: profiles.gender,
+    memberRole: profiles.memberRole,
+  }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
+  const communityId = profileRows[0]?.communityId ?? null;
+  const userGender = (profileRows[0]?.gender ?? '').toLowerCase();
+  const isMale = userGender === 'male' || userGender === 'man';
+  const isFemale = userGender === 'female' || userGender === 'woman';
 
-  // Fetch all channels (type = 'channel') that match the user's community or are global (null communityId)
+  // Fetch channels that match the user's community or are global (null communityId)
   const channelConditions = communityId
     ? sql`(${conversations.type} = 'channel' AND (${conversations.communityId} = ${communityId} OR ${conversations.communityId} IS NULL))`
     : sql`(${conversations.type} = 'channel' AND ${conversations.communityId} IS NULL)`;
 
   const communityChannels = await db.select().from(conversations).where(channelConditions);
 
-  // Auto-join user to any community channels they're not yet in
+  // Auto-join user to channels they qualify for (gender-gated channels respected)
   for (const channel of communityChannels) {
-    if (!participantIds.has(channel.id)) {
-      try {
-        await db.insert(conversationParticipants).values({ conversationId: channel.id, userId });
-        participantIds.add(channel.id);
-      } catch {
-        // Ignore duplicate key errors (already joined via race condition)
-      }
+    if (participantIds.has(channel.id)) continue;
+    const name = (channel.name ?? '').toLowerCase();
+    // Skip gender channels if user doesn't match
+    if ((name.includes('mens') || name === 'mens chat') && !name.includes('women') && !isMale) continue;
+    if ((name.includes('women') || name.includes('ladies')) && !isFemale) continue;
+    // Skip admin/angel channels on auto-join (these are managed explicitly)
+    if (name.includes('admin') || name.includes('angel')) continue;
+    try {
+      await db.insert(conversationParticipants).values({ conversationId: channel.id, userId });
+      participantIds.add(channel.id);
+    } catch {
+      // Ignore duplicate key errors (race condition)
     }
   }
 
