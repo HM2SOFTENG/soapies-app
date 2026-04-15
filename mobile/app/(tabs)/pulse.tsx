@@ -645,13 +645,15 @@ function MemberDetailModal({
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableOpacity
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        {/* Backdrop — tap to dismiss */}
+        <TouchableOpacity
+          style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        {/* Card — sits on top of backdrop, scroll is unimpeded */}
         <View
-          onStartShouldSetResponder={() => true}
           style={{
             backgroundColor: '#0F0F1A',
             borderTopLeftRadius: 28, borderTopRightRadius: 28,
@@ -838,7 +840,7 @@ function MemberDetailModal({
             </View>
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
