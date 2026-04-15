@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Modal, ScrollView, TextInput,
-  Animated, Dimensions, Alert, Image, Switch, StyleSheet,
+  Animated, Dimensions, Alert, Image, Switch, StyleSheet, PanResponder,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -217,19 +217,50 @@ function calculateMatchScore(
   return Math.min(Math.round((raw / 145) * 100), 100);
 }
 
-// Deterministic spiral layout — no random per render
+// Force-spread layout — places bubbles in a sunflower spiral then runs a few
+// repulsion passes to push overlapping bubbles apart.
 function layoutPositions(count: number, w: number, h: number): { x: number; y: number }[] {
+  if (count === 0) return [];
   const cx = w / 2;
   const cy = h / 2;
-  const maxR = Math.min(w, h) * 0.42;
-  return Array.from({ length: count }, (_, i) => {
-    const angle = (i / Math.max(count, 1)) * 2 * Math.PI + (i % 4) * 0.25;
-    const rFrac = 0.3 + ((i * 0.13) % 0.55);
-    return {
-      x: cx + maxR * rFrac * Math.cos(angle),
-      y: cy + maxR * rFrac * Math.sin(angle),
-    };
+  // Reserve center for "You" bubble (80px radius), so start at radius 70
+  const minR = 80;
+  const maxR = Math.min(w, h) * 0.46;
+  const golden = Math.PI * (3 - Math.sqrt(5)); // golden angle
+  // Initial sunflower spiral placement
+  const pts = Array.from({ length: count }, (_, i) => {
+    const r = minR + (maxR - minR) * Math.sqrt((i + 0.5) / count);
+    const angle = i * golden;
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
   });
+  // Clamp to canvas with padding
+  const pad = 44;
+  const clamp = (p: { x: number; y: number }) => ({
+    x: Math.max(pad, Math.min(w - pad, p.x)),
+    y: Math.max(pad, Math.min(h - pad, p.y)),
+  });
+  // Run 4 repulsion iterations to push overlapping bubbles apart
+  const BUBBLE_R = 44; // rough average bubble radius
+  for (let iter = 0; iter < 4; iter++) {
+    for (let a = 0; a < pts.length; a++) {
+      for (let b = a + 1; b < pts.length; b++) {
+        const dx = pts[b].x - pts[a].x;
+        const dy = pts[b].y - pts[a].y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const minDist = BUBBLE_R * 2;
+        if (dist < minDist) {
+          const push = (minDist - dist) / 2;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          pts[a].x -= nx * push * 0.5;
+          pts[a].y -= ny * push * 0.5;
+          pts[b].x += nx * push * 0.5;
+          pts[b].y += ny * push * 0.5;
+        }
+      }
+    }
+  }
+  return pts.map(clamp);
 }
 
 // ─── Chip ────────────────────────────────────────────────────────────────────
@@ -255,23 +286,59 @@ interface BubbleProps {
 }
 
 function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false }: BubbleProps) {
-  const pulse = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
   const sigColor = isPartner ? '#EC4899' : (SIGNAL_COLORS[member.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280');
-  let size = Math.round(36 + (matchScore / 100) * 36); // 36–72px
+  let size = Math.round(36 + (matchScore / 100) * 36);
   if (isPartner) size = Math.max(size, 56);
 
   useEffect(() => {
     if (matchScore >= 70) {
       const anim = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulse, { toValue: 1.12, duration: 950, useNativeDriver: true }),
-          Animated.timing(pulse, { toValue: 1.0, duration: 950, useNativeDriver: true }),
-        ]),
+          Animated.timing(pulseAnim, { toValue: 1.12, duration: 950, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 950, useNativeDriver: true }),
+        ])
       );
       anim.start();
       return () => anim.stop();
     }
   }, [matchScore]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4,
+      onPanResponderGrant: () => {
+        isDragging.current = false;
+        // @ts-ignore
+        pan.setOffset({ x: pan.x._value, y: pan.y._value });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_, gs) => {
+        if (Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4) isDragging.current = true;
+        Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false })(_, gs);
+      },
+      onPanResponderRelease: (_, gs) => {
+        pan.flattenOffset();
+        // Snap back slightly with spring
+        Animated.spring(pan, {
+          toValue: { x: (pan.x as any)._value, y: (pan.y as any)._value },
+          useNativeDriver: false,
+          friction: 5,
+        }).start();
+        if (!isDragging.current) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }
+        isDragging.current = false;
+      },
+    })
+  ).current;
 
   return (
     <Animated.View
@@ -280,79 +347,77 @@ function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false }: 
         left: x - size / 2 - 8,
         top: y - size / 2 - 8,
         alignItems: 'center',
-        transform: [{ scale: pulse }],
+        transform: [
+          { translateX: pan.x },
+          { translateY: pan.y },
+          { scale: pulseAnim },
+        ],
       }}
+      {...panResponder.panHandlers}
     >
-      <TouchableOpacity
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onPress();
+      {/* Outer glow */}
+      <View style={{
+        width: size + 16, height: size + 16, borderRadius: (size + 16) / 2,
+        backgroundColor: `${sigColor}16`,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        {/* Avatar */}
+        <View style={{
+          width: size, height: size, borderRadius: size / 2, overflow: 'hidden',
+          borderWidth: matchScore >= 70 ? 2.5 : 1.5,
+          borderColor: matchScore >= 70 ? sigColor : `${sigColor}77`,
+        }}>
+          {member.avatarUrl ? (
+            <Image source={{ uri: member.avatarUrl }} style={{ width: size, height: size }} />
+          ) : (
+            <LinearGradient
+              colors={matchScore >= 70 ? ['#EC4899', '#A855F7'] : ['#A855F766', '#EC489944']}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.32 }}>
+                {member.displayName?.[0]?.toUpperCase() ?? '?'}
+              </Text>
+            </LinearGradient>
+          )}
+        </View>
+      </View>
+
+      {/* Signal dot */}
+      <View style={{
+        position: 'absolute', bottom: 6, right: 6,
+        width: 11, height: 11, borderRadius: 6,
+        backgroundColor: sigColor, borderWidth: 2, borderColor: '#0A0A0F',
+      }} />
+
+      {/* Partner badge */}
+      {isPartner && (
+        <View style={{ position: 'absolute', top: 4, left: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#0A0A0F', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 11 }}>💗</Text>
+        </View>
+      )}
+
+      {/* Match % badge */}
+      {matchScore >= 55 && (
+        <View style={{
+          position: 'absolute', top: 2, alignSelf: 'center',
+          backgroundColor: matchScore >= 80 ? '#EC4899' : '#A855F7',
+          borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1,
+        }}>
+          <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{matchScore}%</Text>
+        </View>
+      )}
+
+      {/* First name */}
+      <Text
+        numberOfLines={1}
+        style={{
+          color: '#E5E7EB', fontSize: 9, fontWeight: '600',
+          textAlign: 'center', marginTop: 3, maxWidth: size + 20,
+          textShadowColor: '#000', textShadowRadius: 6,
         }}
       >
-        {/* Outer glow */}
-        <View style={{
-          width: size + 16, height: size + 16, borderRadius: (size + 16) / 2,
-          backgroundColor: `${sigColor}16`,
-          alignItems: 'center', justifyContent: 'center',
-        }}>
-          {/* Avatar */}
-          <View style={{
-            width: size, height: size, borderRadius: size / 2, overflow: 'hidden',
-            borderWidth: matchScore >= 70 ? 2.5 : 1.5,
-            borderColor: matchScore >= 70 ? sigColor : `${sigColor}77`,
-          }}>
-            {member.avatarUrl ? (
-              <Image source={{ uri: member.avatarUrl }} style={{ width: size, height: size }} />
-            ) : (
-              <LinearGradient
-                colors={matchScore >= 70 ? ['#EC4899', '#A855F7'] : ['#A855F766', '#EC489944']}
-                style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.32 }}>
-                  {member.displayName?.[0]?.toUpperCase() ?? '?'}
-                </Text>
-              </LinearGradient>
-            )}
-          </View>
-        </View>
-
-        {/* Signal dot */}
-        <View style={{
-          position: 'absolute', bottom: 6, right: 6,
-          width: 11, height: 11, borderRadius: 6,
-          backgroundColor: sigColor, borderWidth: 2, borderColor: '#0A0A0F',
-        }} />
-
-        {/* Partner badge */}
-        {isPartner && (
-          <View style={{ position: 'absolute', top: 4, left: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#0A0A0F', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 11 }}>💗</Text>
-          </View>
-        )}
-
-        {/* Match % badge */}
-        {matchScore >= 55 && (
-          <View style={{
-            position: 'absolute', top: 2, alignSelf: 'center',
-            backgroundColor: matchScore >= 80 ? '#EC4899' : '#A855F7',
-            borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1,
-          }}>
-            <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{matchScore}%</Text>
-          </View>
-        )}
-
-        {/* First name */}
-        <Text
-          numberOfLines={1}
-          style={{
-            color: '#E5E7EB', fontSize: 9, fontWeight: '600',
-            textAlign: 'center', marginTop: 3, maxWidth: size + 20,
-            textShadowColor: '#000', textShadowRadius: 6,
-          }}
-        >
-          {member.displayName?.split(' ')[0] ?? ''}
-        </Text>
-      </TouchableOpacity>
+        {member.displayName?.split(' ')[0] ?? ''}
+      </Text>
     </Animated.View>
   );
 }
@@ -796,6 +861,7 @@ export default function PulseScreen() {
   const [signalMessage, setSignalMessage] = useState('');
   const [isQueerFriendly, setIsQueerFriendly] = useState(false);
   const [maxDistance, setMaxDistance] = useState<number>(50);
+  const [minMatchThreshold, setMinMatchThreshold] = useState<number>(0); // 0 = show all
 
   const { data: profileData } = trpc.profile.me.useQuery(undefined, { enabled: hasToken });
   const { data: primaryPartnerData } = trpc.partners.myPrimaryPartner.useQuery(undefined, { enabled: hasToken });
@@ -905,8 +971,9 @@ export default function PulseScreen() {
           return seekingGender.map(g => g.toLowerCase()).includes(mg);
         })
         .filter((m) => m.distance == null || m.distance <= maxDistance)
+        .filter((m) => m.isPartner || m.matchScore >= minMatchThreshold)
         .sort((a, b) => b.matchScore - a.matchScore),
-    [members, myProfile, myPrefs, mySignalType, seekingGender, maxDistance],
+    [members, myProfile, myPrefs, mySignalType, seekingGender, maxDistance, minMatchThreshold],
   );
 
   const positions = useMemo(
@@ -937,6 +1004,34 @@ export default function PulseScreen() {
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: myConfig.color }} />
           <Text style={{ color: myConfig.color, fontWeight: '700', fontSize: 13 }}>{myConfig.label}</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* ── Match Threshold Bar ── */}
+      <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+          <Text style={{ color: '#6B7280', fontSize: 11, fontWeight: '600' }}>MIN MATCH</Text>
+          <Text style={{ color: minMatchThreshold > 0 ? '#EC4899' : '#6B7280', fontSize: 12, fontWeight: '800' }}>
+            {minMatchThreshold === 0 ? 'All' : `≥ ${minMatchThreshold}%`}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {[0, 30, 50, 70, 85].map((t) => (
+            <TouchableOpacity
+              key={t}
+              onPress={() => { Haptics.selectionAsync(); setMinMatchThreshold(t); }}
+              style={{
+                flex: 1, paddingVertical: 6, borderRadius: 12, alignItems: 'center',
+                backgroundColor: minMatchThreshold === t ? '#EC489930' : '#1A1A24',
+                borderWidth: 1,
+                borderColor: minMatchThreshold === t ? '#EC4899' : '#2D2D3A',
+              }}
+            >
+              <Text style={{ color: minMatchThreshold === t ? '#EC4899' : '#6B7280', fontSize: 11, fontWeight: '700' }}>
+                {t === 0 ? 'All' : `${t}%+`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* ── Bubble canvas ── */}
