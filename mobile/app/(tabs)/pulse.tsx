@@ -61,23 +61,24 @@ function calculateMatchBreakdown(
   myProfile: any,
   myPrefs: any,
   mySignalType: string,
-  seekingGender: string,
+  seekingGender: string[],
   maxDistance: number,
 ): MatchFactor[] {
   const factors: MatchFactor[] = [];
 
-  // 1. Gender Match
-  const sgLower = (seekingGender ?? '').toLowerCase();
+  // 1. Gender Match — multi-select: 'any' alone means open to all
+  const sgList = seekingGender.map(s => s.toLowerCase());
+  const hasAny = sgList.length === 0 || sgList.includes('any');
   const memberGender = (member.gender ?? '').toLowerCase();
-  const genderMatched = sgLower === 'any' || sgLower === memberGender;
+  const genderMatched = hasAny || sgList.includes(memberGender);
   factors.push({
     key: 'gender', label: 'Gender Match', emoji: '👤',
     points: genderMatched ? 25 : 0, maxPoints: 25, matched: genderMatched,
-    detail: sgLower === 'any'
+    detail: hasAny
       ? 'Open to anyone'
       : genderMatched
-        ? `Seeking ${memberGender} · they're ${memberGender}`
-        : `Seeking ${sgLower} · they're ${memberGender || 'unknown'}`,
+        ? `Seeking ${sgList.join(' or ')} · they're ${memberGender || 'unknown'}`
+        : `Seeking ${sgList.join(' or ')} · they're ${memberGender || 'unknown'}`,
   });
 
   // 2. Orientation Compatibility
@@ -208,7 +209,7 @@ function calculateMatchScore(
   myProfile: any,
   myPrefs: any,
   mySignalType: string,
-  seekingGender: string,
+  seekingGender: string[],
   maxDistance: number,
 ): number {
   const factors = calculateMatchBreakdown(member, myProfile, myPrefs, mySignalType, seekingGender, maxDistance);
@@ -467,7 +468,7 @@ interface MemberDetailModalProps {
   myProfile: any;
   myPrefs: any;
   mySignalType: string;
-  seekingGender: string;
+  seekingGender: string[];
   maxDistance: number;
   onClose: () => void;
   onViewProfile: (userId: number) => void;
@@ -765,8 +766,8 @@ export default function PulseScreen() {
 
   // Signal form state
   const [mySignalType, setMySignalType] = useState<SignalType>('offline');
-  const [seekingGender, setSeekingGender] = useState('any');
-  const [seekingDynamic, setSeekingDynamic] = useState('');
+  const [seekingGender, setSeekingGender] = useState<string[]>(['any']);
+  const [seekingDynamic, setSeekingDynamic] = useState<string[]>([]);
   const [signalMessage, setSignalMessage] = useState('');
   const [isQueerFriendly, setIsQueerFriendly] = useState(false);
   const [maxDistance, setMaxDistance] = useState<number>(50);
@@ -821,8 +822,11 @@ export default function PulseScreen() {
     if (mySignalData) {
       const s = mySignalData as any;
       setMySignalType((s.signalType ?? 'offline') as SignalType);
-      setSeekingGender(s.seekingGender ?? 'any');
-      setSeekingDynamic(s.seekingDynamic ?? '');
+      // Parse comma-joined strings back to arrays (e.g. "female,non-binary" → ['female','non-binary'])
+      const sgRaw = s.seekingGender ?? 'any';
+      setSeekingGender(sgRaw ? sgRaw.split(',').map((v: string) => v.trim()).filter(Boolean) : ['any']);
+      const sdRaw = s.seekingDynamic ?? '';
+      setSeekingDynamic(sdRaw ? sdRaw.split(',').map((v: string) => v.trim()).filter(Boolean) : []);
       setSignalMessage(s.message ?? '');
       setIsQueerFriendly(!!s.isQueerFriendly);
     }
@@ -847,8 +851,9 @@ export default function PulseScreen() {
 
     signalMutation.mutate({
       signalType: mySignalType,
-      seekingGender: seekingGender || undefined,
-      seekingDynamic: seekingDynamic || undefined,
+      // Join arrays to comma string for storage (DB column is varchar)
+      seekingGender: seekingGender.filter(g => g !== 'any').join(',') || 'any',
+      seekingDynamic: seekingDynamic.join(',') || undefined,
       message: signalMessage || undefined,
       isQueerFriendly,
       latitude: myLocation?.lat,
@@ -864,6 +869,13 @@ export default function PulseScreen() {
           ...m,
           matchScore: calculateMatchScore(m, myProfile, myPrefs, mySignalType, seekingGender, maxDistance),
         }))
+        // Strict gender filter: if specific genders chosen (not 'any'), hide non-matching members
+        .filter((m) => {
+          const hasAny = seekingGender.length === 0 || seekingGender.includes('any');
+          if (hasAny) return true;
+          const mg = (m.gender ?? '').toLowerCase();
+          return seekingGender.map(g => g.toLowerCase()).includes(mg);
+        })
         .filter((m) => m.distance == null || m.distance <= maxDistance)
         .sort((a, b) => b.matchScore - a.matchScore),
     [members, myProfile, myPrefs, mySignalType, seekingGender, maxDistance],
@@ -1038,28 +1050,49 @@ export default function PulseScreen() {
                 ))}
               </View>
 
-              {/* Seeking gender */}
+              {/* Seeking gender — multi-select */}
               <Text style={styles.label}>Seeking</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {['Any', 'Female', 'Male', 'Non-binary', 'Couple', 'Group'].map((g) => (
-                    <TouchableOpacity
-                      key={g}
-                      onPress={() => setSeekingGender(g.toLowerCase())}
-                      style={{
-                        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                        backgroundColor: seekingGender === g.toLowerCase() ? '#EC489930' : '#1A1A24',
-                        borderColor: seekingGender === g.toLowerCase() ? '#EC4899' : '#2D2D3A',
-                        borderWidth: 1,
-                      }}
-                    >
-                      <Text style={{ color: seekingGender === g.toLowerCase() ? '#EC4899' : '#6B7280', fontWeight: '600' }}>{g}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {['Any', 'Female', 'Male', 'Non-binary', 'Couple', 'Group'].map((g) => {
+                    const val = g.toLowerCase();
+                    const isAnyOpt = val === 'any';
+                    const selected = isAnyOpt
+                      ? seekingGender.includes('any') || seekingGender.length === 0
+                      : seekingGender.includes(val);
+                    return (
+                      <TouchableOpacity
+                        key={g}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          if (isAnyOpt) {
+                            setSeekingGender(['any']);
+                          } else {
+                            setSeekingGender(prev => {
+                              const without = prev.filter(x => x !== 'any');
+                              if (without.includes(val)) {
+                                const next = without.filter(x => x !== val);
+                                return next.length === 0 ? ['any'] : next;
+                              }
+                              return [...without, val];
+                            });
+                          }
+                        }}
+                        style={{
+                          paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                          backgroundColor: selected ? '#EC489930' : '#1A1A24',
+                          borderColor: selected ? '#EC4899' : '#2D2D3A',
+                          borderWidth: 1,
+                        }}
+                      >
+                        <Text style={{ color: selected ? '#EC4899' : '#6B7280', fontWeight: '600' }}>{g}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
 
-              {/* Dynamic */}
+              {/* Looking For — multi-select */}
               <Text style={styles.label}>Looking For</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1070,20 +1103,28 @@ export default function PulseScreen() {
                     { label: 'Friendship', value: 'friendship' },
                     { label: 'Couple Play', value: 'couple_play' },
                     { label: 'Group Play', value: 'group_play' },
-                  ].map((d) => (
-                    <TouchableOpacity
-                      key={d.value}
-                      onPress={() => setSeekingDynamic(seekingDynamic === d.value ? '' : d.value)}
-                      style={{
-                        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                        backgroundColor: seekingDynamic === d.value ? '#A855F730' : '#1A1A24',
-                        borderColor: seekingDynamic === d.value ? '#A855F7' : '#2D2D3A',
-                        borderWidth: 1,
-                      }}
-                    >
-                      <Text style={{ color: seekingDynamic === d.value ? '#A855F7' : '#6B7280', fontWeight: '600' }}>{d.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  ].map((d) => {
+                    const selected = seekingDynamic.includes(d.value);
+                    return (
+                      <TouchableOpacity
+                        key={d.value}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          setSeekingDynamic(prev =>
+                            prev.includes(d.value) ? prev.filter(x => x !== d.value) : [...prev, d.value]
+                          );
+                        }}
+                        style={{
+                          paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+                          backgroundColor: selected ? '#A855F730' : '#1A1A24',
+                          borderColor: selected ? '#A855F7' : '#2D2D3A',
+                          borderWidth: 1,
+                        }}
+                      >
+                        <Text style={{ color: selected ? '#A855F7' : '#6B7280', fontWeight: '600' }}>{d.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </ScrollView>
 
