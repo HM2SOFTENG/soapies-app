@@ -36,7 +36,8 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         title: 'Interview Scheduled!',
         color: '#3B82F6',
         bgColor: 'rgba(59,130,246,0.1)',
-        message: 'Your application passed initial review! The next step is a short intro call with our team.',
+        message: 'Interview scheduled! Check your email for details.',
+        subMessage: 'Your application passed initial review. The next step is a short intro call with our team.',
         showScheduleCall: true,
       };
     case 'interview_complete':
@@ -45,7 +46,7 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         title: 'Interview Complete!',
         color: colors.purple,
         bgColor: 'rgba(168,85,247,0.1)',
-        message: 'Your interview went great! Our team is making a final decision. Stay tuned!',
+        message: 'Interview complete! Final decision coming soon.',
         subMessage: 'Final decisions are made within 24-48 hours.',
       };
     case 'waitlisted':
@@ -54,7 +55,7 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         title: 'On the Waitlist',
         color: '#F59E0B',
         bgColor: 'rgba(245,158,11,0.1)',
-        message: "You're on our waitlist! We'll reach out as soon as a spot opens up.",
+        message: "You're on the waitlist. We'll notify you when a spot opens.",
         subMessage: "Thank you for your interest — we can't wait to welcome you!",
       };
     case 'rejected':
