@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  Alert, Modal, FlatList,
+  Alert, Modal, FlatList, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -51,7 +51,14 @@ export default function ConnectionsScreen() {
   const { data: myConnections, refetch: refetchConnections } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
   const { data: pendingForMe, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
   const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
-  const { data: searchResults } = trpc.members.browse.useQuery({ search: searchQuery, page: 0, community: 'all' }, { enabled: hasToken && searchQuery.length > 1 }); // cross-community search for connections
+  const { data: searchResults, isLoading: searchLoading } = trpc.members.browse.useQuery(
+    { search: searchQuery.trim(), page: 0, community: 'all' },
+    {
+      enabled: hasToken && searchQuery.trim().length > 0,
+      staleTime: 0,
+      keepPreviousData: true,
+    } as any
+  );
 
   const sendRequest = trpc.partners.sendConnectionRequest.useMutation({
     onSuccess: () => {
@@ -212,20 +219,33 @@ export default function ConnectionsScreen() {
               style={{ flex: 1, color: colors.text, fontSize: 15 }}
             />
           </View>
-          {searchQuery.length > 1 && members.map((m: any) => (
-            <TouchableOpacity
-              key={m.id ?? m.userId}
-              onPress={() => { setSelectedMember(m); setShowRelPicker(true); }}
-              style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border }}
-            >
-              <Avatar name={m.displayName ?? m.name} url={m.avatarUrl} size={40} style={{ marginRight: 12 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '600' }}>{m.displayName ?? m.name}</Text>
-                {m.communityId && <Text style={{ color: colors.muted, fontSize: 12 }}>{m.communityId}</Text>}
+          {searchQuery.trim().length > 0 && (
+            searchLoading ? (
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                <ActivityIndicator color={colors.pink} />
+                <Text style={{ color: colors.muted, fontSize: 13, marginTop: 8 }}>Searching...</Text>
               </View>
-              <Ionicons name="add-circle-outline" size={22} color={colors.pink} />
-            </TouchableOpacity>
-          ))}
+            ) : members.length === 0 ? (
+              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                <Text style={{ color: colors.muted, fontSize: 14 }}>No members found for "{searchQuery}"</Text>
+              </View>
+            ) : (
+              members.map((m: any) => (
+                <TouchableOpacity
+                  key={m.id ?? m.userId}
+                  onPress={() => { setSelectedMember(m); setShowRelPicker(true); }}
+                  style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Avatar name={m.displayName ?? m.name} url={m.avatarUrl} size={40} style={{ marginRight: 12 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600' }}>{m.displayName ?? m.name}</Text>
+                    {m.communityId && <Text style={{ color: colors.muted, fontSize: 12, textTransform: 'capitalize' }}>{m.communityId}</Text>}
+                  </View>
+                  <Ionicons name="add-circle-outline" size={22} color={colors.pink} />
+                </TouchableOpacity>
+              ))
+            )
+          )}
         </View>
       </ScrollView>
 
