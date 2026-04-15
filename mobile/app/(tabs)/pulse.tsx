@@ -224,11 +224,11 @@ function MemberBubble({ member, matchScore, x, y, onPress }: BubbleProps) {
   );
 }
 
-// ─── ZoneScreen ───────────────────────────────────────────────────────────────
-export default function ZoneScreen() {
+// ─── PulseScreen ───────────────────────────────────────────────────────────────
+export default function PulseScreen() {
   const router = useRouter();
   const { hasToken } = useAuth();
-  const zoneHeight = SCREEN_HEIGHT - 190;
+  const pulseHeight = SCREEN_HEIGHT - 190;
 
   const [myLocation, setMyLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [showSignalModal, setShowSignalModal] = useState(false);
@@ -318,8 +318,8 @@ export default function ZoneScreen() {
   );
 
   const positions = useMemo(
-    () => layoutPositions(scoredMembers.length, SCREEN_WIDTH, zoneHeight),
-    [scoredMembers.length, zoneHeight],
+    () => layoutPositions(scoredMembers.length, SCREEN_WIDTH, pulseHeight),
+    [scoredMembers.length, pulseHeight],
   );
 
   const myConfig = SIGNAL_CONFIG[mySignalType];
@@ -329,7 +329,7 @@ export default function ZoneScreen() {
       {/* ── Header ── */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900' }}>The Zone 💫</Text>
+          <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900' }}>Pulse 💗</Text>
           <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 1 }}>
             {scoredMembers.length} active · {myLocation ? '📍 on' : '📍 off'}
           </Text>
@@ -351,9 +351,9 @@ export default function ZoneScreen() {
       <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {/* Ambient glow */}
         <View style={[styles.glow, { width: 320, height: 320, borderRadius: 160,
-          backgroundColor: '#EC489907', top: zoneHeight * 0.25, alignSelf: 'center' }]} />
+          backgroundColor: '#EC489907', top: pulseHeight * 0.25, alignSelf: 'center' }]} />
         <View style={[styles.glow, { width: 480, height: 480, borderRadius: 240,
-          backgroundColor: '#A855F704', top: zoneHeight * 0.1, alignSelf: 'center' }]} />
+          backgroundColor: '#A855F704', top: pulseHeight * 0.1, alignSelf: 'center' }]} />
 
         {/* Member bubbles — sorted by matchScore (highest = largest) */}
         {scoredMembers.map((member, i) => (
@@ -362,7 +362,7 @@ export default function ZoneScreen() {
             member={member}
             matchScore={member.matchScore}
             x={positions[i]?.x ?? SCREEN_WIDTH / 2}
-            y={positions[i]?.y ?? zoneHeight / 2}
+            y={positions[i]?.y ?? pulseHeight / 2}
             onPress={() => setSelectedMember(member)}
           />
         ))}
@@ -371,7 +371,7 @@ export default function ZoneScreen() {
         <View style={{
           position: 'absolute',
           left: SCREEN_WIDTH / 2 - 40,
-          top: zoneHeight / 2 - 40,
+          top: pulseHeight / 2 - 40,
           alignItems: 'center',
         }}>
           <TouchableOpacity onPress={() => setShowSignalModal(true)}>
@@ -411,7 +411,7 @@ export default function ZoneScreen() {
             <Text style={{ color: '#9CA3AF', textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
               No one's active right now.{'\n'}
               Tap your signal above to go <Text style={{ color: '#EC4899', fontWeight: '700' }}>Available</Text> or{' '}
-              <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others' Zone.
+              <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others' Pulse.
             </Text>
           </View>
         )}
