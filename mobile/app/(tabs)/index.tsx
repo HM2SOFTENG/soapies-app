@@ -478,6 +478,7 @@ export default function HomeScreen() {
   const [composerLink, setComposerLink] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [dismissedIds, setDismissedIds] = useState<number[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [commentsPost, setCommentsPost] = useState<{ id: number; authorId?: number } | null>(null);
 
   // ── Data ────────────────────────────────────────────────────────────────────
@@ -613,15 +614,21 @@ export default function HomeScreen() {
   }
 
   async function uploadAndAttach(uri: string, mimeType: string) {
+    setIsUploading(true);
     const formData = new FormData();
     formData.append('photo', { uri, type: mimeType, name: 'attachment' } as any);
     const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
     try {
       const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-      const { url } = await res.json();
-      setComposerMedia({ uri: url, type: 'image' });
-    } catch (_) {
-      Alert.alert('Upload failed', 'Could not upload file.');
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+      const json = await res.json();
+      if (!json.url) throw new Error('No URL returned');
+      // Replace local URI with the uploaded URL so the preview shows the remote image
+      setComposerMedia({ uri: json.url, type: 'image' });
+    } catch (e: any) {
+      Alert.alert('Upload Failed', e.message ?? 'Could not upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -633,16 +640,24 @@ export default function HomeScreen() {
     let mediaType: string | undefined;
 
     if (composerMedia) {
+      // Must finish uploading before posting
+      setIsUploading(true);
       const formData = new FormData();
       formData.append('photo', { uri: composerMedia.uri, type: 'image/jpeg', name: 'post-image.jpg' } as any);
       const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
       try {
         const res = await fetch(`${API_URL}/api/upload-photo`, { method: 'POST', body: formData });
-        const { url } = await res.json();
-        mediaUrl = url;
+        if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+        const json = await res.json();
+        if (!json.url) throw new Error('No URL returned from upload');
+        mediaUrl = json.url;
         mediaType = 'image';
-      } catch (_) {
-        Alert.alert('Upload failed', 'Could not upload image. Post will be text only.');
+      } catch (e: any) {
+        setIsUploading(false);
+        Alert.alert('Upload Failed', e.message ?? 'Could not upload image. Please try again.');
+        return; // Stop — don't post without the image
+      } finally {
+        setIsUploading(false);
       }
     }
 
@@ -920,19 +935,24 @@ export default function HomeScreen() {
 
               <Pressable
                 onPress={uploadMediaAndPost}
-                disabled={(!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending}
+                disabled={(!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending || isUploading}
                 style={({ pressed }) => ({
                   transform: [{ scale: pressed ? 0.97 : 1 }],
-                  opacity: ((!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending) ? 0.5 : 1,
+                  opacity: ((!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending || isUploading) ? 0.5 : 1,
                 })}
               >
                 <LinearGradient
                   colors={[colors.pink, colors.purple]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
+                  style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
                 >
-                  {createPostMutation.isPending ? (
+                  {isUploading ? (
+                    <>
+                      <ActivityIndicator color="#fff" size="small" />
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Uploading...</Text>
+                    </>
+                  ) : createPostMutation.isPending ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Post</Text>
