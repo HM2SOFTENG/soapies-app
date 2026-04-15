@@ -8,6 +8,7 @@ import { trpc, createTRPCClient, SESSION_COOKIE_KEY } from '../lib/trpc';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
 import { ToastProvider } from '../components/Toast';
+import LoadingScreen from '../components/LoadingScreen';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,40 +23,37 @@ export const queryClient = new QueryClient({
 const trpcClient = createTRPCClient();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoading, user, setUser, logout, setHasToken } = useAuth();
+  const { isLoading, user, hasToken, setUser, logout, setHasToken } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const didValidateRef = useRef(false);
 
-  // Only validate session once on cold start (when there's no user in context yet)
-  // After login, user is set via setUser() and we don't need to re-validate
+  // Cold-start session validation — only runs when no user yet AND there's a token
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    enabled: !user && !isLoading, // only query when no user in context
+    enabled: !user && !isLoading && hasToken,
     retry: false,
-    staleTime: Infinity,          // once validated, never re-fetch automatically
+    staleTime: Infinity,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
 
-  // Sync server-validated user into context (cold start)
+  // Hydrate user from cold-start token
   useEffect(() => {
     if (meQuery.data && !user) {
-      console.log('[AuthGuard] cold start user:', (meQuery.data as any).email);
       setUser(meQuery.data as any);
-      setHasToken(true);  // ensure queries are enabled after cold-start validation
+      setHasToken(true);
     }
   }, [meQuery.data]);
 
-  // Clear token on JWT error
+  // Clear bad token — do NOT call queryClient.clear() here as it resets meQuery
+  // and causes an infinite 401 loop when there's no token at all
+  const clearedTokenRef = React.useRef(false);
   useEffect(() => {
-    if (meQuery.error) {
-      console.log('[AuthGuard] session invalid, clearing all tokens');
-      // Nuke all known key variants
+    if (meQuery.error && !clearedTokenRef.current) {
+      clearedTokenRef.current = true;
       ['app_session_cookie','app_session_id','session_token','sessionToken'].forEach(k =>
         SecureStore.deleteItemAsync(k).catch(() => {})
       );
-      queryClient.clear();
       logout();
     }
   }, [meQuery.error]);
@@ -66,68 +64,70 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     refetchOnWindowFocus: false,
   });
 
-  // Routing logic
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inSetupScreen = segments[0] === 'profile-setup';
-    const inOnboarding = segments[0] === 'onboarding';
-    const inPending = segments[0] === 'pending-approval';
+    const seg0 = segments[0] as string | undefined;
+    const inAuthGroup   = seg0 === '(auth)';
+    const inTabsGroup   = seg0 === '(tabs)';
+    const inOnboarding  = seg0 === 'onboarding';
+    const inPending     = seg0 === 'pending-approval';
+    const inSetupScreen = seg0 === 'profile-setup';
+    // Landing screen = root index (segments is empty or undefined first segment)
+    const inLanding     = seg0 === undefined || seg0 === 'index';
 
-    // User is set (either from login or cold-start validation)
+    // ── Authenticated user routing ──────────────────────────────────────────
     if (user) {
-      // Wait for profile query to resolve before making routing decisions
       if (profileQuery.isLoading) return;
 
       const profile = profileQuery.data as any;
 
-      // No profile yet → onboarding
       if (!profile && !inOnboarding) {
-        router.replace('/onboarding');
-        return;
+        router.replace('/onboarding'); return;
       }
-
-      // Profile exists but setup not complete → onboarding
       if (profile && !profile.profileSetupComplete && !inSetupScreen && !inOnboarding) {
-        router.replace('/onboarding');
-        return;
+        router.replace('/onboarding'); return;
       }
 
-      // Submitted/pending/waitlisted → pending approval screen
-      const pendingStatuses = ['submitted', 'under_review', 'waitlisted', 'interview_scheduled', 'interview_complete'];
+      const pendingStatuses = ['submitted','under_review','waitlisted','interview_scheduled','interview_complete'];
       if (profile && pendingStatuses.includes(profile.applicationStatus) && !inPending) {
-        router.replace('/pending-approval');
-        return;
+        router.replace('/pending-approval'); return;
       }
 
-      // Approved → main app
       if (profile && profile.applicationStatus === 'approved') {
-        if (inAuthGroup || inSetupScreen || inOnboarding || inPending) {
+        if (inAuthGroup || inSetupScreen || inOnboarding || inPending || inLanding) {
           router.replace('/(tabs)');
         }
         return;
       }
 
-      // Fallback: redirect away from auth/setup screens
-      if (inAuthGroup || inSetupScreen) {
+      if (inAuthGroup || inSetupScreen || inLanding) {
         router.replace('/(tabs)');
       }
       return;
     }
 
-    // No user + meQuery done + no error = server confirmed no session
-    if (!meQuery.isLoading && meQuery.fetchStatus === 'idle' && !meQuery.data) {
-      // Allow onboarding and pending-approval without full auth
-      if (!inAuthGroup && !inOnboarding && !inPending) router.replace('/(auth)/login');
-      return;
-    }
-  }, [isLoading, user, meQuery.isLoading, meQuery.fetchStatus, meQuery.data, profileQuery.isLoading, profileQuery.data, segments]);
+    // ── Unauthenticated user routing ────────────────────────────────────────
+    // If no token: meQuery never fires (disabled), fetchStatus stays 'idle'
+    // If token exists but invalid: meQuery fires, 401 error, clearedTokenRef prevents loop
+    // Either way: if not hasToken OR meQuery is done → can make routing decisions
+    const meQuerySettled = !hasToken || (!meQuery.isLoading && meQuery.fetchStatus !== 'fetching');
+    if (!meQuerySettled) return; // still waiting on server validation
 
-  // Don't render until token is loaded into memory
-  if (isLoading) {
-    return null;
-  }
+    // Allow: landing, auth screens, onboarding, pending-approval
+    // Block: tabs (shouldn't be reachable without auth)
+    if (inTabsGroup) {
+      router.replace('/');
+    }
+    // Let landing/auth/onboarding/pending render freely — no forced redirect needed
+  }, [
+    isLoading, user,
+    meQuery.isLoading, meQuery.fetchStatus, meQuery.data,
+    profileQuery.isLoading, profileQuery.data,
+    segments,
+  ]);
+
+  if (isLoading) return <LoadingScreen />;
 
   return <>{children}</>;
 }
