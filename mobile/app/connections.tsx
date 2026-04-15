@@ -51,13 +51,13 @@ export default function ConnectionsScreen() {
   const { data: myConnections, refetch: refetchConnections } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
   const { data: pendingForMe, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
   const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
+  const trimmedQuery = searchQuery.trim();
   const { data: searchResults, isLoading: searchLoading } = trpc.members.browse.useQuery(
-    { search: searchQuery.trim(), page: 0, community: 'all' },
+    { search: trimmedQuery || undefined, page: 0, community: 'all' },
     {
-      enabled: hasToken && searchQuery.trim().length > 0,
+      enabled: hasToken && trimmedQuery.length > 0,
       staleTime: 0,
-      keepPreviousData: true,
-    } as any
+    }
   );
 
   const sendRequest = trpc.partners.sendConnectionRequest.useMutation({
@@ -93,7 +93,7 @@ export default function ConnectionsScreen() {
   const connections = (myConnections as any[]) ?? [];
   const incoming = (pendingForMe as any[]) ?? [];
   const outgoing = ((myInvitations as any[]) ?? []).filter((i: any) => i.status === 'pending');
-  const members = (searchResults as any[]) ?? [];
+  const members = Array.isArray(searchResults) ? searchResults : [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
@@ -219,7 +219,7 @@ export default function ConnectionsScreen() {
               style={{ flex: 1, color: colors.text, fontSize: 15 }}
             />
           </View>
-          {searchQuery.trim().length > 0 && (
+          {trimmedQuery.length > 0 && (
             searchLoading ? (
               <View style={{ alignItems: 'center', paddingVertical: 20 }}>
                 <ActivityIndicator color={colors.pink} />
@@ -227,7 +227,7 @@ export default function ConnectionsScreen() {
               </View>
             ) : members.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                <Text style={{ color: colors.muted, fontSize: 14 }}>No members found for "{searchQuery}"</Text>
+                <Text style={{ color: colors.muted, fontSize: 14 }}>No members found for "{trimmedQuery}"</Text>
               </View>
             ) : (
               members.map((m: any) => (
