@@ -95,7 +95,7 @@ export default function EventDetailScreen() {
       utils.reservations.myReservations.invalidate();
       toast.success('🎉 Spot reserved! Check your tickets.');
     },
-    onError: (e) => {
+    onError: (e: any) => {
       console.log('[EventDetail] reserve error:', e.message);
       toast.error(e.message);
     },
@@ -107,7 +107,7 @@ export default function EventDetailScreen() {
       refetchWaitlist();
       Alert.alert('✅ Added to Waitlist', "We'll notify you if a spot opens up!");
     },
-    onError: (e) => {
+    onError: (e: any) => {
       console.log('[EventDetail] waitlist error:', e.message);
       Alert.alert('Error', e.message);
     },
@@ -120,7 +120,7 @@ export default function EventDetailScreen() {
         await WebBrowser.openBrowserAsync(result.url);
       }
     },
-    onError: (e) => {
+    onError: (e: any) => {
       console.log('[EventDetail] checkout error:', e.message);
       Alert.alert('Payment Error', e.message);
     },

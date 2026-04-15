@@ -49,12 +49,12 @@ export default function AdminAnnouncementsScreen() {
       setForm({ title: '', content: '', isPinned: false, dismissible: true });
       Alert.alert('✅ Created', 'Announcement published successfully.');
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const deactivateMutation = trpc.announcements.deactivate.useMutation({
     onSuccess: () => utils.announcements.list.invalidate(),
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   // Guard AFTER all hooks

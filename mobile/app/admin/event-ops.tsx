@@ -217,22 +217,22 @@ export default function EventOpsScreen() {
   // Mutations
   const creditVolunteerMutation = trpc.admin.creditVolunteer.useMutation({
     onSuccess: () => { Alert.alert('✅ Credit Issued', 'Volunteer has been credited their ticket amount.'); refetchReservations(); },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const markNoShowMutation = trpc.admin.markVolunteerNoShow.useMutation({
     onSuccess: () => { Alert.alert('⚠️ Marked No-Show', 'Volunteer has been marked as no-show.'); refetchReservations(); },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const sendRemindersMutation = trpc.admin.sendEventReminders.useMutation({
     onSuccess: (data: any) => Alert.alert('📨 Reminders Sent', `Sent reminders to ${data.count} attendees.`),
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const manualCheckinMutation = trpc.reservations.updateStatus.useMutation({
     onSuccess: () => refetchReservations(),
-    onError: (e) => Alert.alert('Check-In Error', e.message),
+    onError: (e: any) => Alert.alert('Check-In Error', e.message),
   });
 
   const checkInMutation = trpc.reservations.checkInByQR.useMutation();

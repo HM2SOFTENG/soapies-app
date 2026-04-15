@@ -1891,3 +1891,20 @@ export async function getMemberSignal(userId: number): Promise<any | null> {
   `);
   return ((rows as any)[0] as any[])[0] ?? null;
 }
+
+export async function addCredit(userId: number, amount: number, creditType: string, description: string): Promise<void> {
+  const db = await getDb(); if (!db) return;
+  // Get current balance to compute running total
+  const balanceRow = await db.select({ balance: sql<number>`COALESCE(SUM(${memberCredits.amount}), 0)` })
+    .from(memberCredits).where(eq(memberCredits.userId, userId));
+  const currentBalance = parseFloat(String(balanceRow[0]?.balance ?? 0));
+  const validTypes = ['referral', 'cancellation', 'admin_grant', 'promo', 'debit'] as const;
+  const resolvedType = validTypes.includes(creditType as any) ? (creditType as any) : 'admin_grant';
+  await db.insert(memberCredits).values({
+    userId,
+    amount: String(amount),
+    type: resolvedType,
+    description,
+    balance: String(currentBalance + amount),
+  });
+}

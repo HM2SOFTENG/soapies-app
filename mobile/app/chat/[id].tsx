@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
@@ -60,7 +61,7 @@ export default function ChatScreen() {
 
   const sendMutation = trpc.messages.send.useMutation({
     onSuccess: () => { setText(''); refetch(); },
-    onError: (err) => Alert.alert('Could not send message', err.message),
+    onError: (err: any) => Alert.alert('Could not send message', err.message),
   });
 
   const reactMutation = trpc.messages.addReaction.useMutation({

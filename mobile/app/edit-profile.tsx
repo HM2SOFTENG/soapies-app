@@ -57,7 +57,7 @@ export default function EditProfileScreen() {
       toast.success('Profile updated!');
       router.back();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error('[EditProfile] upsert error:', err.message);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.error('Failed to save profile');

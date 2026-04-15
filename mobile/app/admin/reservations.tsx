@@ -43,7 +43,7 @@ export default function AdminReservationsScreen() {
       utils.admin.pendingVenmoReservations.invalidate();
       utils.admin.stats.invalidate();
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const rejectMutation = trpc.admin.rejectReservation.useMutation({
@@ -51,7 +51,7 @@ export default function AdminReservationsScreen() {
       utils.admin.pendingVenmoReservations.invalidate();
       utils.admin.stats.invalidate();
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   // Guard AFTER all hooks

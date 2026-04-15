@@ -34,7 +34,7 @@ export default function ResetPasswordScreen() {
         [{ text: 'Sign In', onPress: () => router.replace('/(auth)/login') }],
       );
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error('[ResetPassword] error:', err.message);
       Alert.alert('Reset Failed', err.message ?? 'Invalid or expired code. Please try again.');
     },

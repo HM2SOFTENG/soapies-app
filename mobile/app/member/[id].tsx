@@ -27,10 +27,10 @@ export default function MemberProfileScreen() {
   );
 
   const createConversation = trpc.messages.createConversation.useMutation({
-    onSuccess: (conversationId) => {
+    onSuccess: (conversationId: any) => {
       router.push(`/chat/${conversationId}` as any);
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const m = member as any;

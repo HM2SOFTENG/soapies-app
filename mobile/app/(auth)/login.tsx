@@ -44,7 +44,7 @@ export default function LoginScreen() {
       // 4. Navigate
       router.replace('/(tabs)');
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error('[Login] onError:', JSON.stringify(err));
       const msg = err?.message || err?.data?.message || 'Please check your credentials and try again.';
       Alert.alert('Sign In Failed', msg);

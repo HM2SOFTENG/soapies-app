@@ -312,12 +312,12 @@ function CommentsSheet({
 
   const addComment = trpc.wall.addComment.useMutation({
     onSuccess: () => { setCommentText(''); refetchComments(); },
-    onError: (err) => Alert.alert('Error', err.message),
+    onError: (err: any) => Alert.alert('Error', err.message),
   });
 
   const deletePost = trpc.wall.deletePost.useMutation({
     onSuccess: () => { onClose(); onRefreshFeed(); },
-    onError: (err) => Alert.alert('Error', err.message),
+    onError: (err: any) => Alert.alert('Error', err.message),
   });
 
   const comments = (commentsData as any[]) ?? [];
@@ -513,7 +513,7 @@ export default function HomeScreen() {
 
   const likeMutation = trpc.wall.like.useMutation({
     onSuccess: () => { refetchPosts(); myLikes.refetch(); },
-    onError: (err) => Alert.alert('Could not like post', err.message),
+    onError: (err: any) => Alert.alert('Could not like post', err.message),
   });
 
   const createPostMutation = trpc.wall.create.useMutation({
@@ -526,7 +526,7 @@ export default function HomeScreen() {
       setShowComposer(false);
       toast.success('Post shared!');
     },
-    onError: (err) => Alert.alert('Error', err.message),
+    onError: (err: any) => Alert.alert('Error', err.message),
   });
 
   const deletePostMutation = trpc.wall.deletePost.useMutation({
@@ -534,7 +534,7 @@ export default function HomeScreen() {
       utils.wall.posts.invalidate();
       toast.success('Post deleted');
     },
-    onError: (err) => Alert.alert('Error', err.message),
+    onError: (err: any) => Alert.alert('Error', err.message),
   });
 
   // ── Derived data ────────────────────────────────────────────────────────────

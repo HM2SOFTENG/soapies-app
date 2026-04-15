@@ -97,7 +97,7 @@ export default function AdminEventsScreen() {
       resetForm();
       Alert.alert('✅ Created', 'Event created successfully.');
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const updateMutation = trpc.events.update.useMutation({
@@ -106,7 +106,7 @@ export default function AdminEventsScreen() {
       setEditEvent(null);
       Alert.alert('✅ Updated', 'Event updated successfully.');
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   // Guard AFTER all hooks

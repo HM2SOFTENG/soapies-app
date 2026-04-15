@@ -413,7 +413,7 @@ export default function OnboardingScreen() {
         updated[idx] = { localUri: asset.uri, remoteUrl, uploading: false };
         return updated;
       });
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Photo upload failed');
       setPhotos((prev) => prev.filter((_, i) => i !== index));
     }

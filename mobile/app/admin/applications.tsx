@@ -35,7 +35,7 @@ export default function AdminApplicationsScreen() {
       utils.admin.pendingApplications.invalidate();
       utils.admin.stats.invalidate();
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   // Guard AFTER all hooks

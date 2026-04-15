@@ -56,14 +56,14 @@ export default function ProfileSetupScreen() {
   const upsertMutation = trpc.profile.upsert.useMutation({
     onSuccess: async () => {
       try {
-        await completeSetupMutation.mutateAsync({});
+        await completeSetupMutation.mutateAsync();
       } catch {
         // Even if this fails, proceed to tabs
       }
       toast.success('Profile setup complete! Welcome 🎉');
       router.replace('/(tabs)');
     },
-    onError: (e) => Alert.alert('Error', e.message),
+    onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const completeSetupMutation = trpc.profile.completeProfileSetup.useMutation();
@@ -95,7 +95,7 @@ export default function ProfileSetupScreen() {
       const { url } = await res.json();
       console.log('[ProfileSetup] uploaded URL:', url);
       setAvatarUrl(url);
-    } catch (e) {
+    } catch (e: any) {
       toast.error('Photo upload failed. Please try again.');
     } finally {
       setIsUploading(false);

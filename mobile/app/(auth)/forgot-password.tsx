@@ -38,7 +38,7 @@ export default function ForgotPasswordScreen() {
         ],
       );
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error('[ForgotPassword] error:', err.message);
       Alert.alert('Error', err.message ?? 'Failed to send reset code. Please try again.');
     },
