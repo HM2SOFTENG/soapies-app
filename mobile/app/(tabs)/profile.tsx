@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   Share,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -138,7 +138,7 @@ export default function ProfileScreen() {
         title: 'Soapies Referral',
       });
     } catch (err: any) {
-      console.error('[Profile] share error:', err);
+      if (__DEV__) console.error('[Profile] share error:', err);
     }
   }
 

@@ -6,6 +6,8 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -155,6 +157,7 @@ function Accordion({ title, children }: { title: string; children: React.ReactNo
 export default function PendingApprovalScreen() {
   const router = useRouter();
   const { logout } = useAuth();
+  const [slotModalOpen, setSlotModalOpen] = useState(false);
 
   const profileQuery = trpc.profile.me.useQuery(undefined, {
     refetchInterval: 30_000, // poll every 30 seconds
@@ -165,6 +168,26 @@ export default function PendingApprovalScreen() {
   const status = profile?.applicationStatus ?? 'submitted';
   const phase = profile?.applicationPhase ?? null;
   const config = getStatusConfig(status, phase);
+  const hasBookedSlot = !!profile?.introCallSlotId;
+
+  // Only fetch when modal is actually open — avoids unnecessary load for everyone
+  const slotsQuery = trpc.introCalls.available.useQuery(undefined, {
+    enabled: slotModalOpen,
+    staleTime: 30_000,
+  });
+
+  const utils = trpc.useUtils?.() ?? (trpc as any).useContext?.();
+  const bookSlotMutation = trpc.introCalls.book.useMutation({
+    onSuccess: () => {
+      setSlotModalOpen(false);
+      profileQuery.refetch();
+      utils?.introCalls?.available.invalidate?.();
+      Alert.alert('Booked!', "You're scheduled. We'll send a confirmation email shortly.");
+    },
+    onError: (err: any) => {
+      Alert.alert('Could not book slot', err?.message ?? 'Please try another time.');
+    },
+  });
 
   // Auto-redirect when approved
   useEffect(() => {
@@ -212,9 +235,16 @@ export default function PendingApprovalScreen() {
             <TouchableOpacity
               style={[styles.scheduleBtn, { backgroundColor: config.bgColor, borderColor: config.color }]}
               activeOpacity={0.8}
+              onPress={() => setSlotModalOpen(true)}
             >
-              <Ionicons name="calendar-outline" size={16} color={config.color} />
-              <Text style={[styles.scheduleBtnText, { color: config.color }]}>Schedule Your Call</Text>
+              <Ionicons
+                name={hasBookedSlot ? 'calendar' : 'calendar-outline'}
+                size={16}
+                color={config.color}
+              />
+              <Text style={[styles.scheduleBtnText, { color: config.color }]}>
+                {hasBookedSlot ? 'Reschedule Call' : 'Schedule Your Call'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -255,6 +285,69 @@ export default function PendingApprovalScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* Intro-call slot picker modal */}
+      <Modal
+        visible={slotModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSlotModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Pick an interview slot</Text>
+              <TouchableOpacity
+                onPress={() => setSlotModalOpen(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            {slotsQuery.isLoading ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <ActivityIndicator color={colors.pink} />
+              </View>
+            ) : (slotsQuery.data ?? []).length === 0 ? (
+              <Text style={styles.modalEmpty}>
+                No slots available right now. Please check back soon — we release new times regularly.
+              </Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                {(slotsQuery.data ?? []).map((slot: any) => {
+                  const d = new Date(slot.scheduledAt);
+                  const pretty = d.toLocaleString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  });
+                  const busy = bookSlotMutation.isPending;
+                  return (
+                    <TouchableOpacity
+                      key={slot.id}
+                      style={styles.slotRow}
+                      activeOpacity={0.8}
+                      disabled={busy}
+                      onPress={() => bookSlotMutation.mutate({ slotId: slot.id })}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.slotTime}>{pretty}</Text>
+                        <Text style={styles.slotDuration}>{slot.duration ?? 20} min · video call</Text>
+                      </View>
+                      {busy
+                        ? <ActivityIndicator size="small" color={colors.pink} />
+                        : <Ionicons name="chevron-forward" size={18} color={colors.muted} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -449,5 +542,63 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // Slot picker modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.border,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  modalEmpty: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  slotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    backgroundColor: colors.bg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 8,
+  },
+  slotTime: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  slotDuration: {
+    color: colors.muted,
+    fontSize: 12,
   },
 });

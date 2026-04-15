@@ -5,14 +5,15 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Alert,
   Modal,
   FlatList,
   TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { trpc } from '../../lib/trpc';
@@ -42,6 +43,11 @@ export default function EventDetailScreen() {
   const [modalStep, setModalStep] = useState<'ticket' | 'partner'>('ticket');
   const [isQueerPlay, setIsQueerPlay] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
+
+  // Waiver gate (P1-4 / ITEM-025). Bump this when the waiver text materially changes.
+  const WAIVER_VERSION = '2026-04';
+  const [showWaiverModal, setShowWaiverModal] = useState(false);
+  const [waiverSignature, setWaiverSignature] = useState('');
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: event, isLoading } = trpc.events.byId.useQuery(
@@ -95,6 +101,20 @@ export default function EventDetailScreen() {
     { eventId: Number(id) },
     { enabled: !!id },
   );
+
+  // Waiver mutation — used by the gate modal before proceeding to reservation.
+  const signWaiverMutation = trpc.profile.signWaiver.useMutation({
+    onSuccess: () => {
+      utils.profile.me.invalidate();
+      setShowWaiverModal(false);
+      setWaiverSignature('');
+      // After signing, carry through with the reservation the user originally attempted.
+      doReserve();
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? 'Could not record waiver. Please try again.');
+    },
+  });
 
   const reserveMutation = trpc.reservations.create.useMutation({
     onSuccess: () => {
@@ -200,7 +220,9 @@ export default function EventDetailScreen() {
     }
   }
 
-  function handleReserve() {
+  // Actual reservation mutation call — separated so the waiver gate can
+  // defer it, then re-invoke post-sign without re-entering the modal flow.
+  function doReserve() {
     reserveMutation.mutate({
       eventId: Number(id),
       ticketType,
@@ -211,6 +233,19 @@ export default function EventDetailScreen() {
       orientationSignal: isQueerPlay ? 'queer' : 'straight',
       isVolunteer,
     });
+  }
+
+  // Waiver gate (P1-4, ITEM-025 client-side):
+  // If profile.waiverSignedAt is missing, open the waiver modal instead of
+  // reserving. The onboarding flow collects a waiver checkbox, but profiles
+  // created before that shipped can still be missing a recorded signature.
+  function handleReserve() {
+    const signedAt = (profileData as any)?.waiverSignedAt;
+    if (!signedAt) {
+      setShowWaiverModal(true);
+      return;
+    }
+    doReserve();
   }
 
   function handleOpenTicketModal() {
@@ -315,14 +350,11 @@ export default function EventDetailScreen() {
 
     return (
       <TouchableOpacity onPress={handleOpenTicketModal} activeOpacity={0.85}>
-        <LinearGradient
-          colors={[colors.pink, colors.purple]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+        <BrandGradient
           style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
         >
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Reserve Now</Text>
-        </LinearGradient>
+        </BrandGradient>
       </TouchableOpacity>
     );
   }
@@ -333,7 +365,7 @@ export default function EventDetailScreen() {
         {/* Hero */}
         <View style={{ height: 280, position: 'relative' }}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           ) : (
             <LinearGradient
               colors={['#7C3AED', '#EC4899']}
@@ -545,10 +577,7 @@ export default function EventDetailScreen() {
                   activeOpacity={0.85}
                   style={{ marginTop: 8 }}
                 >
-                  <LinearGradient
-                    colors={[colors.pink, colors.purple]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
+                  <BrandGradient
                     style={{
                       borderRadius: 14,
                       paddingVertical: 16,
@@ -561,7 +590,7 @@ export default function EventDetailScreen() {
                     ) : (
                       <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
                     )}
-                  </LinearGradient>
+                  </BrandGradient>
                 </TouchableOpacity>
               </>
             ) : (
@@ -658,10 +687,7 @@ export default function EventDetailScreen() {
                   disabled={reserveMutation.isPending || !partnerUserId}
                   activeOpacity={0.85}
                 >
-                  <LinearGradient
-                    colors={[colors.pink, colors.purple]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
+                  <BrandGradient
                     style={{
                       borderRadius: 14,
                       paddingVertical: 16,
@@ -674,7 +700,7 @@ export default function EventDetailScreen() {
                     ) : (
                       <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
                     )}
-                  </LinearGradient>
+                  </BrandGradient>
                 </TouchableOpacity>
               </>
             )}
@@ -725,9 +751,14 @@ export default function EventDetailScreen() {
               />
             </View>
 
+            {/* perf: removeClippedSubviews, windowSize, initialNumToRender, maxToRenderPerBatch */}
             <FlatList
               data={filteredMembers}
               keyExtractor={(item: any) => String(item.id)}
+              removeClippedSubviews={true}
+              windowSize={7}
+              initialNumToRender={10}
+              maxToRenderPerBatch={8}
               renderItem={({ item }: { item: any }) => (
                 <TouchableOpacity
                   onPress={() => {
@@ -767,6 +798,91 @@ export default function EventDetailScreen() {
               }
               style={{ maxHeight: 320 }}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ───── Waiver gate modal (P1-4 / ITEM-025) ─────────────────────────── */}
+      <Modal visible={showWaiverModal} animationType="slide" transparent onRequestClose={() => setShowWaiverModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: colors.card,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 20,
+            paddingBottom: 36,
+            borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
+            borderColor: colors.border,
+            maxHeight: '90%',
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Community Waiver</Text>
+              <TouchableOpacity
+                onPress={() => { setShowWaiverModal(false); setWaiverSignature(''); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 260, marginBottom: 16 }} showsVerticalScrollIndicator>
+              <Text style={{ color: colors.text, fontSize: 14, lineHeight: 22 }}>
+                Before reserving, please acknowledge the Soapies community agreement.
+                {'\n\n'}
+                <Text style={{ fontWeight: '700' }}>Consent:</Text> All interaction at community events is based on enthusiastic consent. "No" is always respected. Consent can be withdrawn at any time.
+                {'\n\n'}
+                <Text style={{ fontWeight: '700' }}>Confidentiality:</Text> What happens at an event stays at the event. Do not share photos, identities, or stories of other members without their explicit permission.
+                {'\n\n'}
+                <Text style={{ fontWeight: '700' }}>Safety:</Text> You participate at your own risk. You agree to follow venue rules, operator instructions, and community guidelines. You will not participate while impaired beyond your ability to give consent.
+                {'\n\n'}
+                <Text style={{ fontWeight: '700' }}>Liability:</Text> You release Soapies, its organizers, hosts, and venue partners from liability for any injury, loss, or damage arising from your voluntary participation, except in cases of gross negligence.
+                {'\n\n'}
+                <Text style={{ fontWeight: '700' }}>Enforcement:</Text> Violations may result in removal from the event and suspension or termination of your Soapies membership without refund.
+                {'\n\n'}
+                By typing your full legal name below, you acknowledge that you have read, understood, and agreed to this waiver (version {WAIVER_VERSION}).
+              </Text>
+            </ScrollView>
+
+            <TextInput
+              value={waiverSignature}
+              onChangeText={setWaiverSignature}
+              placeholder="Type your full legal name"
+              placeholderTextColor={colors.muted}
+              style={{
+                backgroundColor: colors.bg,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                color: colors.text,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                marginBottom: 14,
+                fontSize: 15,
+              }}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+
+            <TouchableOpacity
+              onPress={() => signWaiverMutation.mutate({ signature: waiverSignature.trim(), version: WAIVER_VERSION })}
+              disabled={signWaiverMutation.isPending || waiverSignature.trim().length < 2}
+              activeOpacity={0.85}
+            >
+              <BrandGradient
+                style={{
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  opacity: (signWaiverMutation.isPending || waiverSignature.trim().length < 2) ? 0.4 : 1,
+                }}
+              >
+                {signWaiverMutation.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Agree &amp; Continue to Reserve</Text>
+                )}
+              </BrandGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -239,10 +240,15 @@ export default function ConnectionsScreen() {
               </Text>
               <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}>Select your relationship dynamic</Text>
             </View>
+            {/* perf: removeClippedSubviews, windowSize, initialNumToRender, maxToRenderPerBatch */}
             <FlatList
               data={RELATIONSHIP_TYPES}
               keyExtractor={item => item.value}
               contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+              removeClippedSubviews={true}
+              windowSize={7}
+              initialNumToRender={10}
+              maxToRenderPerBatch={8}
               renderItem={({ item }) => {
                 const selected = selectedRelType === item.value;
                 return (
@@ -274,11 +280,11 @@ export default function ConnectionsScreen() {
                 }}
                 disabled={sendRequest.isPending}
               >
-                <LinearGradient colors={[colors.pink, colors.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', opacity: sendRequest.isPending ? 0.6 : 1 }}>
+                <BrandGradient style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', opacity: sendRequest.isPending ? 0.6 : 1 }}>
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
                     {sendRequest.isPending ? 'Sending...' : 'Send Connection Request 💗'}
                   </Text>
-                </LinearGradient>
+                </BrandGradient>
               </TouchableOpacity>
             </View>
           </View>

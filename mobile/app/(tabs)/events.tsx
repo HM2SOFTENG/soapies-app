@@ -11,11 +11,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
-  Image,
   Modal,
   StyleSheet,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -140,7 +141,7 @@ function EventThumbnail({ event, size = 88 }: { event: any; size?: number }) {
           source={{ uri: event.coverImageUrl }}
           style={{ width: size, height: size }}
           onError={() => setImgError(true)}
-          resizeMode="cover"
+          contentFit="cover"
         />
       ) : (
         <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -373,7 +374,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
       {/* Background image or gradient */}
       <Animated.View style={{ position: 'absolute', inset: 0, transform: [{ scale: imageScale }] }}>
         {hasImage ? (
-          <Image source={{ uri: event.coverImageUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" onError={() => setImgError(true)} />
+          <Image source={{ uri: event.coverImageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" onError={() => setImgError(true)} />
         ) : (
           <LinearGradient colors={[`${grad[0]}EE`, `${grad[1]}CC`, `${colors.bg}FF`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />
         )}
@@ -410,13 +411,11 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
       {event ? (
         <Animated.View style={[styles.heroContent, { opacity: contentOpacity }]}>
           {/* Countdown pill */}
-          <LinearGradient
-            colors={[colors.pink, colors.purple]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          <BrandGradient
             style={styles.countdownPill}
           >
             <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>🎟 {countdown}</Text>
-          </LinearGradient>
+          </BrandGradient>
 
           <Text style={styles.heroTitle} numberOfLines={2}>{event.title}</Text>
 
@@ -445,15 +444,13 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>You're Going! ✅</Text>
                 </LinearGradient>
               ) : (
-                <LinearGradient
-                  colors={[colors.pink, colors.purple]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                <BrandGradient
                   style={styles.heroBtn}
                 >
                   <Ionicons name="ticket-outline" size={16} color="#fff" />
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Reserve My Spot</Text>
                   <Ionicons name="arrow-forward" size={14} color="#fff" />
-                </LinearGradient>
+                </BrandGradient>
               )}
             </TouchableOpacity>
           </Animated.View>

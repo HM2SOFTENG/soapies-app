@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleProp, ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../lib/colors';
 import { getInitials } from '../lib/utils';
@@ -30,7 +31,7 @@ const Avatar = React.memo(function Avatar({ name, url, size = 'md', style }: Ava
       <Image
         source={{ uri: url }}
         style={[{ width: px, height: px, borderRadius }, style as any]}
-        resizeMode="cover"
+        contentFit="cover"
       />
     );
   }

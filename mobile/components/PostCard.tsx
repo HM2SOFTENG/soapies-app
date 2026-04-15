@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
-import { View, Text, Image, Animated, Pressable, TouchableOpacity, Alert, Share, Linking } from 'react-native';
+import { View, Text, Animated, Pressable, TouchableOpacity, Alert, Share, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -216,8 +217,8 @@ const PostCard = React.memo(function PostCard({
           <Image
             source={{ uri: post.mediaUrl }}
             style={{ width: '100%', height: 200 }}
-            resizeMode="cover"
-            onError={(e) => console.log('[PostCard] image load error:', e.nativeEvent.error, 'url:', post.mediaUrl)}
+            contentFit="cover"
+            onError={(e) => { if (__DEV__) console.log('[PostCard] image load error:', e, 'url:', post.mediaUrl); }}
           />
         </View>
       ) : null}

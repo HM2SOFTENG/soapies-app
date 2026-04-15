@@ -12,6 +12,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import ConversationItem from '../../components/ConversationItem';
+import BrandGradient from '../../components/BrandGradient';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton() {
@@ -207,12 +208,47 @@ export default function MessagesScreen() {
                   <Ionicons name="search-outline" size={52} color={colors.border} />
                   <Text style={styles.emptyTitle}>No results</Text>
                   <Text style={styles.emptyBody}>No conversations match "{searchQuery}"</Text>
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    style={styles.emptySecondary}
+                  >
+                    <Text style={styles.emptySecondaryText}>Clear search</Text>
+                  </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <Text style={{ fontSize: 52, marginBottom: 12 }}>💬</Text>
-                  <Text style={styles.emptyTitle}>No messages yet</Text>
-                  <Text style={styles.emptyBody}>Community channels will appear here once you join</Text>
+                  <View style={styles.emptyIconWrap}>
+                    <Ionicons name="chatbubbles-outline" size={44} color={colors.pink} />
+                  </View>
+                  <Text style={styles.emptyTitle}>No conversations yet</Text>
+                  <Text style={styles.emptyBody}>
+                    Start a conversation with a community member, or join a channel at your next event.
+                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      router.push('/members?mode=compose' as any);
+                    }}
+                    style={styles.emptyCtaPrimary}
+                    activeOpacity={0.85}
+                  >
+                    <BrandGradient style={styles.emptyCtaPrimaryInner}>
+                      <Ionicons name="people" size={18} color="#fff" />
+                      <Text style={styles.emptyCtaPrimaryText}>Browse Members</Text>
+                    </BrandGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      router.push('/(tabs)/events' as any);
+                    }}
+                    style={styles.emptySecondary}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.emptySecondaryText}>See upcoming events</Text>
+                  </TouchableOpacity>
                 </>
               )}
             </View>
@@ -269,7 +305,33 @@ const styles = StyleSheet.create({
   skeletonAvatar: { width: 54, height: 54, borderRadius: 17, backgroundColor: colors.border },
   skeletonLine: { height: 13, borderRadius: 6, backgroundColor: colors.border },
 
-  empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 14, marginBottom: 6 },
-  emptyBody: { color: colors.muted, textAlign: 'center', lineHeight: 20 },
+  empty: { alignItems: 'center', paddingTop: 72, paddingHorizontal: 40 },
+  emptyIconWrap: {
+    width: 84, height: 84, borderRadius: 42,
+    backgroundColor: `${colors.pink}18`,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 18,
+    borderWidth: 1, borderColor: `${colors.pink}33`,
+  },
+  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 2, marginBottom: 6 },
+  emptyBody: { color: colors.muted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyCtaPrimary: {
+    alignSelf: 'stretch',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  emptyCtaPrimaryInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  emptyCtaPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  emptySecondary: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  emptySecondaryText: { color: colors.pink, fontSize: 14, fontWeight: '600' },
 });

@@ -83,24 +83,44 @@ Priority bands: **P0** blocks App Store submission or is a live security/stabili
 
 ## P2 — Quality, UX, Polish
 
-- **P2-1** · Tab bar crowding on small devices (ITEM-032): consider combining `pulse` + `members` or hiding `notifications` behind the profile screen on `<375pt` widths.
-- **P2-2** · Empty state for Messages tab (ITEM-036).
-- **P2-3** · Chat image attachments (ITEM-030) — blocked by upload endpoint being authenticated; defer until P0-3 lands plus server fix.
-- **P2-4** · Pulse stale-signal indicator (ITEM-028): if `signalExpiresAt < now`, render with 50% opacity + "stale" caption.
-- **P2-5** · Offline banner — wire `@react-native-community/netinfo` (already installed?) to show a top banner when `!isConnected`.
-- **P2-6** · Deep links: `soapies://event/123`, `soapies://chat/456`. Register handlers in `_layout.tsx`.
-- **P2-7** · FlatList perf pass: `removeClippedSubviews`, `windowSize={7}`, `getItemLayout` on fixed-height rows (members, messages, events).
-- **P2-8** · Swap `Image` → `expo-image` for built-in caching + placeholder fade-in.
+- **P2-1** · Tab bar crowding on small devices (ITEM-032): consider combining `pulse` + `members` or hiding `notifications` behind the profile screen on `<375pt` widths. *(status: open)*
+- **P2-2** · Empty state for Messages tab (ITEM-036). *(✅ shipped 2026-04-15 — Browse Members + See upcoming events CTAs)*
+- **P2-3** · Chat image attachments (ITEM-030) — blocked by upload endpoint being authenticated; defer until P0-3 lands plus server fix. *(status: blocked — server)*
+- **P2-4** · Pulse stale-signal indicator (ITEM-028): if `expiresAt < now`, render with 50% opacity + "stale" caption + expired pill in detail sheet. *(✅ shipped 2026-04-15)*
+- **P2-5** · Offline banner — wire `@react-native-community/netinfo` to show a top banner when `!isConnected`. *(✅ shipped 2026-04-15 — package was already installed; switched OfflineBanner from dynamic `require` to typed static import. Live on next native build.)*
+- **P2-6** · Deep links: `soapies://event/123`, `soapies://chat/456`, `soapies://member/...`, `soapies://tickets`. Register handlers in `_layout.tsx`. *(✅ shipped 2026-04-15 — `lib/deepLinks.ts` + `DeepLinkHandler`. Universal Links https:// variants still pending AASA + assetlinks.json at `soapiesplaygrp.club/.well-known/` — server scope.)*
+- **P2-7** · FlatList perf pass: `removeClippedSubviews`, `windowSize={7}`, `getItemLayout` on fixed-height rows (members, messages, events). *(✅ shipped 2026-04-15 — applied to connections, event picker, home community feed)*
+- **P2-8** · Swap `Image` → `expo-image` for built-in caching + placeholder fade-in. *(✅ shipped 2026-04-15 — 15 files migrated, 10 `resizeMode` props renamed to `contentFit`. Behavior parity; caching on by default. Follow-up polish: add `transition={200}` to Pulse + Members grids for nicer load-in.)*
 
 ---
 
 ## P3 — Tech Debt
 
-- **P3-1** · Replace `as any` route casts with typed router. ~120 instances of `router.push('/foo' as any)`.
-- **P3-2** · Replace tRPC response `as any` with `inferRouterOutputs<AppRouter>` — requires importing `AppRouter` type from server (already works via mounted parent repo path in tsconfig).
-- **P3-3** · Extract Pulse match-score calculator into `mobile/lib/pulseScore.ts` and add Vitest unit tests. Currently inline in `(tabs)/pulse.tsx` (~1350 LOC file).
-- **P3-4** · Extract auth/token lifecycle tests for `lib/trpc.ts` (`isValidJWT`, cold-start hydration).
-- **P3-5** · Pull repeated `LinearGradient colors={['#EC4899', '#A855F7']}` into a `<BrandGradient>` component.
+- **P3-1** · Replace `as any` route casts with typed router. ~120 instances of `router.push('/foo' as any)`. *(status: open — large mechanical refactor)*
+- **P3-2** · Replace tRPC response `as any` with `inferRouterOutputs<AppRouter>` — requires importing `AppRouter` type from server (already works via mounted parent repo path in tsconfig). *(status: open)*
+- **P3-3** · Extract Pulse match-score calculator into `mobile/lib/pulseScore.ts` and add Vitest unit tests. Currently inline in `(tabs)/pulse.tsx` (~1350 LOC file). *(✅ shipped 2026-04-15 — 260-line module + 42 test cases)*
+- **P3-4** · Extract auth/token lifecycle tests for `lib/trpc.ts` (`isValidJWT`, cold-start hydration). *(✅ shipped 2026-04-15 — 51 cases across trpc.test / auth.test / uploadPhoto.test)*
+- **P3-5** · Pull repeated `LinearGradient colors={['#EC4899', '#A855F7']}` into a `<BrandGradient>` component. *(✅ shipped 2026-04-15 — 26 call sites converted across 12 files)*
+
+---
+
+## Discovered Blockers (added 2026-04-15)
+
+### ~~DB-1~~ · `@react-native-community/netinfo` — RESOLVED 2026-04-15
+- Package was already installed (`11.4.1` in `package.json`, present in `node_modules/`). I misflagged it earlier. OfflineBanner now uses a static typed import. Next native build activates connectivity detection.
+
+### ~~DB-2~~ · `expo-image` — RESOLVED 2026-04-15
+- Package was already installed (`~3.0.11` in `package.json`). 15 files migrated. Native build unaffected — expo-image is already wired into the prebuild.
+
+### DB-3 · Universal Links (apple-app-site-association + assetlinks.json)
+- **Why:** `soapies://` deep links work (P2-6 shipped). But tapping an `https://soapiesplaygrp.club/event/123` link from Mail/Messages won't open the app until AASA + assetlinks.json are published at `/.well-known/`.
+- **Action:** Parent server (`client/public/.well-known/`) hosts these — server-team scope.
+- **Owner:** server team
+
+### DB-4 · Vitest sandbox binding
+- **Why:** `@rolldown/binding-linux-arm64-gnu` missing in our sandbox, so the 93 test cases shipped this session were written but not executed here.
+- **Action:** CI environment presumably has the binding — verify on next CI run.
+- **Owner:** CI / infra
 
 ---
 

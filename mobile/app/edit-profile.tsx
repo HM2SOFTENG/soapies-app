@@ -11,11 +11,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import BrandGradient from '../components/BrandGradient';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
@@ -59,7 +60,7 @@ export default function EditProfileScreen() {
       router.back();
     },
     onError: (err: any) => {
-      console.error('[EditProfile] upsert error:', err.message);
+      if (__DEV__) console.error('[EditProfile] upsert error:', err.message);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       toast.error('Failed to save profile');
     },
@@ -294,10 +295,7 @@ export default function EditProfileScreen() {
                 opacity: saving ? 0.7 : pressed ? 0.9 : 1,
               })}
             >
-              <LinearGradient
-                colors={[colors.pink, colors.purple]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+              <BrandGradient
                 style={{
                   paddingVertical: 16,
                   alignItems: 'center',
@@ -314,7 +312,7 @@ export default function EditProfileScreen() {
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Save Profile</Text>
                   </>
                 )}
-              </LinearGradient>
+              </BrandGradient>
             </Pressable>
           </View>
         </ScrollView>

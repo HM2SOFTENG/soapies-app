@@ -1,6 +1,7 @@
 import '../global.css';
 import React, { useEffect, useRef } from 'react';
 import { Slot, Stack, useRouter, useSegments } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
@@ -10,6 +11,8 @@ import { StatusBar } from 'expo-status-bar';
 import { ToastProvider } from '../components/Toast';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorBoundary from '../components/ErrorBoundary';
+import OfflineBanner from '../components/OfflineBanner';
+import { parseDeepLink } from '../lib/deepLinks';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -133,15 +136,59 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function DeepLinkHandler({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      try {
+        const parsed = parseDeepLink(url);
+        if (!parsed) {
+          if (__DEV__) console.warn('[deepLink] failed to parse:', url);
+          return;
+        }
+
+        // Map parsed deep link to expo-router route
+        const routeMap: Record<string, string> = {
+          'event': `/event/${parsed.id}`,
+          'chat': `/chat/${parsed.id}`,
+          'member': `/member/${parsed.id}`,
+          'ticket': `/tickets`, // tickets is a tab-accessible screen
+        };
+
+        const route = routeMap[parsed.type];
+        if (route) {
+          (router as any).push(route);
+        } else {
+          if (__DEV__) console.warn('[deepLink] unknown type:', parsed.type);
+        }
+      } catch (error) {
+        if (__DEV__) console.error('[deepLink] error handling url:', error);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
+
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
+  // ErrorBoundary must be outermost so it catches errors from providers AND
+  // the DeepLinkHandler itself. DeepLinkHandler needs to live inside the
+  // router context but must NOT own the crash-fallback.
   return (
     <ErrorBoundary>
+      <DeepLinkHandler>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <SafeAreaProvider>
             <ToastProvider>
               <AuthProvider>
                 <StatusBar style="light" translucent backgroundColor="transparent" />
+                <OfflineBanner />
                 <AuthGuard>
                   <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#0D0D0D' } }}>
                     <Stack.Screen name="index" />
@@ -172,6 +219,7 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </QueryClientProvider>
       </trpc.Provider>
+      </DeepLinkHandler>
     </ErrorBoundary>
   );
 }
