@@ -43,7 +43,7 @@ export default function EventDetailScreen() {
   const [partnerUserId, setPartnerUserId] = useState<number | null>(null);
   const [showPartnerPicker, setShowPartnerPicker] = useState(false);
   const [partnerSearch, setPartnerSearch] = useState('');
-  const [modalStep, setModalStep] = useState<'ticket' | 'partner'>('ticket');
+  const [modalStep, setModalStep] = useState<'ticket' | 'partner' | 'picker'>('ticket');
   const [isQueerPlay, setIsQueerPlay] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
   const [useCredits, setUseCredits] = useState(false);
@@ -87,7 +87,7 @@ export default function EventDetailScreen() {
 
   // Partner search — live server query so we're not limited to 20 cached results.
   // Enabled whenever the picker is open (or the ticket modal is on the couple step).
-  const partnerPickerActive = showPartnerPicker || (showTicketModal && ticketType === 'couple' && modalStep === 'partner');
+  const partnerPickerActive = showTicketModal && ticketType === 'couple' && (modalStep === 'partner' || modalStep === 'picker');
   const { data: membersData, isLoading: membersLoading } = trpc.members.browse.useQuery(
     { page: 0, search: partnerSearch.trim() || undefined },
     {
@@ -318,7 +318,8 @@ export default function EventDetailScreen() {
     setModalStep('ticket');
     setPartnerUserId(null);
     setPartnerSearch('');
-    setPartnerManuallyCleared(false); // reset so primary partner pre-fills on fresh open
+    setPartnerManuallyCleared(false);
+    setShowPartnerPicker(false);
     setShowTicketModal(true);
   }
 
@@ -636,8 +637,8 @@ export default function EventDetailScreen() {
         {renderCTA()}
       </View>
 
-      {/* Ticket type selection modal */}
-      <Modal visible={showTicketModal} animationType="slide" transparent>
+      {/* Ticket type selection modal — hidden when picker is open so iOS doesn't stack two modals */}
+      <Modal visible={showTicketModal && modalStep !== 'picker'} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
           <View
             style={{
@@ -845,9 +846,9 @@ export default function EventDetailScreen() {
                   </View>
                 )}
 
-                {/* Search / change partner */}
+                {/* Search / change partner — opens picker as separate modal above ticket modal */}
                 <TouchableOpacity
-                  onPress={() => { setShowPartnerPicker(true); }}
+                  onPress={() => { setPartnerSearch(''); setModalStep('picker'); }}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -900,8 +901,8 @@ export default function EventDetailScreen() {
         </View>
       </Modal>
 
-      {/* Partner picker modal */}
-      <Modal visible={showPartnerPicker} animationType="slide" transparent>
+      {/* Partner picker — rendered as its own modal so it sits above the ticket modal on iOS */}
+      <Modal visible={showTicketModal && modalStep === 'picker'} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
           <View
             style={{
@@ -912,101 +913,121 @@ export default function EventDetailScreen() {
               paddingBottom: insets.bottom + 16,
               borderColor: '#1A1A30',
               borderTopWidth: 1,
-              maxHeight: '80%',
+              maxHeight: '85%',
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', flex: 1 }}>Choose Partner</Text>
-              <TouchableOpacity onPress={() => { setShowPartnerPicker(false); setPartnerSearch(''); }}>
-                <Ionicons name="close" size={24} color={colors.muted} />
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <TouchableOpacity
+                onPress={() => { setModalStep('partner'); setPartnerSearch(''); }}
+                style={{ marginRight: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: '#10101C', borderWidth: 1, borderColor: '#1A1A30', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="arrow-back" size={18} color="#F1F0FF" />
+              </TouchableOpacity>
+              <Text style={{ color: '#F1F0FF', fontSize: 17, fontWeight: '800', flex: 1 }}>Choose Partner</Text>
+              <TouchableOpacity
+                onPress={() => { setModalStep('partner'); setPartnerSearch(''); }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={22} color="#5A5575" />
               </TouchableOpacity>
             </View>
 
-            {/* Search */}
+            {/* Search bar */}
             <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.card,
-              borderRadius: 10,
-              borderColor: colors.border,
-              borderWidth: 1,
-              paddingHorizontal: 12,
-              marginBottom: 12,
+              flexDirection: 'row', alignItems: 'center',
+              backgroundColor: '#10101C', borderRadius: 14,
+              borderColor: '#EC489928', borderWidth: 1,
+              paddingHorizontal: 14, marginBottom: 12,
             }}>
-              <Ionicons name="search-outline" size={16} color={colors.muted} />
+              <Ionicons name="search-outline" size={16} color="#5A5575" />
               <TextInput
                 value={partnerSearch}
                 onChangeText={setPartnerSearch}
                 placeholder="Search by name…"
-                placeholderTextColor={colors.muted}
-                style={{ flex: 1, color: colors.text, fontSize: 14, paddingVertical: 10, paddingLeft: 8 }}
+                placeholderTextColor="#5A5575"
+                style={{ flex: 1, color: '#F1F0FF', fontSize: 14, paddingVertical: 12, paddingLeft: 8 }}
                 autoCorrect={false}
                 autoCapitalize="none"
+                autoFocus
               />
-              {membersLoading && <ActivityIndicator size="small" color={colors.pink} style={{ marginLeft: 6 }} />}
+              {membersLoading
+                ? <ActivityIndicator size="small" color="#EC4899" style={{ marginLeft: 6 }} />
+                : partnerSearch.length > 0
+                  ? <TouchableOpacity onPress={() => setPartnerSearch('')}>
+                      <Ionicons name="close-circle" size={18} color="#5A5575" />
+                    </TouchableOpacity>
+                  : null
+              }
             </View>
 
             <FlatList
               data={filteredMembers}
               keyExtractor={(item: any) => String(item.id)}
-              removeClippedSubviews={true}
-              windowSize={7}
+              keyboardShouldPersistTaps="handled"
+              removeClippedSubviews
+              windowSize={5}
               initialNumToRender={10}
               maxToRenderPerBatch={8}
               renderItem={({ item }: { item: any }) => (
                 <TouchableOpacity
                   onPress={() => {
                     setPartnerUserId(item.id);
-                    setPartnerManuallyCleared(false); // user picked someone, so not "cleared"
+                    setPartnerManuallyCleared(false);
                     setPartnerSearch('');
-                    setShowPartnerPicker(false);
+                    setModalStep('partner');
                   }}
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    padding: 12,
-                    borderRadius: 10,
-                    backgroundColor: partnerUserId === item.id ? `${colors.pink}22` : 'transparent',
-                    marginBottom: 4,
-                    gap: 12,
+                    flexDirection: 'row', alignItems: 'center',
+                    padding: 12, borderRadius: 12,
+                    backgroundColor: partnerUserId === item.id ? '#EC489920' : '#10101C',
+                    borderWidth: 1,
+                    borderColor: partnerUserId === item.id ? '#EC489960' : '#1A1A30',
+                    marginBottom: 8, gap: 12,
                   }}
                 >
                   {item.avatarUrl ? (
-                    <Image source={{ uri: item.avatarUrl }} style={{ width: 42, height: 42, borderRadius: 21 }} />
+                    <Image source={{ uri: item.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: '#EC489930' }} />
                   ) : (
-                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: `${colors.purple}44`, justifyContent: 'center', alignItems: 'center' }}>
-                      <Ionicons name="person" size={20} color={colors.purple} />
+                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#A855F730', justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="person" size={20} color="#A855F7" />
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{item.displayName ?? 'Member'}</Text>
-                    {item.orientation ? (
-                      <Text style={{ color: colors.muted, fontSize: 12 }}>{item.orientation}</Text>
+                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 14 }}>{item.displayName ?? 'Member'}</Text>
+                    {(item.gender || item.orientation) ? (
+                      <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 1 }}>
+                        {[item.gender, item.orientation].filter(Boolean).join(' · ')}
+                      </Text>
                     ) : null}
                   </View>
-                  {partnerUserId === item.id && <Ionicons name="checkmark-circle" size={20} color={colors.pink} />}
+                  {partnerUserId === item.id
+                    ? <Ionicons name="checkmark-circle" size={22} color="#EC4899" />
+                    : <Ionicons name="chevron-forward" size={16} color="#5A5575" />
+                  }
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
-                <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   {membersLoading ? (
-                    <ActivityIndicator color={colors.pink} />
+                    <ActivityIndicator color="#EC4899" size="large" />
                   ) : (
                     <>
-                      <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
-                      <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 36, marginBottom: 10 }}>🔍</Text>
+                      <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15, marginBottom: 6 }}>
                         {partnerSearch.trim() ? 'No matches found' : 'No members available'}
                       </Text>
-                      <Text style={{ color: '#5A5575', fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
+                      <Text style={{ color: '#5A5575', fontSize: 13, textAlign: 'center', paddingHorizontal: 24 }}>
                         {partnerSearch.trim()
-                          ? 'Try a different name or clear the search'
+                          ? 'Try a different name'
                           : 'Members of the opposite gender will appear here'}
                       </Text>
                     </>
                   )}
                 </View>
               }
-              style={{ maxHeight: 320 }}
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
             />
           </View>
         </View>
