@@ -70,6 +70,36 @@ function calculateAge(year: string, month: string, day: string): number | null {
   return isNaN(age) || age < 0 ? null : age;
 }
 
+// ─── Step Indicators ────────────────────────────────────────────────────────
+
+function StepIndicators({ currentStep, totalSteps }: { currentStep: number; totalSteps: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 20, paddingVertical: 10 }}>
+      {Array.from({ length: totalSteps }).map((_, i) => {
+        const stepNum = i + 1;
+        const isFilled = stepNum <= currentStep;
+        if (isFilled) {
+          return (
+            <LinearGradient
+              key={i}
+              colors={['#EC4899', '#A855F7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ height: 6, flex: 1, borderRadius: 3 }}
+            />
+          );
+        }
+        return (
+          <View
+            key={i}
+            style={{ height: 6, flex: 1, borderRadius: 3, backgroundColor: '#1A1A30' }}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
 // ─── Photo upload ─────────────────────────────────────────────────────────────
 // uploadPhoto moved to lib/uploadPhoto.ts
 
@@ -478,22 +508,15 @@ export default function OnboardingScreen() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Progress bar */}
+    <LinearGradient
+      colors={['#04040A', '#0D0520', '#080810']}
+      locations={[0, 0.4, 1]}
+      style={{ flex: 1 }}
+    >
+    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+      {/* Step indicators */}
       {currentStep > 1 && (
-        <View style={styles.progressTrack}>
-          <Animated.View
-            style={[
-              styles.progressFill,
-              {
-                width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
-          />
-        </View>
+        <StepIndicators currentStep={currentStep} totalSteps={STEPS.length} />
       )}
 
       {/* Header (step > 1) */}
@@ -554,7 +577,7 @@ export default function OnboardingScreen() {
             <TouchableOpacity
               onPress={() => goTo(2)}
               activeOpacity={0.85}
-              style={{ borderRadius: 16, overflow: 'hidden', marginTop: 40, width: '100%' }}
+              style={{ borderRadius: 18, overflow: 'hidden', marginTop: 40, width: '100%' }}
             >
               <LinearGradient
                 colors={['#EC4899', '#A855F7']}
@@ -699,8 +722,8 @@ export default function OnboardingScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => router.push('/(auth)/login')} style={{ marginTop: 20, alignItems: 'center' }}>
-              <Text style={{ color: colors.muted, fontSize: 14 }}>
-                Already a member? <Text style={{ color: colors.pink, fontWeight: '700' }}>Sign In</Text>
+              <Text style={{ color: '#5A5575', fontSize: 14, textDecorationLine: 'underline' }}>
+                Already a member? Sign In
               </Text>
             </TouchableOpacity>
           </ScrollView>
@@ -1238,6 +1261,7 @@ export default function OnboardingScreen() {
         </ScrollView>
       )}
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -1246,11 +1270,11 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: 'transparent',
   },
   progressTrack: {
     height: 3,
-    backgroundColor: colors.border,
+    backgroundColor: '#1A1A30',
   },
   progressFill: {
     height: 3,
@@ -1320,7 +1344,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   welcomeTitle: {
-    color: colors.text,
+    color: '#F1F0FF',
     fontSize: 38,
     fontWeight: '900',
     textAlign: 'center',
@@ -1328,7 +1352,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   welcomeSubtitle: {
-    color: colors.muted,
+    color: '#A09CB8',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 12,
@@ -1341,16 +1365,16 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   stepHeading: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: '800',
+    color: '#F1F0FF',
+    fontSize: 28,
+    fontWeight: '900',
     marginBottom: 8,
   },
   stepSubheading: {
-    color: colors.muted,
-    fontSize: 14,
+    color: '#A09CB8',
+    fontSize: 15,
     marginBottom: 28,
-    lineHeight: 20,
+    lineHeight: 23,
   },
   fieldGroup: {
     marginBottom: 20,
@@ -1363,13 +1387,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: colors.card,
+    backgroundColor: '#0C0C1A',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderColor: '#1A1A30',
+    borderRadius: 14,
+    paddingHorizontal: 16,
     paddingVertical: 13,
-    color: colors.text,
+    color: '#F1F0FF',
     fontSize: 15,
     minHeight: 48,
   },
@@ -1382,7 +1406,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: 18,
     flexDirection: 'row',
   },
   primaryBtnText: {

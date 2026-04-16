@@ -70,10 +70,11 @@ const PostCard = React.memo(function PostCard({
 
   function handleAuthorPress() {
     const authorId = post.authorId;
-    if (!authorId || authorId === currentUserId) return; // own posts don't navigate
+    if (!authorId || authorId === currentUserId) return;
     Haptics.selectionAsync();
     router.push(`/member/${authorId}` as any);
   }
+
   const timeAgo = useMemo(
     () => (post.createdAt ? formatDistanceToNow(new Date(post.createdAt)) : ''),
     [post.createdAt],
@@ -82,11 +83,9 @@ const PostCard = React.memo(function PostCard({
   // Like button spring animation
   const likeScale = useRef(new Animated.Value(1)).current;
 
-  // Local state
   const [showReactions, setShowReactions] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(isBookmarkedProp ?? false);
 
-  // Load bookmark state from AsyncStorage on mount
   useEffect(() => {
     AsyncStorage.getItem(BOOKMARKS_KEY).then((raw) => {
       if (!raw) return;
@@ -101,8 +100,8 @@ const PostCard = React.memo(function PostCard({
     if (!onLike) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.sequence([
-      Animated.spring(likeScale, { toValue: 1.35, useNativeDriver: true, speed: 40, bounciness: 12 }),
-      Animated.spring(likeScale, { toValue: 1.0, useNativeDriver: true, speed: 20, bounciness: 6 }),
+      Animated.spring(likeScale, { toValue: 1.3, useNativeDriver: true, speed: 40, bounciness: 12 }),
+      Animated.spring(likeScale, { toValue: 1.0, useNativeDriver: true, speed: 20, bounciness: 12 }),
     ]).start();
     onLike(Number(post.id));
   }
@@ -163,7 +162,6 @@ const PostCard = React.memo(function PostCard({
         {
           text: 'Hide Post',
           onPress: () => {
-            // Future: hide locally
             Alert.alert('Post hidden', "You won't see this post again.");
           },
         },
@@ -181,39 +179,53 @@ const PostCard = React.memo(function PostCard({
         if (onPress) { Haptics.selectionAsync(); onPress(); }
       }}
       style={({ pressed }) => ({
-        backgroundColor: colors.card,
+        backgroundColor: '#10101C',
         borderRadius: 16,
         marginHorizontal: 16,
         marginBottom: 0,
-        borderColor: `${colors.border}cc`,
+        borderColor: '#1A1A30',
         borderWidth: 1,
-        overflow: 'visible',
-        shadowColor: '#EC4899',
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
         shadowOffset: { width: 0, height: 2 },
         elevation: 3,
         transform: [{ scale: pressed ? 0.985 : 1 }],
       })}
     >
       {/* Community accent line */}
-      <View style={{ height: 2.5, borderTopLeftRadius: 16, borderTopRightRadius: 16, backgroundColor: badgeColor ?? colors.pink, opacity: 0.55 }} />
+      <View style={{
+        height: 2.5,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        backgroundColor: badgeColor ?? colors.pink,
+        opacity: 0.55,
+      }} />
+
       {/* Author row — tappable to view profile */}
       <TouchableOpacity
         onPress={handleAuthorPress}
         activeOpacity={post.authorId && post.authorId !== currentUserId ? 0.7 : 1}
         style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}
       >
-        <Avatar name={post.resolvedAuthorName ?? post.authorName} url={post.resolvedAvatarUrl} size="sm" />
+        <View style={{ borderWidth: 1, borderColor: '#EC489930', borderRadius: 50 }}>
+          <Avatar name={post.resolvedAuthorName ?? post.authorName} url={post.resolvedAvatarUrl} size="sm" />
+        </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
+          <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 14 }}>
             {post.resolvedAuthorName ?? post.authorName ?? 'Member'}
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '400' }}>{timeAgo}</Text>
+          <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '400' }}>{timeAgo}</Text>
         </View>
         {community && (
-          <View style={{ paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, backgroundColor: `${badgeColor}22` }}>
-            <Text style={{ color: badgeColor, fontSize: 11, fontWeight: '600' }}>
+          <View style={{
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 10,
+            backgroundColor: `${badgeColor}33`,
+          }}>
+            <Text style={{ color: badgeColor, fontSize: 10, fontWeight: '700' }}>
               {community.charAt(0).toUpperCase() + community.slice(1)}
             </Text>
           </View>
@@ -222,14 +234,21 @@ const PostCard = React.memo(function PostCard({
 
       {/* Content */}
       {post.content ? (
-        <Text style={{ color: '#E5E7EB', fontSize: 15, fontWeight: '400', lineHeight: 22, paddingHorizontal: 16, paddingBottom: 14 }}>
+        <Text style={{
+          color: '#A09CB8',
+          fontSize: 14,
+          fontWeight: '400',
+          lineHeight: 21,
+          paddingHorizontal: 16,
+          paddingBottom: 14,
+        }}>
           {post.content}
         </Text>
       ) : null}
 
-      {/* Media image */}
+      {/* Media image — edge-to-edge within card */}
       {post.mediaUrl && post.mediaType !== 'link' ? (
-        <View style={{ width: '100%', height: 200, backgroundColor: '#1a1a1a' }}>
+        <View style={{ width: '100%', overflow: 'hidden', marginTop: 2 }}>
           <Image
             source={{ uri: post.mediaUrl }}
             style={{ width: '100%', height: 200 }}
@@ -243,37 +262,74 @@ const PostCard = React.memo(function PostCard({
       {post.mediaType === 'link' && post.mediaUrl ? (
         <TouchableOpacity
           onPress={() => Linking.openURL(post.mediaUrl!)}
-          style={{ borderColor: colors.border, borderWidth: 1, borderRadius: 12, overflow: 'hidden', marginTop: 4, marginHorizontal: 16, marginBottom: 8 }}
+          style={{
+            backgroundColor: '#0C0C1A',
+            borderColor: '#1A1A30',
+            borderWidth: 1,
+            borderRadius: 12,
+            overflow: 'hidden',
+            marginTop: 4,
+            marginHorizontal: 16,
+            marginBottom: 8,
+          }}
         >
-          <View style={{ backgroundColor: colors.card, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Ionicons name="link" size={20} color="#10B981" />
-            <Text style={{ color: '#10B981', fontSize: 13, flex: 1 }} numberOfLines={1}>{post.mediaUrl}</Text>
-            <Ionicons name="open-outline" size={16} color={colors.muted} />
+            <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 13, flex: 1 }} numberOfLines={1}>
+              {post.mediaUrl}
+            </Text>
+            <Text style={{ color: '#5A5575', fontSize: 11 }} numberOfLines={1}>
+              {post.mediaUrl?.replace(/^https?:\/\//, '').split('/')[0]}
+            </Text>
+            <Ionicons name="open-outline" size={16} color="#5A5575" />
           </View>
         </TouchableOpacity>
       ) : null}
 
-      {/* Actions */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4, borderTopColor: colors.border, borderTopWidth: 1, marginTop: 4 }}>
+      {/* ── Action bar ── */}
+      <View style={{
+        backgroundColor: '#0D0D18',
+        borderTopColor: '#1A1A30',
+        borderTopWidth: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+      }}>
         <View style={{ flexDirection: 'row', gap: 4 }}>
 
           {/* Like with long-press reactions */}
           <View style={{ position: 'relative', flex: 1 }}>
             {showReactions && (
               <View style={{
-                position: 'absolute', bottom: 36, left: 0,
-                flexDirection: 'row', gap: 6, backgroundColor: colors.card,
-                borderRadius: 24, padding: 8, borderColor: colors.border, borderWidth: 1,
-                shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8,
-                elevation: 8, zIndex: 999,
+                position: 'absolute',
+                bottom: 40,
+                left: 0,
+                flexDirection: 'row',
+                gap: 4,
+                backgroundColor: '#0C0C1A',
+                borderRadius: 20,
+                padding: 8,
+                borderColor: '#1A1A30',
+                borderWidth: 1,
+                shadowColor: '#000',
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
+                zIndex: 999,
               }}>
                 {REACTIONS.map(emoji => (
                   <TouchableOpacity
                     key={emoji}
                     onPress={() => { onReact?.(Number(post.id), emoji); setShowReactions(false); }}
-                    style={{ padding: 4 }}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#1A1A30',
+                    }}
                   >
-                    <Text style={{ fontSize: 24 }}>{emoji}</Text>
+                    <Text style={{ fontSize: 22 }}>{emoji}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -282,7 +338,15 @@ const PostCard = React.memo(function PostCard({
               onPress={handleLike}
               onLongPress={handleLikeLongPress}
               style={({ pressed }) => ({
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 6,
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                paddingVertical: 6,
+                paddingHorizontal: effectiveLiked ? 10 : 6,
+                borderRadius: effectiveLiked ? 20 : 6,
+                backgroundColor: effectiveLiked ? '#EC489915' : 'transparent',
                 transform: [{ scale: pressed ? 0.92 : 1 }],
               })}
             >
@@ -290,10 +354,10 @@ const PostCard = React.memo(function PostCard({
                 <Ionicons
                   name={effectiveLiked ? 'heart' : 'heart-outline'}
                   size={20}
-                  color={effectiveLiked ? colors.pink : colors.muted}
+                  color={effectiveLiked ? '#EC4899' : '#5A5575'}
                 />
               </Animated.View>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>{post.likeCount ?? post.likesCount ?? 0}</Text>
+              <Text style={{ color: '#5A5575', fontSize: 12 }}>{post.likeCount ?? post.likesCount ?? 0}</Text>
             </Pressable>
           </View>
 
@@ -301,32 +365,37 @@ const PostCard = React.memo(function PostCard({
           <Pressable
             onPress={handleComment}
             style={({ pressed }) => ({
-              flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 6,
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              padding: 6,
               transform: [{ scale: pressed ? 0.96 : 1 }],
             })}
           >
-            <Ionicons name="chatbubble-outline" size={19} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 13 }}>{post.commentCount ?? post.commentsCount ?? 0}</Text>
+            <Ionicons name="chatbubble-outline" size={19} color="#5A5575" />
+            <Text style={{ color: '#5A5575', fontSize: 12 }}>{post.commentCount ?? post.commentsCount ?? 0}</Text>
           </Pressable>
 
           {/* Share */}
           <TouchableOpacity
             onPress={handleShare}
-            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 }}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, padding: 6 }}
           >
-            <Ionicons name="arrow-redo-outline" size={18} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 13 }}>Share</Text>
+            <Ionicons name="arrow-redo-outline" size={18} color="#5A5575" />
+            <Text style={{ color: '#5A5575', fontSize: 12 }}>Share</Text>
           </TouchableOpacity>
 
           {/* Bookmark */}
           <TouchableOpacity
             onPress={handleBookmark}
-            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 }}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, padding: 6 }}
           >
             <Ionicons
               name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
               size={18}
-              color={isBookmarked ? colors.pink : colors.muted}
+              color={isBookmarked ? colors.pink : '#5A5575'}
             />
           </TouchableOpacity>
 
@@ -335,7 +404,7 @@ const PostCard = React.memo(function PostCard({
             onPress={handleMore}
             style={{ padding: 6, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.muted} />
+            <Ionicons name="ellipsis-horizontal" size={18} color="#5A5575" />
           </TouchableOpacity>
         </View>
       </View>
