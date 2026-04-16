@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -137,6 +139,16 @@ export default function MemberProfileScreen() {
 
   const posts = (wallPosts ?? []) as any[];
 
+  // Animated scale for message button
+  const msgScale = React.useRef(new Animated.Value(1)).current;
+  const handleMsgPressIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.spring(msgScale, { toValue: 0.96, useNativeDriver: true }).start();
+  };
+  const handleMsgPressOut = () => {
+    Animated.spring(msgScale, { toValue: 1, useNativeDriver: true }).start();
+  };
+
   function handleMessage() {
     createConversation.mutate({ type: 'dm', participantIds: [Number(id)] });
   }
@@ -151,19 +163,24 @@ export default function MemberProfileScreen() {
           top: insets.top + 10,
           left: 16,
           zIndex: 10,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          width: 40,
+          height: 40,
           borderRadius: 20,
-          padding: 8,
+          backgroundColor: '#0C0C1A80',
+          borderWidth: 1,
+          borderColor: '#1A1A30',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <Ionicons name="arrow-back" size={20} color="#fff" />
+        <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
 
         {/* ── A. Hero header ─────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#7C3AED55', '#EC489955', '#0D0D0D']}
+          colors={['#1A082E', '#0D0520', '#080810']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={{
@@ -176,31 +193,42 @@ export default function MemberProfileScreen() {
           {/* Avatar with glow ring */}
           <View
             style={{
-              borderRadius: 60,
-              padding: 3,
-              backgroundColor: `${badgeColor}44`,
-              shadowColor: badgeColor,
+              borderRadius: 55,
+              borderWidth: 3,
+              borderColor: '#EC4899',
+              shadowColor: '#EC4899',
               shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.8,
-              shadowRadius: 12,
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
               marginBottom: 14,
             }}
           >
-            <Avatar name={displayName} url={m.avatarUrl} size={100} />
+            <Avatar name={displayName} url={m.avatarUrl} size={106} />
           </View>
 
-          <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800', textAlign: 'center' }}>
+          <Text style={{ color: '#F1F0FF', fontSize: 26, fontWeight: '900', textAlign: 'center', letterSpacing: -0.5 }}>
             {displayName}
           </Text>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+            {showSignal && (
+              <View style={{
+                paddingHorizontal: 12, paddingVertical: 4,
+                backgroundColor: `${signalColor}22`,
+                borderRadius: 20, borderColor: signalColor, borderWidth: 1,
+              }}>
+                <Text style={{ color: signalColor, fontWeight: '700', fontSize: 12 }}>
+                  {SIGNAL_LABELS[signal.signalType] ?? signal.signalType}
+                </Text>
+              </View>
+            )}
             {community && (
               <View style={{
                 paddingHorizontal: 12, paddingVertical: 4,
-                backgroundColor: `${badgeColor}22`,
-                borderRadius: 20, borderColor: `${badgeColor}44`, borderWidth: 1,
+                backgroundColor: '#A855F720',
+                borderRadius: 20, borderColor: '#A855F740', borderWidth: 1,
               }}>
-                <Text style={{ color: badgeColor, fontWeight: '700', fontSize: 12 }}>
+                <Text style={{ color: '#A855F7', fontWeight: '700', fontSize: 12 }}>
                   {community.charAt(0).toUpperCase() + community.slice(1)}
                 </Text>
               </View>
@@ -241,12 +269,10 @@ export default function MemberProfileScreen() {
         {showSignal && (
           <View style={{
             marginHorizontal: 16, marginTop: 12,
-            backgroundColor: colors.card,
+            backgroundColor: '#10101C',
             borderRadius: 14,
             borderWidth: 1,
-            borderColor: colors.border,
-            borderLeftWidth: 4,
-            borderLeftColor: signalColor,
+            borderColor: '#1A1A30',
             padding: 14,
           }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
@@ -297,24 +323,25 @@ export default function MemberProfileScreen() {
         <View style={{
           flexDirection: 'row',
           marginHorizontal: 16, marginTop: 12,
-          backgroundColor: colors.card,
-          borderRadius: 16, padding: 20,
-          borderColor: colors.border, borderWidth: 1,
+          gap: 10,
         }}>
           {([
             { label: 'Events', value: String(m.eventsAttended ?? 0) },
             { label: 'Posts', value: String(m.postsCount ?? 0) },
             joinedDate ? { label: 'Joined', value: joinedDate } : null,
-          ] as Array<{ label: string; value: string } | null>).filter((x): x is { label: string; value: string } => !!x).map((stat, i, arr) => (
-            <React.Fragment key={stat.label}>
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{stat.value}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{stat.label}</Text>
-              </View>
-              {i < arr.length - 1 && (
-                <View style={{ width: 1, backgroundColor: colors.border }} />
-              )}
-            </React.Fragment>
+          ] as Array<{ label: string; value: string } | null>).filter((x): x is { label: string; value: string } => !!x).map((stat) => (
+            <View key={stat.label} style={{
+              flex: 1,
+              alignItems: 'center',
+              paddingVertical: 14,
+              backgroundColor: '#EC489912',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#EC489930',
+            }}>
+              <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800' }}>{stat.value}</Text>
+              <Text style={{ color: '#5A5575', fontSize: 10, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 }}>{stat.label}</Text>
+            </View>
           ))}
         </View>
 
@@ -326,12 +353,12 @@ export default function MemberProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: colors.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 12 }}>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
               About
             </Text>
 
             {m.bio ? (
-              <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21, marginBottom: 12 }}>
+              <Text style={{ color: '#A09CB8', fontSize: 14, lineHeight: 21, marginBottom: 12 }}>
                 {m.bio}
               </Text>
             ) : null}
@@ -386,17 +413,17 @@ export default function MemberProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: colors.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
               Interests
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {interests.map((tag) => (
                 <View key={tag} style={{
-                  paddingHorizontal: 12, paddingVertical: 5,
-                  backgroundColor: `${colors.pink}22`,
-                  borderRadius: 20, borderColor: `${colors.pink}44`, borderWidth: 1,
+                  paddingHorizontal: 10, paddingVertical: 4,
+                  backgroundColor: '#A855F720',
+                  borderRadius: 12, borderColor: '#A855F740', borderWidth: 1,
                 }}>
-                  <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>{tag}</Text>
+                  <Text style={{ color: '#A855F7', fontSize: 12, fontWeight: '700' }}>{tag}</Text>
                 </View>
               ))}
             </View>
@@ -410,17 +437,17 @@ export default function MemberProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: colors.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 10 }}>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
               Looking For
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {lookingFor.map((tag) => (
                 <View key={tag} style={{
-                  paddingHorizontal: 12, paddingVertical: 5,
-                  backgroundColor: `${colors.purple}22`,
-                  borderRadius: 20, borderColor: `${colors.purple}44`, borderWidth: 1,
+                  paddingHorizontal: 10, paddingVertical: 4,
+                  backgroundColor: '#A855F720',
+                  borderRadius: 12, borderColor: '#A855F740', borderWidth: 1,
                 }}>
-                  <Text style={{ color: colors.purple, fontSize: 13, fontWeight: '600' }}>{tag}</Text>
+                  <Text style={{ color: '#A855F7', fontSize: 12, fontWeight: '700' }}>{tag}</Text>
                 </View>
               ))}
             </View>
@@ -435,7 +462,7 @@ export default function MemberProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: colors.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginBottom: 12 }}>💗 Connections</Text>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1.2 }}>💗 Connections</Text>
             {connections.map((conn: any) => (
               <TouchableOpacity
                 key={conn.groupId}
@@ -462,7 +489,7 @@ export default function MemberProfileScreen() {
         {/* ── G. Wall posts ──────────────────────────────────────────────── */}
         <View style={{ marginHorizontal: 16, marginTop: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>🧱 Posts</Text>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2 }}>🧱 Posts</Text>
             {posts.length > 0 && (
               <View style={{
                 paddingHorizontal: 8, paddingVertical: 2,
@@ -509,7 +536,7 @@ export default function MemberProfileScreen() {
 
                 {/* Content */}
                 {(post.post?.content ?? post.content) ? (
-                  <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
+                  <Text style={{ color: '#A09CB8', fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
                     {post.post?.content ?? post.content}
                   </Text>
                 ) : null}
@@ -550,38 +577,45 @@ export default function MemberProfileScreen() {
         bottom: 0, left: 0, right: 0,
         padding: 20,
         paddingBottom: insets.bottom + 16,
-        backgroundColor: colors.bg,
-        borderTopColor: colors.border,
+        backgroundColor: '#080810',
+        borderTopColor: '#1A1A30',
         borderTopWidth: 1,
       }}>
-        <TouchableOpacity
-          onPress={handleMessage}
-          disabled={createConversation.isPending}
-          activeOpacity={0.85}
-        >
-          <BrandGradient
-            style={{
-              borderRadius: 14,
-              paddingVertical: 16,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              gap: 8,
-              opacity: createConversation.isPending ? 0.7 : 1,
-            }}
+        <Animated.View style={{ transform: [{ scale: msgScale }] }}>
+          <TouchableOpacity
+            onPress={handleMessage}
+            onPressIn={handleMsgPressIn}
+            onPressOut={handleMsgPressOut}
+            disabled={createConversation.isPending}
+            activeOpacity={1}
           >
-            {createConversation.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="chatbubble-outline" size={20} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-                  Message {firstName}
-                </Text>
-              </>
-            )}
-          </BrandGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#EC4899', '#A855F7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                borderRadius: 16,
+                padding: 15,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 8,
+                opacity: createConversation.isPending ? 0.7 : 1,
+              }}
+            >
+              {createConversation.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="send" size={18} color="#fff" />
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                    Message {firstName}
+                  </Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </View>
   );
