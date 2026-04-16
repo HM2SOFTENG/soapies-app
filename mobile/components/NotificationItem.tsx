@@ -31,22 +31,69 @@ export interface NotificationData {
   createdAt?: string | null;
   readAt?: string | null;
   targetId?: string | number | null;
+  // server stores routing info here (conversationId, screen, eventId, etc.)
+  data?: Record<string, any> | string | null;
 }
 
 interface NotificationItemProps {
   notification: NotificationData;
+  onMarkRead?: (id: number) => void;
 }
 
-const NotificationItem = React.memo(function NotificationItem({ notification }: NotificationItemProps) {
+// Parse data field (may be JSON string or object)
+function parseData(raw: Record<string, any> | string | null | undefined): Record<string, any> {
+  if (!raw) return {};
+  if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+  return raw;
+}
+
+// Resolve the route to navigate to based on notification type + data
+function resolveRoute(type: string, data: Record<string, any>, targetId?: string | number | null): string | null {
+  switch (type) {
+    case 'message':
+      // data.conversationId or targetId
+      if (data.conversationId) return `/chat/${data.conversationId}`;
+      if (targetId) return `/chat/${targetId}`;
+      return '/messages';
+    case 'event':
+    case 'event_staff':
+      if (data.eventId) return `/event/${data.eventId}`;
+      if (targetId) return `/event/${targetId}`;
+      return null;
+    case 'like':
+    case 'comment':
+      // Wall posts — go to home feed (no dedicated post route yet)
+      return null;
+    case 'connection_request':
+    case 'connection_accepted':
+      return '/connections';
+    case 'application_approved':
+    case 'application_rejected':
+    case 'application_waitlisted':
+    case 'interview_scheduled':
+      return null; // stay on alerts — these are status updates
+    default:
+      // Fall back to explicit screen in data
+      if (data.screen) return data.screen;
+      if (data.link && data.link.startsWith('/')) return data.link;
+      return null;
+  }
+}
+
+const NotificationItem = React.memo(function NotificationItem({ notification, onMarkRead }: NotificationItemProps) {
   const router = useRouter();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
-    const type = notification.type ?? '';
-    if (type === 'message' && notification.targetId) {
-      router.push('/chat/' + notification.targetId as any);
-    } else if (type === 'event' && notification.targetId) {
-      router.push('/event/' + notification.targetId as any);
+    // Mark as read immediately on tap (optimistic — disappears from unread view)
+    if (!notification.readAt) {
+      onMarkRead?.(notification.id);
+    }
+    // Navigate
+    const data = parseData(notification.data);
+    const route = resolveRoute(notification.type ?? '', data, notification.targetId);
+    if (route) {
+      router.push(route as any);
     }
   }
 

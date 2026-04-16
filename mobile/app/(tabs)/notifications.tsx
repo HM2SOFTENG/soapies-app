@@ -60,24 +60,39 @@ function NotificationSkeleton() {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  // Optimistically track locally-read IDs so they vanish immediately on tap
+  const [locallyReadIds, setLocallyReadIds] = useState<Set<number>>(new Set());
 
   const { data, isLoading, refetch } = trpc.notifications.list.useQuery(undefined, {
     staleTime: 10_000,
     refetchInterval: 30_000,
   });
   const markAllRead = trpc.notifications.markAllRead.useMutation({
+    onSuccess: () => { setLocallyReadIds(new Set()); refetch(); },
+  });
+  const markRead = trpc.notifications.markRead.useMutation({
+    // Silently refetch in background after marking read
     onSuccess: () => refetch(),
   });
 
+  const handleMarkRead = useCallback((id: number) => {
+    setLocallyReadIds((prev) => new Set(prev).add(id));
+    markRead.mutate({ id });
+  }, [markRead]);
+
   const notifications = (data as any[]) ?? [];
-  const unreadCount = useMemo(
-    () => notifications.filter((n: any) => !n.readAt).length,
-    [notifications],
+  // Hide notifications that have been read (either server-confirmed or optimistically)
+  const visibleNotifications = useMemo(
+    () => notifications.filter((n: any) => !n.readAt && !locallyReadIds.has(n.id)),
+    [notifications, locallyReadIds],
   );
+  const unreadCount = visibleNotifications.length;
 
   const renderNotification = useCallback(
-    ({ item }: { item: any }) => <NotificationItem notification={item} />,
-    [],
+    ({ item }: { item: any }) => (
+      <NotificationItem notification={item} onMarkRead={handleMarkRead} />
+    ),
+    [handleMarkRead],
   );
 
   const onRefresh = useCallback(async () => {
@@ -144,7 +159,7 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <FlatList
-          data={notifications}
+          data={visibleNotifications}
           keyExtractor={(item: any) => String(item.id)}
           renderItem={renderNotification}
           removeClippedSubviews={true}
