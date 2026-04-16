@@ -9,7 +9,10 @@ import {
   Modal,
   FlatList,
   TextInput,
+  Animated,
+  Switch,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -201,6 +204,27 @@ export default function EventDetailScreen() {
     ? new Date(ev.startDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : '';
 
+  const countdownStr = React.useMemo(() => {
+    if (!ev?.startDate) return null;
+    const diff = new Date(ev.startDate).getTime() - Date.now();
+    if (diff < 0) return null;
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (d > 0) return `${d}d ${h}h away`;
+    if (h > 0) return `${h}h away`;
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${m}m away`;
+  }, [ev?.startDate]);
+
+  const reserveScale = React.useRef(new Animated.Value(1)).current;
+  const handleReservePressIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.spring(reserveScale, { toValue: 0.96, useNativeDriver: true }).start();
+  };
+  const handleReservePressOut = () => {
+    Animated.spring(reserveScale, { toValue: 1, useNativeDriver: true }).start();
+  };
+
   function getTicketPriceDollars(t: TicketType): number {
     switch (t) {
       case 'single_female': return ev.priceSingleFemale ? parseFloat(ev.priceSingleFemale) : 0;
@@ -374,13 +398,31 @@ export default function EventDetailScreen() {
     }
 
     return (
-      <TouchableOpacity onPress={handleOpenTicketModal} activeOpacity={0.85}>
-        <BrandGradient
-          style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}
+      <Animated.View style={{ transform: [{ scale: reserveScale }] }}>
+        <TouchableOpacity
+          onPress={handleOpenTicketModal}
+          onPressIn={handleReservePressIn}
+          onPressOut={handleReservePressOut}
+          activeOpacity={1}
         >
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Reserve Now</Text>
-        </BrandGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={['#EC4899', '#A855F7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              borderRadius: 18,
+              paddingVertical: 16,
+              alignItems: 'center',
+              shadowColor: '#EC4899',
+              shadowOpacity: 0.4,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 4 },
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Reserve Now</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
@@ -393,15 +435,17 @@ export default function EventDetailScreen() {
             <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           ) : (
             <LinearGradient
-              colors={['#7C3AED', '#EC4899']}
+              colors={ev.gradientColors ?? ['#7C3AED', '#EC4899']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
             >
-              <Ionicons name="calendar" size={60} color="rgba(255,255,255,0.4)" />
+              <Text style={{ fontSize: 64 }}>{ev.emoji ?? '🎉'}</Text>
             </LinearGradient>
           )}
           <LinearGradient
-            colors={['transparent', 'rgba(13,13,13,0.7)']}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100 }}
+            colors={['transparent', '#08081099', '#080810']}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160 }}
           />
           <TouchableOpacity
             onPress={() => router.back()}
@@ -410,12 +454,17 @@ export default function EventDetailScreen() {
               position: 'absolute',
               top: insets.top + 10,
               left: 16,
-              backgroundColor: 'rgba(0,0,0,0.6)',
+              width: 40,
+              height: 40,
               borderRadius: 20,
-              padding: 8,
+              backgroundColor: '#0C0C1A80',
+              borderWidth: 1,
+              borderColor: '#1A1A30',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
           </TouchableOpacity>
         </View>
 
@@ -452,30 +501,82 @@ export default function EventDetailScreen() {
             </View>
           )}
 
-          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800', marginBottom: 16 }}>{title}</Text>
+          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', marginBottom: 14, letterSpacing: -0.5 }}>{title}</Text>
 
           {/* Meta rows */}
-          {[
-            { icon: 'calendar-outline' as const, text: `${dateStr}${timeStr ? ' · ' + timeStr : ''}` },
-            ev.venue ? { icon: 'location-outline' as const, text: ev.venue } : null,
-            ev.capacity ? {
-              icon: 'people-outline' as const,
-              text: `${ev.capacity} spots available`,
-            } : null,
-          ].filter(Boolean).map((item: any, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <Ionicons name={item.icon} size={18} color={colors.pink} />
-              <Text style={{ color: colors.muted, marginLeft: 10, fontSize: 15 }}>{item.text}</Text>
+          <View style={{ marginBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Ionicons name="calendar-outline" size={16} color="#EC4899" />
+              <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{dateStr}{timeStr ? ' · ' + timeStr : ''}</Text>
             </View>
-          ))}
+            {ev.venue ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Ionicons name="location-outline" size={16} color="#A855F7" />
+                <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{ev.venue}</Text>
+              </View>
+            ) : null}
+            {countdownStr ? (
+              <View style={{ alignSelf: 'flex-start', marginBottom: 10 }}>
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>{countdownStr}</Text>
+                </LinearGradient>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Attendees / capacity bar */}
+          {ev.capacity && ev.capacity > 0 ? (
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text style={{ color: '#5A5575', fontSize: 12 }}>{ev.currentAttendees ?? 0} attending</Text>
+                <Text style={{ color: '#5A5575', fontSize: 12 }}>{ev.capacity} capacity</Text>
+              </View>
+              <View style={{ height: 4, backgroundColor: '#1A1A30', borderRadius: 4, overflow: 'hidden' }}>
+                <LinearGradient
+                  colors={['#A855F7', '#EC4899']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(100, Math.round(((ev.currentAttendees ?? 0) / ev.capacity) * 100))}%`,
+                    borderRadius: 4,
+                  }}
+                />
+              </View>
+            </View>
+          ) : null}
 
           {/* Pricing */}
-          <View style={{ marginTop: 16, marginBottom: 10 }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 10 }}>Tickets</Text>
+          <View style={{
+            backgroundColor: '#10101C',
+            borderWidth: 1,
+            borderColor: '#1A1A30',
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 12,
+          }}>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              Tickets
+            </Text>
             {TICKET_TYPES.map(t => (
-              <View key={t.key} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                <Text style={{ color: colors.muted, fontSize: 14 }}>{t.label}</Text>
-                <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>
+              <View key={t.key} style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#080810',
+                borderWidth: 1,
+                borderColor: '#1A1A30',
+                borderRadius: 14,
+                padding: 14,
+                marginBottom: 8,
+              }}>
+                <Text style={{ color: '#F1F0FF', fontSize: 14, fontWeight: '700' }}>{t.label}</Text>
+                <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: '800' }}>
                   {getPriceForTicketType(t.key)}
                 </Text>
               </View>
@@ -483,10 +584,19 @@ export default function EventDetailScreen() {
           </View>
 
           {ev.description && (
-            <>
-              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 17, marginTop: 16, marginBottom: 8 }}>About</Text>
-              <Text style={{ color: colors.muted, lineHeight: 22, fontSize: 15 }}>{ev.description}</Text>
-            </>
+            <View style={{
+              backgroundColor: '#10101C',
+              borderColor: '#1A1A30',
+              borderWidth: 1,
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 12,
+            }}>
+              <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+                About
+              </Text>
+              <Text style={{ color: '#A09CB8', lineHeight: 22, fontSize: 14 }}>{ev.description}</Text>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -513,15 +623,17 @@ export default function EventDetailScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
           <View
             style={{
-              backgroundColor: colors.bg,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
+              backgroundColor: '#0C0C1A',
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
               padding: 24,
               paddingBottom: insets.bottom + 20,
-              borderColor: colors.border,
+              borderColor: '#1A1A30',
               borderTopWidth: 1,
             }}
           >
+            {/* Drag handle */}
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D44', alignSelf: 'center', marginBottom: 20 }} />
             {modalStep === 'ticket' ? (
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
@@ -545,8 +657,8 @@ export default function EventDetailScreen() {
                       alignItems: 'center',
                       padding: 14,
                       borderRadius: 12,
-                      backgroundColor: ticketType === t.key ? `${colors.pink}22` : colors.card,
-                      borderColor: ticketType === t.key ? colors.pink : colors.border,
+                      backgroundColor: ticketType === t.key ? '#EC489915' : '#10101C',
+                      borderColor: ticketType === t.key ? '#EC4899' : '#1A1A30',
                       borderWidth: 1,
                       marginBottom: 10,
                     }}
@@ -620,22 +732,28 @@ export default function EventDetailScreen() {
                   onPress={handleReserve}
                   disabled={reserveMutation.isPending || ticketType === 'couple'}
                   activeOpacity={0.85}
-                  style={{ marginTop: 8 }}
+                  style={{ marginTop: 8, opacity: (reserveMutation.isPending || ticketType === 'couple') ? 0.5 : 1 }}
                 >
-                  <BrandGradient
+                  <LinearGradient
+                    colors={['#EC4899', '#A855F7']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
                     style={{
-                      borderRadius: 14,
+                      borderRadius: 18,
                       paddingVertical: 16,
                       alignItems: 'center',
-                      opacity: (reserveMutation.isPending || ticketType === 'couple') ? 0.4 : 1,
+                      shadowColor: '#EC4899',
+                      shadowOpacity: 0.4,
+                      shadowRadius: 14,
+                      shadowOffset: { width: 0, height: 4 },
                     }}
                   >
                     {reserveMutation.isPending ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Confirm Reservation</Text>
                     )}
-                  </BrandGradient>
+                  </LinearGradient>
                 </TouchableOpacity>
               </>
             ) : (
@@ -731,21 +849,28 @@ export default function EventDetailScreen() {
                   onPress={handleReserve}
                   disabled={reserveMutation.isPending || !partnerUserId}
                   activeOpacity={0.85}
+                  style={{ opacity: (reserveMutation.isPending || !partnerUserId) ? 0.5 : 1 }}
                 >
-                  <BrandGradient
+                  <LinearGradient
+                    colors={['#EC4899', '#A855F7']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
                     style={{
-                      borderRadius: 14,
+                      borderRadius: 18,
                       paddingVertical: 16,
                       alignItems: 'center',
-                      opacity: (reserveMutation.isPending || !partnerUserId) ? 0.4 : 1,
+                      shadowColor: '#EC4899',
+                      shadowOpacity: 0.4,
+                      shadowRadius: 14,
+                      shadowOffset: { width: 0, height: 4 },
                     }}
                   >
                     {reserveMutation.isPending ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Confirm Reservation</Text>
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Confirm Reservation</Text>
                     )}
-                  </BrandGradient>
+                  </LinearGradient>
                 </TouchableOpacity>
               </>
             )}
@@ -758,12 +883,12 @@ export default function EventDetailScreen() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
           <View
             style={{
-              backgroundColor: colors.bg,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
+              backgroundColor: '#0C0C1A',
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
               padding: 20,
               paddingBottom: insets.bottom + 16,
-              borderColor: colors.border,
+              borderColor: '#1A1A30',
               borderTopWidth: 1,
               maxHeight: '80%',
             }}
@@ -851,15 +976,17 @@ export default function EventDetailScreen() {
       <Modal visible={showWaiverModal} animationType="slide" transparent onRequestClose={() => setShowWaiverModal(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
           <View style={{
-            backgroundColor: colors.card,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
+            backgroundColor: '#0C0C1A',
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
             padding: 20,
             paddingBottom: 36,
-            borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
-            borderColor: colors.border,
+            borderTopWidth: 1,
+            borderColor: '#1A1A30',
             maxHeight: '90%',
           }}>
+            {/* Drag handle */}
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D44', alignSelf: 'center', marginBottom: 16 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Community Waiver</Text>
               <TouchableOpacity
@@ -894,11 +1021,11 @@ export default function EventDetailScreen() {
               placeholder="Type your full legal name"
               placeholderTextColor={colors.muted}
               style={{
-                backgroundColor: colors.bg,
+                backgroundColor: '#10101C',
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: colors.border,
-                color: colors.text,
+                borderColor: '#EC489940',
+                color: '#F1F0FF',
                 paddingHorizontal: 14,
                 paddingVertical: 12,
                 marginBottom: 14,

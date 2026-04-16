@@ -1,4 +1,4 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import {
   View,
@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -36,6 +35,13 @@ const PAYMENT_COLORS: Record<string, string> = {
   refunded: '#6B7280',
   failed: '#EF4444',
   partial: '#F59E0B',
+};
+
+const TICKET_TYPE_COLORS: Record<string, string> = {
+  single_female: '#EC4899',
+  single_male: '#A855F7',
+  couple: '#10B981',
+  volunteer: '#F59E0B',
 };
 
 function getTicketAmount(ticket: any): string {
@@ -77,8 +83,9 @@ function TicketCard({
       })
     : 'TBD';
 
-  const statusColor = STATUS_COLORS[ticket.status] ?? colors.muted;
-  const paymentColor = PAYMENT_COLORS[ticket.paymentStatus] ?? colors.muted;
+  const statusColor = STATUS_COLORS[ticket.status] ?? '#9CA3AF';
+  const paymentColor = PAYMENT_COLORS[ticket.paymentStatus] ?? '#9CA3AF';
+  const typeColor = TICKET_TYPE_COLORS[ticket.ticketType] ?? '#9CA3AF';
   const hasQR = !!ticket.qrCode;
   const needsPayment = ticket.paymentStatus === 'pending' && ticket.status !== 'cancelled';
   const isPaying = payingId === ticket.id;
@@ -93,57 +100,74 @@ function TicketCard({
   return (
     <View
       style={{
-        backgroundColor: colors.card,
-        borderRadius: 16,
+        backgroundColor: '#10101C',
+        borderRadius: 20,
         marginHorizontal: 16,
         marginBottom: 14,
-        borderColor: colors.border,
+        borderColor: '#1A1A30',
         borderWidth: 1,
         overflow: 'hidden',
       }}
     >
-      {/* Top stripe */}
-      <BrandGradient
-        style={{ height: 4 }}
+      {/* Left accent + top section as flex row workaround — use top gradient stripe */}
+      <LinearGradient
+        colors={['#EC4899', '#A855F7']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ height: 3 }}
       />
 
-      <View style={{ padding: 16 }}>
-        {/* Event title */}
-        <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 6 }}>
+      {/* Event top section */}
+      <LinearGradient
+        colors={['#1A0830', '#10101C']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 }}
+      >
+        <Text style={{ color: '#F1F0FF', fontWeight: '800', fontSize: 15, marginBottom: 8 }}>
           {title}
         </Text>
-
-        {/* Date, ticket type, and venue */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 12 }}>
+        <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Ionicons name="calendar-outline" size={14} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 13 }}>{dateStr}</Text>
+            <Ionicons name="calendar-outline" size={13} color="#EC4899" />
+            <Text style={{ color: '#A09CB8', fontSize: 12 }}>{dateStr}</Text>
           </View>
-          {ticket.ticketType && (
+          {(ticket.eventVenue || ticket.event?.venue) && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Ionicons name="ticket-outline" size={14} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 13 }}>
-                {ticketTypeLabels[ticket.ticketType] ?? ticket.ticketType}
+              <Ionicons name="location-outline" size={13} color="#5A5575" />
+              <Text style={{ color: '#A09CB8', fontSize: 12 }}>
+                {ticket.eventVenue ?? ticket.event?.venue}
               </Text>
             </View>
           )}
         </View>
-        {(ticket.eventVenue || ticket.event?.venue) && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-            <Ionicons name="location-outline" size={14} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 13 }}>
-              {ticket.eventVenue ?? ticket.event?.venue}
-            </Text>
-          </View>
-        )}
+      </LinearGradient>
 
-        {/* Status badges */}
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+      {/* Bottom section */}
+      <View style={{ padding: 16 }}>
+        {/* Badges row */}
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          {ticket.ticketType && (
+            <View style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 20,
+              backgroundColor: `${typeColor}22`,
+              borderWidth: 1,
+              borderColor: `${typeColor}44`,
+            }}>
+              <Text style={{ color: typeColor, fontSize: 12, fontWeight: '700' }}>
+                {ticketTypeLabels[ticket.ticketType] ?? ticket.ticketType}
+              </Text>
+            </View>
+          )}
           <View style={{
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 20,
             backgroundColor: `${statusColor}22`,
+            borderWidth: 1,
+            borderColor: `${statusColor}44`,
           }}>
             <Text style={{ color: statusColor, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' }}>
               {ticket.status?.replace('_', ' ') ?? 'Unknown'}
@@ -154,6 +178,8 @@ function TicketCard({
             paddingVertical: 4,
             borderRadius: 20,
             backgroundColor: `${paymentColor}22`,
+            borderWidth: 1,
+            borderColor: `${paymentColor}44`,
           }}>
             <Text style={{ color: paymentColor, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' }}>
               {ticket.paymentStatus?.replace('_', ' ') ?? 'Pending'}
@@ -169,8 +195,8 @@ function TicketCard({
               style={{
                 flex: 1,
                 backgroundColor: `${colors.purple}22`,
-                borderRadius: 10,
-                paddingVertical: 10,
+                borderRadius: 12,
+                paddingVertical: 11,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -188,20 +214,20 @@ function TicketCard({
             <TouchableOpacity
               onPress={() => onPayNow(ticket)}
               disabled={isPaying}
-              style={{
-                flex: 1,
-                borderRadius: 10,
-                overflow: 'hidden',
-              }}
+              style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}
             >
-              <BrandGradient
+              <LinearGradient
+                colors={['#EC4899', '#A855F7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={{
-                  paddingVertical: 10,
+                  paddingVertical: 11,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
                   opacity: isPaying ? 0.7 : 1,
+                  borderRadius: 12,
                 }}
               >
                 {isPaying ? (
@@ -209,29 +235,33 @@ function TicketCard({
                 ) : (
                   <>
                     <Ionicons name="logo-venmo" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Pay ${getTicketAmount(ticket)} via Venmo</Text>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                      Pay ${getTicketAmount(ticket)} via Venmo
+                    </Text>
                   </>
                 )}
-              </BrandGradient>
+              </LinearGradient>
             </TouchableOpacity>
           )}
 
           {!hasQR && !needsPayment && (
             <View style={{
               flex: 1,
-              borderRadius: 10,
-              paddingVertical: 10,
+              borderRadius: 12,
+              paddingVertical: 11,
               alignItems: 'center',
-              backgroundColor: `${colors.muted}11`,
+              backgroundColor: `#9CA3AF11`,
+              borderWidth: 1,
+              borderColor: `#9CA3AF22`,
             }}>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>
+              <Text style={{ color: '#5A5575', fontSize: 13 }}>
                 {ticket.status === 'cancelled' ? 'Cancelled' : 'QR pending confirmation'}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Upload Test Result button */}
+        {/* Upload Test Result */}
         {!ticket.testResultSubmitted && ticket.status !== 'cancelled' && (
           <TouchableOpacity
             onPress={() => onUploadTest(ticket)}
@@ -243,17 +273,17 @@ function TicketCard({
               marginTop: 10,
               paddingVertical: 10,
               borderRadius: 10,
-              backgroundColor: `${colors.muted}11`,
-              borderColor: `${colors.muted}33`,
+              backgroundColor: `#9CA3AF11`,
+              borderColor: `#9CA3AF22`,
               borderWidth: 1,
             }}
           >
             {uploadingId === ticket.id ? (
-              <ActivityIndicator color={colors.muted} size="small" />
+              <ActivityIndicator color="#5A5575" size="small" />
             ) : (
               <>
-                <Ionicons name="document-attach-outline" size={16} color={colors.muted} />
-                <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 6 }}>Upload Test Result</Text>
+                <Ionicons name="document-attach-outline" size={16} color="#5A5575" />
+                <Text style={{ color: '#5A5575', fontSize: 13, marginLeft: 6 }}>Upload Test Result</Text>
               </>
             )}
           </TouchableOpacity>
@@ -264,6 +294,7 @@ function TicketCard({
 }
 
 export default function TicketsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
@@ -328,14 +359,8 @@ export default function TicketsScreen() {
       'Upload Test Result',
       'Choose how to upload your test result',
       [
-        {
-          text: 'Photo Library',
-          onPress: () => uploadFromImagePicker(ticket),
-        },
-        {
-          text: 'File / PDF',
-          onPress: () => uploadFromDocumentPicker(ticket),
-        },
+        { text: 'Photo Library', onPress: () => uploadFromImagePicker(ticket) },
+        { text: 'File / PDF', onPress: () => uploadFromDocumentPicker(ticket) },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -384,23 +409,34 @@ export default function TicketsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 14,
-          borderBottomColor: colors.border,
-          borderBottomWidth: 1,
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+      {/* ── Gradient Header ── */}
+      <LinearGradient
+        colors={['#12051E', '#080810']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{ paddingTop: insets.top + 12, paddingBottom: 18, paddingHorizontal: 20 }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800', flex: 1 }}>My Tickets</Text>
-      </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#10101C',
+              borderWidth: 1,
+              borderColor: '#1A1A30',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 14,
+            }}
+          >
+            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+          </TouchableOpacity>
+          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', flex: 1 }}>My Tickets 🎟️</Text>
+        </View>
+      </LinearGradient>
 
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -408,32 +444,33 @@ export default function TicketsScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 60 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 120 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
           }
         >
           {tickets.length === 0 ? (
+            // ── Empty state ──
             <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
-              <Text style={{ fontSize: 48, marginBottom: 12 }}>🎟️</Text>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
+              <Text style={{ fontSize: 56, marginBottom: 16 }}>🎟️</Text>
+              <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
                 No tickets yet
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 15, textAlign: 'center', marginBottom: 24 }}>
+              <Text style={{ color: '#5A5575', fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
                 Reserve a spot at an upcoming event to get your tickets
               </Text>
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/events' as any)}
-                style={{
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                }}
+                style={{ borderRadius: 16, overflow: 'hidden' }}
               >
-                <BrandGradient
-                  style={{ paddingHorizontal: 28, paddingVertical: 14 }}
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ paddingHorizontal: 32, paddingVertical: 14, borderRadius: 16 }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Browse Events</Text>
-                </BrandGradient>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Browse Events</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
@@ -445,7 +482,7 @@ export default function TicketsScreen() {
                     marginBottom: 12,
                     padding: 14,
                     backgroundColor: `${colors.pink}15`,
-                    borderRadius: 12,
+                    borderRadius: 14,
                     borderColor: `${colors.pink}33`,
                     borderWidth: 1,
                   }}>
@@ -453,7 +490,7 @@ export default function TicketsScreen() {
                       <Ionicons name="time-outline" size={16} color={colors.pink} />
                       <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 14 }}>Payment Pending</Text>
                     </View>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>
+                    <Text style={{ color: '#5A5575', fontSize: 13, lineHeight: 19 }}>
                       Complete payment to confirm your spot. Tap "Pay Now" on any pending reservation.
                     </Text>
                   </View>
@@ -473,7 +510,16 @@ export default function TicketsScreen() {
               {confirmedTickets.length > 0 && (
                 <>
                   {pendingTickets.length > 0 && (
-                    <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginHorizontal: 16, marginBottom: 10, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    <Text style={{
+                      color: '#5A5575',
+                      fontSize: 11,
+                      fontWeight: '800',
+                      marginHorizontal: 16,
+                      marginBottom: 10,
+                      marginTop: 4,
+                      textTransform: 'uppercase',
+                      letterSpacing: 1.2,
+                    }}>
                       Confirmed
                     </Text>
                   )}
@@ -495,15 +541,25 @@ export default function TicketsScreen() {
         </ScrollView>
       )}
 
-      {/* Community Agreement Modal */}
+      {/* ── Community Agreement Modal ── */}
       <Modal visible={showPaymentAgreement} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '85%' }}>
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
+          <View style={{
+            backgroundColor: '#10101C',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            borderTopWidth: 1,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: '#1A1A30',
+            padding: 24,
+            maxHeight: '85%',
+          }}>
+            <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
               🎉 Community Agreement
             </Text>
             <ScrollView style={{ marginBottom: 20 }}>
-              <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 22 }}>
+              <Text style={{ color: '#A09CB8', fontSize: 14, lineHeight: 22 }}>
                 By attending a Soapies event, you agree to:
                 {`\n\n`}🤝 Respect all community members and their boundaries at all times
                 {`\n\n`}🚫 No means no — consent is mandatory and non-negotiable
@@ -520,44 +576,48 @@ export default function TicketsScreen() {
                 setShowPaymentAgreement(false);
                 if (pendingPayTicket) handlePayNow(pendingPayTicket);
               }}
+              style={{ borderRadius: 16, overflow: 'hidden' }}
             >
-              <BrandGradient style={{ borderRadius: 14, padding: 16, alignItems: 'center' }}>
+              <LinearGradient
+                colors={['#EC4899', '#A855F7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ borderRadius: 16, padding: 16, alignItems: 'center' }}
+              >
                 <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>I Agree — Proceed to Payment 💸</Text>
-              </BrandGradient>
+              </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowPaymentAgreement(false)} style={{ marginTop: 12, alignItems: 'center' }}>
-              <Text style={{ color: colors.muted }}>Cancel</Text>
+            <TouchableOpacity onPress={() => setShowPaymentAgreement(false)} style={{ marginTop: 14, alignItems: 'center' }}>
+              <Text style={{ color: '#5A5575', fontSize: 15 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* QR Code Modal */}
+      {/* ── QR Code Modal ── */}
       <Modal visible={qrModal.visible} animationType="fade" transparent>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-          <View
-            style={{
-              backgroundColor: colors.bg,
-              borderRadius: 24,
-              padding: 28,
-              width: '100%',
-              alignItems: 'center',
-              borderColor: colors.border,
-              borderWidth: 1,
-            }}
-          >
-            <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', marginBottom: 6, textAlign: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+          <View style={{
+            backgroundColor: '#10101C',
+            borderRadius: 24,
+            padding: 28,
+            width: '100%',
+            alignItems: 'center',
+            borderColor: '#1A1A30',
+            borderWidth: 1,
+          }}>
+            <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginBottom: 6, textAlign: 'center' }}>
               {qrModal.title}
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 24 }}>
+            <Text style={{ color: '#5A5575', fontSize: 13, marginBottom: 24 }}>
               Show this at the door
             </Text>
 
-            {/* QR Code */}
+            {/* QR Code on white bg */}
             <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 16 }}>
               {qrModal.code && qrModal.code.startsWith('data:image') ? (
                 <View style={{ width: 220, height: 220, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center' }}>Ticket pending</Text>
+                  <Text style={{ color: '#999', fontSize: 14, textAlign: 'center' }}>Ticket pending</Text>
                 </View>
               ) : qrModal.code ? (
                 <QRCode
@@ -569,7 +629,7 @@ export default function TicketsScreen() {
               ) : null}
             </View>
 
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 16, letterSpacing: 1, textAlign: 'center' }}>
+            <Text style={{ color: '#5A5575', fontSize: 11, marginTop: 16, letterSpacing: 1, textAlign: 'center' }}>
               {qrModal.code}
             </Text>
 
@@ -580,12 +640,12 @@ export default function TicketsScreen() {
                 paddingVertical: 14,
                 paddingHorizontal: 40,
                 borderRadius: 14,
-                backgroundColor: colors.card,
-                borderColor: colors.border,
+                backgroundColor: '#1A1A30',
+                borderColor: '#2A2A40',
                 borderWidth: 1,
               }}
             >
-              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>Close</Text>
+              <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 16 }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
