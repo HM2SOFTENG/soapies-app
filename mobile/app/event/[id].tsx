@@ -75,9 +75,15 @@ export default function EventDetailScreen() {
     }
   }, [ticketType, primaryPartner]);
 
-  const { data: membersData } = trpc.members.browse.useQuery(
-    { page: 0 },
-    { enabled: showTicketModal && ticketType === 'couple' },
+  // Partner search — live server query so we're not limited to 20 cached results.
+  // Enabled whenever the picker is open (or the ticket modal is on the couple step).
+  const partnerPickerActive = showPartnerPicker || (showTicketModal && ticketType === 'couple' && modalStep === 'partner');
+  const { data: membersData, isLoading: membersLoading } = trpc.members.browse.useQuery(
+    { page: 0, search: partnerSearch.trim() || undefined },
+    {
+      enabled: partnerPickerActive,
+      staleTime: 10_000,
+    },
   );
 
   const availableTicketTypes = TICKET_TYPES.filter(t => {
@@ -307,19 +313,19 @@ export default function EventDetailScreen() {
 
   // Filter members by opposite gender for couple ticket partner selection
   const allMembers = (membersData as any[]) ?? [];
+  // Server already filters by search term; client-side applies gender complement filter
   const filteredMembers = allMembers.filter((m: any) => {
-    const mGender = (m.gender ?? '').toLowerCase();
-    const search = partnerSearch.toLowerCase();
-    const matchesSearch = !search || (m.displayName ?? '').toLowerCase().includes(search);
-    if (!matchesSearch) return false;
     if (!userGender) return true;
-    const isMale = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'].includes(userGender);
-    const isFemale = ['female', 'woman', 'trans female', 'transfemale'].includes(userGender);
+    const mGender = (m.gender ?? '').toLowerCase();
+    const ug = userGender.toLowerCase();
+    const isMale = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'].includes(ug);
+    const isFemale = ['female', 'woman', 'trans female', 'transfemale'].includes(ug);
     if (isMale) return ['female', 'woman', 'trans female', 'transfemale'].includes(mGender);
     if (isFemale) return ['male', 'man', 'trans male', 'transmale'].includes(mGender);
-    return true; // non-binary sees all
+    return true; // non-binary / unset sees all
   });
 
+  // Keep selected partner available even if not in current filtered page
   const selectedPartner = allMembers.find((m: any) => m.id === partnerUserId);
 
   function handleJoinWaitlist() {
@@ -916,13 +922,15 @@ export default function EventDetailScreen() {
               <TextInput
                 value={partnerSearch}
                 onChangeText={setPartnerSearch}
-                placeholder="Search members…"
+                placeholder="Search by name…"
                 placeholderTextColor={colors.muted}
                 style={{ flex: 1, color: colors.text, fontSize: 14, paddingVertical: 10, paddingLeft: 8 }}
+                autoCorrect={false}
+                autoCapitalize="none"
               />
+              {membersLoading && <ActivityIndicator size="small" color={colors.pink} style={{ marginLeft: 6 }} />}
             </View>
 
-            {/* perf: removeClippedSubviews, windowSize, initialNumToRender, maxToRenderPerBatch */}
             <FlatList
               data={filteredMembers}
               keyExtractor={(item: any) => String(item.id)}
@@ -964,7 +972,21 @@ export default function EventDetailScreen() {
               )}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                  <Text style={{ color: colors.muted, fontSize: 14 }}>No members found</Text>
+                  {membersLoading ? (
+                    <ActivityIndicator color={colors.pink} />
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+                      <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15, marginBottom: 4 }}>
+                        {partnerSearch.trim() ? 'No matches found' : 'No members available'}
+                      </Text>
+                      <Text style={{ color: '#5A5575', fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
+                        {partnerSearch.trim()
+                          ? 'Try a different name or clear the search'
+                          : 'Members of the opposite gender will appear here'}
+                      </Text>
+                    </>
+                  )}
                 </View>
               }
               style={{ maxHeight: 320 }}
