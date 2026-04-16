@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import {
   View,
   Text,
@@ -102,19 +103,21 @@ export default function EventDetailScreen() {
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [partnerSearch]);
 
-  // Partner search — cross-community, server-filtered to opposite gender.
+  // Partner search — always cross-community.
+  // Only apply gender filter once profileData has resolved — prevents empty list on first open.
   const partnerPickerActive = showTicketModal && ticketType === 'couple' && (modalStep === 'partner' || modalStep === 'picker');
   const { data: membersData, isLoading: membersLoading } = trpc.members.browse.useQuery(
     {
       page: 0,
       search: debouncedSearch || undefined,
-      community: 'all',          // cross-community search
-      gender: oppositeGender,    // server-side gender filter for opposite gender
+      community: 'all',
+      // Only filter by gender when we have it — avoids empty results before profile loads
+      ...(oppositeGender ? { gender: oppositeGender } : {}),
     },
     {
       enabled: partnerPickerActive,
       staleTime: 15_000,
-      keepPreviousData: true,
+      placeholderData: keepPreviousData,
     } as any,
   );
 
