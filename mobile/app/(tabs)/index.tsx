@@ -57,124 +57,82 @@ function getGreeting(name: string) {
 function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const headerY = useRef(new Animated.Value(30)).current;
+  const headerY = useRef(new Animated.Value(24)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(headerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(headerOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(headerY,       { toValue: 0, duration: 700, useNativeDriver: true }),
     ]).start();
+    const glow = Animated.loop(Animated.sequence([
+      Animated.timing(glowAnim, { toValue: 1, duration: 3000, useNativeDriver: false }),
+      Animated.timing(glowAnim, { toValue: 0, duration: 3000, useNativeDriver: false }),
+    ]));
+    glow.start();
+    return () => glow.stop();
   }, []);
 
   const displayName = profile?.displayName ?? me?.name ?? 'there';
   const { greeting, emoji } = getGreeting(displayName);
-
   const role = (me?.role ?? profile?.role ?? 'member') as string;
   const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.member;
-
   const memberSince = new Date(me?.createdAt ?? profile?.createdAt ?? Date.now()).getFullYear();
-
   const { data: creditBalance, isLoading: creditsLoading } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
   const { data: myReservationsData, isLoading: reservationsLoading } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
-
   const creditsRaw = typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
-  const credits = `$${Number(creditsRaw).toFixed(2)}`; // stored as dollars
+  const credits = `$${Number(creditsRaw).toFixed(2)}`;
   const attended = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
+  const avatarGlowColor = glowAnim.interpolate({ inputRange: [0, 1], outputRange: ['#A855F740', '#EC489960'] });
 
   return (
     <LinearGradient
-      colors={['#2D1B4E', '#1A0A2E', colors.bg]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0.4, y: 1 }}
-      style={{ paddingHorizontal: 20, paddingTop: insets.top + 16, paddingBottom: 24 }}
+      colors={['#1A082E', '#12051E', '#080810']}
+      start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 1 }}
+      style={{ paddingHorizontal: 20, paddingTop: insets.top + 18, paddingBottom: 28 }}
     >
+      <Animated.View style={{ position: 'absolute', top: insets.top, right: -20, width: 140, height: 140, borderRadius: 70, backgroundColor: avatarGlowColor as any }} />
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerY }] }}>
-        {/* Top row: greeting + avatar */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800', lineHeight: 34 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+          <View style={{ flex: 1, paddingRight: 14 }}>
+            <Text style={{ color: '#F1F0FF', fontSize: 30, fontWeight: '900', lineHeight: 36, letterSpacing: -0.5 }}>
               {greeting} {emoji}
             </Text>
-
-            {/* Role badge + community */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 7, gap: 8, flexWrap: 'wrap' }}>
-              <View
-                style={{
-                  backgroundColor: roleConfig.bg,
-                  borderRadius: 20,
-                  paddingHorizontal: 10,
-                  paddingVertical: 3,
-                }}
-              >
-                <Text style={{ color: roleConfig.color, fontSize: 12, fontWeight: '700' }}>{roleConfig.label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8, flexWrap: 'wrap' }}>
+              <View style={{ backgroundColor: roleConfig.bg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: `${roleConfig.color}44` }}>
+                <Text style={{ color: roleConfig.color, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>{roleConfig.label}</Text>
               </View>
-              <Text style={{ color: colors.muted, fontSize: 12 }}>Soapies Community</Text>
+              <Text style={{ color: '#5A5575', fontSize: 12, fontWeight: '600' }}>Soapies</Text>
             </View>
           </View>
-
-          {/* Avatar → profile tab */}
           <TouchableOpacity
-            onPress={() => {
-              Haptics.selectionAsync();
-              try { (router as any).push('/(tabs)/profile'); } catch (_) {}
-            }}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              borderWidth: 2,
-              borderColor: `${colors.purple}88`,
-              overflow: 'hidden',
-            }}
+            onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/profile'); } catch (_) {} }}
+            style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#EC489960', overflow: 'hidden', shadowColor: '#EC4899', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
           >
-            <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={44} />
+            <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={48} />
           </TouchableOpacity>
         </View>
-
-        {/* Stat chips row — show "—" while loading so "0" doesn't look like a real value (ITEM-010 / P1-6) */}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-          <StatChip icon="calendar-outline" value={reservationsLoading ? '—' : String(attended)} label="Events" loading={reservationsLoading} />
-          <TouchableOpacity onPress={() => (router as any).push('/(tabs)/events')} activeOpacity={0.75}>
-            <StatChip icon="gift-outline"     value={creditsLoading ? '—' : String(credits)}       label="Credits" loading={creditsLoading} />
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+          <StatChip icon="calendar" value={reservationsLoading ? '—' : String(attended)} label="Events"   color="#EC4899" />
+          <TouchableOpacity onPress={() => (router as any).push('/(tabs)/events')} activeOpacity={0.85} style={{ flex: 1 }}>
+            <StatChip icon="gift"     value={creditsLoading ? '—'    : credits}          label="Credits"  color="#A855F7" />
           </TouchableOpacity>
-          <StatChip icon="star-outline"     value={String(memberSince)}                          label="Since" />
+          <StatChip icon="star"       value={String(memberSince)}                         label="Since"    color="#F59E0B" />
         </View>
       </Animated.View>
     </LinearGradient>
   );
 }
 
-function StatChip({ icon, value, label, loading }: { icon: any; value: string; label: string; loading?: boolean }) {
+function StatChip({ icon, value, label, color = '#EC4899' }: { icon: any; value: string; label: string; color?: string; loading?: boolean }) {
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.07)',
-        borderRadius: 12,
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        paddingVertical: 8,
-        paddingHorizontal: 10,
-        alignItems: 'center',
-        flexDirection: 'row',
-        gap: 6,
-      }}
-    >
-      <Ionicons name={icon} size={14} color={colors.purple} />
-      <View>
-        <Text
-          style={{
-            color: loading ? colors.muted : colors.text,
-            fontSize: 13,
-            fontWeight: '700',
-            lineHeight: 16,
-          }}
-        >
-          {value}
-        </Text>
-        <Text style={{ color: colors.muted, fontSize: 10, lineHeight: 13 }}>{label}</Text>
+    <View style={{ flex: 1, backgroundColor: `${color}12`, borderRadius: 14, borderColor: `${color}30`, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 10, alignItems: 'flex-start' }}>
+      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: `${color}25`, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+        <Ionicons name={icon} size={15} color={color} />
       </View>
+      <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '800', lineHeight: 18 }}>{value}</Text>
+      <Text style={{ color: '#5A5575', fontSize: 10, fontWeight: '600', letterSpacing: 0.4, marginTop: 1 }}>{label}</Text>
     </View>
   );
 }
@@ -222,13 +180,17 @@ function QuickActionGrid() {
                   onPressOut={() => onPressOut(idx)}
                   onPress={() => onPress(item)}
                   style={{
-                    backgroundColor: colors.card,
-                    borderRadius: 16,
-                    borderColor: colors.border,
+                    backgroundColor: '#10101C',
+                    borderRadius: 18,
+                    borderColor: `${item.color}22`,
                     borderWidth: 1,
-                    paddingVertical: 18,
+                    paddingVertical: 22,
                     alignItems: 'center',
-                    gap: 8,
+                    gap: 10,
+                    shadowColor: item.color,
+                    shadowOpacity: 0.10,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 3 },
                   }}
                 >
                   <View
@@ -243,7 +205,7 @@ function QuickActionGrid() {
                   >
                     <Ionicons name={item.icon} size={22} color={item.color} />
                   </View>
-                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '700', textAlign: 'center' }}>
+                  <Text style={{ color: '#F1F0FF', fontSize: 13, fontWeight: '800', textAlign: 'center' }}>
                     {item.label}
                   </Text>
                 </TouchableOpacity>
@@ -259,35 +221,32 @@ function QuickActionGrid() {
 // ── Announcement Banner ───────────────────────────────────────────────────────
 
 function AnnouncementCard({ announcement, onDismiss }: { announcement: any; onDismiss: (id: number) => void }) {
+  const slideIn = useRef(new Animated.Value(-20)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(slideIn, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start();
+  }, []);
   return (
-    <View
-      style={{
-        minWidth: SCREEN_WIDTH * 0.75,
-        backgroundColor: `${colors.purple}22`,
-        borderRadius: 14,
-        borderColor: `${colors.purple}44`,
-        borderWidth: 1,
-        padding: 14,
-        marginRight: 10,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        <Ionicons name="megaphone" size={16} color={colors.purple} style={{ marginTop: 1, marginRight: 10 }} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13, marginBottom: 3 }}>
-            {announcement.title}
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }} numberOfLines={3}>
-            {announcement.content}
-          </Text>
+    <Animated.View style={{ opacity, transform: [{ translateY: slideIn }], minWidth: SCREEN_WIDTH * 0.78 }}>
+      <View style={{ backgroundColor: '#10101C', borderRadius: 16, borderWidth: 1, borderColor: '#EC489930', marginRight: 10, overflow: 'hidden', flexDirection: 'row' }}>
+        <LinearGradient colors={['#EC4899', '#A855F7']} style={{ width: 3 }} />
+        <View style={{ flex: 1, padding: 14, flexDirection: 'row', alignItems: 'flex-start' }}>
+          <Ionicons name="megaphone" size={16} color="#EC4899" style={{ marginTop: 1, marginRight: 10 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#F1F0FF', fontWeight: '800', fontSize: 13, marginBottom: 3 }}>{announcement.title}</Text>
+            <Text style={{ color: '#A09CB8', fontSize: 12, lineHeight: 17 }} numberOfLines={3}>{announcement.content}</Text>
+          </View>
+          {announcement.dismissible !== false && (
+            <TouchableOpacity onPress={() => onDismiss(announcement.id)} style={{ marginLeft: 8, padding: 2 }}>
+              <Ionicons name="close" size={16} color="#5A5575" />
+            </TouchableOpacity>
+          )}
         </View>
-        {announcement.dismissible !== false && (
-          <TouchableOpacity onPress={() => onDismiss(announcement.id)} style={{ marginLeft: 8, padding: 2 }}>
-            <Ionicons name="close" size={16} color={colors.muted} />
-          </TouchableOpacity>
-        )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -327,58 +286,41 @@ function AnnouncementSection({
 
 function EventTeaser({ event }: { event: any }) {
   const router = useRouter();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1.02, duration: 1400, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1,    duration: 1400, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, []);
   if (!event) return null;
-
   const diff = new Date(event.startDate).getTime() - Date.now();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  const label = days <= 0 ? 'Today!' : days === 1 ? 'Tomorrow' : `In ${days} days`;
-
+  const label = days <= 0 ? '🔥 Tonight!' : days === 1 ? '🎉 Tomorrow' : `📅 In ${days} days`;
   return (
-    <TouchableOpacity
-      onPress={() => {
-        Haptics.selectionAsync();
-        try { (router as any).push('/(tabs)/events'); } catch (_) {}
-      }}
-      style={{ marginHorizontal: 16, marginBottom: 14 }}
-    >
-      <LinearGradient
-        colors={[`${colors.purple}44`, `${colors.pink}33`]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          borderRadius: 14,
-          borderColor: `${colors.purple}55`,
-          borderWidth: 1,
-          padding: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}
-      >
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: `${colors.pink}33`,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginRight: 12,
-          }}
+    <Animated.View style={{ transform: [{ scale: pulseAnim }], marginHorizontal: 16, marginBottom: 14 }}>
+      <TouchableOpacity onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/events'); } catch (_) {} }} activeOpacity={0.9}>
+        <LinearGradient
+          colors={['#1A0830', '#EC489915', '#A855F710']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ borderRadius: 18, borderColor: '#EC489940', borderWidth: 1, padding: 16, flexDirection: 'row', alignItems: 'center' }}
         >
-          <Ionicons name="calendar" size={22} color={colors.pink} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 }}>
-            Next Event
-          </Text>
-          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }} numberOfLines={1}>
-            {event.title}
-          </Text>
-          <Text style={{ color: colors.purple, fontSize: 12, fontWeight: '600', marginTop: 2 }}>{label}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-      </LinearGradient>
-    </TouchableOpacity>
+          <LinearGradient colors={['#EC4899', '#A855F7']} style={{ width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+            <Ionicons name="calendar" size={24} color="#fff" />
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#EC4899', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Next Event</Text>
+            <Text style={{ color: '#F1F0FF', fontSize: 15, fontWeight: '800', letterSpacing: -0.2 }} numberOfLines={1}>{event.title}</Text>
+            <Text style={{ color: '#A855F7', fontSize: 12, fontWeight: '700', marginTop: 2 }}>{label}</Text>
+          </View>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EC489920', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="chevron-forward" size={16} color="#EC4899" />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -613,17 +555,7 @@ function CommentsSheet({
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text
-      style={{
-        color: colors.muted,
-        fontSize: 12,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        paddingHorizontal: 20,
-        marginBottom: 10,
-      }}
-    >
+    <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 10 }}>
       {title}
     </Text>
   );
@@ -839,7 +771,7 @@ export default function HomeScreen() {
       <AnimatedHeader me={me} profile={profile} />
 
       {/* ── Quick Actions ── */}
-      <View style={{ paddingTop: 20, paddingBottom: 6 }}>
+      <View style={{ paddingTop: 20, paddingBottom: 6, backgroundColor: '#080810' }}>
         <SectionLabel title="Quick Actions" />
         <QuickActionGrid />
       </View>
@@ -865,22 +797,26 @@ export default function HomeScreen() {
   ), [me, profile, nextEvent, announcements]);
 
   const FeedBar = (
-    <View style={{ backgroundColor: colors.bg, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 }}>
+    <View style={{ backgroundColor: '#080810', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
       <SectionLabel title="Community Feed" />
       <TouchableOpacity
         onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
-        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card,
-          borderRadius: 12, padding: 14, borderColor: colors.border, borderWidth: 1, marginBottom: 10 }}
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#10101C', borderRadius: 16, padding: 14, borderColor: '#EC489928', borderWidth: 1, marginBottom: 10, shadowColor: '#EC4899', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
       >
-        <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={32} />
-        <Text style={{ color: colors.muted, marginLeft: 10, flex: 1, fontSize: 14 }}>What's on your mind?</Text>
-        <Ionicons name="image-outline" size={20} color={colors.muted} />
+        <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={34} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={{ color: '#5A5575', fontSize: 14, fontWeight: '500' }}>What's on your mind?</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Ionicons name="image-outline" size={20} color="#EC489980" />
+          <Ionicons name="camera-outline" size={20} color="#A855F780" />
+        </View>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#2D1B4E' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
       {isLoading ? (
         <ScrollView>
           {ListHeader}
@@ -909,9 +845,7 @@ export default function HomeScreen() {
               />
             )}
             ListHeaderComponent={<>{ListHeader}{FeedBar}</>}
-            ItemSeparatorComponent={() => (
-              <View style={{ height: 12, marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: `${colors.border}66` }} />
-            )}
+            ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
             scrollEventThrottle={16}
           removeClippedSubviews
           maxToRenderPerBatch={10}
@@ -921,7 +855,7 @@ export default function HomeScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
           }
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>💫</Text>

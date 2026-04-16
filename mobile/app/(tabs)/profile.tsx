@@ -47,7 +47,7 @@ function capitalize(str: string) {
 function StatBox({ label, value }: { label: string; value: number | string }) {
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
-      <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>{value}</Text>
+      <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900' as const }}>{value}</Text>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{label}</Text>
     </View>
   );
@@ -156,19 +156,19 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#080810', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
 
         {/* ── Gradient Header ── */}
         <LinearGradient
-          colors={['#7C3AED22', '#EC489922', '#0D0D0D']}
+          colors={['#1A082E', '#0D0520', '#080810']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={{ paddingTop: insets.top + 20, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
@@ -177,7 +177,7 @@ export default function ProfileScreen() {
             name={profile?.displayName ?? profile?.name ?? '?'}
             url={profile?.avatarUrl}
             size={100}
-            style={{ marginBottom: 14 }}
+            style={{ marginBottom: 14, shadowColor: '#EC4899', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
           />
 
           <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800' }}>
@@ -228,16 +228,16 @@ export default function ProfileScreen() {
         <View style={{
           flexDirection: 'row',
           marginHorizontal: 20,
-          backgroundColor: colors.card,
+          backgroundColor: '#10101C',
           borderRadius: 16,
           padding: 20,
-          borderColor: colors.border,
+          borderColor: '#1A1A30',
           borderWidth: 1,
         }}>
           <StatBox label="Events" value={eventsCount} />
-          <View style={{ width: 1, backgroundColor: colors.border }} />
+          <View style={{ width: 1, backgroundColor: '#1A1A30' }} />
           <StatBox label="Posts" value={profile?.postsCount ?? 0} />
-          <View style={{ width: 1, backgroundColor: colors.border }} />
+          <View style={{ width: 1, backgroundColor: '#1A1A30' }} />
           <StatBox label="Referrals" value={referralsCount} />
         </View>
 
@@ -245,9 +245,9 @@ export default function ProfileScreen() {
         {(profile?.location || profile?.gender || profile?.orientation || prefs?.relationshipStatus) && (
           <View style={{
             marginHorizontal: 20, marginTop: 16,
-            backgroundColor: colors.card,
+            backgroundColor: '#10101C',
             borderRadius: 16, padding: 16,
-            borderColor: colors.border, borderWidth: 1,
+            borderColor: '#1A1A30', borderWidth: 1,
           }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>About Me</Text>
             {profile?.location && (
@@ -269,9 +269,9 @@ export default function ProfileScreen() {
         {prefs?.interests?.length > 0 && (
           <View style={{
             marginHorizontal: 20, marginTop: 12,
-            backgroundColor: colors.card,
+            backgroundColor: '#10101C',
             borderRadius: 16, padding: 16,
-            borderColor: colors.border, borderWidth: 1,
+            borderColor: '#1A1A30', borderWidth: 1,
           }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Interests</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -294,9 +294,9 @@ export default function ProfileScreen() {
         {prefs?.lookingFor?.length > 0 && (
           <View style={{
             marginHorizontal: 20, marginTop: 12,
-            backgroundColor: colors.card,
+            backgroundColor: '#10101C',
             borderRadius: 16, padding: 16,
-            borderColor: colors.border, borderWidth: 1,
+            borderColor: '#1A1A30', borderWidth: 1,
           }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Looking For</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -318,9 +318,9 @@ export default function ProfileScreen() {
         {/* ── Credits Balance ── */}
         <View style={{
           marginHorizontal: 20, marginTop: 16,
-          backgroundColor: colors.card,
+          backgroundColor: '#10101C',
           borderRadius: 16, padding: 16,
-          borderColor: colors.border, borderWidth: 1,
+          borderColor: '#1A1A30', borderWidth: 1,
           flexDirection: 'row', alignItems: 'center',
         }}>
           <View style={{
@@ -342,9 +342,9 @@ export default function ProfileScreen() {
         {/* ── Referral Code ── */}
         <View style={{
           marginHorizontal: 20, marginTop: 12,
-          backgroundColor: colors.card,
+          backgroundColor: '#10101C',
           borderRadius: 16, padding: 16,
-          borderColor: colors.border, borderWidth: 1,
+          borderColor: '#1A1A30', borderWidth: 1,
         }}>
           <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
             REFERRAL CODE
@@ -401,10 +401,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/edit-profile' as any)}
             style={{
-              backgroundColor: colors.card,
+              backgroundColor: '#10101C',
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: colors.border, borderWidth: 1,
+              borderColor: '#1A1A30', borderWidth: 1,
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.pink} />
@@ -416,10 +416,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/settings' as any)}
             style={{
-              backgroundColor: colors.card,
+              backgroundColor: '#10101C',
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: colors.border, borderWidth: 1,
+              borderColor: '#1A1A30', borderWidth: 1,
             }}
           >
             <Ionicons name="settings-outline" size={20} color={colors.muted} />
@@ -431,10 +431,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/tickets' as any)}
             style={{
-              backgroundColor: colors.card,
+              backgroundColor: '#10101C',
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: colors.border, borderWidth: 1,
+              borderColor: '#1A1A30', borderWidth: 1,
             }}
           >
             <Ionicons name="ticket-outline" size={20} color={colors.pink} />
@@ -446,10 +446,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/members' as any)}
             style={{
-              backgroundColor: colors.card,
+              backgroundColor: '#10101C',
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: colors.border, borderWidth: 1,
+              borderColor: '#1A1A30', borderWidth: 1,
             }}
           >
             <Ionicons name="people-outline" size={20} color={colors.pink} />
@@ -462,10 +462,10 @@ export default function ProfileScreen() {
             onPress={handleLogout}
             disabled={logoutMutation.isPending}
             style={{
-              backgroundColor: colors.card,
+              backgroundColor: '#10101C',
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: colors.border, borderWidth: 1,
+              borderColor: '#1A1A30', borderWidth: 1,
             }}
           >
             {logoutMutation.isPending ? (

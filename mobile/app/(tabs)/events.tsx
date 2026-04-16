@@ -382,7 +382,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
 
       {/* Dark overlay so text is always legible */}
       <LinearGradient
-        colors={['transparent', `${colors.bg}99`, colors.bg]}
+        colors={['transparent', '#08081099', '#080810']}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFillObject}
       />
@@ -558,7 +558,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
       {/* Hero */}
       <HeroSection
         event={nextEvent}
@@ -602,7 +602,7 @@ export default function EventsScreen() {
           removeClippedSubviews
           maxToRenderPerBatch={8}
           windowSize={5}
-          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
@@ -623,8 +623,8 @@ export default function EventsScreen() {
 
 const styles = StyleSheet.create({
   eventCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
+    backgroundColor: '#10101C',
+    borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
@@ -714,29 +714,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#1A1A30',
     borderBottomWidth: 1,
     gap: 8,
+    backgroundColor: '#080810',
   },
   filterTab: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    borderRadius: 24,
+    backgroundColor: '#10101C',
+    borderColor: '#1A1A30',
     borderWidth: 1,
   },
   filterTabActive: {
-    backgroundColor: colors.pink,
-    borderColor: colors.pink,
+    backgroundColor: '#EC489920',
+    borderColor: '#EC4899',
   },
   filterLabel: {
-    color: colors.muted,
+    color: '#5A5575',
     fontWeight: '600',
     fontSize: 13,
   },
   filterLabelActive: {
-    color: '#fff',
+    color: '#EC4899',
+    fontWeight: '800' as const,
   },
   countBadge: {
     paddingHorizontal: 10,
