@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Switch,
   Alert,
   Linking,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -35,14 +34,14 @@ const PRIVACY_MESSAGING_KEY = 'privacy_who_can_message';
 function SectionHeader({ title }: { title: string }) {
   return (
     <Text style={{
-      color: colors.muted,
+      color: '#5A5575',
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '800',
       textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginTop: 28,
+      letterSpacing: 1.2,
+      marginTop: 20,
       marginBottom: 8,
-      marginHorizontal: 20,
+      paddingHorizontal: 20,
     }}>
       {title}
     </Text>
@@ -70,35 +69,37 @@ function ToggleRow({
     <View style={{
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.card,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      backgroundColor: '#10101C',
+      borderWidth: 1,
+      borderColor: '#1A1A30',
+      borderRadius: 14,
+      padding: 16,
+      marginHorizontal: 16,
+      marginBottom: 8,
     }}>
       <View style={{
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         borderRadius: 10,
-        backgroundColor: `${iconColor}22`,
+        backgroundColor: disabled ? '#5A557533' : `${iconColor}33`,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
       }}>
-        <Ionicons name={icon} size={16} color={iconColor} />
+        <Ionicons name={icon} size={18} color={disabled ? '#5A5575' : iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: disabled ? colors.muted : colors.text, fontSize: 15, fontWeight: '500' }}>{label}</Text>
-        {subtitle && <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
+        <Text style={{ color: disabled ? '#5A5575' : '#F1F0FF', fontSize: 15, fontWeight: '600' }}>{label}</Text>
+        {subtitle && <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
       </View>
       {disabled ? (
-        <Ionicons name="lock-closed-outline" size={18} color={colors.muted} />
+        <Ionicons name="lock-closed-outline" size={18} color="#5A5575" />
       ) : (
         <Switch
           value={value}
           onValueChange={onToggle}
-          trackColor={{ false: colors.border, true: colors.pink }}
-          thumbColor={colors.white}
+          trackColor={{ false: '#1A1A30', true: '#EC4899' }}
+          thumbColor="#fff"
         />
       )}
     </View>
@@ -120,37 +121,41 @@ function ChevronRow({
   onPress: () => void;
   destructive?: boolean;
 }) {
-  const labelColor = destructive ? '#EF4444' : colors.text;
+  const labelColor = destructive ? '#EF4444' : '#F1F0FF';
   const ic = iconColor ?? (destructive ? '#EF4444' : colors.pink);
+  const bgColor = destructive ? '#EF444410' : '#10101C';
+  const borderColor = destructive ? '#EF444420' : '#1A1A30';
   return (
     <TouchableOpacity
       onPress={onPress}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.card,
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        backgroundColor: bgColor,
+        borderWidth: 1,
+        borderColor: borderColor,
+        borderRadius: 14,
+        padding: 16,
+        marginHorizontal: 16,
+        marginBottom: 8,
       }}
     >
       <View style={{
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         borderRadius: 10,
-        backgroundColor: `${ic}22`,
+        backgroundColor: destructive ? '#EF444420' : `${ic}33`,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
       }}>
-        <Ionicons name={icon} size={16} color={ic} />
+        <Ionicons name={icon} size={18} color={ic} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: labelColor, fontSize: 15, fontWeight: '500' }}>{label}</Text>
-        {subtitle && <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
+        <Text style={{ color: labelColor, fontSize: 15, fontWeight: '600' }}>{label}</Text>
+        {subtitle && <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
       </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+      <Ionicons name="chevron-forward" size={16} color="#5A5575" />
     </TouchableOpacity>
   );
 }
@@ -166,32 +171,34 @@ function InfoRow({
   label: string;
   value: string;
 }) {
-  const ic = iconColor ?? colors.muted;
+  const ic = iconColor ?? '#5A5575';
   return (
     <View style={{
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.card,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      backgroundColor: '#10101C',
+      borderWidth: 1,
+      borderColor: '#1A1A30',
+      borderRadius: 14,
+      padding: 16,
+      marginHorizontal: 16,
+      marginBottom: 8,
     }}>
       <View style={{
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         borderRadius: 10,
-        backgroundColor: `${ic}22`,
+        backgroundColor: `${ic}33`,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
       }}>
-        <Ionicons name={icon} size={16} color={ic} />
+        <Ionicons name={icon} size={18} color={ic} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.text, fontSize: 15, fontWeight: '500' }}>{label}</Text>
+        <Text style={{ color: '#F1F0FF', fontSize: 15, fontWeight: '600' }}>{label}</Text>
       </View>
-      <Text style={{ color: colors.muted, fontSize: 14 }}>{value}</Text>
+      <Text style={{ color: '#5A5575', fontSize: 14 }}>{value}</Text>
     </View>
   );
 }
@@ -210,13 +217,13 @@ function SegmentedControl({
   return (
     <View style={{
       flexDirection: 'row',
-      backgroundColor: colors.bg,
+      backgroundColor: '#0C0C1A',
       borderRadius: 10,
       padding: 3,
       marginHorizontal: 16,
       marginBottom: 4,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: '#1A1A30',
     }}>
       {options.map((opt) => (
         <TouchableOpacity
@@ -227,11 +234,11 @@ function SegmentedControl({
             paddingVertical: 8,
             alignItems: 'center',
             borderRadius: 8,
-            backgroundColor: value === opt.value ? colors.pink : 'transparent',
+            backgroundColor: value === opt.value ? '#EC4899' : 'transparent',
           }}
         >
           <Text style={{
-            color: value === opt.value ? colors.white : colors.muted,
+            color: value === opt.value ? '#fff' : '#5A5575',
             fontSize: 13,
             fontWeight: '600',
           }}>
@@ -342,170 +349,189 @@ export default function SettingsScreen() {
     });
   }
 
-  const appVersion = Constants.expoConfig?.version ?? Constants.manifest?.version ?? '1.0.0';
+  const appVersion = Constants.expoConfig?.version ?? (Constants.manifest as any)?.version ?? '1.0.0';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
       {/* ── Gradient Header ── */}
       <LinearGradient
-        colors={['#7C3AED22', '#EC489922', colors.bg]}
+        colors={['#12051E', '#080810']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ paddingTop: insets.top + 12, paddingBottom: 18, paddingHorizontal: 20 }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#10101C',
+              borderWidth: 1,
+              borderColor: '#1A1A30',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 14,
+            }}
+          >
+            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800' }}>Settings</Text>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>Manage your account &amp; preferences</Text>
-          </View>
-          <Ionicons name="settings-outline" size={22} color={colors.purple} />
+          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', flex: 1 }}>Settings ⚙️</Text>
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
 
         {/* ── CONNECTIONS ── */}
         <SectionHeader title="Connections" />
-        <View style={{ marginHorizontal: 20, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
-          <TouchableOpacity
-            onPress={() => router.push('/connections' as any)}
-            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, paddingVertical: 14, paddingHorizontal: 16 }}
-          >
-            <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: `${colors.pink}22`, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-              <Text style={{ fontSize: 16 }}>💗</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/connections' as any)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#10101C',
+            borderWidth: 1,
+            borderColor: '#1A1A30',
+            borderRadius: 14,
+            padding: 16,
+            marginHorizontal: 16,
+            marginBottom: 8,
+          }}
+        >
+          <View style={{
+            width: 36, height: 36, borderRadius: 10,
+            backgroundColor: `${colors.pink}33`,
+            alignItems: 'center', justifyContent: 'center', marginRight: 12,
+          }}>
+            <Text style={{ fontSize: 18 }}>💗</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#F1F0FF', fontWeight: '600', fontSize: 15 }}>Connections & Partners</Text>
+            <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 1 }}>Manage your connections</Text>
+          </View>
+          {pendingCount > 0 && (
+            <View style={{
+              backgroundColor: colors.pink, borderRadius: 10,
+              minWidth: 20, height: 20,
+              alignItems: 'center', justifyContent: 'center',
+              paddingHorizontal: 5, marginRight: 8,
+            }}>
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{pendingCount}</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>Connections & Partners</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>Manage your connections</Text>
-            </View>
-            {pendingCount > 0 && (
-              <View style={{ backgroundColor: colors.pink, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginRight: 8 }}>
-                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{pendingCount}</Text>
-              </View>
-            )}
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-          </TouchableOpacity>
-        </View>
+          )}
+          <Ionicons name="chevron-forward" size={16} color="#5A5575" />
+        </TouchableOpacity>
 
         {/* ── ACCOUNT ── */}
         <SectionHeader title="Account" />
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-          <ChevronRow
-            icon="create-outline"
-            iconColor={colors.pink}
-            label="Display Name"
-            subtitle={me?.name ?? me?.displayName ?? undefined}
-            onPress={() => router.push('/edit-profile' as any)}
-          />
-          <ChevronRow
-            icon="lock-closed-outline"
-            iconColor={colors.purple}
-            label="Change Password"
-            onPress={() => router.push({ pathname: '/(auth)/forgot-password' as any, params: { prefill: email } })}
-          />
-          <ChevronRow
-            icon="mail-outline"
-            iconColor={colors.purple}
-            label="Email / Phone"
-            subtitle={[email, phone].filter(Boolean).join(' · ') || 'Not set'}
-            onPress={() =>
-              Alert.alert('Contact Change', 'To change your email or phone number, please contact support at support@soapies.app.')
-            }
-          />
-          <ChevronRow
-            icon="trash-outline"
-            label="Delete Account"
-            destructive
-            onPress={handleDeleteAccount}
-          />
-        </View>
+        <ChevronRow
+          icon="create-outline"
+          iconColor={colors.pink}
+          label="Display Name"
+          subtitle={me?.name ?? me?.displayName ?? undefined}
+          onPress={() => router.push('/edit-profile' as any)}
+        />
+        <ChevronRow
+          icon="lock-closed-outline"
+          iconColor={colors.purple}
+          label="Change Password"
+          onPress={() => router.push({ pathname: '/(auth)/forgot-password' as any, params: { prefill: email } })}
+        />
+        <ChevronRow
+          icon="mail-outline"
+          iconColor={colors.purple}
+          label="Email / Phone"
+          subtitle={[email, phone].filter(Boolean).join(' · ') || 'Not set'}
+          onPress={() =>
+            Alert.alert('Contact Change', 'To change your email or phone number, please contact support at support@soapies.app.')
+          }
+        />
+        <ChevronRow
+          icon="trash-outline"
+          label="Delete Account"
+          destructive
+          onPress={handleDeleteAccount}
+        />
 
         {/* ── NOTIFICATIONS ── */}
         <SectionHeader title="Notifications" />
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-          <ToggleRow
-            icon="notifications-outline"
-            iconColor={colors.pink}
-            label="Push Notifications"
-            subtitle="Master toggle for all push alerts"
-            value={notifPush}
-            onToggle={(v) => { setNotifPush(v); saveBool(NOTIF_PUSH_KEY, v); }}
-          />
-          <ToggleRow
-            icon="chatbubble-outline"
-            iconColor={colors.purple}
-            label="New Messages"
-            value={notifMessages && notifPush}
-            onToggle={(v) => toggleNotif(NOTIF_MESSAGES_KEY, notifMessages, setNotifMessages)}
-            disabled={!notifPush}
-          />
-          <ToggleRow
-            icon="calendar-outline"
-            iconColor={colors.purple}
-            label="Event Reminders"
-            value={notifEvents && notifPush}
-            onToggle={(v) => toggleNotif(NOTIF_EVENTS_KEY, notifEvents, setNotifEvents)}
-            disabled={!notifPush}
-          />
-          <ToggleRow
-            icon="globe-outline"
-            iconColor={colors.purple}
-            label="Community Posts"
-            value={notifCommunity && notifPush}
-            onToggle={(v) => toggleNotif(NOTIF_COMMUNITY_KEY, notifCommunity, setNotifCommunity)}
-            disabled={!notifPush}
-          />
-          <ToggleRow
-            icon="megaphone-outline"
-            iconColor={colors.purple}
-            label="Admin Announcements"
-            value={notifAdmin && notifPush}
-            onToggle={(v) => toggleNotif(NOTIF_ADMIN_KEY, notifAdmin, setNotifAdmin)}
-            disabled={!notifPush}
-          />
-        </View>
+        <ToggleRow
+          icon="notifications-outline"
+          iconColor={colors.pink}
+          label="Push Notifications"
+          subtitle="Master toggle for all push alerts"
+          value={notifPush}
+          onToggle={(v) => { setNotifPush(v); saveBool(NOTIF_PUSH_KEY, v); }}
+        />
+        <ToggleRow
+          icon="chatbubble-outline"
+          iconColor={colors.purple}
+          label="New Messages"
+          value={notifMessages && notifPush}
+          onToggle={() => toggleNotif(NOTIF_MESSAGES_KEY, notifMessages, setNotifMessages)}
+          disabled={!notifPush}
+        />
+        <ToggleRow
+          icon="calendar-outline"
+          iconColor={colors.purple}
+          label="Event Reminders"
+          value={notifEvents && notifPush}
+          onToggle={() => toggleNotif(NOTIF_EVENTS_KEY, notifEvents, setNotifEvents)}
+          disabled={!notifPush}
+        />
+        <ToggleRow
+          icon="globe-outline"
+          iconColor={colors.purple}
+          label="Community Posts"
+          value={notifCommunity && notifPush}
+          onToggle={() => toggleNotif(NOTIF_COMMUNITY_KEY, notifCommunity, setNotifCommunity)}
+          disabled={!notifPush}
+        />
+        <ToggleRow
+          icon="megaphone-outline"
+          iconColor={colors.purple}
+          label="Admin Announcements"
+          value={notifAdmin && notifPush}
+          onToggle={() => toggleNotif(NOTIF_ADMIN_KEY, notifAdmin, setNotifAdmin)}
+          disabled={!notifPush}
+        />
 
         {/* ── PRIVACY ── */}
         <SectionHeader title="Privacy" />
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-          <ToggleRow
-            icon="people-outline"
-            iconColor={colors.purple}
-            label="Show in Members Directory"
-            subtitle="Let other members find your profile"
-            value={false}
-            onToggle={(v) => {
-              // profile.upsert doesn't expose showInDirectory — store locally
-              AsyncStorage.setItem('privacy_show_in_directory', v ? '1' : '0');
-            }}
-          />
-          <ToggleRow
-            icon="location-outline"
-            iconColor={colors.purple}
-            label="Show Location in Pulse"
-            subtitle="Visible to members in Pulse feed"
-            value={showPulseLoc}
-            onToggle={(v) => { setShowPulseLoc(v); saveBool(PRIVACY_PULSE_LOC_KEY, v); }}
-          />
-        </View>
+        <ToggleRow
+          icon="people-outline"
+          iconColor={colors.purple}
+          label="Show in Members Directory"
+          subtitle="Let other members find your profile"
+          value={false}
+          onToggle={(v) => {
+            AsyncStorage.setItem('privacy_show_in_directory', v ? '1' : '0');
+          }}
+        />
+        <ToggleRow
+          icon="location-outline"
+          iconColor={colors.purple}
+          label="Show Location in Pulse"
+          subtitle="Visible to members in Pulse feed"
+          value={showPulseLoc}
+          onToggle={(v) => { setShowPulseLoc(v); saveBool(PRIVACY_PULSE_LOC_KEY, v); }}
+        />
 
         {/* Messaging segmented control */}
         <View style={{
-          backgroundColor: colors.card,
-          marginTop: 0,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          paddingVertical: 12,
+          backgroundColor: '#10101C',
+          borderWidth: 1,
+          borderColor: '#1A1A30',
+          borderRadius: 14,
+          paddingVertical: 14,
+          marginHorizontal: 16,
+          marginBottom: 8,
         }}>
           <Text style={{
-            color: colors.text,
+            color: '#F1F0FF',
             fontSize: 15,
-            fontWeight: '500',
+            fontWeight: '600',
             marginHorizontal: 16,
             marginBottom: 10,
           }}>
@@ -524,66 +550,62 @@ export default function SettingsScreen() {
 
         {/* ── APP ── */}
         <SectionHeader title="App" />
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-          <ToggleRow
-            icon="moon-outline"
-            iconColor={colors.muted}
-            label="Dark Mode"
-            subtitle="Always on — can't be changed"
-            value={true}
-            onToggle={() => {}}
-            disabled
-          />
-          <InfoRow
-            icon="information-circle-outline"
-            label="App Version"
-            value={appVersion}
-          />
-          <ChevronRow
-            icon="refresh-outline"
-            iconColor={colors.purple}
-            label="Clear Cache"
-            subtitle="Clears local data and query cache"
-            onPress={handleClearCache}
-          />
-          <ChevronRow
-            icon="star-outline"
-            iconColor="#F59E0B"
-            label="Rate App"
-            onPress={handleRateApp}
-          />
-        </View>
+        <ToggleRow
+          icon="moon-outline"
+          iconColor="#5A5575"
+          label="Dark Mode"
+          subtitle="Always on — can't be changed"
+          value={true}
+          onToggle={() => {}}
+          disabled
+        />
+        <InfoRow
+          icon="information-circle-outline"
+          label="App Version"
+          value={appVersion}
+        />
+        <ChevronRow
+          icon="refresh-outline"
+          iconColor={colors.purple}
+          label="Clear Cache"
+          subtitle="Clears local data and query cache"
+          onPress={handleClearCache}
+        />
+        <ChevronRow
+          icon="star-outline"
+          iconColor="#F59E0B"
+          label="Rate App"
+          onPress={handleRateApp}
+        />
 
         {/* ── SUPPORT ── */}
         <SectionHeader title="Support" />
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-          <ChevronRow
-            icon="mail-outline"
-            iconColor={colors.pink}
-            label="Contact Support"
-            onPress={() => Linking.openURL('mailto:support@soapies.app')}
-          />
-          <ChevronRow
-            icon="book-outline"
-            iconColor={colors.purple}
-            label="Community Guidelines"
-            onPress={() => Linking.openURL('https://soapies.app/guidelines')}
-          />
-          <ChevronRow
-            icon="shield-outline"
-            iconColor={colors.purple}
-            label="Privacy Policy"
-            onPress={() => Linking.openURL('https://soapies.app/privacy')}
-          />
-          <ChevronRow
-            icon="document-text-outline"
-            iconColor={colors.purple}
-            label="Terms of Service"
-            onPress={() => Linking.openURL('https://soapies.app/terms')}
-          />
-        </View>
+        <ChevronRow
+          icon="mail-outline"
+          iconColor={colors.pink}
+          label="Contact Support"
+          onPress={() => Linking.openURL('mailto:support@soapies.app')}
+        />
+        <ChevronRow
+          icon="book-outline"
+          iconColor={colors.purple}
+          label="Community Guidelines"
+          onPress={() => Linking.openURL('https://soapies.app/guidelines')}
+        />
+        <ChevronRow
+          icon="shield-outline"
+          iconColor={colors.purple}
+          label="Privacy Policy"
+          onPress={() => Linking.openURL('https://soapies.app/privacy')}
+        />
+        <ChevronRow
+          icon="document-text-outline"
+          iconColor={colors.purple}
+          label="Terms of Service"
+          onPress={() => Linking.openURL('https://soapies.app/terms')}
+        />
 
-        <View style={{ height: 32 }} />
+        <View style={{ height: 16 }} />
       </ScrollView>
     </SafeAreaView>
   );
