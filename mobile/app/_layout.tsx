@@ -116,11 +116,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     // If token exists but invalid: meQuery fires, 401 error, clearedTokenRef prevents loop
     // Either way: if not hasToken OR meQuery is done → can make routing decisions
     const meQuerySettled = !hasToken || (!meQuery.isLoading && meQuery.fetchStatus !== 'fetching');
-    if (!meQuerySettled) return; // still waiting on server validation
+    // Don't redirect while meQuery is still validating a stored token — might be a fresh login
+    if (!meQuerySettled) return;
 
-    // Allow: landing, auth screens, onboarding, pending-approval
-    // Block: tabs (shouldn't be reachable without auth)
-    if (inTabsGroup) {
+    // Only bounce away from tabs if we're truly unauthenticated (no token at all)
+    // This prevents a race where a fresh login sets hasToken but user context
+    // hasn't propagated yet to this effect
+    if (inTabsGroup && !hasToken) {
       router.replace('/');
     }
     // Let landing/auth/onboarding/pending render freely — no forced redirect needed

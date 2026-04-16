@@ -39,9 +39,15 @@ export default function LoginScreen() {
         Alert.alert('Sign In Failed', 'No session token returned. Please try again.');
         return;
       }
+      // 1. Persist token first — must complete before anything else reads it
       await saveToken(data.sessionToken);
-      setHasToken(true);
+      // 2. Hydrate user in context so AuthGuard sees an authenticated user immediately
       if (data?.user) setUser(data.user);
+      // 3. Mark token available — triggers re-enables of guarded queries
+      setHasToken(true);
+      // 4. Clear any stale auth.me query so it re-fetches with new token
+      utils.auth.me.reset();
+      // 5. Navigate — AuthGuard will now see user !== null and stay put
       router.replace('/(tabs)');
     },
     onError: (err: any) => {
