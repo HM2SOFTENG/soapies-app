@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -85,15 +85,24 @@ export default function EventDetailScreen() {
     setPartnerSearch('');
   }
 
-  // Partner search — live server query so we're not limited to 20 cached results.
-  // Enabled whenever the picker is open (or the ticket modal is on the couple step).
+  // Debounce partner search so we don't fire on every keystroke
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => setDebouncedSearch(partnerSearch.trim()), 300);
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, [partnerSearch]);
+
+  // Partner search — live server query, debounced. Enabled any time the couple flow is active.
   const partnerPickerActive = showTicketModal && ticketType === 'couple' && (modalStep === 'partner' || modalStep === 'picker');
-  const { data: membersData, isLoading: membersLoading } = trpc.members.browse.useQuery(
-    { page: 0, search: partnerSearch.trim() || undefined },
+  const { data: membersData, isLoading: membersLoading, isPreviousData } = trpc.members.browse.useQuery(
+    { page: 0, search: debouncedSearch || undefined },
     {
       enabled: partnerPickerActive,
-      staleTime: 10_000,
-    },
+      staleTime: 15_000,
+      keepPreviousData: true, // show last results while new search loads
+    } as any,
   );
 
   const availableTicketTypes = TICKET_TYPES.filter(t => {
@@ -325,16 +334,29 @@ export default function EventDetailScreen() {
 
   // Filter members by opposite gender for couple ticket partner selection
   const allMembers = (membersData as any[]) ?? [];
-  // Server already filters by search term; client-side applies gender complement filter
-  const filteredMembers = allMembers.filter((m: any) => {
-    if (!userGender) return true;
-    const mGender = (m.gender ?? '').toLowerCase();
-    const ug = userGender.toLowerCase();
-    const isMale = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'].includes(ug);
-    const isFemale = ['female', 'woman', 'trans female', 'transfemale'].includes(ug);
-    if (isMale) return ['female', 'woman', 'trans female', 'transfemale'].includes(mGender);
-    if (isFemale) return ['male', 'man', 'trans male', 'transmale'].includes(mGender);
-    return true; // non-binary / unset sees all
+
+  // For display: sort so opposite-gender members appear first, but show everyone
+  // (don't hard-filter — gender data may be missing or varied for some members)
+  const FEMALE_VALS = ['female', 'woman', 'trans female', 'transfemale'];
+  const MALE_VALS   = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'];
+  const ug = userGender.toLowerCase();
+  const userIsMale   = MALE_VALS.includes(ug);
+  const userIsFemale = FEMALE_VALS.includes(ug);
+
+  function isOppositeGender(mGender: string) {
+    const mg = mGender.toLowerCase();
+    if (userIsMale)   return FEMALE_VALS.includes(mg);
+    if (userIsFemale) return MALE_VALS.includes(mg);
+    return false;
+  }
+
+  // Show all members — sort opposite-gender to top, badge them with a ✓
+  const filteredMembers = [...allMembers].sort((a: any, b: any) => {
+    const aOpp = isOppositeGender(a.gender ?? '');
+    const bOpp = isOppositeGender(b.gender ?? '');
+    if (aOpp && !bOpp) return -1;
+    if (!aOpp && bOpp) return 1;
+    return 0;
   });
 
   // Keep selected partner available even if not in current filtered page
@@ -969,44 +991,50 @@ export default function EventDetailScreen() {
               windowSize={5}
               initialNumToRender={10}
               maxToRenderPerBatch={8}
-              renderItem={({ item }: { item: any }) => (
-                <TouchableOpacity
-                  onPress={() => {
-                    setPartnerUserId(item.id);
-                    setPartnerManuallyCleared(false);
-                    setPartnerSearch('');
-                    setModalStep('partner');
-                  }}
-                  style={{
-                    flexDirection: 'row', alignItems: 'center',
-                    padding: 12, borderRadius: 12,
-                    backgroundColor: partnerUserId === item.id ? '#EC489920' : '#10101C',
-                    borderWidth: 1,
-                    borderColor: partnerUserId === item.id ? '#EC489960' : '#1A1A30',
-                    marginBottom: 8, gap: 12,
-                  }}
-                >
-                  {item.avatarUrl ? (
-                    <Image source={{ uri: item.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: '#EC489930' }} />
-                  ) : (
-                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#A855F730', justifyContent: 'center', alignItems: 'center' }}>
-                      <Ionicons name="person" size={20} color="#A855F7" />
+              renderItem={({ item }: { item: any }) => {
+                const isSelected = partnerUserId === item.id;
+                const isOpp = isOppositeGender(item.gender ?? '');
+                return (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setPartnerUserId(item.id);
+                      setPartnerManuallyCleared(false);
+                      setPartnerSearch('');
+                      setModalStep('partner');
+                    }}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center',
+                      padding: 12, borderRadius: 12,
+                      backgroundColor: isSelected ? '#EC489920' : '#10101C',
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#EC489960' : isOpp ? '#EC489930' : '#1A1A30',
+                      marginBottom: 8, gap: 12,
+                    }}
+                  >
+                    {item.avatarUrl ? (
+                      <Image source={{ uri: item.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: isOpp ? '#EC489960' : '#1A1A3060' }} />
+                    ) : (
+                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isOpp ? '#EC489920' : '#A855F720', justifyContent: 'center', alignItems: 'center' }}>
+                        <Ionicons name="person" size={20} color={isOpp ? '#EC4899' : '#A855F7'} />
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 14 }}>{item.displayName ?? 'Member'}</Text>
+                      {(item.gender || item.orientation) ? (
+                        <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 1 }}>
+                          {[item.gender, item.orientation].filter(Boolean).join(' · ')}
+                        </Text>
+                      ) : null}
                     </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 14 }}>{item.displayName ?? 'Member'}</Text>
-                    {(item.gender || item.orientation) ? (
-                      <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 1 }}>
-                        {[item.gender, item.orientation].filter(Boolean).join(' · ')}
-                      </Text>
-                    ) : null}
-                  </View>
-                  {partnerUserId === item.id
-                    ? <Ionicons name="checkmark-circle" size={22} color="#EC4899" />
-                    : <Ionicons name="chevron-forward" size={16} color="#5A5575" />
-                  }
-                </TouchableOpacity>
-              )}
+                    {isSelected
+                      ? <Ionicons name="checkmark-circle" size={22} color="#EC4899" />
+                      : isOpp
+                        ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EC4899' }} />
+                        : <Ionicons name="chevron-forward" size={16} color="#5A5575" />
+                    }
+                  </TouchableOpacity>
+                );
+              }}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   {membersLoading ? (
@@ -1018,9 +1046,7 @@ export default function EventDetailScreen() {
                         {partnerSearch.trim() ? 'No matches found' : 'No members available'}
                       </Text>
                       <Text style={{ color: '#5A5575', fontSize: 13, textAlign: 'center', paddingHorizontal: 24 }}>
-                        {partnerSearch.trim()
-                          ? 'Try a different name'
-                          : 'Members of the opposite gender will appear here'}
+                        {partnerSearch.trim() ? 'Try a different name' : 'Start typing a name to search members'}
                       </Text>
                     </>
                   )}
