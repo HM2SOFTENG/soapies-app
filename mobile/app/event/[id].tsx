@@ -85,6 +85,14 @@ export default function EventDetailScreen() {
     setPartnerSearch('');
   }
 
+  // Gender helpers — must be above the query that uses them
+  const FEMALE_VALS = ['female', 'woman', 'trans female', 'transfemale'];
+  const MALE_VALS   = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'];
+  const ug = userGender.toLowerCase();
+  const userIsMale   = MALE_VALS.includes(ug);
+  const userIsFemale = FEMALE_VALS.includes(ug);
+  const oppositeGender = userIsMale ? 'female' : userIsFemale ? 'male' : undefined;
+
   // Debounce partner search so we don't fire on every keystroke
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,14 +102,19 @@ export default function EventDetailScreen() {
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [partnerSearch]);
 
-  // Partner search — live server query, debounced. Enabled any time the couple flow is active.
+  // Partner search — cross-community, server-filtered to opposite gender.
   const partnerPickerActive = showTicketModal && ticketType === 'couple' && (modalStep === 'partner' || modalStep === 'picker');
-  const { data: membersData, isLoading: membersLoading, isPreviousData } = trpc.members.browse.useQuery(
-    { page: 0, search: debouncedSearch || undefined },
+  const { data: membersData, isLoading: membersLoading } = trpc.members.browse.useQuery(
+    {
+      page: 0,
+      search: debouncedSearch || undefined,
+      community: 'all',          // cross-community search
+      gender: oppositeGender,    // server-side gender filter for opposite gender
+    },
     {
       enabled: partnerPickerActive,
       staleTime: 15_000,
-      keepPreviousData: true, // show last results while new search loads
+      keepPreviousData: true,
     } as any,
   );
 
@@ -334,14 +347,6 @@ export default function EventDetailScreen() {
 
   // Filter members by opposite gender for couple ticket partner selection
   const allMembers = (membersData as any[]) ?? [];
-
-  // For display: sort so opposite-gender members appear first, but show everyone
-  // (don't hard-filter — gender data may be missing or varied for some members)
-  const FEMALE_VALS = ['female', 'woman', 'trans female', 'transfemale'];
-  const MALE_VALS   = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'];
-  const ug = userGender.toLowerCase();
-  const userIsMale   = MALE_VALS.includes(ug);
-  const userIsFemale = FEMALE_VALS.includes(ug);
 
   function isOppositeGender(mGender: string) {
     const mg = mGender.toLowerCase();
