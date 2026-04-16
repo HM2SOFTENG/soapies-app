@@ -68,12 +68,22 @@ export default function EventDetailScreen() {
   const { data: primaryPartnerData } = trpc.partners.myPrimaryPartner.useQuery();
   const primaryPartner = primaryPartnerData as any;
 
-  // Pre-fill partner when couple ticket is selected and user has a primary partner
+  // Track whether the user explicitly cleared the default partner so we don't re-fill it
+  const [partnerManuallyCleared, setPartnerManuallyCleared] = useState(false);
+
+  // Pre-fill partner when couple ticket is selected and user has a primary partner,
+  // but only if they haven't manually cleared it this session.
   useEffect(() => {
-    if (ticketType === 'couple' && primaryPartner?.partnerUserId && !partnerUserId) {
+    if (ticketType === 'couple' && primaryPartner?.partnerUserId && !partnerUserId && !partnerManuallyCleared) {
       setPartnerUserId(primaryPartner.partnerUserId);
     }
   }, [ticketType, primaryPartner]);
+
+  function clearPartner() {
+    setPartnerUserId(null);
+    setPartnerManuallyCleared(true);
+    setPartnerSearch('');
+  }
 
   // Partner search — live server query so we're not limited to 20 cached results.
   // Enabled whenever the picker is open (or the ticket modal is on the couple step).
@@ -308,6 +318,7 @@ export default function EventDetailScreen() {
     setModalStep('ticket');
     setPartnerUserId(null);
     setPartnerSearch('');
+    setPartnerManuallyCleared(false); // reset so primary partner pre-fills on fresh open
     setShowTicketModal(true);
   }
 
@@ -779,78 +790,82 @@ export default function EventDetailScreen() {
                 {/* Selected partner card */}
                 {selectedPartner ? (
                   <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    padding: 14,
-                    borderRadius: 12,
-                    backgroundColor: `${colors.pink}15`,
-                    borderColor: colors.pink,
+                    borderRadius: 14,
                     borderWidth: 1,
+                    borderColor: colors.pink,
+                    backgroundColor: `${colors.pink}12`,
                     marginBottom: 14,
-                    gap: 12,
+                    overflow: 'hidden',
                   }}>
-                    {selectedPartner.avatarUrl ? (
-                      <Image source={{ uri: selectedPartner.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
-                    ) : (
-                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${colors.purple}44`, justifyContent: 'center', alignItems: 'center' }}>
-                        <Ionicons name="person" size={22} color={colors.purple} />
+                    {/* Default connection label */}
+                    {primaryPartner && selectedPartner.id === primaryPartner.partnerUserId && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 }}>
+                        <Text style={{ fontSize: 12 }}>💗</Text>
+                        <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>YOUR CONNECTION</Text>
                       </View>
                     )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{selectedPartner.displayName ?? 'Member'}</Text>
-                      {selectedPartner.orientation ? (
-                        <Text style={{ color: colors.muted, fontSize: 12 }}>{selectedPartner.orientation}</Text>
-                      ) : null}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, paddingTop: primaryPartner && selectedPartner.id === primaryPartner.partnerUserId ? 6 : 14, gap: 12 }}>
+                      {selectedPartner.avatarUrl ? (
+                        <Image source={{ uri: selectedPartner.avatarUrl }} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: `${colors.pink}60` }} />
+                      ) : (
+                        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${colors.purple}44`, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: `${colors.purple}40` }}>
+                          <Ionicons name="person" size={22} color={colors.purple} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#F1F0FF', fontWeight: '800', fontSize: 15 }}>{selectedPartner.displayName ?? 'Member'}</Text>
+                        {selectedPartner.gender ? (
+                          <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 1 }}>{selectedPartner.gender}{selectedPartner.orientation ? ` · ${selectedPartner.orientation}` : ''}</Text>
+                        ) : null}
+                      </View>
+                      {/* Remove / change button */}
+                      <TouchableOpacity
+                        onPress={clearPartner}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{ backgroundColor: '#EF444420', borderRadius: 20, padding: 6, borderWidth: 1, borderColor: '#EF444430' }}
+                      >
+                        <Ionicons name="close" size={16} color="#EF4444" />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={() => setPartnerUserId(null)} style={{ padding: 4 }}>
-                      <Ionicons name="close-circle" size={22} color={colors.muted} />
-                    </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={{
-                    padding: 14,
-                    borderRadius: 12,
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
+                    padding: 20,
+                    borderRadius: 14,
+                    backgroundColor: '#10101C',
+                    borderColor: '#1A1A30',
                     borderWidth: 1,
                     marginBottom: 14,
                     alignItems: 'center',
+                    gap: 6,
                   }}>
-                    <Text style={{ color: colors.muted, fontSize: 14 }}>No partner selected yet</Text>
+                    <Ionicons name="people-outline" size={28} color="#5A5575" />
+                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 14 }}>No partner selected</Text>
+                    <Text style={{ color: '#5A5575', fontSize: 12, textAlign: 'center' }}>Search for a member below to link to your couples ticket</Text>
                   </View>
                 )}
 
-                {/* Browse Members button */}
+                {/* Search / change partner */}
                 <TouchableOpacity
-                  onPress={() => setShowPartnerPicker(true)}
+                  onPress={() => { setShowPartnerPicker(true); }}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: 12,
-                    borderRadius: 12,
-                    backgroundColor: `${colors.purple}22`,
-                    borderColor: `${colors.purple}44`,
+                    padding: 13,
+                    borderRadius: 14,
+                    backgroundColor: '#10101C',
+                    borderColor: selectedPartner ? '#1A1A30' : `${colors.purple}44`,
                     borderWidth: 1,
                     marginBottom: 16,
                     gap: 8,
                   }}
                 >
-                  <Ionicons name="people-outline" size={18} color={colors.purple} />
-                  <Text style={{ color: colors.purple, fontWeight: '600', fontSize: 14 }}>Browse Members</Text>
+                  <Ionicons name={selectedPartner ? 'swap-horizontal' : 'search'} size={18} color={selectedPartner ? '#5A5575' : colors.purple} />
+                  <Text style={{ color: selectedPartner ? '#5A5575' : colors.purple, fontWeight: '700', fontSize: 14 }}>
+                    {selectedPartner ? 'Change partner' : 'Search for a partner'}
+                  </Text>
                 </TouchableOpacity>
-
-                {/* Primary partner pre-fill chip */}
-                {primaryPartner && partnerUserId === primaryPartner.partnerUserId && (
-                  <TouchableOpacity
-                    onPress={() => setPartnerUserId(null)}
-                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: `${colors.pink}18`, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: `${colors.pink}55`, marginBottom: 12, gap: 6, alignSelf: 'flex-start' }}
-                  >
-                    <Text style={{ fontSize: 14 }}>💗</Text>
-                    <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 13 }}>With {primaryPartner.partnerProfile?.displayName ?? 'Partner'}</Text>
-                    <Ionicons name="close-circle" size={14} color={colors.pink} />
-                  </TouchableOpacity>
-                )}
 
                 <TouchableOpacity
                   onPress={handleReserve}
@@ -902,7 +917,7 @@ export default function EventDetailScreen() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
               <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', flex: 1 }}>Choose Partner</Text>
-              <TouchableOpacity onPress={() => setShowPartnerPicker(false)}>
+              <TouchableOpacity onPress={() => { setShowPartnerPicker(false); setPartnerSearch(''); }}>
                 <Ionicons name="close" size={24} color={colors.muted} />
               </TouchableOpacity>
             </View>
@@ -942,6 +957,8 @@ export default function EventDetailScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     setPartnerUserId(item.id);
+                    setPartnerManuallyCleared(false); // user picked someone, so not "cleared"
+                    setPartnerSearch('');
                     setShowPartnerPicker(false);
                   }}
                   style={{
