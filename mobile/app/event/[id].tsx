@@ -173,6 +173,28 @@ export default function EventDetailScreen() {
   const isAtCapacity = ev?.capacity && ev.capacity > 0 && (ev.currentAttendees ?? 0) >= ev.capacity;
   const hasWaitlistPos = (waitlistPosition as any)?.position;
 
+  // ── Hooks that must stay above early returns ───────────────────────────────
+  const countdownStr = React.useMemo(() => {
+    if (!ev?.startDate) return null;
+    const diff = new Date(ev.startDate).getTime() - Date.now();
+    if (diff < 0) return null;
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (d > 0) return `${d}d ${h}h away`;
+    if (h > 0) return `${h}h away`;
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${m}m away`;
+  }, [ev?.startDate]);
+
+  const reserveScale = React.useRef(new Animated.Value(1)).current;
+  const handleReservePressIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.spring(reserveScale, { toValue: 0.96, useNativeDriver: true }).start();
+  };
+  const handleReservePressOut = () => {
+    Animated.spring(reserveScale, { toValue: 1, useNativeDriver: true }).start();
+  };
+
   // ── Loading / error states ─────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -203,27 +225,6 @@ export default function EventDetailScreen() {
   const timeStr = ev.startDate
     ? new Date(ev.startDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : '';
-
-  const countdownStr = React.useMemo(() => {
-    if (!ev?.startDate) return null;
-    const diff = new Date(ev.startDate).getTime() - Date.now();
-    if (diff < 0) return null;
-    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    if (d > 0) return `${d}d ${h}h away`;
-    if (h > 0) return `${h}h away`;
-    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${m}m away`;
-  }, [ev?.startDate]);
-
-  const reserveScale = React.useRef(new Animated.Value(1)).current;
-  const handleReservePressIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Animated.spring(reserveScale, { toValue: 0.96, useNativeDriver: true }).start();
-  };
-  const handleReservePressOut = () => {
-    Animated.spring(reserveScale, { toValue: 1, useNativeDriver: true }).start();
-  };
 
   function getTicketPriceDollars(t: TicketType): number {
     switch (t) {
