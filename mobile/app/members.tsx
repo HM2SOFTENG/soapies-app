@@ -1,13 +1,14 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useState, useCallback, useMemo } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   ActivityIndicator, RefreshControl, ScrollView, Switch, Alert,
+  Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../lib/trpc';
-import { colors } from '../lib/colors';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../lib/auth';
 
@@ -56,32 +57,81 @@ const COMMUNITY_OPTIONS = [
   { label: '🌈 Gaypeez', value: 'gaypeez' },
 ];
 
+// ─── Animated Chip ────────────────────────────────────────────────────────────
+
+function AnimatedChip({
+  option,
+  active,
+  onSelect,
+}: {
+  option: { label: string; value: string | undefined };
+  active: boolean;
+  onSelect: (v: string | undefined) => void;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () =>
+    Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+  const onPressOut = () =>
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+
+  return (
+    <TouchableOpacity
+      onPress={() => onSelect(option.value)}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      activeOpacity={1}
+    >
+      <Animated.View
+        style={{
+          transform: [{ scale }],
+          paddingHorizontal: 14,
+          paddingVertical: 7,
+          borderRadius: 20,
+          backgroundColor: active ? '#EC489920' : '#10101C',
+          borderWidth: 1,
+          borderColor: active ? '#EC4899' : '#1A1A30',
+        }}
+      >
+        <Text
+          style={{
+            color: active ? '#EC4899' : '#5A5575',
+            fontWeight: active ? '800' : '700',
+            fontSize: 12,
+          }}
+        >
+          {option.label}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Chip Row ─────────────────────────────────────────────────────────────────
 
-function ChipRow({ options, selected, onSelect }: {
+function ChipRow({
+  options,
+  selected,
+  onSelect,
+}: {
   options: { label: string; value: string | undefined }[];
   selected: string | undefined;
   onSelect: (v: string | undefined) => void;
 }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 4 }}>
-      {options.map((opt) => {
-        const active = selected === opt.value;
-        return (
-          <TouchableOpacity
-            key={opt.label}
-            onPress={() => onSelect(opt.value)}
-            style={{
-              paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-              backgroundColor: active ? colors.pink : '#1A1A2E',
-              borderWidth: 1,
-              borderColor: active ? colors.pink : '#2D2D3A',
-            }}
-          >
-            <Text style={{ color: active ? '#fff' : colors.muted, fontWeight: '600', fontSize: 12 }}>{opt.label}</Text>
-          </TouchableOpacity>
-        );
-      })}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 4 }}
+    >
+      {options.map((opt) => (
+        <AnimatedChip
+          key={opt.label}
+          option={opt}
+          active={selected === opt.value}
+          onSelect={onSelect}
+        />
+      ))}
     </ScrollView>
   );
 }
@@ -89,14 +139,35 @@ function ChipRow({ options, selected, onSelect }: {
 // ─── Filter Label Helper ──────────────────────────────────────────────────────
 
 function filterLabel(type: string, value: string): string {
-  const allOptions = [...GENDER_OPTIONS, ...ORIENTATION_OPTIONS, ...LOOKING_FOR_OPTIONS, ...ROLE_OPTIONS, ...COMMUNITY_OPTIONS];
-  const found = allOptions.find(o => o.value === value);
+  const allOptions = [
+    ...GENDER_OPTIONS,
+    ...ORIENTATION_OPTIONS,
+    ...LOOKING_FOR_OPTIONS,
+    ...ROLE_OPTIONS,
+    ...COMMUNITY_OPTIONS,
+  ];
+  const found = allOptions.find((o) => o.value === value);
   return found ? found.label : value;
 }
 
 // ─── Member Card ──────────────────────────────────────────────────────────────
 
-function MemberCard({ member, onPress, isComposeMode }: { member: any; onPress: () => void; isComposeMode: boolean }) {
+function MemberCard({
+  member,
+  onPress,
+  isComposeMode,
+}: {
+  member: any;
+  onPress: () => void;
+  isComposeMode: boolean;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () =>
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+  const onPressOut = () =>
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+
   const name = member.displayName ?? 'Member';
   const avatarUrl = member.avatarUrl;
   const location = member.location;
@@ -106,72 +177,135 @@ function MemberCard({ member, onPress, isComposeMode }: { member: any; onPress: 
   const memberRole = member.memberRole;
   const isAngel = memberRole === 'angel';
 
-  // Parse lookingFor from preferences JSON
   const preferences = member.preferences as any;
-  const lookingForArr: string[] = Array.isArray(preferences?.lookingFor) ? preferences.lookingFor : [];
+  const lookingForArr: string[] = Array.isArray(preferences?.lookingFor)
+    ? preferences.lookingFor
+    : [];
   const lookingForDisplay = lookingForArr.slice(0, 2).map((v: string) => {
-    const found = LOOKING_FOR_OPTIONS.find(o => o.value === v);
+    const found = LOOKING_FOR_OPTIONS.find((o) => o.value === v);
     return found ? found.label : v;
   });
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.8}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 13,
-        borderBottomColor: colors.border,
-        borderBottomWidth: 1,
-      }}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      activeOpacity={1}
     >
-      <Avatar name={name} url={avatarUrl} size={48} style={{ marginRight: 14 }} />
-      <View style={{ flex: 1 }}>
-        {/* Name + badges */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{name}</Text>
-          {community && (
-            <View style={{ backgroundColor: `${colors.purple}22`, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-              <Text style={{ color: colors.purple, fontSize: 10, fontWeight: '700', textTransform: 'capitalize' }}>{community}</Text>
+      <Animated.View
+        style={{
+          transform: [{ scale }],
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginHorizontal: 16,
+          marginBottom: 8,
+          padding: 14,
+          backgroundColor: '#10101C',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: '#1A1A30',
+        }}
+      >
+        {/* Avatar with glow border */}
+        <View
+          style={{
+            borderRadius: 28,
+            borderWidth: 1.5,
+            borderColor: '#EC489930',
+            marginRight: 14,
+          }}
+        >
+          <Avatar name={name} url={avatarUrl} size={48} />
+        </View>
+
+        <View style={{ flex: 1 }}>
+          {/* Name + badges */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 3,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{name}</Text>
+            {community && (
+              <View
+                style={{
+                  backgroundColor: '#A855F722',
+                  borderRadius: 8,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#A855F7',
+                    fontSize: 10,
+                    fontWeight: '700',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {community}
+                </Text>
+              </View>
+            )}
+            {isAngel && (
+              <View
+                style={{
+                  backgroundColor: '#EC489922',
+                  borderRadius: 8,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text style={{ color: '#EC4899', fontSize: 10, fontWeight: '700' }}>💗 Angel</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Orientation + gender */}
+          {(orientation || gender) && (
+            <Text style={{ color: '#A09CB8', fontSize: 12, marginBottom: 3 }}>
+              {[orientation, gender].filter(Boolean).join(' · ')}
+            </Text>
+          )}
+
+          {/* Looking for tags */}
+          {lookingForDisplay.length > 0 && (
+            <View
+              style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 2 }}
+            >
+              {lookingForDisplay.map((tag, i) => (
+                <View
+                  key={i}
+                  style={{
+                    backgroundColor: '#1A1A30',
+                    borderRadius: 6,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text style={{ color: '#5A5575', fontSize: 10 }}>{tag}</Text>
+                </View>
+              ))}
             </View>
           )}
-          {isAngel && (
-            <View style={{ backgroundColor: `${colors.pink}22`, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 }}>
-              <Text style={{ color: colors.pink, fontSize: 10, fontWeight: '700' }}>💗 Angel</Text>
-            </View>
+
+          {/* Location */}
+          {location && (
+            <Text style={{ color: '#5A5575', fontSize: 12 }}>{location}</Text>
           )}
         </View>
 
-        {/* Orientation + gender */}
-        {(orientation || gender) && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 3 }}>
-            {[orientation, gender].filter(Boolean).join(' · ')}
-          </Text>
+        {isComposeMode ? (
+          <Ionicons name="chatbubble-outline" size={20} color="#EC4899" />
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color="#5A5575" />
         )}
-
-        {/* Looking for tags */}
-        {lookingForDisplay.length > 0 && (
-          <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 2 }}>
-            {lookingForDisplay.map((tag, i) => (
-              <View key={i} style={{ backgroundColor: '#1A1A2E', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text style={{ color: colors.muted, fontSize: 10 }}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Location */}
-        {location && (
-          <Text style={{ color: colors.muted, fontSize: 12 }}>{location}</Text>
-        )}
-      </View>
-
-      {isComposeMode
-        ? <Ionicons name="chatbubble-outline" size={20} color={colors.pink} />
-        : <Ionicons name="chevron-forward" size={16} color={colors.muted} />
-      }
+      </Animated.View>
     </TouchableOpacity>
   );
 }
@@ -180,12 +314,14 @@ function MemberCard({ member, onPress, isComposeMode }: { member: any; onPress: 
 
 export default function MembersScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isComposeMode = params.mode === 'compose';
   const { hasToken } = useAuth();
 
   // Search & filter state
   const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [community, setCommunity] = useState<string | undefined>(undefined);
   const [orientation, setOrientation] = useState<string | undefined>(undefined);
@@ -212,41 +348,47 @@ export default function MembersScreen() {
   const activeFilterCount = [community, orientation, gender, memberRole, lookingFor, hasPhoto || undefined]
     .filter(Boolean).length;
 
-  const pendingFilterCount = [pendingCommunity, pendingOrientation, pendingGender, pendingMemberRole, pendingLookingFor, pendingHasPhoto || undefined]
-    .filter(Boolean).length;
+  const pendingFilterCount = [
+    pendingCommunity,
+    pendingOrientation,
+    pendingGender,
+    pendingMemberRole,
+    pendingLookingFor,
+    pendingHasPhoto || undefined,
+  ].filter(Boolean).length;
 
-  const queryInput = useMemo(() => ({
-    page,
-    search: query || undefined,
-    community,
-    orientation,
-    gender,
-    memberRole,
-    lookingFor,
-    hasPhoto: hasPhoto || undefined,
-  }), [page, query, community, orientation, gender, memberRole, lookingFor, hasPhoto]);
-
-  const { data, isLoading, refetch } = trpc.members.browse.useQuery(
-    queryInput,
-    {
-      staleTime: 0,
-      enabled: hasToken,
-      onSuccess: (newData: any) => {
-        const rows = (newData as any[]) ?? [];
-        if (page === 0) {
-          setAllMembers(rows);
-        } else {
-          setAllMembers(prev => {
-            const existingIds = new Set(prev.map((m: any) => m.id));
-            const fresh = rows.filter((m: any) => !existingIds.has(m.id));
-            return [...prev, ...fresh];
-          });
-        }
-        setHasMore(rows.length === PAGE_SIZE);
-        setLoadingMore(false);
-      },
-    } as any,
+  const queryInput = useMemo(
+    () => ({
+      page,
+      search: query || undefined,
+      community,
+      orientation,
+      gender,
+      memberRole,
+      lookingFor,
+      hasPhoto: hasPhoto || undefined,
+    }),
+    [page, query, community, orientation, gender, memberRole, lookingFor, hasPhoto],
   );
+
+  const { data, isLoading, refetch } = trpc.members.browse.useQuery(queryInput, {
+    staleTime: 0,
+    enabled: hasToken,
+    onSuccess: (newData: any) => {
+      const rows = (newData as any[]) ?? [];
+      if (page === 0) {
+        setAllMembers(rows);
+      } else {
+        setAllMembers((prev) => {
+          const existingIds = new Set(prev.map((m: any) => m.id));
+          const fresh = rows.filter((m: any) => !existingIds.has(m.id));
+          return [...prev, ...fresh];
+        });
+      }
+      setHasMore(rows.length === PAGE_SIZE);
+      setLoadingMore(false);
+    },
+  } as any);
 
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (convId: any) => {
@@ -270,7 +412,15 @@ export default function MembersScreen() {
     setHasPhoto(pendingHasPhoto);
     resetPagination();
     setShowFilters(false);
-  }, [pendingCommunity, pendingOrientation, pendingGender, pendingMemberRole, pendingLookingFor, pendingHasPhoto, resetPagination]);
+  }, [
+    pendingCommunity,
+    pendingOrientation,
+    pendingGender,
+    pendingMemberRole,
+    pendingLookingFor,
+    pendingHasPhoto,
+    resetPagination,
+  ]);
 
   const clearAllFilters = useCallback(() => {
     setPendingCommunity(undefined);
@@ -288,15 +438,39 @@ export default function MembersScreen() {
     resetPagination();
   }, [resetPagination]);
 
-  const removeFilter = useCallback((type: 'community' | 'orientation' | 'gender' | 'memberRole' | 'lookingFor' | 'hasPhoto') => {
-    resetPagination();
-    if (type === 'community') { setCommunity(undefined); setPendingCommunity(undefined); }
-    else if (type === 'orientation') { setOrientation(undefined); setPendingOrientation(undefined); }
-    else if (type === 'gender') { setGender(undefined); setPendingGender(undefined); }
-    else if (type === 'memberRole') { setMemberRole(undefined); setPendingMemberRole(undefined); }
-    else if (type === 'lookingFor') { setLookingFor(undefined); setPendingLookingFor(undefined); }
-    else if (type === 'hasPhoto') { setHasPhoto(false); setPendingHasPhoto(false); }
-  }, [resetPagination]);
+  const removeFilter = useCallback(
+    (
+      type:
+        | 'community'
+        | 'orientation'
+        | 'gender'
+        | 'memberRole'
+        | 'lookingFor'
+        | 'hasPhoto',
+    ) => {
+      resetPagination();
+      if (type === 'community') {
+        setCommunity(undefined);
+        setPendingCommunity(undefined);
+      } else if (type === 'orientation') {
+        setOrientation(undefined);
+        setPendingOrientation(undefined);
+      } else if (type === 'gender') {
+        setGender(undefined);
+        setPendingGender(undefined);
+      } else if (type === 'memberRole') {
+        setMemberRole(undefined);
+        setPendingMemberRole(undefined);
+      } else if (type === 'lookingFor') {
+        setLookingFor(undefined);
+        setPendingLookingFor(undefined);
+      } else if (type === 'hasPhoto') {
+        setHasPhoto(false);
+        setPendingHasPhoto(false);
+      }
+    },
+    [resetPagination],
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -310,70 +484,137 @@ export default function MembersScreen() {
   const loadMore = useCallback(() => {
     if (!hasMore || loadingMore || isLoading) return;
     setLoadingMore(true);
-    setPage(p => p + 1);
+    setPage((p) => p + 1);
   }, [hasMore, loadingMore, isLoading]);
 
-  const handleSearchChange = useCallback((v: string) => {
-    setQuery(v);
-    resetPagination();
-  }, [resetPagination]);
+  const handleSearchChange = useCallback(
+    (v: string) => {
+      setQuery(v);
+      resetPagination();
+    },
+    [resetPagination],
+  );
 
   const displayMembers = allMembers.length > 0 ? allMembers : ((data as any[]) ?? []);
   const totalShown = displayMembers.length;
 
-  const handleMemberPress = useCallback((member: any) => {
-    const userId = member.id ?? member.userId;
-    if (isComposeMode) {
-      if (userId) createConversation.mutate({ participantIds: [userId] });
-    } else {
-      if (userId) router.push(`/member/${userId}` as any);
-    }
-  }, [isComposeMode, router, createConversation]);
+  const handleMemberPress = useCallback(
+    (member: any) => {
+      const userId = member.id ?? member.userId;
+      if (isComposeMode) {
+        if (userId) createConversation.mutate({ participantIds: [userId] });
+      } else {
+        if (userId) router.push(`/member/${userId}` as any);
+      }
+    },
+    [isComposeMode, router, createConversation],
+  );
 
-  const renderItem = useCallback(({ item }: { item: any }) => (
-    <MemberCard
-      member={item}
-      onPress={() => handleMemberPress(item)}
-      isComposeMode={isComposeMode}
-    />
-  ), [handleMemberPress, isComposeMode]);
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <MemberCard
+        member={item}
+        onPress={() => handleMemberPress(item)}
+        isComposeMode={isComposeMode}
+      />
+    ),
+    [handleMemberPress, isComposeMode],
+  );
 
   const renderFooter = () => {
     if (!loadingMore) return null;
     return (
       <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-        <ActivityIndicator color={colors.pink} />
+        <ActivityIndicator color="#EC4899" />
       </View>
     );
   };
 
   // Active filter chips data
   const activeFilterChips: { label: string; onRemove: () => void }[] = [];
-  if (community) activeFilterChips.push({ label: filterLabel('community', community), onRemove: () => removeFilter('community') });
-  if (orientation) activeFilterChips.push({ label: filterLabel('orientation', orientation), onRemove: () => removeFilter('orientation') });
-  if (gender) activeFilterChips.push({ label: filterLabel('gender', gender), onRemove: () => removeFilter('gender') });
-  if (memberRole) activeFilterChips.push({ label: filterLabel('memberRole', memberRole), onRemove: () => removeFilter('memberRole') });
-  if (lookingFor) activeFilterChips.push({ label: filterLabel('lookingFor', lookingFor), onRemove: () => removeFilter('lookingFor') });
-  if (hasPhoto) activeFilterChips.push({ label: '📷 Has Photo', onRemove: () => removeFilter('hasPhoto') });
+  if (community)
+    activeFilterChips.push({
+      label: filterLabel('community', community),
+      onRemove: () => removeFilter('community'),
+    });
+  if (orientation)
+    activeFilterChips.push({
+      label: filterLabel('orientation', orientation),
+      onRemove: () => removeFilter('orientation'),
+    });
+  if (gender)
+    activeFilterChips.push({
+      label: filterLabel('gender', gender),
+      onRemove: () => removeFilter('gender'),
+    });
+  if (memberRole)
+    activeFilterChips.push({
+      label: filterLabel('memberRole', memberRole),
+      onRemove: () => removeFilter('memberRole'),
+    });
+  if (lookingFor)
+    activeFilterChips.push({
+      label: filterLabel('lookingFor', lookingFor),
+      onRemove: () => removeFilter('lookingFor'),
+    });
+  if (hasPhoto)
+    activeFilterChips.push({
+      label: '📷 Has Photo',
+      onRemove: () => removeFilter('hasPhoto'),
+    });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom', 'left', 'right']}>
       {/* Header */}
-      <View style={{
-        paddingHorizontal: 16, paddingVertical: 14,
-        borderBottomColor: colors.border, borderBottomWidth: 1,
-        flexDirection: 'row', alignItems: 'center',
-      }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12, padding: 4 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <LinearGradient
+        colors={['#12051E', '#080810']}
+        style={{
+          paddingTop: insets.top + 14,
+          paddingBottom: 16,
+          paddingHorizontal: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ marginRight: 12, padding: 4 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#F1F0FF" />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
-          {isComposeMode ? 'New Message' : 'Members'}
-        </Text>
+
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text
+            style={{
+              color: '#F1F0FF',
+              fontSize: 24,
+              fontWeight: '900',
+              letterSpacing: -0.3,
+            }}
+          >
+            {isComposeMode ? 'New Message' : 'Members 👥'}
+          </Text>
+          {totalShown > 0 && (
+            <View
+              style={{
+                backgroundColor: '#EC489920',
+                borderWidth: 1,
+                borderColor: '#EC489940',
+                borderRadius: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '800' }}>
+                {totalShown}{hasMore ? '+' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* Filter toggle button */}
         <TouchableOpacity
           onPress={() => {
-            // Sync pending state with current applied state when opening
             if (!showFilters) {
               setPendingCommunity(community);
               setPendingOrientation(orientation);
@@ -382,56 +623,74 @@ export default function MembersScreen() {
               setPendingLookingFor(lookingFor);
               setPendingHasPhoto(hasPhoto);
             }
-            setShowFilters(v => !v);
+            setShowFilters((v) => !v);
           }}
           style={{
-            flexDirection: 'row', alignItems: 'center', gap: 5,
-            paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
-            backgroundColor: activeFilterCount > 0 ? `${colors.pink}22` : colors.card,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            borderRadius: 20,
+            backgroundColor: activeFilterCount > 0 ? '#EC489920' : '#10101C',
             borderWidth: 1,
-            borderColor: activeFilterCount > 0 ? colors.pink : colors.border,
+            borderColor: activeFilterCount > 0 ? '#EC4899' : '#1A1A30',
           }}
         >
           <Text style={{ fontSize: 16 }}>🎛️</Text>
           {activeFilterCount > 0 && (
-            <View style={{ backgroundColor: colors.pink, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }}>
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{activeFilterCount}</Text>
+            <View
+              style={{
+                backgroundColor: '#EC4899',
+                borderRadius: 10,
+                minWidth: 20,
+                height: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 5,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>
+                {activeFilterCount}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Search bar */}
-      <View style={{
-        margin: 12, marginBottom: 8,
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: colors.card, borderRadius: 12,
-        borderColor: colors.border, borderWidth: 1,
-        paddingHorizontal: 14, paddingVertical: 10,
-      }}>
-        <Ionicons name="search" size={18} color={colors.muted} style={{ marginRight: 10 }} />
+      <View
+        style={{
+          margin: 12,
+          marginBottom: 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#10101C',
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: searchFocused ? '#EC489960' : '#EC489928',
+          paddingHorizontal: 14,
+          paddingVertical: 12,
+        }}
+      >
+        <Ionicons name="search" size={18} color="#5A5575" style={{ marginRight: 10 }} />
         <TextInput
           value={query}
           onChangeText={handleSearchChange}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           placeholder="Search members..."
-          placeholderTextColor={colors.muted}
-          style={{ flex: 1, color: colors.text, fontSize: 15 }}
+          placeholderTextColor="#5A5575"
+          style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
           autoCapitalize="none"
           autoCorrect={false}
         />
         {query.length > 0 && (
           <TouchableOpacity onPress={() => handleSearchChange('')}>
-            <Ionicons name="close-circle" size={18} color={colors.muted} />
+            <Ionicons name="close-circle" size={18} color="#5A5575" />
           </TouchableOpacity>
         )}
       </View>
-
-      {/* Result count */}
-      {totalShown > 0 && (
-        <Text style={{ color: colors.muted, fontSize: 12, paddingHorizontal: 16, marginBottom: 4 }}>
-          Showing {totalShown}{hasMore ? '+' : ''} member{totalShown !== 1 ? 's' : ''}
-        </Text>
-      )}
 
       {/* Active filter summary chips */}
       {activeFilterChips.length > 0 && (
@@ -441,15 +700,29 @@ export default function MembersScreen() {
           contentContainerStyle={{ gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}
         >
           {activeFilterChips.map((chip, i) => (
-            <View key={i} style={{
-              flexDirection: 'row', alignItems: 'center', gap: 4,
-              backgroundColor: `${colors.pink}22`, borderRadius: 16,
-              paddingHorizontal: 10, paddingVertical: 5,
-              borderWidth: 1, borderColor: colors.pink,
-            }}>
-              <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>{chip.label}</Text>
+            <View
+              key={i}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: '#EC489920',
+                borderRadius: 16,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderWidth: 1,
+                borderColor: '#EC4899',
+              }}
+            >
+              <Text style={{ color: '#EC4899', fontSize: 12, fontWeight: '600' }}>
+                {chip.label}
+              </Text>
               <TouchableOpacity onPress={chip.onRemove}>
-                <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '800', lineHeight: 16 }}>✕</Text>
+                <Text
+                  style={{ color: '#EC4899', fontSize: 14, fontWeight: '800', lineHeight: 16 }}
+                >
+                  ✕
+                </Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -458,40 +731,133 @@ export default function MembersScreen() {
 
       {/* Collapsible filter panel */}
       {showFilters && (
-        <View style={{
-          backgroundColor: '#0F0F1A',
-          borderBottomLeftRadius: 16, borderBottomRightRadius: 16,
-          borderWidth: 1, borderColor: '#2D2D3A',
-          marginHorizontal: 0,
-          paddingVertical: 12,
-        }}>
+        <View
+          style={{
+            backgroundColor: '#0C0C1A',
+            borderBottomLeftRadius: 16,
+            borderBottomRightRadius: 16,
+            borderTopWidth: 1,
+            borderWidth: 1,
+            borderColor: '#1A1A30',
+            marginHorizontal: 0,
+            paddingVertical: 12,
+          }}
+        >
           {/* GENDER */}
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 16, marginBottom: 4 }}>GENDER</Text>
+          <Text
+            style={{
+              color: '#5A5575',
+              fontSize: 11,
+              fontWeight: '800',
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              paddingHorizontal: 16,
+              marginBottom: 4,
+            }}
+          >
+            GENDER
+          </Text>
           <ChipRow options={GENDER_OPTIONS} selected={pendingGender} onSelect={setPendingGender} />
 
           {/* ORIENTATION */}
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 16, marginTop: 10, marginBottom: 4 }}>ORIENTATION</Text>
-          <ChipRow options={ORIENTATION_OPTIONS} selected={pendingOrientation} onSelect={setPendingOrientation} />
+          <Text
+            style={{
+              color: '#5A5575',
+              fontSize: 11,
+              fontWeight: '800',
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              paddingHorizontal: 16,
+              marginTop: 10,
+              marginBottom: 4,
+            }}
+          >
+            ORIENTATION
+          </Text>
+          <ChipRow
+            options={ORIENTATION_OPTIONS}
+            selected={pendingOrientation}
+            onSelect={setPendingOrientation}
+          />
 
           {/* LOOKING FOR */}
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 16, marginTop: 10, marginBottom: 4 }}>LOOKING FOR</Text>
-          <ChipRow options={LOOKING_FOR_OPTIONS} selected={pendingLookingFor} onSelect={setPendingLookingFor} />
+          <Text
+            style={{
+              color: '#5A5575',
+              fontSize: 11,
+              fontWeight: '800',
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              paddingHorizontal: 16,
+              marginTop: 10,
+              marginBottom: 4,
+            }}
+          >
+            LOOKING FOR
+          </Text>
+          <ChipRow
+            options={LOOKING_FOR_OPTIONS}
+            selected={pendingLookingFor}
+            onSelect={setPendingLookingFor}
+          />
 
           {/* ROLE */}
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 16, marginTop: 10, marginBottom: 4 }}>ROLE</Text>
-          <ChipRow options={ROLE_OPTIONS} selected={pendingMemberRole} onSelect={setPendingMemberRole} />
+          <Text
+            style={{
+              color: '#5A5575',
+              fontSize: 11,
+              fontWeight: '800',
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              paddingHorizontal: 16,
+              marginTop: 10,
+              marginBottom: 4,
+            }}
+          >
+            ROLE
+          </Text>
+          <ChipRow
+            options={ROLE_OPTIONS}
+            selected={pendingMemberRole}
+            onSelect={setPendingMemberRole}
+          />
 
           {/* COMMUNITY */}
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 16, marginTop: 10, marginBottom: 4 }}>COMMUNITY</Text>
-          <ChipRow options={COMMUNITY_OPTIONS} selected={pendingCommunity} onSelect={setPendingCommunity} />
+          <Text
+            style={{
+              color: '#5A5575',
+              fontSize: 11,
+              fontWeight: '800',
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              paddingHorizontal: 16,
+              marginTop: 10,
+              marginBottom: 4,
+            }}
+          >
+            COMMUNITY
+          </Text>
+          <ChipRow
+            options={COMMUNITY_OPTIONS}
+            selected={pendingCommunity}
+            onSelect={setPendingCommunity}
+          />
 
           {/* Has Photo toggle */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 12 }}>
-            <Text style={{ color: colors.text, fontSize: 14 }}>📷  Has Profile Photo</Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 16,
+              marginTop: 12,
+            }}
+          >
+            <Text style={{ color: '#F1F0FF', fontSize: 14 }}>📷  Has Profile Photo</Text>
             <Switch
               value={pendingHasPhoto}
               onValueChange={setPendingHasPhoto}
-              trackColor={{ false: '#2D2D3A', true: colors.pink }}
+              trackColor={{ false: '#1A1A30', true: '#EC4899' }}
               thumbColor="#fff"
             />
           </View>
@@ -501,18 +867,25 @@ export default function MembersScreen() {
             <TouchableOpacity
               onPress={clearAllFilters}
               style={{
-                flex: 1, paddingVertical: 11, borderRadius: 12,
-                backgroundColor: '#1A1A2E', borderWidth: 1, borderColor: '#2D2D3A',
+                flex: 1,
+                paddingVertical: 11,
+                borderRadius: 12,
+                backgroundColor: '#10101C',
+                borderWidth: 1,
+                borderColor: '#1A1A30',
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: colors.muted, fontWeight: '700', fontSize: 14 }}>Clear All</Text>
+              <Text style={{ color: '#5A5575', fontWeight: '700', fontSize: 14 }}>Clear All</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={applyFilters}
               style={{
-                flex: 2, paddingVertical: 11, borderRadius: 12,
-                backgroundColor: colors.pink, alignItems: 'center',
+                flex: 2,
+                paddingVertical: 11,
+                borderRadius: 12,
+                backgroundColor: '#EC4899',
+                alignItems: 'center',
               }}
             >
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
@@ -525,7 +898,7 @@ export default function MembersScreen() {
 
       {isLoading && page === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color={colors.pink} size="large" />
+          <ActivityIndicator color="#EC4899" size="large" />
         </View>
       ) : (
         <FlatList
@@ -539,15 +912,34 @@ export default function MembersScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
           ListFooterComponent={renderFooter}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#EC4899"
+            />
+          }
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>👥</Text>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
+              <Text
+                style={{
+                  color: '#F1F0FF',
+                  fontSize: 18,
+                  fontWeight: '800',
+                  textAlign: 'center',
+                  marginBottom: 8,
+                }}
+              >
                 {query || activeFilterCount > 0 ? 'No members found' : 'No members yet'}
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 15, textAlign: 'center' }}>
-                {query ? 'Try a different search term' : activeFilterCount > 0 ? 'Try clearing some filters' : 'Check back soon!'}
+              <Text style={{ color: '#5A5575', fontSize: 15, textAlign: 'center' }}>
+                {query
+                  ? 'Try a different search term'
+                  : activeFilterCount > 0
+                  ? 'Try clearing some filters'
+                  : 'Check back soon!'}
               </Text>
             </View>
           }

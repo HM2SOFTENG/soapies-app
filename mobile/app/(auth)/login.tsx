@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,16 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { trpc, saveToken } from '../../lib/trpc';
 import { queryClient } from '../_layout';
 import { useAuth } from '../../lib/auth';
-import { colors } from '../../lib/colors';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -24,6 +26,10 @@ export default function LoginScreen() {
   const { setUser, setHasToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const utils = trpc.useUtils();
 
@@ -33,17 +39,9 @@ export default function LoginScreen() {
         Alert.alert('Sign In Failed', 'No session token returned. Please try again.');
         return;
       }
-
-      // 1. Save token to memory + SecureStore
       await saveToken(data.sessionToken);
-
-      // 2. Mark token as available — this triggers re-render of all enabled:hasToken queries
       setHasToken(true);
-
-      // 3. Set user in auth context
       if (data?.user) setUser(data.user);
-
-      // 4. Navigate
       router.replace('/(tabs)');
     },
     onError: (err: any) => {
@@ -58,129 +56,170 @@ export default function LoginScreen() {
       Alert.alert('Missing fields', 'Please enter your email and password.');
       return;
     }
-    // console.log('[Login] attempting:', email.trim().toLowerCase());
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     loginMutation.mutate({ email: email.trim().toLowerCase(), password });
+  }
+
+  function handlePressIn() {
+    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+  }
+
+  function handlePressOut() {
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
+      <LinearGradient
+        colors={['#04040A', '#0D0520', '#080810']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ flex: 1 }}
       >
-        {/* Header */}
-        <LinearGradient
-          colors={['#7C3AED', '#EC4899']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ paddingHorizontal: 32, paddingTop: insets.top + 40, paddingBottom: 48, alignItems: 'center' }}
+        {/* Ambient orbs */}
+        <View
+          style={{ position: 'absolute', top: -40, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: '#EC489912' }}
+          pointerEvents="none"
+        />
+        <View
+          style={{ position: 'absolute', bottom: 100, left: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: '#A855F710' }}
+          pointerEvents="none"
+        />
+
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>
-            Soapies
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.8)', marginTop: 4, fontSize: 15 }}>
-            Your exclusive community
-          </Text>
-        </LinearGradient>
+          <View style={{ paddingHorizontal: 28 }}>
+            {/* Logo / Brand */}
+            <View style={{ alignItems: 'center', marginBottom: 36 }}>
+              <LinearGradient
+                colors={['#EC4899', '#A855F7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}
+              >
+                <Ionicons name="heart" size={36} color="#fff" />
+              </LinearGradient>
+              <Text style={{ fontSize: 34, fontWeight: '900', color: '#F1F0FF', letterSpacing: -0.5, textAlign: 'center' }}>
+                Soapies
+              </Text>
+              <Text style={{ color: '#5A5575', fontSize: 14, textAlign: 'center', marginTop: 6, marginBottom: 0 }}>
+                Your community. Your vibe.
+              </Text>
+            </View>
 
-        {/* Form */}
-        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 40 }}>
-          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '700', marginBottom: 24 }}>
-            Welcome back
-          </Text>
-
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
-            EMAIL
-          </Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.muted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            style={{
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: 12,
+            {/* Email input */}
+            <View style={{
+              backgroundColor: '#0C0C1A',
+              borderColor: emailFocused ? '#EC489960' : '#1A1A30',
+              borderWidth: emailFocused ? 1.5 : 1,
+              borderRadius: 16,
               paddingHorizontal: 16,
               paddingVertical: 14,
-              color: colors.text,
-              fontSize: 16,
-              marginBottom: 16,
-            }}
-          />
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 12,
+            }}>
+              <Ionicons name="mail" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                placeholderTextColor="#5A5575"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+              />
+            </View>
 
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
-            PASSWORD
-          </Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.muted}
-            secureTextEntry
-            autoComplete="password"
-            style={{
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: 12,
+            {/* Password input */}
+            <View style={{
+              backgroundColor: '#0C0C1A',
+              borderColor: passwordFocused ? '#EC489960' : '#1A1A30',
+              borderWidth: passwordFocused ? 1.5 : 1,
+              borderRadius: 16,
               paddingHorizontal: 16,
               paddingVertical: 14,
-              color: colors.text,
-              fontSize: 16,
-              marginBottom: 28,
-            }}
-          />
-
-          {/* Forgot password */}
-          <TouchableOpacity
-            onPress={() => router.push('/(auth)/forgot-password' as any)}
-            style={{ alignSelf: 'flex-end', marginTop: -20, marginBottom: 24 }}
-          >
-            <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 14 }}>Forgot password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleLogin}
-            disabled={loginMutation.isPending}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#EC4899', '#A855F7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                borderRadius: 14,
-                paddingVertical: 16,
-                alignItems: 'center',
-                opacity: loginMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {loginMutation.isPending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Sign In</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-            <Text style={{ color: colors.muted }}>Don't have an account? </Text>
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text style={{ color: colors.pink, fontWeight: '600' }}>Join Soapies</Text>
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 12,
+            }}>
+              <Ionicons name="lock-closed" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#5A5575"
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#5A5575" />
               </TouchableOpacity>
-            </Link>
+            </View>
+
+            {/* Forgot password */}
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/forgot-password' as any)}
+              style={{ alignSelf: 'flex-end', marginBottom: 20 }}
+            >
+              <Text style={{ color: '#A855F7', fontWeight: '600', fontSize: 14, textAlign: 'right' }}>
+                Forgot password?
+              </Text>
+            </TouchableOpacity>
+
+            {/* Sign In button */}
+            <Animated.View style={{
+              transform: [{ scale: scaleAnim }],
+              shadowColor: '#EC4899',
+              shadowOpacity: 0.4,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 4 },
+            }}>
+              <TouchableOpacity
+                onPress={handleLogin}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={loginMutation.isPending}
+                activeOpacity={1}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 18, paddingVertical: 16, width: '100%', alignItems: 'center' }}
+                >
+                  {loginMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Sign In</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Sign up link */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+              <Text style={{ color: '#5A5575' }}>Don't have an account? </Text>
+              <Link href="/(auth)/register" asChild>
+                <TouchableOpacity>
+                  <Text style={{ color: '#EC4899', fontWeight: '700' }}>Join now</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }

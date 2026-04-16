@@ -57,10 +57,26 @@ export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
-  // Entrance animation
-  const headerAnim = useRef(new Animated.Value(0)).current;
+  // Entrance animation — fade + slide from top
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerTranslateY = useRef(new Animated.Value(-20)).current;
+  const searchScale = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
-    Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    Animated.parallel([
+      Animated.timing(headerOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(headerTranslateY, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const onSearchFocus = useCallback(() => {
+    setSearchFocused(true);
+    Animated.spring(searchScale, { toValue: 1.01, useNativeDriver: true, friction: 8 }).start();
+  }, []);
+
+  const onSearchBlur = useCallback(() => {
+    setSearchFocused(false);
+    Animated.spring(searchScale, { toValue: 1, useNativeDriver: true, friction: 8 }).start();
   }, []);
 
   const { data, isLoading, refetch } = trpc.messages.conversations.useQuery(undefined, {
@@ -119,18 +135,20 @@ export default function MessagesScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
 
       {/* ── Header ── */}
-      <Animated.View style={{ opacity: headerAnim }}>
+      <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }}>
         <LinearGradient
-          colors={['#0D0820', '#0D0D0D']}
+          colors={['#12051E', '#080810']}
           style={[styles.header, { paddingTop: insets.top + 6 }]}
         >
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Messages</Text>
+              <Text style={styles.headerTitle}>Messages 💬</Text>
               {totalUnread > 0 && (
-                <Text style={styles.headerSub}>
-                  {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
-                </Text>
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>
+                    {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
+                  </Text>
+                </View>
               )}
             </View>
 
@@ -140,39 +158,35 @@ export default function MessagesScreen() {
                   onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
                   style={styles.headerBtn}
                 >
-                  <Ionicons name="checkmark-done" size={20} color={colors.pink} />
+                  <Ionicons name="checkmark-done" size={20} color="#EC4899" />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                onPress={() => { Haptics.selectionAsync(); router.push('/members?mode=compose' as any); }}
-                style={[styles.headerBtn, styles.headerBtnPrimary]}
-              >
-                <Ionicons name="create-outline" size={19} color="#fff" />
-              </TouchableOpacity>
             </View>
           </View>
 
           {/* ── Search ── */}
-          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-            <Ionicons name="search" size={16} color={searchFocused ? colors.pink : colors.muted} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              placeholder="Search messages..."
-              placeholderTextColor={colors.muted}
-              style={styles.searchInput}
-              returnKeyType="search"
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={16} color={colors.muted} />
-              </TouchableOpacity>
-            )}
-          </View>
+          <Animated.View style={{ transform: [{ scale: searchScale }] }}>
+            <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+              <Ionicons name="search" size={16} color="#5A5575" />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={onSearchFocus}
+                onBlur={onSearchBlur}
+                placeholder="Search messages..."
+                placeholderTextColor="#5A5575"
+                style={styles.searchInput}
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={16} color="#5A5575" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </Animated.View>
         </LinearGradient>
       </Animated.View>
 
@@ -205,7 +219,7 @@ export default function MessagesScreen() {
             <View style={styles.empty}>
               {searchQuery ? (
                 <>
-                  <Ionicons name="search-outline" size={52} color={colors.border} />
+                  <Text style={styles.emptyEmoji}>🔍</Text>
                   <Text style={styles.emptyTitle}>No results</Text>
                   <Text style={styles.emptyBody}>No conversations match "{searchQuery}"</Text>
                   <TouchableOpacity
@@ -218,7 +232,7 @@ export default function MessagesScreen() {
               ) : (
                 <>
                   <View style={styles.emptyIconWrap}>
-                    <Ionicons name="chatbubbles-outline" size={44} color={colors.pink} />
+                    <Text style={styles.emptyEmoji}>💬</Text>
                   </View>
                   <Text style={styles.emptyTitle}>No conversations yet</Text>
                   <Text style={styles.emptyBody}>
@@ -255,66 +269,99 @@ export default function MessagesScreen() {
           }
           stickySectionHeadersEnabled
           removeClippedSubviews
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
         />
       )}
+
+      {/* ── FAB: New Message ── */}
+      <TouchableOpacity
+        onPress={() => { Haptics.selectionAsync(); router.push('/members?mode=message' as any); }}
+        activeOpacity={0.85}
+        style={styles.fab}
+      >
+        <LinearGradient
+          colors={['#EC4899', '#A855F7']}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="create" size={22} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0820' },
+  container: { flex: 1, backgroundColor: '#080810' },
 
   header: { paddingHorizontal: 20, paddingBottom: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  headerTitle: { color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
-  headerSub: { color: colors.pink, fontSize: 12, fontWeight: '600', marginTop: 2 },
+  headerTitle: { color: '#F1F0FF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   headerBtn: {
     width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: `${colors.pink}18`,
+    backgroundColor: '#EC489918',
   },
-  headerBtnPrimary: {
-    backgroundColor: colors.pink,
+
+  unreadBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    backgroundColor: '#EC489920',
+    borderColor: '#EC489960',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
+  unreadBadgeText: { color: '#EC4899', fontSize: 11, fontWeight: '800' },
 
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#1A1A2E', borderRadius: 14,
-    paddingHorizontal: 14, paddingVertical: 11,
-    borderWidth: 1, borderColor: '#2D2D44',
+    backgroundColor: '#10101C', borderRadius: 16,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: '#EC489928',
   },
-  searchBarFocused: { borderColor: `${colors.pink}66` },
-  searchInput: { flex: 1, color: colors.text, fontSize: 15 },
+  searchBarFocused: { borderColor: '#EC489960' },
+  searchInput: { flex: 1, color: '#F1F0FF', fontSize: 15 },
 
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10, paddingTop: 18,
-    backgroundColor: colors.bg,
+    paddingHorizontal: 20, paddingVertical: 10,
+    backgroundColor: '#080810',
   },
   sectionTitle: {
-    color: '#4B5563', fontSize: 11, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase',
+    color: '#5A5575', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase',
   },
   sectionBadge: {
-    backgroundColor: '#1F1F2E', borderRadius: 8,
-    paddingHorizontal: 7, paddingVertical: 2,
+    backgroundColor: '#EC489920',
+    borderColor: '#EC489940',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
-  sectionBadgeText: { color: '#6B7280', fontSize: 11, fontWeight: '700' },
+  sectionBadgeText: { color: '#EC4899', fontSize: 11, fontWeight: '800' },
 
-  skeletonRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 13 },
-  skeletonAvatar: { width: 54, height: 54, borderRadius: 17, backgroundColor: colors.border },
-  skeletonLine: { height: 13, borderRadius: 6, backgroundColor: colors.border },
+  skeletonRow: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 13,
+    backgroundColor: '#10101C', borderColor: '#1A1A30', borderBottomWidth: 1,
+  },
+  skeletonAvatar: { width: 54, height: 54, borderRadius: 17, backgroundColor: '#1A1A30' },
+  skeletonLine: { height: 13, borderRadius: 6, backgroundColor: '#1A1A30' },
 
   empty: { alignItems: 'center', paddingTop: 72, paddingHorizontal: 40 },
+  emptyEmoji: { fontSize: 48, marginBottom: 4 },
   emptyIconWrap: {
     width: 84, height: 84, borderRadius: 42,
-    backgroundColor: `${colors.pink}18`,
+    backgroundColor: '#EC489918',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 18,
-    borderWidth: 1, borderColor: `${colors.pink}33`,
+    borderWidth: 1, borderColor: '#EC489933',
   },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 2, marginBottom: 6 },
-  emptyBody: { color: colors.muted, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyTitle: { color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginTop: 2, marginBottom: 6 },
+  emptyBody: { color: '#5A5575', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   emptyCtaPrimary: {
     alignSelf: 'stretch',
     borderRadius: 14,
@@ -333,5 +380,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
-  emptySecondaryText: { color: colors.pink, fontSize: 14, fontWeight: '600' },
+  emptySecondaryText: { color: '#EC4899', fontSize: 14, fontWeight: '600' },
+
+  fab: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  fabGradient: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
 });

@@ -1,17 +1,16 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
-  
-  Pressable,
+  TouchableOpacity,
   RefreshControl,
   Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
-import { colors } from '../../lib/colors';
 import NotificationItem from '../../components/NotificationItem';
 
 // ── Skeleton loader ───────────────────────────────────────────────────────────
@@ -36,8 +35,9 @@ function NotificationSkeleton() {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
-        borderBottomColor: colors.border,
+        borderBottomColor: '#1A1A30',
         borderBottomWidth: 1,
+        backgroundColor: '#10101C',
       }}
     >
       {/* Icon circle */}
@@ -46,18 +46,19 @@ function NotificationSkeleton() {
           width: 40,
           height: 40,
           borderRadius: 20,
-          backgroundColor: colors.border,
+          backgroundColor: '#1A1A30',
         }}
       />
       <View style={{ marginLeft: 12, gap: 8, flex: 1 }}>
-        <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ width: '85%', height: 10, borderRadius: 5, backgroundColor: colors.border }} />
+        <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: '#1A1A30' }} />
+        <View style={{ width: '85%', height: 10, borderRadius: 5, backgroundColor: '#1A1A30' }} />
       </View>
     </Animated.View>
   );
 }
 
 export default function NotificationsScreen() {
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, refetch } = trpc.notifications.list.useQuery(undefined, {
@@ -86,26 +87,26 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom', 'left', 'right']}>
       {/* Header */}
-      <View
+      <LinearGradient
+        colors={['#12051E', '#080810']}
         style={{
+          paddingTop: insets.top + 18,
+          paddingBottom: 20,
           paddingHorizontal: 20,
-          paddingVertical: 14,
-          borderBottomColor: colors.border,
-          borderBottomWidth: 1,
           flexDirection: 'row',
           alignItems: 'center',
         }}
       >
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700' }}>
-            Notifications
+          <Text style={{ color: '#F1F0FF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 }}>
+            Alerts 🔔
           </Text>
           {unreadCount > 0 && (
             <View
               style={{
-                backgroundColor: colors.pink,
+                backgroundColor: '#EC4899',
                 borderRadius: 10,
                 minWidth: 20,
                 height: 20,
@@ -120,23 +121,19 @@ export default function NotificationsScreen() {
             </View>
           )}
         </View>
-        {unreadCount > 0 && (
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              markAllRead.mutate();
-            }}
-            disabled={markAllRead.isPending}
-            style={({ pressed }) => ({
-              transform: [{ scale: pressed ? 0.96 : 1 }],
-            })}
-          >
-            <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 13 }}>
-              Mark all read
-            </Text>
-          </Pressable>
-        )}
-      </View>
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.selectionAsync();
+            markAllRead.mutate();
+          }}
+          disabled={markAllRead.isPending}
+          activeOpacity={0.7}
+        >
+          <Text style={{ color: '#EC4899', fontWeight: '700', fontSize: 13 }}>
+            Mark all read
+          </Text>
+        </TouchableOpacity>
+      </LinearGradient>
 
       {isLoading ? (
         <View>
@@ -155,11 +152,12 @@ export default function NotificationsScreen() {
           windowSize={5}
           initialNumToRender={10}
           updateCellsBatchingPeriod={50}
+          contentContainerStyle={{ paddingBottom: 120 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.pink}
+              tintColor="#EC4899"
             />
           }
           ListEmptyComponent={
@@ -167,9 +165,9 @@ export default function NotificationsScreen() {
               <Text style={{ fontSize: 48, marginBottom: 12 }}>🔔</Text>
               <Text
                 style={{
-                  color: '#FFFFFF',
+                  color: '#F1F0FF',
                   fontSize: 18,
-                  fontWeight: '600',
+                  fontWeight: '800',
                   textAlign: 'center',
                   marginBottom: 8,
                 }}
@@ -178,7 +176,7 @@ export default function NotificationsScreen() {
               </Text>
               <Text
                 style={{
-                  color: '#9CA3AF',
+                  color: '#5A5575',
                   fontSize: 15,
                   fontWeight: '400',
                   textAlign: 'center',

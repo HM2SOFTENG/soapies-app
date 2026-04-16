@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../lib/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import { formatDistanceToNow } from '../lib/utils';
 
 interface NotifIconConfig {
@@ -12,15 +12,15 @@ interface NotifIconConfig {
 
 function getIconConfig(type?: string | null): NotifIconConfig {
   const map: Record<string, NotifIconConfig> = {
-    message: { name: 'chatbubbles', color: colors.pink },
-    event: { name: 'calendar', color: '#10B981' },
-    like: { name: 'heart', color: colors.pink },
-    comment: { name: 'chatbubble', color: colors.purple },
-    system: { name: 'notifications', color: colors.violet },
+    message:  { name: 'chatbubbles',      color: '#EC4899' },
+    event:    { name: 'calendar',         color: '#10B981' },
+    like:     { name: 'heart',            color: '#EC4899' },
+    comment:  { name: 'chatbubble',       color: '#A855F7' },
+    system:   { name: 'notifications',    color: '#7C3AED' },
     approval: { name: 'checkmark-circle', color: '#10B981' },
-    rejection: { name: 'close-circle', color: '#EF4444' },
+    rejection:{ name: 'close-circle',     color: '#EF4444' },
   };
-  return map[type ?? ''] ?? { name: 'notifications', color: colors.muted };
+  return map[type ?? ''] ?? { name: 'notifications', color: '#9CA3AF' };
 }
 
 export interface NotificationData {
@@ -39,6 +39,7 @@ interface NotificationItemProps {
 
 const NotificationItem = React.memo(function NotificationItem({ notification }: NotificationItemProps) {
   const router = useRouter();
+  const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
     const type = notification.type ?? '';
@@ -48,6 +49,25 @@ const NotificationItem = React.memo(function NotificationItem({ notification }: 
       router.push('/event/' + notification.targetId as any);
     }
   }
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
+
   const icon = useMemo(() => getIconConfig(notification.type), [notification.type]);
   const timeAgo = useMemo(
     () => (notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt)) : ''),
@@ -56,66 +76,88 @@ const NotificationItem = React.memo(function NotificationItem({ notification }: 
   const isUnread = !notification.readAt;
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={handlePress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        padding: 16,
-        borderBottomColor: colors.border,
-        borderBottomWidth: 1,
-        backgroundColor: pressed ? colors.pink + '14' : isUnread ? colors.pink + '08' : 'transparent',
-        borderLeftWidth: isUnread ? 3 : 0,
-        borderLeftColor: isUnread ? colors.pink : 'transparent',
-        opacity: pressed ? 0.85 : 1,
-      })}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      activeOpacity={1}
     >
-      {/* Icon circle */}
-      <View
+      <Animated.View
         style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: `${icon.color}22`,
-          justifyContent: 'center',
-          alignItems: 'center',
-          flexShrink: 0,
+          transform: [{ scale }],
+          flexDirection: 'row',
+          padding: 16,
+          borderBottomColor: '#1A1A30',
+          borderBottomWidth: 1,
+          backgroundColor: '#10101C',
+          overflow: 'hidden',
         }}
       >
-        <Ionicons name={icon.name} size={18} color={icon.color} />
-      </View>
+        {/* Left gradient accent for unread notifications */}
+        {isUnread && (
+          <LinearGradient
+            colors={['#EC4899', '#A855F7']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+            }}
+          />
+        )}
 
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text
-          style={{
-            color: colors.text,
-            fontWeight: isUnread ? '700' : '400',
-            fontSize: 14,
-            marginBottom: 2,
-          }}
-        >
-          {notification.title ?? notification.type ?? 'Notification'}
-        </Text>
-        {notification.body ? (
-          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
-            {notification.body}
-          </Text>
-        ) : null}
-        <Text style={{ color: colors.border, fontSize: 11, marginTop: 4 }}>{timeAgo}</Text>
-      </View>
-
-      {isUnread && (
+        {/* Icon circle */}
         <View
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: colors.pink,
-            marginTop: 6,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: `${icon.color}33`,
+            justifyContent: 'center',
+            alignItems: 'center',
             flexShrink: 0,
+            marginLeft: isUnread ? 8 : 0,
           }}
-        />
-      )}
-    </Pressable>
+        >
+          <Ionicons name={icon.name} size={18} color={icon.color} />
+        </View>
+
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text
+            style={{
+              color: '#F1F0FF',
+              fontWeight: '700',
+              fontSize: 14,
+              marginBottom: 2,
+            }}
+          >
+            {notification.title ?? notification.type ?? 'Notification'}
+          </Text>
+          {notification.body ? (
+            <Text style={{ color: '#A09CB8', fontSize: 13, lineHeight: 18 }}>
+              {notification.body}
+            </Text>
+          ) : null}
+          <Text style={{ color: '#5A5575', fontSize: 11, marginTop: 4 }}>{timeAgo}</Text>
+        </View>
+
+        {isUnread && (
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: '#EC4899',
+              marginTop: 6,
+              flexShrink: 0,
+            }}
+          />
+        )}
+      </Animated.View>
+    </TouchableOpacity>
   );
 });
 

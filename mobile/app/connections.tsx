@@ -5,12 +5,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { trpc } from '../lib/trpc';
-import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
 import Avatar from '../components/Avatar';
 
@@ -53,12 +51,8 @@ export default function ConnectionsScreen() {
   const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
   const trimmedQuery = searchQuery.trim();
   const { data: searchResults, isLoading: searchLoading, error: searchError } = trpc.members.browse.useQuery(
-    { search: trimmedQuery, page: 0 }, // no community filter — server returns cross-community for search
-    {
-      enabled: hasToken && trimmedQuery.length > 0,
-      staleTime: 0,
-      retry: 1,
-    }
+    { search: trimmedQuery, page: 0 },
+    { enabled: hasToken && trimmedQuery.length > 0, staleTime: 0, retry: 1 }
   );
 
   const sendRequest = trpc.partners.sendConnectionRequest.useMutation({
@@ -97,44 +91,77 @@ export default function ConnectionsScreen() {
   const members = Array.isArray(searchResults) ? searchResults : [];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 16 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+      <LinearGradient
+        colors={['#12051E', '#080810']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            width: 40, height: 40, borderRadius: 20,
+            backgroundColor: '#10101C', borderWidth: 1, borderColor: '#1A1A30',
+            alignItems: 'center', justifyContent: 'center',
+            marginRight: 14,
+          }}
+        >
+          <Ionicons name="arrow-back" size={18} color="#F1F0FF" />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Connections 💗</Text>
-      </View>
+        <Text style={{ color: '#F1F0FF', fontSize: 26, fontWeight: '900', flex: 1 }}>Connections 💗</Text>
+      </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 20 }}>
-        {/* Pending incoming */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}>
+
+        {/* ── Pending incoming ── */}
         {incoming.length > 0 && (
-          <View style={{ marginBottom: 24 }}>
-            <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+          <View style={{ marginTop: 20, marginBottom: 8 }}>
+            <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
               Pending Requests ({incoming.length})
             </Text>
             {incoming.map((inv: any) => (
-              <View key={inv.id} style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: `${colors.pink}44` }}>
+              <View key={inv.id} style={{
+                backgroundColor: '#10101C', borderRadius: 16, padding: 14,
+                marginBottom: 10, borderWidth: 1, borderColor: '#EC489940',
+              }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <Avatar name={inv.inviterName} url={inv.inviterAvatarUrl} size={44} style={{ marginRight: 12 }} />
+                  <View style={{ borderRadius: 26, borderWidth: 2, borderColor: '#EC4899', marginRight: 12 }}>
+                    <Avatar name={inv.inviterName} url={inv.inviterAvatarUrl} size={44} />
+                  </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{inv.inviterName}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>wants to connect as</Text>
-                    <Text style={{ color: colors.pink, fontWeight: '600', fontSize: 13 }}>{relLabel(inv.relationshipType)}</Text>
+                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{inv.inviterName}</Text>
+                    <Text style={{ color: '#5A5575', fontSize: 13 }}>wants to connect as</Text>
+                    <View style={{ alignSelf: 'flex-start', backgroundColor: '#EC489920', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginTop: 3, borderWidth: 1, borderColor: '#EC489944' }}>
+                      <Text style={{ color: '#EC4899', fontWeight: '600', fontSize: 12 }}>{relLabel(inv.relationshipType)}</Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: '#F59E0B20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: '#F59E0B44' }}>
+                    <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>Pending</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
+                  {/* Accept */}
                   <TouchableOpacity
                     onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); acceptConn.mutate({ invitationId: inv.id }); }}
-                    style={{ flex: 1, backgroundColor: '#10B98120', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#10B981' }}
+                    style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}
                   >
-                    <Text style={{ color: '#10B981', fontWeight: '700' }}>✓ Accept</Text>
+                    <LinearGradient
+                      colors={['#EC4899', '#A855F7']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{ paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>✓ Accept</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
+                  {/* Decline */}
                   <TouchableOpacity
                     onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); declineConn.mutate({ invitationId: inv.id }); }}
-                    style={{ flex: 1, backgroundColor: 'transparent', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#EF444466' }}
+                    style={{ flex: 1, backgroundColor: '#EF444420', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: '#EF444440' }}
                   >
-                    <Text style={{ color: '#EF4444', fontWeight: '700' }}>✕ Decline</Text>
+                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 14 }}>✕ Decline</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -142,31 +169,40 @@ export default function ConnectionsScreen() {
           </View>
         )}
 
-        {/* Active connections */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+        {/* ── Active connections ── */}
+        <View style={{ marginTop: incoming.length > 0 ? 8 : 20, marginBottom: 8 }}>
+          <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Active Connections
           </Text>
           {connections.length === 0 ? (
-            <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
-              <Text style={{ fontSize: 32, marginBottom: 8 }}>💗</Text>
-              <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 14 }}>No connections yet. Search for a member below to connect.</Text>
+            <View style={{ backgroundColor: '#10101C', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#1A1A30' }}>
+              <Text style={{ fontSize: 36, marginBottom: 10 }}>💗</Text>
+              <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 16, marginBottom: 6 }}>No connections yet</Text>
+              <Text style={{ color: '#5A5575', textAlign: 'center', fontSize: 14 }}>Search for a member below to send your first connection request.</Text>
             </View>
           ) : (
             connections.map((conn: any) => (
-              <View key={conn.groupId} style={{ backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
+              <View key={conn.groupId} style={{
+                backgroundColor: '#10101C', borderRadius: 16, padding: 14,
+                marginBottom: 10, borderWidth: 1, borderColor: '#1A1A30',
+              }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={48} style={{ marginRight: 14 }} />
+                  <View style={{ borderRadius: 28, borderWidth: 2, borderColor: '#EC4899', marginRight: 14, shadowColor: '#EC4899', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }}>
+                    <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={48} />
+                  </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{conn.partnerDisplayName}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                      <View style={{ backgroundColor: `${colors.pink}22`, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: `${colors.pink}44` }}>
-                        <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '600' }}>{relLabel(conn.relationshipType)}</Text>
+                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{conn.partnerDisplayName}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
+                      <View style={{ backgroundColor: '#EC489920', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#EC489944' }}>
+                        <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '600' }}>{relLabel(conn.relationshipType)}</Text>
+                      </View>
+                      <View style={{ backgroundColor: '#10B98120', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: '#10B98144' }}>
+                        <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '700' }}>Connected</Text>
                       </View>
                     </View>
                     {conn.connectedSince && (
-                      <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
-                        Connected {new Date(conn.connectedSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      <Text style={{ color: '#5A5575', fontSize: 11, marginTop: 4 }}>
+                        Since {new Date(conn.connectedSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </Text>
                     )}
                   </View>
@@ -175,9 +211,9 @@ export default function ConnectionsScreen() {
                       { text: 'Cancel', style: 'cancel' },
                       { text: 'Remove', style: 'destructive', onPress: () => removeConn.mutate({ groupId: conn.groupId }) },
                     ])}
-                    style={{ padding: 8 }}
+                    style={{ backgroundColor: '#EF444420', borderRadius: 12, padding: 8, borderWidth: 1, borderColor: '#EF444440' }}
                   >
-                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -185,19 +221,31 @@ export default function ConnectionsScreen() {
           )}
         </View>
 
-        {/* Outgoing pending */}
+        {/* ── Outgoing pending ── */}
         {outgoing.length > 0 && (
-          <View style={{ marginBottom: 24 }}>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
               Sent Requests
             </Text>
             {outgoing.map((inv: any) => (
-              <View key={inv.id} style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' }}>
+              <View key={inv.id} style={{
+                backgroundColor: '#10101C', borderRadius: 16, padding: 14,
+                marginBottom: 10, borderWidth: 1, borderColor: '#1A1A30',
+                flexDirection: 'row', alignItems: 'center',
+              }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>Pending connection request</Text>
-                  <Text style={{ color: colors.text, fontSize: 12, marginTop: 2 }}>Expires {new Date(inv.expiresAt).toLocaleDateString()}</Text>
+                  <View style={{ backgroundColor: '#F59E0B20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#F59E0B44', marginBottom: 4 }}>
+                    <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>Pending</Text>
+                  </View>
+                  <Text style={{ color: '#5A5575', fontSize: 13 }}>Connection request sent</Text>
+                  <Text style={{ color: '#F1F0FF', fontSize: 12, marginTop: 2 }}>
+                    Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                  </Text>
                 </View>
-                <TouchableOpacity onPress={() => cancelInvite.mutate({ id: inv.id })} style={{ padding: 8 }}>
+                <TouchableOpacity
+                  onPress={() => cancelInvite.mutate({ id: inv.id })}
+                  style={{ backgroundColor: '#EF444420', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EF444440' }}
+                >
                   <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '600' }}>Cancel</Text>
                 </TouchableOpacity>
               </View>
@@ -205,46 +253,71 @@ export default function ConnectionsScreen() {
           </View>
         )}
 
-        {/* Connect with someone */}
-        <View>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+        {/* ── Connect with someone ── */}
+        <View style={{ marginTop: 4 }}>
+          <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Connect with Someone
           </Text>
-          <View style={{ backgroundColor: colors.card, borderRadius: 14, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: colors.border, marginBottom: 12 }}>
-            <Ionicons name="search" size={16} color={colors.muted} style={{ marginRight: 8 }} />
+          {/* Search bar */}
+          <View style={{
+            backgroundColor: '#10101C', borderRadius: 16,
+            flexDirection: 'row', alignItems: 'center',
+            paddingHorizontal: 14, paddingVertical: 12,
+            borderWidth: 1, borderColor: '#EC489928',
+            marginBottom: 12,
+          }}>
+            <Ionicons name="search" size={16} color="#5A5575" style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search members..."
-              placeholderTextColor={colors.muted}
-              style={{ flex: 1, color: colors.text, fontSize: 15 }}
+              placeholderTextColor="#5A5575"
+              style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={16} color="#5A5575" />
+              </TouchableOpacity>
+            )}
           </View>
+
           {trimmedQuery.length > 0 && (
             searchLoading ? (
-              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                <ActivityIndicator color={colors.pink} />
-                <Text style={{ color: colors.muted, fontSize: 13, marginTop: 8 }}>Searching...</Text>
+              <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+                <ActivityIndicator color="#EC4899" />
+                <Text style={{ color: '#5A5575', fontSize: 13, marginTop: 10 }}>Searching...</Text>
               </View>
             ) : members.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                <Text style={{ color: colors.muted, fontSize: 14 }}>
-                {searchError ? `Error: ${(searchError as any)?.message ?? 'Search failed'}` : `No members found for "${trimmedQuery}"`}
-              </Text>
+              <View style={{ backgroundColor: '#10101C', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#1A1A30' }}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+                <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15, marginBottom: 4 }}>No members found</Text>
+                <Text style={{ color: '#5A5575', fontSize: 13, textAlign: 'center' }}>
+                  {searchError ? `Error: ${(searchError as any)?.message ?? 'Search failed'}` : `No results for "${trimmedQuery}"`}
+                </Text>
               </View>
             ) : (
               members.map((m: any) => (
                 <TouchableOpacity
                   key={m.id ?? m.userId}
                   onPress={() => { setSelectedMember(m); setShowRelPicker(true); }}
-                  style={{ backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border }}
+                  style={{
+                    backgroundColor: '#10101C', borderRadius: 16, padding: 14,
+                    marginBottom: 10, flexDirection: 'row', alignItems: 'center',
+                    borderWidth: 1, borderColor: '#1A1A30',
+                  }}
                 >
-                  <Avatar name={m.displayName ?? m.name} url={m.avatarUrl} size={40} style={{ marginRight: 12 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '600' }}>{m.displayName ?? m.name}</Text>
-                    {m.communityId && <Text style={{ color: colors.muted, fontSize: 12, textTransform: 'capitalize' }}>{m.communityId}</Text>}
+                  <View style={{ borderRadius: 24, borderWidth: 1.5, borderColor: '#EC489960', marginRight: 12 }}>
+                    <Avatar name={m.displayName ?? m.name} url={m.avatarUrl} size={40} />
                   </View>
-                  <Ionicons name="add-circle-outline" size={22} color={colors.pink} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{m.displayName ?? m.name}</Text>
+                    {m.communityId && (
+                      <Text style={{ color: '#5A5575', fontSize: 12, textTransform: 'capitalize', marginTop: 2 }}>{m.communityId}</Text>
+                    )}
+                  </View>
+                  <View style={{ backgroundColor: '#EC489920', borderRadius: 20, padding: 6, borderWidth: 1, borderColor: '#EC489944' }}>
+                    <Ionicons name="add" size={18} color="#EC4899" />
+                  </View>
                 </TouchableOpacity>
               ))
             )
@@ -252,23 +325,31 @@ export default function ConnectionsScreen() {
         </View>
       </ScrollView>
 
-      {/* Relationship type picker modal */}
+      {/* ── Relationship type picker modal ── */}
       <Modal visible={showRelPicker} transparent animationType="slide" onRequestClose={() => setShowRelPicker(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }} activeOpacity={1} onPress={() => setShowRelPicker(false)}>
-          <View onStartShouldSetResponder={() => true} style={{ backgroundColor: '#0F0F1A', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' }}>
-            <View style={{ padding: 20, paddingBottom: 4 }}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A', alignSelf: 'center', marginBottom: 16 }} />
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', marginBottom: 4 }}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}
+          activeOpacity={1}
+          onPress={() => setShowRelPicker(false)}
+        >
+          <View
+            onStartShouldSetResponder={() => true}
+            style={{ backgroundColor: '#0C0C1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '82%' }}
+          >
+            <View style={{ padding: 20, paddingBottom: 8 }}>
+              {/* Drag handle */}
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A', alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginBottom: 4 }}>
                 Connect with {selectedMember?.displayName ?? selectedMember?.name}
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 16 }}>Select your relationship dynamic</Text>
+              <Text style={{ color: '#5A5575', fontSize: 13, marginBottom: 4 }}>Select your relationship dynamic</Text>
             </View>
-            {/* perf: removeClippedSubviews, windowSize, initialNumToRender, maxToRenderPerBatch */}
+
             <FlatList
               data={RELATIONSHIP_TYPES}
               keyExtractor={item => item.value}
-              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
-              removeClippedSubviews={true}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
+              removeClippedSubviews
               windowSize={7}
               initialNumToRender={10}
               maxToRenderPerBatch={8}
@@ -279,21 +360,22 @@ export default function ConnectionsScreen() {
                     onPress={() => setSelectedRelType(item.value)}
                     style={{
                       flexDirection: 'row', alignItems: 'center', padding: 14,
-                      borderRadius: 14, marginBottom: 8,
-                      backgroundColor: selected ? `${colors.pink}18` : colors.card,
+                      borderRadius: 12, marginBottom: 8,
+                      backgroundColor: selected ? '#EC489912' : '#10101C',
                       borderWidth: 1,
-                      borderColor: selected ? colors.pink : colors.border,
+                      borderColor: selected ? '#EC4899' : '#1A1A30',
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: selected ? colors.pink : colors.text, fontWeight: '700', fontSize: 15 }}>{item.label}</Text>
-                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{item.desc}</Text>
+                      <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{item.label}</Text>
+                      <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 2 }}>{item.desc}</Text>
                     </View>
-                    {selected && <Ionicons name="checkmark-circle" size={20} color={colors.pink} />}
+                    {selected && <Ionicons name="checkmark-circle" size={20} color="#EC4899" />}
                   </TouchableOpacity>
                 );
               }}
             />
+
             <View style={{ paddingHorizontal: 20, paddingBottom: 32 }}>
               <TouchableOpacity
                 onPress={() => {
@@ -302,12 +384,25 @@ export default function ConnectionsScreen() {
                   sendRequest.mutate({ targetUserId: userId, relationshipType: selectedRelType });
                 }}
                 disabled={sendRequest.isPending}
+                style={{
+                  shadowColor: '#EC4899', shadowOpacity: 0.4,
+                  shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
+                }}
               >
-                <BrandGradient style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', opacity: sendRequest.isPending ? 0.6 : 1 }}>
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    borderRadius: 18, paddingVertical: 16,
+                    alignItems: 'center',
+                    opacity: sendRequest.isPending ? 0.6 : 1,
+                  }}
+                >
                   <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
                     {sendRequest.isPending ? 'Sending...' : 'Send Connection Request 💗'}
                   </Text>
-                </BrandGradient>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>

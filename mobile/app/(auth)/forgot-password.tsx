@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,22 +9,24 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
-import { colors } from '../../lib/colors';
 
 export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [emailFocused, setEmailFocused] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const requestReset = trpc.auth.requestPasswordReset.useMutation({
     onSuccess: () => {
-      // console.log('[ForgotPassword] OTP sent to:', email);
       Alert.alert(
         'Check Your Email',
         'If an account exists with that email, a reset code has been sent.',
@@ -51,107 +53,131 @@ export default function ForgotPasswordScreen() {
       Alert.alert('Missing email', 'Please enter your email address.');
       return;
     }
-    // console.log('[ForgotPassword] requesting reset for:', email.trim());
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     requestReset.mutate({ email: email.trim().toLowerCase() });
+  }
+
+  function handlePressIn() {
+    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+  }
+
+  function handlePressOut() {
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <LinearGradient
-          colors={['#7C3AED', '#EC4899']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ paddingHorizontal: 32, paddingTop: insets.top + 40, paddingBottom: 48, alignItems: 'center' }}
-        >
-          <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>
-            Soapies
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.8)', marginTop: 4, fontSize: 15 }}>
-            Password reset
-          </Text>
-        </LinearGradient>
+      <LinearGradient
+        colors={['#04040A', '#0D0520', '#080810']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{ flex: 1 }}
+      >
+        {/* Ambient orbs */}
+        <View
+          style={{ position: 'absolute', top: -40, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: '#EC489912' }}
+          pointerEvents="none"
+        />
+        <View
+          style={{ position: 'absolute', bottom: 100, left: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: '#A855F710' }}
+          pointerEvents="none"
+        />
 
-        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 40 }}>
-          {/* Back button */}
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, alignSelf: 'flex-start' }}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.pink} />
-            <Text style={{ color: colors.pink, marginLeft: 6, fontWeight: '600' }}>Back to Login</Text>
-          </TouchableOpacity>
-
-          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '700', marginBottom: 10 }}>
-            Forgot Password?
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 15, marginBottom: 28, lineHeight: 22 }}>
-            Enter the email address associated with your account and we'll send you a reset code.
-          </Text>
-
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
-            EMAIL
-          </Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.muted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            style={{
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderWidth: 1,
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              color: colors.text,
-              fontSize: 16,
-              marginBottom: 28,
-            }}
-          />
-
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={requestReset.isPending}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#EC4899', '#A855F7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <View style={{ paddingHorizontal: 28, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }}>
+            {/* Back button */}
+            <TouchableOpacity
+              onPress={() => router.back()}
               style={{
-                borderRadius: 14,
-                paddingVertical: 16,
-                alignItems: 'center',
-                opacity: requestReset.isPending ? 0.7 : 1,
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: '#10101C', borderWidth: 1, borderColor: '#1A1A30',
+                alignItems: 'center', justifyContent: 'center',
+                marginBottom: 36,
               }}
             >
-              {requestReset.isPending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Send Reset Code</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+              <Ionicons name="arrow-back" size={18} color="#F1F0FF" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.push('/(auth)/reset-password' as any)}
-            style={{ marginTop: 16, alignItems: 'center' }}
-          >
-            <Text style={{ color: colors.muted, fontSize: 14 }}>
-              Already have a code?{' '}
-              <Text style={{ color: colors.pink, fontWeight: '600' }}>Enter it here</Text>
+            {/* Heading */}
+            <Text style={{ color: '#F1F0FF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5, marginBottom: 8 }}>
+              Forgot Password?
             </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            <Text style={{ color: '#5A5575', fontSize: 14, marginBottom: 32, lineHeight: 22 }}>
+              Enter the email address associated with your account and we'll send you a reset code.
+            </Text>
+
+            {/* Email input */}
+            <View style={{
+              backgroundColor: '#0C0C1A',
+              borderColor: emailFocused ? '#EC489960' : '#1A1A30',
+              borderWidth: emailFocused ? 1.5 : 1,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 24,
+            }}>
+              <Ionicons name="mail" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                placeholderTextColor="#5A5575"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+              />
+            </View>
+
+            {/* Submit button */}
+            <Animated.View style={{
+              transform: [{ scale: scaleAnim }],
+              shadowColor: '#EC4899',
+              shadowOpacity: 0.4,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 4 },
+            }}>
+              <TouchableOpacity
+                onPress={handleSubmit}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={requestReset.isPending}
+                activeOpacity={1}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 18, paddingVertical: 16, width: '100%', alignItems: 'center' }}
+                >
+                  {requestReset.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Send Reset Code</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/reset-password' as any)}
+              style={{ marginTop: 20, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#5A5575', fontSize: 14 }}>
+                Already have a code?{' '}
+                <Text style={{ color: '#EC4899', fontWeight: '600' }}>Enter it here</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </LinearGradient>
     </KeyboardAvoidingView>
   );
 }
