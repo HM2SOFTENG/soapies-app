@@ -290,10 +290,14 @@ export default function OnboardingScreen() {
     }
 
     try {
+      const dobForServer = dobYear && dobMonth && dobDay
+        ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+        : undefined;
       const result = await registerMutation.mutateAsync({
         email: email.trim().toLowerCase(),
         password,
         name: email.split('@')[0],
+        dateOfBirth: dobForServer,
       }) as any;
 
       // Store token in memory ONLY (for making authenticated API calls during onboarding)

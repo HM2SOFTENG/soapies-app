@@ -318,17 +318,35 @@ export default function SettingsScreen() {
   }
 
   // ── Delete account ──
+  const deleteMeMutation = trpc.auth.deleteMe.useMutation({
+    onSuccess: async () => {
+      await AsyncStorage.clear();
+      queryClient.clear();
+      logout();
+      router.replace('/(auth)/login' as any);
+    },
+    onError: (e: any) => Alert.alert('Error', e.message ?? 'Could not delete account. Please contact support.'),
+  });
+
   function handleDeleteAccount() {
     Alert.alert(
       'Delete Account',
-      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      'This will permanently delete your account, profile, posts, and all associated data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete My Account',
           style: 'destructive',
           onPress: () => {
-            Alert.alert('Request Submitted', 'Your account deletion request has been sent to our team. We will process it within 48 hours.');
+            // Second confirmation
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your account and all data will be deleted immediately.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Yes, Delete', style: 'destructive', onPress: () => deleteMeMutation.mutate() },
+              ]
+            );
           },
         },
       ]
@@ -342,10 +360,15 @@ export default function SettingsScreen() {
     Alert.alert('Cache Cleared', 'Local data and query cache have been cleared.');
   }
 
-  // ── Rate app ──
+  // ── Rate app (update APP_STORE_ID before App Store submission) ──
+  const APP_STORE_ID = ''; // TODO: fill in after App Store Connect listing is created
   function handleRateApp() {
-    Linking.openURL('https://apps.apple.com/app/id000000000').catch(() => {
-      Alert.alert('Not Available', 'App Store link coming soon!');
+    if (!APP_STORE_ID) {
+      Alert.alert('Coming Soon', 'Rating will be available when the app launches on the App Store.');
+      return;
+    }
+    Linking.openURL(`https://apps.apple.com/app/id${APP_STORE_ID}?action=write-review`).catch(() => {
+      Alert.alert('Could not open App Store', 'Please find Soapies on the App Store to leave a review.');
     });
   }
 

@@ -28,14 +28,31 @@ export const appRouter = router({
       return { success: true } as const;
     }),
 
+    // Self-service account deletion (Apple guideline 5.1.1v)
+    deleteMe: protectedProcedure.mutation(async ({ ctx }) => {
+      await db.deleteUser(ctx.user.id);
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
+
     // Register with email
     register: publicProcedure
       .input(z.object({
         email: z.string().email(),
         password: z.string().min(8),
         name: z.string().min(1),
+        dateOfBirth: z.string().optional(), // ISO date YYYY-MM-DD for server-side age verification
       }))
       .mutation(async ({ input, ctx }) => {
+        // Server-side age gate (Apple guideline + legal requirement for adult platform)
+        if (input.dateOfBirth) {
+          const dob = new Date(input.dateOfBirth);
+          const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          if (age < 18) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be 18 or older to join.' });
+          }
+        }
         const existing = await auth.getUserByEmail(input.email);
         if (existing) {
           throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
@@ -346,6 +363,22 @@ export const appRouter = router({
 
       return { success: true };
     }),
+
+    // Save device push token (stored in profile preferences)
+    savePushToken: protectedProcedure.input(z.object({
+      token: z.string(),
+      platform: z.enum(['ios', 'android']).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const profile = await db.getProfileByUserId(ctx.user.id);
+      if (!profile) return { success: false };
+      const existing = (profile as any).preferences ?? {};
+      const prefs = typeof existing === 'string' ? JSON.parse(existing) : existing;
+      prefs.pushToken = input.token;
+      prefs.pushPlatform = input.platform;
+      await db.upsertProfile({ userId: ctx.user.id, preferences: prefs });
+      return { success: true };
+    }),
+
     photos: protectedProcedure.query(async ({ ctx }) => {
       const profile = await db.getProfileByUserId(ctx.user.id);
       if (!profile) return [];
@@ -1541,6 +1574,28 @@ export const appRouter = router({
     }),
     isBlocked: protectedProcedure.input(z.object({ userId: z.number() })).query(async ({ ctx, input }) => {
       return db.isUserBlocked(ctx.user.id, input.userId);
+    }),
+    report: protectedProcedure.input(z.object({
+      userId: z.number(),
+      reason: z.enum(['spam', 'harassment', 'fake_profile', 'underage', 'inappropriate_content', 'other']),
+      details: z.string().max(500).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      // Block the user automatically on report
+      await db.blockUser(ctx.user.id, input.userId);
+      // Notify admins
+      const admins = await db.getAdminUsers();
+      const reporterProfile = await db.getProfileByUserId(ctx.user.id);
+      const reportedProfile = await db.getProfileByUserId(input.userId);
+      for (const admin of admins) {
+        await notif.sendNotification({
+          userId: admin.id,
+          type: 'system',
+          title: '🚨 User Report',
+          body: `${(reporterProfile as any)?.displayName ?? 'A member'} reported ${(reportedProfile as any)?.displayName ?? 'a user'}: ${input.reason}${input.details ? ` — "${input.details}"` : ''}`,
+          data: { reporterId: ctx.user.id, reportedUserId: input.userId, reason: input.reason },
+        });
+      }
+      return { success: true };
     }),
   }),
 

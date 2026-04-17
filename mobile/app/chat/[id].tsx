@@ -81,6 +81,44 @@ export default function ChatScreen() {
 
   const markRead = trpc.messages.markRead.useMutation();
 
+  const blockMutation = trpc.blocking.block.useMutation({
+    onSuccess: () => {
+      Alert.alert('Blocked', 'This member has been blocked.');
+      router.back();
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const reportMutation = trpc.blocking.report.useMutation({
+    onSuccess: () => Alert.alert('Report Submitted', 'Thank you. Our team will review this report.'),
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  function handleChatOptions() {
+    const otherId = conversation?.otherUserId;
+    if (!otherId || conversation?.type !== 'dm') return;
+    Alert.alert('Options', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Block Member', style: 'destructive',
+        onPress: () => Alert.alert('Block Member', 'They will not be able to see your profile or message you.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Block', style: 'destructive', onPress: () => blockMutation.mutate({ userId: otherId }) },
+        ]),
+      },
+      {
+        text: 'Report Member',
+        onPress: () => Alert.alert('Report', 'Select a reason:', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Harassment', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'harassment' }) },
+          { text: 'Spam', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'spam' }) },
+          { text: 'Fake Profile', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'fake_profile' }) },
+          { text: 'Inappropriate Content', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'inappropriate_content' }) },
+        ]),
+      },
+    ]);
+  }
+
   // Mark conversation as read on mount
   React.useEffect(() => {
     if (conversationId) markRead.mutate({ conversationId });
@@ -228,6 +266,16 @@ export default function ChatScreen() {
               <Ionicons name="chevron-forward" size={14} color="#5A5575" />
             )}
           </TouchableOpacity>
+          {conversation?.type === 'dm' && conversation?.otherUserId && (
+            <TouchableOpacity
+              onPress={handleChatOptions}
+              accessibilityLabel="Chat options"
+              accessibilityRole="button"
+              style={{ padding: 8, marginLeft: 4 }}
+            >
+              <Ionicons name="ellipsis-vertical" size={20} color="#5A5575" />
+            </TouchableOpacity>
+          )}
         </LinearGradient>
 
         {/* ── Messages ── */}

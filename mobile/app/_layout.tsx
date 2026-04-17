@@ -1,10 +1,12 @@
 import '../global.css';
 import React, { useEffect, useRef } from 'react';
 import { Slot, Stack, useRouter, useSegments } from 'expo-router';
+import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
 import { trpc, createTRPCClient, SESSION_COOKIE_KEY } from '../lib/trpc';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +15,17 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorBoundary from '../components/ErrorBoundary';
 import OfflineBanner from '../components/OfflineBanner';
 import { parseDeepLink } from '../lib/deepLinks';
+
+// Configure how notifications appear when app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  } as any),
+});
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +80,31 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   });
+
+  const savePushToken = trpc.profile.savePushToken.useMutation();
+
+  // Register for push notifications once user is logged in
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== 'granted') return;
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        savePushToken.mutate({
+          token: tokenData.data,
+          platform: Platform.OS === 'ios' ? 'ios' : 'android',
+        });
+      } catch {
+        // Non-fatal — push is best-effort
+      }
+    })();
+  }, [user?.id]);
 
   useEffect(() => {
     if (isLoading) return;

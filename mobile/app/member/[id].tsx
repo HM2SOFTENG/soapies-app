@@ -76,6 +76,56 @@ export default function MemberProfileScreen() {
     onError:   (e: any)   => Alert.alert('Error', e.message),
   });
 
+  const blockMutation = trpc.blocking.block.useMutation({
+    onSuccess: () => {
+      Alert.alert('Blocked', 'This member has been blocked. You will no longer see their content.');
+      router.back();
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const reportMutation = trpc.blocking.report.useMutation({
+    onSuccess: () => Alert.alert('Report Submitted', 'Thank you. Our team will review this report.'),
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  function handleBlockReport() {
+    Alert.alert(
+      'Block or Report',
+      `What would you like to do?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block Member',
+          style: 'destructive',
+          onPress: () => Alert.alert(
+            'Block Member',
+            'They will not be able to see your profile or message you.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Block', style: 'destructive', onPress: () => blockMutation.mutate({ userId: Number(id) }) },
+            ]
+          ),
+        },
+        {
+          text: 'Report Member',
+          onPress: () => Alert.alert(
+            'Report Member',
+            'Select a reason:',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Harassment', onPress: () => reportMutation.mutate({ userId: Number(id), reason: 'harassment' }) },
+              { text: 'Fake Profile', onPress: () => reportMutation.mutate({ userId: Number(id), reason: 'fake_profile' }) },
+              { text: 'Underage', onPress: () => reportMutation.mutate({ userId: Number(id), reason: 'underage' }) },
+              { text: 'Inappropriate Content', onPress: () => reportMutation.mutate({ userId: Number(id), reason: 'inappropriate_content' }) },
+              { text: 'Spam', onPress: () => reportMutation.mutate({ userId: Number(id), reason: 'spam' }) },
+            ]
+          ),
+        },
+      ]
+    );
+  }
+
   const m = member as any;
 
   // ── All hooks above early returns ─────────────────────────────────────────
@@ -155,6 +205,8 @@ export default function MemberProfileScreen() {
       {/* Back button */}
       <TouchableOpacity
         onPress={() => router.back()}
+        accessibilityLabel="Go back"
+        accessibilityRole="button"
         style={{
           position: 'absolute', top: insets.top + 10, left: 16, zIndex: 10,
           width: 40, height: 40, borderRadius: 20,
@@ -163,6 +215,21 @@ export default function MemberProfileScreen() {
         }}
       >
         <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+      </TouchableOpacity>
+
+      {/* Block / Report button */}
+      <TouchableOpacity
+        onPress={handleBlockReport}
+        accessibilityLabel="Block or report this member"
+        accessibilityRole="button"
+        style={{
+          position: 'absolute', top: insets.top + 10, right: 16, zIndex: 10,
+          width: 40, height: 40, borderRadius: 20,
+          backgroundColor: '#0C0C1A80', borderWidth: 1, borderColor: '#1A1A30',
+          alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <Ionicons name="ellipsis-horizontal" size={20} color="#F1F0FF" />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
@@ -578,6 +645,9 @@ export default function MemberProfileScreen() {
             onPressOut={handleMsgPressOut}
             disabled={createConversation.isPending}
             activeOpacity={1}
+            accessibilityLabel={`Send a message to ${firstName}`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: createConversation.isPending }}
           >
             <LinearGradient
               colors={['#EC4899', '#A855F7']}

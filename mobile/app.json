@@ -14,12 +14,27 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.soapies.app",
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          }
+        ],
+        "NSPrivacyTracking": false,
+        "NSPrivacyCollectedDataTypes": []
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Soapies uses the camera so you can take profile photos and attach images to posts and messages.",
         "NSPhotoLibraryUsageDescription": "Soapies accesses your photo library so you can upload profile photos and attach images to posts and messages.",
         "NSPhotoLibraryAddUsageDescription": "Soapies saves event photos to your library when you choose to download them.",
         "NSLocationWhenInUseUsageDescription": "Soapies uses your approximate location to show you nearby members in Pulse and nearby events.",
         "NSMicrophoneUsageDescription": "Soapies uses the microphone if you choose to record a voice note in a message.",
+        "NSUserNotificationsUsageDescription": "Soapies sends you notifications for new messages, connection requests, and event updates.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -36,11 +51,21 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "INTERNET",
-        "VIBRATE"
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
       ]
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#EC4899",
+          "sounds": []
+        }
+      ],
       "expo-secure-store",
       [
         "expo-image-picker",
