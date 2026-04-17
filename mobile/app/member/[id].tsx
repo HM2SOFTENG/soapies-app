@@ -97,6 +97,16 @@ export default function MemberProfileScreen() {
 
   const m = member as any;
 
+  // ── Hooks that must stay above early returns ──────────────────────────────
+  const msgScale = React.useRef(new Animated.Value(1)).current;
+  const handleMsgPressIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.spring(msgScale, { toValue: 0.96, useNativeDriver: true }).start();
+  };
+  const handleMsgPressOut = () => {
+    Animated.spring(msgScale, { toValue: 1, useNativeDriver: true }).start();
+  };
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
@@ -138,16 +148,6 @@ export default function MemberProfileScreen() {
   const hasAbout = !!(m.bio || m.location || m.orientation || m.gender || relationshipStatus);
 
   const posts = (wallPosts ?? []) as any[];
-
-  // Animated scale for message button
-  const msgScale = React.useRef(new Animated.Value(1)).current;
-  const handleMsgPressIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Animated.spring(msgScale, { toValue: 0.96, useNativeDriver: true }).start();
-  };
-  const handleMsgPressOut = () => {
-    Animated.spring(msgScale, { toValue: 1, useNativeDriver: true }).start();
-  };
 
   function handleMessage() {
     createConversation.mutate({ type: 'dm', participantIds: [Number(id)] });
