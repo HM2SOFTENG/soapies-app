@@ -655,8 +655,8 @@ export default function HomeScreen() {
     const rawPosts = (postsData as any[]) ?? [];
     return rawPosts.map((p: any) => ({
       ...p,
-      authorName:           p.authorName         ?? p.profile?.displayName ?? 'Soapies Member',
-      resolvedAuthorName:   p.authorName         ?? p.profile?.displayName ?? 'Soapies Member',
+      authorName:           p.resolvedAuthorName ?? p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
+      resolvedAuthorName:   p.resolvedAuthorName ?? p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
       resolvedAvatarUrl:    p.avatarUrl          ?? p.profile?.avatarUrl   ?? null,
       likesCount:           p.likesCount         ?? p._count?.likes        ?? 0,
       commentsCount:        p.commentsCount      ?? p._count?.comments     ?? 0,
