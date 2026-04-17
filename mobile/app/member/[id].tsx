@@ -454,33 +454,105 @@ export default function MemberProfileScreen() {
           </View>
         )}
 
-        {/* ── F. Connections ─────────────────────────────────────────────── */}
+        {/* ── F. Connections — linked avatar cards ────────────────────── */}
         {connections.length > 0 && (
-          <View style={{
-            marginHorizontal: 16, marginTop: 12,
-            backgroundColor: colors.card,
-            borderRadius: 16, padding: 16,
-            borderColor: colors.border, borderWidth: 1,
-          }}>
-            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1.2 }}>💗 Connections</Text>
+          <View style={{ marginHorizontal: 16, marginTop: 12 }}>
+            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              💗 Connections
+            </Text>
             {connections.map((conn: any) => (
               <TouchableOpacity
                 key={conn.groupId}
+                activeOpacity={0.85}
                 onPress={() => conn.partnerUserId && router.push(`/member/${conn.partnerUserId}` as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}
+                style={{ marginBottom: 10 }}
               >
-                <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={36} style={{ marginRight: 12 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>{conn.partnerDisplayName}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <View style={{ backgroundColor: `${colors.pink}22`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2, borderWidth: 1, borderColor: `${colors.pink}44` }}>
-                      <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '600' }}>
-                        {conn.relationshipType?.replace(/_/g, ' ')}
-                      </Text>
+                <View style={{
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: '#EC489940',
+                  backgroundColor: '#0D0820',
+                  overflow: 'hidden',
+                }}>
+                  <LinearGradient
+                    colors={['#1A082E80', '#0D052080', '#08050F80']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ padding: 18 }}
+                  >
+                    {/* Relationship pill */}
+                    <View style={{ alignItems: 'center', marginBottom: 14 }}>
+                      <View style={{
+                        paddingHorizontal: 14, paddingVertical: 4,
+                        backgroundColor: '#EC489918',
+                        borderRadius: 20, borderColor: '#EC489950', borderWidth: 1,
+                      }}>
+                        <Text style={{ color: '#EC4899', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 }}>
+                          {conn.relationshipType?.replace(/_/g, ' ')}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
+
+                    {/* Linked avatar row */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+
+                      {/* Left: profile being viewed */}
+                      <View style={{ alignItems: 'center' }}>
+                        <View style={{
+                          borderRadius: 34, borderWidth: 2.5, borderColor: '#EC4899',
+                          shadowColor: '#EC4899', shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: 0.6, shadowRadius: 10, elevation: 8,
+                        }}>
+                          <Avatar name={displayName} url={m.avatarUrl} size={64} />
+                        </View>
+                        <Text style={{ color: '#A09CB8', fontSize: 12, fontWeight: '600', marginTop: 7, maxWidth: 80, textAlign: 'center' }} numberOfLines={1}>
+                          {firstName}
+                        </Text>
+                      </View>
+
+                      {/* Heart bridge */}
+                      <View style={{ alignItems: 'center', marginHorizontal: 4, zIndex: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <View style={{ width: 24, height: 2, borderTopWidth: 1.5, borderTopColor: '#EC489960' }} />
+                          <View style={{
+                            width: 34, height: 34, borderRadius: 17,
+                            backgroundColor: '#130825',
+                            borderWidth: 1.5, borderColor: '#EC489980',
+                            alignItems: 'center', justifyContent: 'center',
+                            shadowColor: '#EC4899', shadowOffset: { width: 0, height: 0 },
+                            shadowOpacity: 0.9, shadowRadius: 10,
+                          }}>
+                            <Text style={{ fontSize: 15 }}>💗</Text>
+                          </View>
+                          <View style={{ width: 24, height: 2, borderTopWidth: 1.5, borderTopColor: '#EC489960' }} />
+                        </View>
+                        <Text style={{ color: '#5A5575', fontSize: 9, marginTop: 5, letterSpacing: 0.5, textTransform: 'uppercase' }}>linked</Text>
+                      </View>
+
+                      {/* Right: connection partner */}
+                      <View style={{ alignItems: 'center' }}>
+                        <View style={{
+                          borderRadius: 34, borderWidth: 2.5, borderColor: '#A855F7',
+                          shadowColor: '#A855F7', shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: 0.6, shadowRadius: 10, elevation: 8,
+                        }}>
+                          <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={64} />
+                        </View>
+                        <Text style={{ color: '#A09CB8', fontSize: 12, fontWeight: '600', marginTop: 7, maxWidth: 80, textAlign: 'center' }} numberOfLines={1}>
+                          {(conn.partnerDisplayName ?? '').split(' ')[0]}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Tap hint */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 12 }}>
+                      <Text style={{ color: '#5A5575', fontSize: 11 }}>
+                        View {(conn.partnerDisplayName ?? '').split(' ')[0]}'s profile
+                      </Text>
+                      <Ionicons name="chevron-forward" size={11} color="#5A5575" />
+                    </View>
+                  </LinearGradient>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.muted} />
               </TouchableOpacity>
             ))}
           </View>
