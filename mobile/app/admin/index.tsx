@@ -106,6 +106,7 @@ export default function AdminDashboard() {
     { label: 'Applications', icon: 'person-add', route: '/admin/applications', color: colors.pink },
     { label: 'Reservations', icon: 'ticket', route: '/admin/reservations', color: '#10B981' },
     { label: 'Announcements', icon: 'megaphone', route: '/admin/announcements', color: '#F59E0B' },
+    { label: 'Push Notifications', icon: 'notifications', route: '/admin/push-notifications', color: '#EC4899' },
     { label: 'Interview Slots', icon: 'calendar-outline', route: '/admin/interview-slots', color: '#06B6D4' },
     { label: 'Settings', icon: 'settings', route: '/admin/settings', color: '#6366F1' },
   ];

@@ -2260,6 +2260,95 @@ export const appRouter = router({
       }
       return { success: true, count };
     }),
+    // ── Push Notification Tools ──────────────────────────────────────────
+    sendPushToUser: adminProcedure.input(z.object({
+      userId: z.number(),
+      title: z.string(),
+      body: z.string(),
+    })).mutation(async ({ ctx, input }) => {
+      const profile = await db.getProfileByUserId(input.userId);
+      const prefs = typeof (profile as any)?.preferences === 'string'
+        ? JSON.parse((profile as any).preferences)
+        : ((profile as any)?.preferences ?? {});
+      const token = prefs?.pushToken;
+      if (!token) throw new Error('This user has no push token registered.');
+      // Send via Expo push API
+      const resp = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ to: token, title: input.title, body: input.body, sound: 'default' }),
+      });
+      const result = await resp.json();
+      // Also create in-app notification
+      await notif.sendNotification({ userId: input.userId, type: 'system', title: input.title, body: input.body });
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'push_sent', targetType: 'user', targetId: input.userId });
+      return { success: true, result };
+    }),
+
+    broadcastPush: adminProcedure.input(z.object({
+      title: z.string(),
+      body: z.string(),
+      communityId: z.string().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      // Get all approved profiles with push tokens
+      const dbConn = await db.getDb();
+      if (!dbConn) throw new Error('DB unavailable');
+      const { profiles: profilesTable } = await import('../drizzle/schema');
+      const { eq: eqOp, and: andOp } = await import('drizzle-orm');
+      const conditions: any[] = [eqOp(profilesTable.applicationStatus, 'approved')];
+      if (input.communityId) conditions.push(eqOp(profilesTable.communityId, input.communityId));
+      const allProfiles = await dbConn.select().from(profilesTable).where(andOp(...conditions));
+      const tokens: string[] = [];
+      const userIds: number[] = [];
+      for (const p of allProfiles) {
+        const prefs = typeof p.preferences === 'string' ? JSON.parse(p.preferences as string) : (p.preferences ?? {}) as any;
+        if ((prefs as any)?.pushToken) {
+          tokens.push((prefs as any).pushToken);
+          userIds.push(p.userId);
+        }
+      }
+      // Batch send to Expo (max 100 per request)
+      let sent = 0;
+      for (let i = 0; i < tokens.length; i += 100) {
+        const batch = tokens.slice(i, i + 100).map(token => ({
+          to: token, title: input.title, body: input.body, sound: 'default',
+        }));
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(batch),
+        }).catch(() => {});
+        sent += batch.length;
+      }
+      // In-app notifications
+      for (const uid of userIds) {
+        await notif.sendNotification({ userId: uid, type: 'system', title: input.title, body: input.body }).catch(() => {});
+      }
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'broadcast_push', targetType: 'system', targetId: 0 });
+      return { success: true, sent, total: allProfiles.length };
+    }),
+
+    // ── User Reports ─────────────────────────────────────────────────────────
+    userReports: adminProcedure.query(async () => {
+      // Reports are stored as system notifications sent to admins with type 'system'
+      // Pull from notifications table where data contains reporterId
+      const dbConn = await db.getDb();
+      if (!dbConn) return [];
+      const { notifications: notifTable, profiles: profilesTable } = await import('../drizzle/schema');
+      const { eq: eqOp, like } = await import('drizzle-orm');
+      const rows = await dbConn
+        .select()
+        .from(notifTable)
+        .where(eqOp(notifTable.type, 'system'))
+        .orderBy(notifTable.createdAt)
+        .limit(100);
+      // Filter to rows that look like user reports
+      return rows
+        .filter((r: any) => r.title && r.title.includes('Report'))
+        .map((r: any) => ({ ...r, data: typeof r.data === 'string' ? JSON.parse(r.data) : r.data }))
+        .reverse();
+    }),
+
     rejectReservation: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.updateReservation(input.id, { paymentStatus: "failed", status: "cancelled" });
       await db.createAuditLog({ adminId: ctx.user.id, action: "reservation_rejected", targetType: "reservation", targetId: input.id });
