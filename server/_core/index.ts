@@ -286,6 +286,13 @@ async function startServer() {
   const { cleanupExpiredOtps } = await import("../auth");
   cleanupExpiredOtps().catch(() => {});
 
+  // Party Chat cron — run on startup then every 24 hours
+  const { runPartyChatCron } = await import("../partyChat");
+  runPartyChatCron().catch((e) => console.error("[PartyChat] startup run failed:", e));
+  setInterval(() => {
+    runPartyChatCron().catch((e) => console.error("[PartyChat] cron failed:", e));
+  }, 24 * 60 * 60 * 1000);
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     const { setupVite } = await import("./vite");

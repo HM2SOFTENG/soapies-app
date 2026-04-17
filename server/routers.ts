@@ -2150,6 +2150,13 @@ export const appRouter = router({
               title: "Payment Confirmed! 🎉",
               body: "Your Venmo payment has been verified. Your reservation is now confirmed!",
             }).catch(() => {});
+            // Add to party chat if event is within 7 days
+            try {
+              const { syncUserToPartyChat } = await import("./partyChat");
+              await syncUserToPartyChat(res.eventId!, res.userId!);
+            } catch (e) {
+              console.error("[PartyChat] sync failed on confirm:", e);
+            }
           }
         }
       } catch {}
