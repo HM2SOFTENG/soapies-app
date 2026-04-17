@@ -55,12 +55,18 @@ describe("auth.me", () => {
   });
 });
 
-describe("events.list (public)", () => {
-  it("returns an array for public event listing", async () => {
-    const ctx = createPublicContext();
+describe("events.list (protected)", () => {
+  it("returns an array for authenticated event listing", async () => {
+    const ctx = createUserContext();
     const caller = appRouter.createCaller(ctx);
     const result = await caller.events.list({});
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("throws UNAUTHORIZED for unauthenticated event listing", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.events.list({})).rejects.toThrow();
   });
 });
 
@@ -343,14 +349,13 @@ describe("events.byId (public)", () => {
   });
 
   it("returns event with pricing fields", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-    // Get the first event from the list
-    const events = await caller.events.list({});
+    // events.list is protected, events.byId is public
+    const userCaller = appRouter.createCaller(createUserContext());
+    const publicCaller = appRouter.createCaller(createPublicContext());
+    const events = await userCaller.events.list({});
     if (events.length > 0) {
-      const event = await caller.events.byId({ id: events[0].id });
+      const event = await publicCaller.events.byId({ id: events[0].id });
       expect(event).toBeDefined();
-      // Check pricing fields exist (may be null)
       expect("priceSingleFemale" in event!).toBe(true);
       expect("priceSingleMale" in event!).toBe(true);
       expect("priceCouple" in event!).toBe(true);
