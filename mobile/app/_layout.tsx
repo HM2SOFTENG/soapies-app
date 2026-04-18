@@ -131,7 +131,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         router.replace('/onboarding'); return;
       }
 
-      const pendingStatuses = ['submitted','under_review','waitlisted','interview_scheduled','interview_complete'];
+      const pendingStatuses = ['submitted','under_review','waitlisted','interview_scheduled','interview_complete','rejected'];
       if (profile && pendingStatuses.includes(profile.applicationStatus) && !inPending) {
         router.replace('/pending-approval'); return;
       }
@@ -179,38 +179,49 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 function DeepLinkHandler({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
+  const handleDeepLink = React.useCallback((url: string) => {
+    try {
+      const parsed = parseDeepLink(url);
+      if (!parsed) {
+        if (__DEV__) console.warn('[deepLink] failed to parse:', url);
+        return;
+      }
+
+      // Map parsed deep link to expo-router route
+      const routeMap: Record<string, string> = {
+        'event': `/event/${parsed.id}`,
+        'chat': `/chat/${parsed.id}`,
+        'member': `/member/${parsed.id}`,
+        'ticket': `/tickets`, // tickets is a tab-accessible screen
+      };
+
+      const route = routeMap[parsed.type];
+      if (route) {
+        (router as any).push(route);
+      } else {
+        if (__DEV__) console.warn('[deepLink] unknown type:', parsed.type);
+      }
+    } catch (error) {
+      if (__DEV__) console.error('[deepLink] error handling url:', error);
+    }
+  }, [router]);
+
+  // Handle cold-start deep links (app launched from a push notification tap)
+  React.useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      try {
-        const parsed = parseDeepLink(url);
-        if (!parsed) {
-          if (__DEV__) console.warn('[deepLink] failed to parse:', url);
-          return;
-        }
-
-        // Map parsed deep link to expo-router route
-        const routeMap: Record<string, string> = {
-          'event': `/event/${parsed.id}`,
-          'chat': `/chat/${parsed.id}`,
-          'member': `/member/${parsed.id}`,
-          'ticket': `/tickets`, // tickets is a tab-accessible screen
-        };
-
-        const route = routeMap[parsed.type];
-        if (route) {
-          (router as any).push(route);
-        } else {
-          if (__DEV__) console.warn('[deepLink] unknown type:', parsed.type);
-        }
-      } catch (error) {
-        if (__DEV__) console.error('[deepLink] error handling url:', error);
-      }
+      handleDeepLink(url);
     });
 
     return () => {
       subscription.remove();
     };
-  }, [router]);
+  }, [router, handleDeepLink]);
 
   return <>{children}</>;
 }

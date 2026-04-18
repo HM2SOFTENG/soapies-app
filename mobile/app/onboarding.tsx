@@ -310,7 +310,19 @@ export default function OnboardingScreen() {
       goTo(3);
       setResendTimer(60);
     } catch (e: any) {
-      toast.error(e.message || 'Registration failed');
+      const msg = e?.message ?? '';
+      if (msg.toLowerCase().includes('already exists') || e?.data?.code === 'CONFLICT') {
+        Alert.alert(
+          'Account Already Exists',
+          'An account with this email already exists. Please sign in to continue your application.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign In', onPress: () => router.replace('/(auth)/login') },
+          ]
+        );
+      } else {
+        Alert.alert('Error', msg || 'Registration failed. Please try again.');
+      }
     }
   };
 
@@ -383,9 +395,13 @@ export default function OnboardingScreen() {
     if (!communityId) { toast.error('Please select a community'); return; }
     if (!bio.trim()) { toast.error('Please write a short bio'); return; }
 
+    if (!dobDay || !dobMonth || !dobYear) {
+      toast.error('Please enter your date of birth.');
+      return;
+    }
     const age = calculateAge(dobYear, dobMonth, dobDay);
-    if (age !== null && age < 18) {
-      toast.error('You must be 18 or older to join');
+    if (age === null || age < 21) {
+      toast.error('You must be 21 or older to join Soapies.');
       return;
     }
 
@@ -503,7 +519,7 @@ export default function OnboardingScreen() {
   // ─── Age display ──────────────────────────────────────────────────────────
 
   const currentAge = calculateAge(dobYear, dobMonth, dobDay);
-  const isAdult = currentAge !== null && currentAge >= 18;
+  const isAdult = currentAge !== null && currentAge >= 21;
   const pwStrength = password ? getPasswordStrength(password) : null;
 
   const uploadedCount = photos.filter((p) => p.remoteUrl && !p.uploading).length;
@@ -698,9 +714,15 @@ export default function OnboardingScreen() {
               </View>
               <Text style={{ color: colors.muted, fontSize: 13, flex: 1, marginLeft: 10 }}>
                 I agree to the{' '}
-                <Text style={{ color: colors.pink }}>community guidelines</Text>
+                <Text
+                  style={{ color: colors.pink, textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
+                >community guidelines</Text>
                 {' '}and{' '}
-                <Text style={{ color: colors.pink }}>terms of service</Text>
+                <Text
+                  style={{ color: colors.pink, textDecorationLine: 'underline' }}
+                  onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
+                >terms of service</Text>
               </Text>
             </TouchableOpacity>
 
@@ -863,7 +885,7 @@ export default function OnboardingScreen() {
                     ) : (
                       <View style={styles.ageBadgeBad}>
                         <Ionicons name="close-circle" size={14} color="#EF4444" />
-                        <Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 4, fontSize: 13 }}>Must be 18+ to join</Text>
+                        <Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 4, fontSize: 13 }}>Must be 21+ to join</Text>
                       </View>
                     )
                   }

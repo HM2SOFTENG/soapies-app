@@ -274,6 +274,7 @@ export default function SettingsScreen() {
   const [notifAdmin, setNotifAdmin] = useState(true);
 
   // ── Privacy prefs (AsyncStorage) ──
+  const [showInDirectory, setShowInDirectory] = useState(false);
   const [showPulseLoc, setShowPulseLoc] = useState(false);
   const [messagingPref, setMessagingPref] = useState<MessagingOption>('everyone');
 
@@ -288,6 +289,7 @@ export default function SettingsScreen() {
         NOTIF_ADMIN_KEY,
         PRIVACY_PULSE_LOC_KEY,
         PRIVACY_MESSAGING_KEY,
+        'privacy_show_in_directory',
       ];
       const pairs = await AsyncStorage.multiGet(keys);
       const map = Object.fromEntries(pairs.map(([k, v]) => [k, v]));
@@ -298,6 +300,7 @@ export default function SettingsScreen() {
       if (map[NOTIF_COMMUNITY_KEY] !== null) setNotifCommunity(map[NOTIF_COMMUNITY_KEY] !== '0');
       if (map[NOTIF_ADMIN_KEY] !== null) setNotifAdmin(map[NOTIF_ADMIN_KEY] !== '0');
       if (map[PRIVACY_PULSE_LOC_KEY] !== null) setShowPulseLoc(map[PRIVACY_PULSE_LOC_KEY] === '1');
+      if (map['privacy_show_in_directory'] !== null) setShowInDirectory(map['privacy_show_in_directory'] === '1');
       if (map[PRIVACY_MESSAGING_KEY]) setMessagingPref((map[PRIVACY_MESSAGING_KEY] as MessagingOption) ?? 'everyone');
     })();
   }, []);
@@ -527,9 +530,10 @@ export default function SettingsScreen() {
           iconColor={colors.purple}
           label="Show in Members Directory"
           subtitle="Let other members find your profile"
-          value={false}
-          onToggle={(v) => {
-            AsyncStorage.setItem('privacy_show_in_directory', v ? '1' : '0');
+          value={showInDirectory}
+          onToggle={async (v) => {
+            setShowInDirectory(v);
+            await AsyncStorage.setItem('privacy_show_in_directory', v ? '1' : '0');
           }}
         />
         <ToggleRow

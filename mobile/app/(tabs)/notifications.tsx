@@ -83,14 +83,19 @@ export default function NotificationsScreen() {
   const notifications = (data as any[]) ?? [];
   // Hide notifications that have been read (either server-confirmed or optimistically)
   const visibleNotifications = useMemo(
-    () => notifications.filter((n: any) => !n.readAt && !locallyReadIds.has(n.id)),
+    () => notifications.filter((n: any) => !locallyReadIds.has(n.id)),
     [notifications, locallyReadIds],
   );
-  const unreadCount = visibleNotifications.length;
+  const unreadCount = useMemo(
+    () => notifications.filter((n: any) => !n.readAt && !locallyReadIds.has(n.id)).length,
+    [notifications, locallyReadIds],
+  );
 
   const renderNotification = useCallback(
     ({ item }: { item: any }) => (
-      <NotificationItem notification={item} onMarkRead={handleMarkRead} />
+      <View style={{ opacity: item.readAt ? 0.5 : 1 }}>
+        <NotificationItem notification={item} onMarkRead={handleMarkRead} />
+      </View>
     ),
     [handleMarkRead],
   );

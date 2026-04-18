@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
@@ -616,9 +617,11 @@ export default function TicketsScreen() {
             {/* QR Code on white bg */}
             <View style={{ backgroundColor: '#fff', padding: 16, borderRadius: 16 }}>
               {qrModal.code && qrModal.code.startsWith('data:image') ? (
-                <View style={{ width: 220, height: 220, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: '#999', fontSize: 14, textAlign: 'center' }}>Ticket pending</Text>
-                </View>
+                <Image
+                  source={{ uri: qrModal.code }}
+                  style={{ width: 220, height: 220 }}
+                  resizeMode="contain"
+                />
               ) : qrModal.code ? (
                 <QRCode
                   value={qrModal.code}

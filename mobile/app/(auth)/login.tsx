@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc, saveToken } from '../../lib/trpc';
@@ -217,11 +217,9 @@ export default function LoginScreen() {
             {/* Sign up link */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
               <Text style={{ color: '#5A5575' }}>Don't have an account? </Text>
-              <Link href="/(auth)/register" asChild>
-                <TouchableOpacity>
-                  <Text style={{ color: '#EC4899', fontWeight: '700' }}>Join now</Text>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity onPress={() => router.push('/onboarding' as any)}>
+                <Text style={{ color: '#EC4899', fontWeight: '700' }}>Join now</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>

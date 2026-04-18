@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, Modal, ScrollView, TextInput,
   Animated, Dimensions, Alert, Switch, StyleSheet, PanResponder,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1005,6 +1006,7 @@ export default function PulseScreen() {
       {/* ── Signal modal ── */}
       <Modal visible={showSignalModal} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'flex-end' }}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={{
             backgroundColor: '#111118',
             borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -1183,6 +1185,7 @@ export default function PulseScreen() {
               </TouchableOpacity>
             </ScrollView>
           </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 

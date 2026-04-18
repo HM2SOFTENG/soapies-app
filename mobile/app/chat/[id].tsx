@@ -255,12 +255,7 @@ export default function ChatScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.headerName} numberOfLines={1}>{headerName}</Text>
-              {conversation?.type === 'dm' && (
-                <View style={styles.onlineRow}>
-                  <View style={styles.onlineDot} />
-                  <Text style={styles.onlineText}>Online</Text>
-                </View>
-              )}
+
             </View>
             {conversation?.type === 'dm' && conversation?.otherUserId && (
               <Ionicons name="chevron-forward" size={14} color="#5A5575" />

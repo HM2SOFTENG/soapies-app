@@ -48,7 +48,7 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         title: 'Interview Complete!',
         color: colors.purple,
         bgColor: 'rgba(168,85,247,0.1)',
-        message: 'Interview complete! Final decision coming soon.',
+        message: "Interview complete! You'll receive an email with our decision within 24 hours.",
         subMessage: 'Final decisions are made within 24-48 hours.',
       };
     case 'waitlisted':
