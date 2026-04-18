@@ -455,7 +455,38 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       const data: Record<string, unknown> = { ...input, createdBy: ctx.user.id, startDate: new Date(input.startDate) };
       if (input.endDate) data.endDate = new Date(input.endDate);
-      return db.createEvent(data);
+      const eventId = await db.createEvent(data);
+      // Fire broadcast push if notification_new_event is enabled and event is published
+      if (input.status === 'published') {
+        try {
+          const settingRows = await db.getAppSettings();
+          const settingsMap: Record<string, string> = {};
+          (settingRows as any[]).forEach((s: any) => { if (s?.key) settingsMap[s.key] = s.value ?? ''; });
+          if (settingsMap['notification_new_event'] === '1') {
+            (async () => {
+              const dbConn = await db.getDb();
+              if (!dbConn) return;
+              const { profiles: profilesTable } = await import('../drizzle/schema');
+              const { eq: eqPub } = await import('drizzle-orm');
+              const approvedProfiles = await dbConn.select().from(profilesTable).where(eqPub(profilesTable.applicationStatus, 'approved'));
+              const tokens: string[] = [];
+              const userIds: number[] = [];
+              for (const p of approvedProfiles) {
+                const prefs = typeof p.preferences === 'string' ? JSON.parse(p.preferences as string) : (p.preferences ?? {}) as any;
+                if ((prefs as any)?.pushToken) { tokens.push((prefs as any).pushToken); userIds.push(p.userId); }
+              }
+              for (let i = 0; i < tokens.length; i += 100) {
+                const batch = tokens.slice(i, i + 100).map(token => ({ to: token, title: '🎉 New Event Posted!', body: `${input.title} — check it out in the Events tab.`, sound: 'default' }));
+                await fetch('https://exp.host/--/api/v2/push/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch) }).catch(() => {});
+              }
+              for (const uid of userIds) {
+                await notif.sendNotification({ userId: uid, type: 'system', title: '🎉 New Event Posted!', body: `${input.title} — check it out in the Events tab.` }).catch(() => {});
+              }
+            })().catch(() => {});
+          }
+        } catch {}
+      }
+      return eventId;
     }),
     update: adminProcedure.input(z.object({
       id: z.number(),
@@ -2370,6 +2401,32 @@ export const appRouter = router({
         }
       } catch {}
       return { success: true };
+    }),
+
+    seedDefaultSettings: adminProcedure.mutation(async () => {
+      return db.seedDefaultSettings();
+    }),
+
+    clearAllSignals: adminProcedure.mutation(async ({ ctx }) => {
+      const result = await db.clearAllMemberSignals();
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'clear_all_signals', targetType: 'system', targetId: 0 });
+      return result;
+    }),
+
+    exportMembers: adminProcedure.query(async () => {
+      const rows = await db.getMemberExportData();
+      const header = 'userId,email,name,displayName,gender,orientation,location,applicationStatus,memberRole,communityId,createdAt';
+      const escape = (v: any) => {
+        if (v == null) return '';
+        const s = String(v);
+        return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const lines = rows.map((r: any) =>
+        [r.userId, r.email, r.name, r.displayName, r.gender, r.orientation, r.location,
+          r.applicationStatus, r.memberRole, r.communityId, r.createdAt]
+          .map(escape).join(',')
+      );
+      return { csv: [header, ...lines].join('\n'), count: rows.length };
     }),
   }),
 });

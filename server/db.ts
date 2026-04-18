@@ -2251,3 +2251,72 @@ export async function addCredit(userId: number, amount: number, creditType: stri
     balance: String(currentBalance + amount),
   });
 }
+
+// ─── ADMIN SETTINGS HELPERS ──────────────────────────────────────────────────
+
+export async function clearAllMemberSignals(): Promise<{ deleted: number }> {
+  const pool = await getRawPool();
+  if (!pool) return { deleted: 0 };
+  const [result] = await pool.execute('DELETE FROM member_signals');
+  return { deleted: (result as any).affectedRows ?? 0 };
+}
+
+export async function getMemberExportData(): Promise<any[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const { profiles: profilesTable, users: usersTable } = await import('../drizzle/schema');
+  const { eq: eqOp } = await import('drizzle-orm');
+  return db
+    .select({
+      userId: usersTable.id,
+      email: usersTable.email,
+      name: usersTable.name,
+      role: usersTable.role,
+      displayName: profilesTable.displayName,
+      gender: profilesTable.gender,
+      orientation: profilesTable.orientation,
+      location: profilesTable.location,
+      applicationStatus: profilesTable.applicationStatus,
+      memberRole: profilesTable.memberRole,
+      communityId: profilesTable.communityId,
+      createdAt: usersTable.createdAt,
+    })
+    .from(usersTable)
+    .leftJoin(profilesTable, eqOp(profilesTable.userId, usersTable.id))
+    .orderBy(usersTable.createdAt);
+}
+
+export const DEFAULT_SETTINGS: Array<{ key: string; value: string; description: string }> = [
+  { key: 'feature_pulse_enabled',      value: '1',            description: 'Enable Pulse tab for all users' },
+  { key: 'feature_onboarding_open',    value: '1',            description: 'Allow new member applications' },
+  { key: 'feature_events_enabled',     value: '1',            description: 'Enable Events tab' },
+  { key: 'feature_wall_enabled',       value: '1',            description: 'Enable community wall' },
+  { key: 'feature_dm_enabled',         value: '1',            description: 'Enable direct messages' },
+  { key: 'feature_queer_play',         value: '0',            description: 'Show queer play opt-in on tickets' },
+  { key: 'feature_couple_tickets',     value: '1',            description: 'Enable couple ticket type' },
+  { key: 'feature_volunteer',          value: '1',            description: 'Enable volunteer add-on' },
+  { key: 'venmo_handle',               value: '@KELLEN-BRENNAN', description: 'Venmo handle for payments' },
+  { key: 'ticket_price_single',        value: '25',           description: 'Default single ticket price (USD)' },
+  { key: 'ticket_price_couple',        value: '40',           description: 'Default couple ticket price (USD)' },
+  { key: 'ticket_price_angel',         value: '50',           description: 'Default angel ticket price (USD)' },
+  { key: 'auto_approve_members',       value: '0',            description: 'Auto-approve new member applications' },
+  { key: 'require_test_results',       value: '0',            description: 'Require STI test upload before attending events' },
+  { key: 'max_capacity_default',       value: '100',          description: 'Default max event capacity' },
+  { key: 'sendgrid_from_name',         value: 'Soapies Team', description: 'SendGrid sender display name' },
+  { key: 'notification_new_event',     value: '1',            description: 'Send push on new event creation' },
+  { key: 'notification_reminders',     value: '1',            description: 'Send 24h event reminder push notifications' },
+  { key: 'maintenance_mode',           value: '0',            description: 'Put app in maintenance mode' },
+];
+
+export async function seedDefaultSettings(): Promise<{ seeded: number }> {
+  const existing = await getAppSettings();
+  const existingKeys = new Set((existing as any[]).map((s: any) => s.key));
+  let seeded = 0;
+  for (const setting of DEFAULT_SETTINGS) {
+    if (!existingKeys.has(setting.key)) {
+      await upsertAppSetting(setting.key, setting.value);
+      seeded++;
+    }
+  }
+  return { seeded };
+}
