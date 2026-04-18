@@ -594,12 +594,14 @@ export default function SettingsScreen() {
           subtitle="Clears local data and query cache"
           onPress={handleClearCache}
         />
-        <ChevronRow
-          icon="star-outline"
-          iconColor="#F59E0B"
-          label="Rate App"
-          onPress={handleRateApp}
-        />
+        {APP_STORE_ID ? (
+          <ChevronRow
+            icon="star-outline"
+            iconColor="#F59E0B"
+            label="Rate App"
+            onPress={handleRateApp}
+          />
+        ) : null}
 
         {/* ── SUPPORT ── */}
         <SectionHeader title="Support" />
