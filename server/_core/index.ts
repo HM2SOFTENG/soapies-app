@@ -89,6 +89,8 @@ async function startServer() {
   app.use("/api/trpc/auth.verifyPhoneOtp", authLimiter);
   app.use("/api/trpc/auth.requestPasswordReset", authLimiter);
   app.use("/api/trpc/auth.resetPassword", authLimiter);
+  app.use("/api/trpc/auth.verifyEmail", authLimiter);
+  app.use("/api/trpc/auth.resendEmailVerification", authLimiter);
   app.use("/api/trpc", apiLimiter);
   app.use("/api/upload-photo", apiLimiter);
 
@@ -127,6 +129,7 @@ async function startServer() {
         const userId = parseInt(session.metadata.userId);
 
         const db = await import("../db");
+        const notif = await import("../notifications");
 
         // Mark reservation paid
         await db.updateReservation(reservationId, {
@@ -143,6 +146,33 @@ async function startServer() {
           await db.createTicketForReservation(reservationId, userId, qrCode);
         } catch {}
 
+        // Assign wristband color
+        try { await db.updateReservationWristband(reservationId); } catch {}
+
+        // Notify user
+        try {
+          await notif.sendNotification({
+            userId,
+            type: 'system',
+            title: '🎉 Payment Confirmed!',
+            body: 'Your Stripe payment was successful. Your ticket QR code is ready in the Tickets tab.',
+          });
+        } catch {}
+
+        // Sync to party chat if event is within 7 days
+        try {
+          const dbConn = await db.getDb();
+          if (dbConn) {
+            const { reservations: resTable } = await import('../../drizzle/schema');
+            const { eq: eqOp } = await import('drizzle-orm');
+            const rows = await dbConn.select().from(resTable).where(eqOp(resTable.id, reservationId)).limit(1);
+            if (rows[0]?.eventId) {
+              const { syncUserToPartyChat } = await import('../partyChat');
+              await syncUserToPartyChat(rows[0].eventId, userId);
+            }
+          }
+        } catch {}
+
         // Log audit
         try {
           await db.createAuditLog({
@@ -152,6 +182,24 @@ async function startServer() {
             targetId: reservationId,
           });
         } catch {}
+      }
+
+      // Handle abandoned Stripe checkout — cancel ghost reservations
+      if (event.type === "checkout.session.expired") {
+        const session = event.data.object;
+        const reservationId = parseInt(session.metadata?.reservationId ?? '0');
+        if (reservationId) {
+          const db = await import("../db");
+          try {
+            await db.updateReservation(reservationId, { status: 'cancelled', paymentStatus: 'failed' });
+            // Decrement attendee count
+            const pool = await db.getRawPool();
+            if (pool) await pool.execute(
+              'UPDATE events SET currentAttendees = GREATEST(0, currentAttendees - 1) WHERE id = (SELECT eventId FROM reservations WHERE id = ?)',
+              [reservationId]
+            );
+          } catch {}
+        }
       }
 
       res.json({ received: true });
@@ -285,6 +333,43 @@ async function startServer() {
   // Startup cleanup: remove OTP codes older than 24 hours
   const { cleanupExpiredOtps } = await import("../auth");
   cleanupExpiredOtps().catch(() => {});
+
+  // ── 24h Event Reminder Cron ────────────────────────────────────────────────────────────────
+  // Runs every hour, finds events starting in 22-26h, notifies pending-payment holders
+  const runEventReminderCron = async () => {
+    try {
+      const db = await import('../db');
+      const notif = await import('../notifications');
+      const settingRows = await db.getAppSettings();
+      const remindersEnabled = (settingRows as any[]).find((s: any) => s.key === 'notification_reminders')?.value === '1';
+      if (!remindersEnabled) return;
+      const venmoHandle = (settingRows as any[]).find((s: any) => s.key === 'venmo_handle')?.value ?? '@SoapiesEvents';
+      const pool = await db.getRawPool();
+      if (!pool) return;
+      // Find events starting in 22–26 hours
+      const [eventRows] = await pool.execute(
+        `SELECT id, title FROM events WHERE startDate BETWEEN DATE_ADD(NOW(), INTERVAL 22 HOUR) AND DATE_ADD(NOW(), INTERVAL 26 HOUR) AND status = 'published'`
+      );
+      for (const event of eventRows as any[]) {
+        const [resRows] = await pool.execute(
+          `SELECT r.userId FROM reservations r WHERE r.eventId = ? AND r.paymentStatus = 'pending' AND r.status != 'cancelled'`,
+          [event.id]
+        );
+        for (const res of resRows as any[]) {
+          await notif.sendNotification({
+            userId: res.userId,
+            type: 'system',
+            title: `⏰ Event Tomorrow: ${event.title}`,
+            body: `Your spot is reserved but payment is still pending. Please send payment via Venmo ${venmoHandle} to confirm your attendance.`,
+          }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error('[EventReminder] cron failed:', err);
+    }
+  };
+  runEventReminderCron().catch(() => {});
+  setInterval(runEventReminderCron, 60 * 60 * 1000); // every hour
 
   // Party Chat cron — run on startup then every 24 hours
   const { runPartyChatCron } = await import("../partyChat");

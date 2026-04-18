@@ -5,7 +5,7 @@ import { getDb } from "./db";
 import { ENV } from "./_core/env";
 
 // Password hashing using Node.js built-in crypto (no bcrypt needed)
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual, randomInt } from "crypto";
 import { promisify } from "util";
 const scryptAsync = promisify(scrypt);
 
@@ -23,7 +23,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 // OTP generation
 export function generateOtp(): string {
-  const num = Math.floor(100000 + Math.random() * 900000);
+  const num = randomInt(100000, 1000000);
   return num.toString();
 }
 
@@ -96,7 +96,7 @@ export async function saveOtp(data: {
   userId?: number;
   target: string;
   code: string;
-  type: "email_verify" | "phone_verify" | "phone_login" | "password_reset";
+  type: "email_verify" | "phone_verify" | "phone_login" | "password_reset" | "account_deactivate";
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -114,7 +114,7 @@ export async function saveOtp(data: {
 export async function verifyOtp(data: {
   target: string;
   code: string;
-  type: "email_verify" | "phone_verify" | "phone_login" | "password_reset";
+  type: "email_verify" | "phone_verify" | "phone_login" | "password_reset" | "account_deactivate";
 }) {
   const db = await getDb();
   if (!db) return null;

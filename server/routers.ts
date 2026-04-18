@@ -42,16 +42,14 @@ export const appRouter = router({
         email: z.string().email(),
         password: z.string().min(8),
         name: z.string().min(1),
-        dateOfBirth: z.string().optional(), // ISO date YYYY-MM-DD for server-side age verification
+        dateOfBirth: z.string(), // Required — ISO date YYYY-MM-DD for server-side age verification
       }))
       .mutation(async ({ input, ctx }) => {
         // Server-side age gate (Apple guideline + legal requirement for adult platform)
-        if (input.dateOfBirth) {
-          const dob = new Date(input.dateOfBirth);
-          const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-          if (age < 18) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be 18 or older to join.' });
-          }
+        const dob = new Date(input.dateOfBirth);
+        const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        if (isNaN(dob.getTime()) || age < 21) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be 21 or older to join.' });
         }
         const existing = await auth.getUserByEmail(input.email);
         if (existing) {
@@ -255,7 +253,7 @@ export const appRouter = router({
       const user = await db.getUserById(ctx.user.id);
       if (!user?.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No email address on account' });
       const code = auth.generateOtp();
-      await auth.saveOtp({ userId: user.id, target: user.email, code, type: 'password_reset' });
+      await auth.saveOtp({ userId: user.id, target: user.email, code, type: 'account_deactivate' });
       await auth.sendEmailOtp(user.email, code);
       return { success: true };
     }),
@@ -263,7 +261,7 @@ export const appRouter = router({
     confirmDeactivation: protectedProcedure.input(z.object({ code: z.string().min(4) })).mutation(async ({ ctx, input }) => {
       const user = await db.getUserById(ctx.user.id);
       if (!user?.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No email address on account' });
-      const otp = await auth.verifyOtp({ target: user.email, code: input.code, type: 'password_reset' });
+      const otp = await auth.verifyOtp({ target: user.email, code: input.code, type: 'account_deactivate' });
       if (!otp) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid or expired code' });
       await db.deactivateUser(ctx.user.id);
       return { success: true };
@@ -288,7 +286,19 @@ export const appRouter = router({
       referredByCode: z.string().max(32).optional(),
       preferences: z.any().optional(),
     })).mutation(async ({ ctx, input }) => {
-      const data: any = { ...input, userId: ctx.user.id };
+      // Explicitly whitelist allowed fields — never spread raw input (prevents role escalation via extra JSON keys)
+      const data: any = {
+        userId: ctx.user.id,
+        ...(input.displayName !== undefined && { displayName: input.displayName }),
+        ...(input.bio !== undefined && { bio: input.bio }),
+        ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl }),
+        ...(input.gender !== undefined && { gender: input.gender }),
+        ...(input.orientation !== undefined && { orientation: input.orientation }),
+        ...(input.location !== undefined && { location: input.location }),
+        ...(input.phone !== undefined && { phone: input.phone }),
+        ...(input.communityId !== undefined && { communityId: input.communityId }),
+        ...(input.preferences !== undefined && { preferences: input.preferences }),
+      };
       if (input.dateOfBirth) {
         const dob = new Date(input.dateOfBirth);
         const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000));
@@ -610,10 +620,10 @@ export const appRouter = router({
       if (alreadyReserved) {
         throw new TRPCError({ code: 'CONFLICT', message: 'You already have a reservation for this event.' });
       }
-      // Check capacity before creating reservation
-      const cap = await db.getEventCapacity(input.eventId);
-      if (cap && cap.capacity && cap.capacity > 0 && (cap.currentAttendees ?? 0) >= cap.capacity) {
-        throw new TRPCError({ code: 'PRECONDITION_FAILED', message: `This event is at capacity (${cap.capacity} attendees).` });
+      // Atomic capacity claim — prevents race condition overbooking
+      const slotClaimed = await db.atomicClaimEventSlot(input.eventId);
+      if (!slotClaimed) {
+        throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Sorry, this event is now at capacity.' });
       }
       // Handle credit payment — validate balance and deduct
       let paymentStatus: 'pending' | 'paid' | 'partial' = 'pending';
@@ -623,17 +633,28 @@ export const appRouter = router({
         if (creditsToUse > balance) {
           throw new TRPCError({ code: 'BAD_REQUEST', message: `Insufficient credits. You have $${(balance / 100).toFixed(2)} available.` });
         }
+        // Server-side price lookup — never trust client-supplied totalAmount
+        const eventData = await db.getEventById(input.eventId) as any;
+        let serverPriceCents = 0;
+        if (eventData) {
+          const priceField = input.ticketType === 'single_female' ? 'priceSingleFemale'
+            : input.ticketType === 'single_male' ? 'priceSingleMale'
+            : input.ticketType === 'couple' ? 'priceCouple'
+            : null;
+          if (priceField && eventData[priceField]) {
+            serverPriceCents = Math.round(parseFloat(String(eventData[priceField])) * 100);
+          }
+        }
+        if (creditsToUse > serverPriceCents && serverPriceCents > 0) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Credits exceed ticket price.' });
+        }
         // Deduct credits as a negative entry
         await db.addCredit(ctx.user.id, -creditsToUse, 'debit', `Credits applied to event reservation — ${creditsToUse} cents`);
         // Determine payment status
-        const ticketPriceCents = Math.round(parseFloat(input.totalAmount ?? '0') * 100);
-        paymentStatus = creditsToUse >= ticketPriceCents ? 'paid' : 'partial';
+        paymentStatus = creditsToUse >= serverPriceCents ? 'paid' : 'partial';
       }
       const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, creditsUsed: String(creditsToUse / 100), status: "pending", paymentStatus, notes: input.isVolunteer ? 'volunteer' : undefined });
-      // Increment attendee count after successful reservation
-      if (reservationId) {
-        try { await db.incrementEventAttendees(input.eventId); } catch (err) { console.error("[Capacity] Failed to increment attendees:", err); }
-      }
+      // Attendee count already incremented atomically in atomicClaimEventSlot above
       // Process referral conversion on first reservation (fires only if not already converted)
       if (reservationId) {
         // Update wristband color based on reservation data
@@ -694,11 +715,14 @@ export const appRouter = router({
           try {
             const requesterProfile = await db.getProfileByUserId(ctx.user.id);
             const eventData = await db.getEventById(input.eventId);
+            // Fetch Venmo handle from app settings
+            const partnerSettingRows = await db.getAppSettings();
+            const venmoHandle = (partnerSettingRows as any[]).find((s: any) => s.key === 'venmo_handle')?.value ?? '@SoapiesEvents';
             await notif.sendNotification({
               userId: input.partnerUserId,
               type: 'system',
               title: '\u{1F491} Couple Ticket Invitation',
-              body: `${requesterProfile?.displayName ?? 'A member'} has linked you as their partner for ${(eventData as any)?.title ?? 'an upcoming event'}. Complete your reservation by paying via Venmo @KELLEN-BRENNAN.`,
+              body: `${requesterProfile?.displayName ?? 'A member'} has linked you as their partner for ${(eventData as any)?.title ?? 'an upcoming event'}. Complete your reservation by paying via Venmo ${venmoHandle}.`,
             }).catch(() => {});
 
             // Send a DM to partner
@@ -715,7 +739,7 @@ export const appRouter = router({
               await db.createMessage({
                 conversationId: dmConv.id,
                 senderId: ctx.user.id,
-                content: `\u{1F491} I've linked you as my partner for **${(eventData as any)?.title ?? 'our next event'}**! Please send your payment to @KELLEN-BRENNAN on Venmo to confirm your spot. See you there! \u{1F389}`,
+                content: `\u{1F491} I've linked you as my partner for **${(eventData as any)?.title ?? 'our next event'}**! Please send your payment to ${venmoHandle} on Venmo to confirm your spot. See you there! \u{1F389}`,
               });
             } catch (err) {
               console.error('[Couple] Failed to send partner DM:', err);
@@ -726,6 +750,28 @@ export const appRouter = router({
         }
       }
       return reservationId;
+    }),
+    cancelRequest: protectedProcedure.input(z.object({
+      reservationId: z.number(),
+      reason: z.string().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      // Verify the reservation belongs to this user
+      const userReservations = await db.getReservationsByUser(ctx.user.id);
+      const res = (userReservations as any[]).find((r: any) => r.id === input.reservationId);
+      if (!res) throw new TRPCError({ code: 'NOT_FOUND', message: 'Reservation not found.' });
+      if (res.status === 'cancelled') throw new TRPCError({ code: 'BAD_REQUEST', message: 'Reservation is already cancelled.' });
+      await db.createCancellationRequest({ reservationId: input.reservationId, userId: ctx.user.id, reason: input.reason });
+      // Notify admins
+      const admins = await db.getAdminUsers();
+      for (const admin of admins) {
+        await notif.sendNotification({
+          userId: admin.id,
+          type: 'system',
+          title: '📋 Cancellation Request',
+          body: `A member has requested to cancel their reservation for review.`,
+        }).catch(() => {});
+      }
+      return { success: true };
     }),
     updateStatus: adminProcedure.input(z.object({
       id: z.number(),
@@ -912,7 +958,10 @@ export const appRouter = router({
         return true;
       });
     }),
-    messages: protectedProcedure.input(z.object({ conversationId: z.number(), limit: z.number().optional() })).query(async ({ input }) => {
+    messages: protectedProcedure.input(z.object({ conversationId: z.number(), limit: z.number().optional() })).query(async ({ ctx, input }) => {
+      const participants = await db.getConversationParticipants(input.conversationId);
+      const isParticipant = (participants as any[]).some((p: any) => p.userId === ctx.user.id);
+      if (!isParticipant) throw new TRPCError({ code: 'FORBIDDEN', message: 'You are not a participant in this conversation.' });
       return db.getConversationMessages(input.conversationId, input.limit);
     }),
     send: protectedProcedure.input(z.object({
@@ -2282,10 +2331,12 @@ export const appRouter = router({
     sendEventReminders: adminProcedure.input(z.object({ eventId: z.number() })).mutation(async ({ input }) => {
       const allRes = await db.getAllReservations({ eventId: input.eventId });
       const pending = (allRes as any[]).filter((r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled');
+      const reminderSettings = await db.getAppSettings();
+      const reminderVenmoHandle = (reminderSettings as any[]).find((s: any) => s.key === 'venmo_handle')?.value ?? '@SoapiesEvents';
       let count = 0;
       for (const r of pending) {
         if (r.userId) {
-          await notif.sendNotification({ userId: r.userId, type: 'system', title: '⏰ Payment Reminder', body: 'You have a pending ticket payment. Please send payment via Venmo @KELLEN-BRENNAN to confirm your spot.' }).catch(() => {});
+          await notif.sendNotification({ userId: r.userId, type: 'system', title: '⏰ Payment Reminder', body: `You have a pending ticket payment. Please send payment via Venmo ${reminderVenmoHandle} to confirm your spot.` }).catch(() => {});
           count++;
         }
       }

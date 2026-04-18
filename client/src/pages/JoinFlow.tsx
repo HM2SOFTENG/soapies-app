@@ -429,6 +429,7 @@ export default function JoinFlow() {
         email,
         password,
         name: email.split("@")[0],
+        dateOfBirth: dateOfBirth || new Date().toISOString().split('T')[0], // will be validated server-side
       });
       setCurrentStep(3);
       setResendTimer(60);

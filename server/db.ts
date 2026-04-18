@@ -98,6 +98,9 @@ export async function unsuspendUser(userId: number) {
 
 export async function deleteUser(userId: number) {
   const db = await getDb(); if (!db) return;
+  // Clean up tables not in drizzle schema or needing raw SQL
+  const pool2 = await getRawPool();
+  if (pool2) await pool2.execute('DELETE FROM member_signals WHERE userId = ?', [userId]);
   await db.transaction(async (tx) => {
     // Delete related records in dependency order, then the user
     await tx.delete(notifications).where(eq(notifications.userId, userId));
@@ -106,6 +109,20 @@ export async function deleteUser(userId: number) {
     await tx.delete(messages).where(eq(messages.senderId, userId));
     await tx.delete(wallPosts).where(eq(wallPosts.authorId, userId));
     await tx.delete(reservations).where(eq(reservations.userId, userId));
+    // Additional cascade deletions
+    await tx.delete(signedWaivers).where(eq(signedWaivers.userId, userId));
+    // applicationPhotos/Logs reference profileId — delete via subquery
+    const profileRow = await tx.select({ id: profiles.id }).from(profiles).where(eq(profiles.userId, userId)).limit(1);
+    if (profileRow[0]) {
+      await tx.delete(applicationPhotos).where(eq(applicationPhotos.profileId, profileRow[0].id));
+      await tx.delete(applicationLogs).where(eq(applicationLogs.profileId, profileRow[0].id));
+    }
+    await tx.delete(blockedUsers).where(or(eq(blockedUsers.blockerId, userId), eq(blockedUsers.blockedId, userId)));
+    await tx.delete(shiftAssignments).where(eq(shiftAssignments.userId, userId));
+    await tx.delete(memberCredits).where(eq(memberCredits.userId, userId));
+    await tx.delete(waitlistTable).where(eq(waitlistTable.userId, userId));
+    await tx.delete(partnerInvitations).where(eq(partnerInvitations.inviterId, userId));
+    await tx.delete(otpCodes).where(eq(otpCodes.userId, userId));
     await tx.delete(profiles).where(eq(profiles.userId, userId));
     await tx.delete(users).where(eq(users.id, userId));
   });
@@ -121,10 +138,8 @@ export async function updateUserMemberRole(userId: number, memberRole: "member" 
 }
 
 export async function bulkDeleteUsers(userIds: number[]) {
-  const db = await getDb(); if (!db) return;
   for (const id of userIds) {
-    await db.delete(profiles).where(eq(profiles.userId, id));
-    await db.delete(users).where(eq(users.id, id));
+    await deleteUser(id);
   }
 }
 
@@ -806,6 +821,9 @@ export async function applyReferralToProfile(profileId: number, code: string) {
   const db = await getDb(); if (!db) return;
   const refCode = await validateReferralCode(code);
   if (!refCode) return;
+  // Block self-referral — user cannot refer themselves
+  const ownProfile = await db.select({ userId: profiles.userId }).from(profiles).where(eq(profiles.id, profileId)).limit(1);
+  if (ownProfile[0]?.userId === refCode.userId) return;
   await db.update(profiles).set({ referredByCode: code, referredByUserId: refCode.userId }).where(eq(profiles.id, profileId));
 }
 
@@ -944,6 +962,22 @@ export async function getCancellationRequests() {
 export async function updateCancellationRequest(id: number, data: any) {
   const db = await getDb(); if (!db) return;
   await db.update(cancellationRequests).set(data).where(eq(cancellationRequests.id, id));
+}
+
+export async function createCancellationRequest(data: {
+  reservationId: number;
+  userId: number;
+  reason?: string;
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error('DB unavailable');
+  const r = await db.insert(cancellationRequests).values({
+    reservationId: data.reservationId,
+    userId: data.userId,
+    reason: data.reason,
+    status: 'pending',
+  });
+  return r[0].insertId;
 }
 
 // ─── FEEDBACK ────────────────────────────────────────────────────────────────
@@ -2101,6 +2135,19 @@ export async function incrementEventAttendees(eventId: number) {
   await db.update(events).set({ currentAttendees: sql`${events.currentAttendees} + 1` }).where(eq(events.id, eventId));
 }
 
+/** Atomically increments attendee count only if under capacity.
+ *  Returns true if the slot was claimed, false if at capacity. */
+export async function atomicClaimEventSlot(eventId: number): Promise<boolean> {
+  const pool = await getRawPool();
+  if (!pool) return true; // fail open if no pool
+  const [result] = await pool.execute(
+    `UPDATE events SET currentAttendees = currentAttendees + 1
+     WHERE id = ? AND (capacity IS NULL OR capacity = 0 OR currentAttendees < capacity)`,
+    [eventId]
+  );
+  return (result as any).affectedRows > 0;
+}
+
 export async function joinWaitlist(eventId: number, userId: number) {
   const db = await getDb(); if (!db) return null;
   const existing = await db.select().from(waitlistTable).where(and(eq(waitlistTable.eventId, eventId), eq(waitlistTable.userId, userId))).limit(1);
@@ -2140,7 +2187,7 @@ export async function deletePushSubscription(endpoint: string) {
 // Uses raw mysql2 pool to avoid drizzle sql-template mangling of booleans/datetimes
 
 let _rawPool: any = null;
-async function getRawPool() {
+export async function getRawPool() {
   if (_rawPool) return _rawPool;
   if (!process.env.DATABASE_URL) return null;
   try {

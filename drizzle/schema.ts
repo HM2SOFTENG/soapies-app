@@ -41,7 +41,7 @@ export const otpCodes = mysqlTable("otp_codes", {
   userId: int("userId"),
   target: varchar("target", { length: 320 }).notNull(), // email or phone
   code: varchar("code", { length: 6 }).notNull(),
-  type: mysqlEnum("type", ["email_verify", "phone_verify", "phone_login", "password_reset"]).notNull(),
+  type: mysqlEnum("type", ["email_verify", "phone_verify", "phone_login", "password_reset", "account_deactivate"]).notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
   usedAt: timestamp("usedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
