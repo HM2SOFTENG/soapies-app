@@ -272,19 +272,34 @@ export default function OnboardingScreen() {
   // ─── Step 2: Register ──────────────────────────────────────────────────────
 
   const handleRegister = async () => {
+    if (__DEV__) {
+      console.log('[onboarding] handleRegister:start', {
+        email: email.trim().toLowerCase(),
+        hasPassword: !!password,
+        hasConfirmPassword: !!confirmPassword,
+        agreedToTerms,
+        hasDobPieces: !!(dobYear && dobMonth && dobDay),
+        currentStep,
+      });
+    }
+
     if (!email.trim() || !password || !confirmPassword) {
+      if (__DEV__) console.warn('[onboarding] handleRegister:missing-fields');
       toast.error('Please fill in all fields');
       return;
     }
     if (password !== confirmPassword) {
+      if (__DEV__) console.warn('[onboarding] handleRegister:password-mismatch');
       toast.error('Passwords do not match');
       return;
     }
     if (password.length < 8) {
+      if (__DEV__) console.warn('[onboarding] handleRegister:password-too-short', { length: password.length });
       toast.error('Password must be at least 8 characters');
       return;
     }
     if (!agreedToTerms) {
+      if (__DEV__) console.warn('[onboarding] handleRegister:terms-not-accepted');
       toast.error('Please agree to the terms and community guidelines');
       return;
     }
@@ -293,12 +308,29 @@ export default function OnboardingScreen() {
       const dobForServer = dobYear && dobMonth && dobDay
         ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
         : undefined;
+
+      if (__DEV__) {
+        console.log('[onboarding] handleRegister:request', {
+          email: email.trim().toLowerCase(),
+          name: email.split('@')[0],
+          dateOfBirth: dobForServer ?? null,
+        });
+      }
+
       const result = await registerMutation.mutateAsync({
         email: email.trim().toLowerCase(),
         password,
         name: email.split('@')[0],
         dateOfBirth: dobForServer,
       }) as any;
+
+      if (__DEV__) {
+        console.log('[onboarding] handleRegister:success', {
+          userId: result?.userId,
+          hasSessionToken: !!result?.sessionToken,
+          message: result?.message,
+        });
+      }
 
       // Store token in memory ONLY (for making authenticated API calls during onboarding)
       // NOT saved to SecureStore — user is NOT logged in until admin approves
@@ -311,6 +343,14 @@ export default function OnboardingScreen() {
       setResendTimer(60);
     } catch (e: any) {
       const msg = e?.message ?? '';
+      if (__DEV__) {
+        console.error('[onboarding] handleRegister:error', {
+          message: msg,
+          data: e?.data,
+          shape: e?.shape,
+          cause: e?.cause,
+        });
+      }
       if (msg.toLowerCase().includes('already exists') || e?.data?.code === 'CONFLICT') {
         Alert.alert(
           'Account Already Exists',

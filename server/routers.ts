@@ -42,14 +42,17 @@ export const appRouter = router({
         email: z.string().email(),
         password: z.string().min(8),
         name: z.string().min(1),
-        dateOfBirth: z.string(), // Required — ISO date YYYY-MM-DD for server-side age verification
+        dateOfBirth: z.string().optional(), // Optional at account creation, required before profile submission
       }))
       .mutation(async ({ input, ctx }) => {
-        // Server-side age gate (Apple guideline + legal requirement for adult platform)
-        const dob = new Date(input.dateOfBirth);
-        const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-        if (isNaN(dob.getTime()) || age < 21) {
-          throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be 21 or older to join.' });
+        // If DOB is provided at registration, enforce server-side age gate.
+        // Mobile onboarding collects DOB later in the flow, before application submission.
+        if (input.dateOfBirth) {
+          const dob = new Date(input.dateOfBirth);
+          const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          if (isNaN(dob.getTime()) || age < 21) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'You must be 21 or older to join.' });
+          }
         }
         const existing = await auth.getUserByEmail(input.email);
         if (existing) {

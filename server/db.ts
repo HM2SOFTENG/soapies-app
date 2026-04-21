@@ -874,6 +874,7 @@ export async function getReferralPipeline() {
   const referred = await db
     .select({
       referredProfileId: profiles.id,
+      referredUserId: profiles.userId,
       referredDisplayName: profiles.displayName,
       referredAppliedAt: profiles.createdAt,
       referralConverted: profiles.referralConverted,
@@ -892,12 +893,69 @@ export async function getReferralPipeline() {
   const result = await Promise.all(referred.map(async (row) => {
     const db2 = await getDb();
     if (!db2 || !row.referredByUserId) return { ...row, referrerName: null, codeStats: null };
-    const referrerProfile = await db2.select({ displayName: profiles.displayName }).from(profiles).where(eq(profiles.userId, row.referredByUserId)).limit(1);
-    const codeRows = await db2.select().from(referralCodes).where(eq(referralCodes.code, row.referredByCode!)).limit(1);
+
+    const referrerProfile = await db2
+      .select({ displayName: profiles.displayName })
+      .from(profiles)
+      .where(eq(profiles.userId, row.referredByUserId))
+      .limit(1);
+
+    const codeRows = await db2
+      .select()
+      .from(referralCodes)
+      .where(eq(referralCodes.code, row.referredByCode!))
+      .limit(1);
+
+    const firstReservation = row.referredUserId
+      ? await db2
+          .select({
+            id: reservations.id,
+            eventId: reservations.eventId,
+            createdAt: reservations.createdAt,
+            status: reservations.status,
+            eventTitle: events.title,
+            eventStartAt: events.startAt,
+          })
+          .from(reservations)
+          .leftJoin(events, eq(events.id, reservations.eventId))
+          .where(and(eq(reservations.userId, row.referredUserId), sql`${reservations.status} IN ('pending', 'confirmed', 'checked_in')`))
+          .orderBy(asc(reservations.createdAt))
+          .limit(1)
+      : [];
+
+    const referralCredit = row.referredByUserId
+      ? await db2
+          .select({
+            id: memberCredits.id,
+            amount: memberCredits.amount,
+            balance: memberCredits.balance,
+            createdAt: memberCredits.createdAt,
+            description: memberCredits.description,
+          })
+          .from(memberCredits)
+          .where(and(
+            eq(memberCredits.userId, row.referredByUserId),
+            eq(memberCredits.type, 'referral'),
+            eq(memberCredits.referenceId, firstReservation[0]?.id ?? -1),
+          ))
+          .orderBy(desc(memberCredits.createdAt))
+          .limit(1)
+      : [];
+
     return {
       ...row,
       referrerName: referrerProfile[0]?.displayName ?? null,
       codeStats: codeRows[0] ?? null,
+      firstReservationAt: firstReservation[0]?.createdAt ?? null,
+      firstReservationStatus: firstReservation[0]?.status ?? null,
+      firstReservationEventId: firstReservation[0]?.eventId ?? null,
+      firstReservationEventTitle: firstReservation[0]?.eventTitle ?? null,
+      firstReservationEventStartAt: firstReservation[0]?.eventStartAt ?? null,
+      creditAwarded: !!referralCredit[0],
+      creditAwardedAt: referralCredit[0]?.createdAt ?? row.referralConvertedAt ?? null,
+      creditAmount: referralCredit[0] ? Number(referralCredit[0].amount) : (row.referralConverted ? 3500 : 0),
+      resultingBalance: referralCredit[0] ? Number(referralCredit[0].balance) : null,
+      creditDescription: referralCredit[0]?.description ?? null,
     };
   }));
   return result;

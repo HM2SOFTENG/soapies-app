@@ -76,6 +76,144 @@ function InfoRow({ icon, label, value }: { icon: any; label: string; value: stri
   );
 }
 
+const REFERRAL_STEPS = [
+  { key: 'joined', label: 'Joined' },
+  { key: 'applied', label: 'Applied' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'eventBooked', label: 'Event booked' },
+  { key: 'creditEarned', label: 'Credit earned' },
+] as const;
+
+function formatShortDate(value?: string | Date | null) {
+  if (!value) return '—';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getReferralStep(row: any) {
+  if (row?.creditAwarded || row?.referralConverted) return 4;
+  if (row?.firstReservationAt) return 3;
+  if (row?.applicationStatus === 'approved' || row?.applicationPhase === 'final_approved') return 2;
+  if (row?.applicationStatus === 'submitted' || row?.applicationStatus === 'under_review' || row?.applicationPhase === 'interview_scheduled' || row?.applicationPhase === 'interview_complete') return 1;
+  if (row?.userCreatedAt) return 0;
+  return -1;
+}
+
+function ReferralPipelineCard({ row }: { row: any }) {
+  const currentStep = getReferralStep(row);
+  const earnedDollars = Number(row?.creditAmount ?? 0) / 100;
+
+  return (
+    <View style={{
+      marginTop: 12,
+      backgroundColor: row?.creditAwarded || row?.referralConverted ? 'rgba(16, 185, 129, 0.10)' : '#10101C',
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: row?.creditAwarded || row?.referralConverted ? 'rgba(16, 185, 129, 0.25)' : '#1A1A30',
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
+            {row?.referredDisplayName || 'New referral'}
+          </Text>
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+            Code {row?.referredByCode || '—'}
+          </Text>
+        </View>
+        <View style={{
+          paddingHorizontal: 10,
+          paddingVertical: 6,
+          borderRadius: 999,
+          backgroundColor: row?.creditAwarded || row?.referralConverted
+            ? 'rgba(16, 185, 129, 0.16)'
+            : currentStep >= 2
+              ? 'rgba(168, 85, 247, 0.16)'
+              : 'rgba(236, 72, 153, 0.16)',
+        }}>
+          <Text style={{
+            color: row?.creditAwarded || row?.referralConverted ? '#34D399' : currentStep >= 2 ? '#C084FC' : '#F472B6',
+            fontSize: 11,
+            fontWeight: '800',
+          }}>
+            {row?.creditAwarded || row?.referralConverted ? `+$${earnedDollars.toFixed(2)}` : REFERRAL_STEPS[Math.max(currentStep, 0)]?.label || 'Pending'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 16 }}>
+        {REFERRAL_STEPS.map((step, index) => {
+          const active = index <= currentStep;
+          const isLast = index === REFERRAL_STEPS.length - 1;
+          return (
+            <React.Fragment key={step.key}>
+              <View style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 999,
+                  borderWidth: 2,
+                  borderColor: active ? colors.pink : '#2A2544',
+                  backgroundColor: active ? colors.pink : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {active ? <Ionicons name="checkmark" size={13} color="#fff" /> : <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#4B5563' }} />}
+                </View>
+                <Text style={{
+                  color: active ? colors.text : colors.muted,
+                  fontSize: 10,
+                  fontWeight: active ? '700' : '500',
+                  textAlign: 'center',
+                  marginTop: 6,
+                  paddingHorizontal: 2,
+                }}>
+                  {step.label}
+                </Text>
+              </View>
+              {!isLast && <View style={{ flex: 1, height: 2, marginTop: 11, backgroundColor: index < currentStep ? colors.pink : '#2A2544' }} />}
+            </React.Fragment>
+          );
+        })}
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+        <View style={{ minWidth: '47%' as any }}>
+          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>Joined</Text>
+          <Text style={{ color: colors.text, fontSize: 13, marginTop: 3 }}>{formatShortDate(row?.userCreatedAt)}</Text>
+        </View>
+        <View style={{ minWidth: '47%' as any }}>
+          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>Application</Text>
+          <Text style={{ color: colors.text, fontSize: 13, marginTop: 3, textTransform: 'capitalize' }}>{row?.applicationStatus || 'draft'}</Text>
+        </View>
+        <View style={{ minWidth: '47%' as any }}>
+          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>First event</Text>
+          <Text style={{ color: colors.text, fontSize: 13, marginTop: 3 }} numberOfLines={2}>
+            {row?.firstReservationEventTitle || (row?.firstReservationAt ? 'Booked' : '—')}
+          </Text>
+        </View>
+        <View style={{ minWidth: '47%' as any }}>
+          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>Credit</Text>
+          <Text style={{ color: row?.creditAwarded || row?.referralConverted ? '#34D399' : colors.text, fontSize: 13, marginTop: 3, fontWeight: '700' }}>
+            {row?.creditAwarded || row?.referralConverted ? `Earned $${earnedDollars.toFixed(2)}` : 'Pending'}
+          </Text>
+        </View>
+      </View>
+
+      {(row?.creditAwardedAt || row?.firstReservationAt) && (
+        <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#1A1A30' }}>
+          <Text style={{ color: colors.muted, fontSize: 11 }}>
+            {row?.creditAwardedAt
+              ? `Reward posted ${formatShortDate(row.creditAwardedAt)}`
+              : `First booking ${formatShortDate(row.firstReservationAt)}`}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
@@ -90,6 +228,7 @@ export default function ProfileScreen() {
   const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const { data: creditsData } = trpc.credits.balance.useQuery(undefined, { enabled: hasToken });
   const { data: referralCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: hasToken });
+  const { data: myReferralsData } = trpc.referrals.myReferrals.useQuery(undefined, { enabled: hasToken });
   const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { enabled: hasToken });
 
   // Merge auth.me + profile.me
@@ -107,8 +246,13 @@ export default function ProfileScreen() {
   const creditsRaw = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
   const credits = `$${Number(creditsRaw).toFixed(2)}`; // stored as dollars
   const myCode = (referralCode as any)?.code ?? 'N/A';
-  const referralsCount = (referralCode as any)?.totalReferrals ?? 0;
+  const referralsCount = Math.max(
+    (referralCode as any)?.totalReferrals ?? 0,
+    ((myReferralsData as any[]) ?? []).length,
+  );
   const eventsCount = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
+  const referralRewardsEarned = (((myReferralsData as any[]) ?? []).filter((r: any) => r?.creditAwarded || r?.referralConverted).length);
+  const pendingReferralRewards = (((myReferralsData as any[]) ?? []).filter((r: any) => !(r?.creditAwarded || r?.referralConverted)).length);
 
   const memberRole: string | undefined = profile?.memberRole ?? profile?.role;
   const roleConfig = memberRole ? (ROLE_CONFIG[memberRole] ?? ROLE_CONFIG.pending) : null;
@@ -360,6 +504,60 @@ export default function ProfileScreen() {
               <Ionicons name="share-outline" size={20} color={colors.purple} />
             </TouchableOpacity>
           </View>
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10, lineHeight: 18 }}>
+            Share your code and track when someone joins, applies, books their first event, and when your reward lands.
+          </Text>
+        </View>
+
+        {/* ── Referral Tracker ── */}
+        <View style={{
+          marginHorizontal: 20, marginTop: 12,
+          backgroundColor: '#10101C',
+          borderRadius: 16, padding: 16,
+          borderColor: '#1A1A30', borderWidth: 1,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>Referral Tracker</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
+                Follow each referral from signup through approval, first event booking, and reward payout.
+              </Text>
+            </View>
+            <View style={{
+              width: 40, height: 40, borderRadius: 20,
+              backgroundColor: `${colors.purple}22`, alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Ionicons name="git-network-outline" size={20} color={colors.purple} />
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(236,72,153,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)' }}>
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Tracked</Text>
+              <Text style={{ color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 4 }}>{((myReferralsData as any[]) ?? []).length}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: 'rgba(16,185,129,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.18)' }}>
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Rewards earned</Text>
+              <Text style={{ color: '#34D399', fontSize: 22, fontWeight: '900', marginTop: 4 }}>{referralRewardsEarned}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(168,85,247,0.18)' }}>
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>In progress</Text>
+              <Text style={{ color: colors.purple, fontSize: 22, fontWeight: '900', marginTop: 4 }}>{pendingReferralRewards}</Text>
+            </View>
+          </View>
+
+          {((myReferralsData as any[]) ?? []).length === 0 ? (
+            <View style={{ marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: '#0D0D18', borderWidth: 1, borderColor: '#1A1A30' }}>
+              <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>No referrals yet</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
+                When someone signs up with your code, their progress will appear here automatically.
+              </Text>
+            </View>
+          ) : (
+            ((myReferralsData as any[]) ?? []).map((row: any) => (
+              <ReferralPipelineCard key={row.referredProfileId} row={row} />
+            ))
+          )}
         </View>
 
         {/* ── Actions ── */}

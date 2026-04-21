@@ -8,8 +8,8 @@
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D0D0D"
+      "resizeMode": "cover",
+      "backgroundColor": "#12041F"
     },
     "ios": {
       "supportsTablet": false,
