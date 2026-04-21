@@ -972,7 +972,7 @@ export async function getReferralPipeline() {
             createdAt: reservations.createdAt,
             status: reservations.status,
             eventTitle: events.title,
-            eventStartAt: events.startAt,
+            eventStartAt: events.startDate,
           })
           .from(reservations)
           .leftJoin(events, eq(events.id, reservations.eventId))

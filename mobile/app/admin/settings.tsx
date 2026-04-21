@@ -185,8 +185,9 @@ export default function AdminSettingsScreen() {
       const data = result.data as any;
       if (!data?.csv) { Alert.alert('Export Failed', 'No data returned from server.'); return; }
       const filename = `soapies-members-${new Date().toISOString().slice(0, 10)}.csv`;
-      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
-      await FileSystem.writeAsStringAsync(fileUri, data.csv, { encoding: FileSystem.EncodingType.UTF8 });
+      const file = new FileSystem.File(FileSystem.Paths.cache, filename);
+      file.write(data.csv, { encoding: 'utf8' });
+      const fileUri = file.uri;
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: `Export ${data.count} members`, UTI: 'public.comma-separated-values-text' });
