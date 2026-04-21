@@ -317,12 +317,14 @@ export default function OnboardingScreen() {
         });
       }
 
-      const result = await registerMutation.mutateAsync({
+      const registerPayload: any = {
         email: email.trim().toLowerCase(),
         password,
         name: email.split('@')[0],
-        dateOfBirth: dobForServer,
-      }) as any;
+      };
+      if (dobForServer) registerPayload.dateOfBirth = dobForServer;
+
+      const result = await registerMutation.mutateAsync(registerPayload) as any;
 
       if (__DEV__) {
         console.log('[onboarding] handleRegister:success', {
