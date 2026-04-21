@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
+import { FONT } from '../../lib/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '../../components/Toast';
 
@@ -468,7 +469,7 @@ export default function EventDetailScreen() {
               shadowOffset: { width: 0, height: 4 },
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Reserve Now</Text>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>Reserve Now</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -493,8 +494,8 @@ export default function EventDetailScreen() {
             </LinearGradient>
           )}
           <LinearGradient
-            colors={['transparent', '#08081099', '#080810']}
-            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160 }}
+            colors={['rgba(8,8,16,0.04)', 'rgba(8,8,16,0.55)', '#080810']}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200 }}
           />
           <TouchableOpacity
             onPress={() => router.back()}
@@ -517,7 +518,7 @@ export default function EventDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: 20, paddingTop: 16 }}>
           {/* Community badge */}
           {(ev.communityId || ev.community?.name) && (
             <View style={{
@@ -528,7 +529,7 @@ export default function EventDetailScreen() {
               paddingVertical: 4,
               marginBottom: 10,
             }}>
-              <Text style={{ color: colors.purple, fontSize: 12, fontWeight: '700' }}>
+              <Text style={{ color: colors.purple, fontSize: 12, fontWeight: '700', fontFamily: FONT.displaySemiBold, letterSpacing: 0.4 }}>
                 {ev.communityId ?? ev.community?.name}
               </Text>
             </View>
@@ -546,14 +547,38 @@ export default function EventDetailScreen() {
               borderColor: '#EF444444',
               borderWidth: 1,
             }}>
-              <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700' }}>SOLD OUT</Text>
+              <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700', fontFamily: FONT.displaySemiBold, letterSpacing: 0.8 }}>SOLD OUT</Text>
             </View>
           )}
 
-          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', marginBottom: 14, letterSpacing: -0.5 }}>{title}</Text>
+          <Text style={{ color: '#F1F0FF', fontSize: 30, fontWeight: '900', marginBottom: 14, letterSpacing: -0.9, fontFamily: FONT.displayBold }}>{title}</Text>
+
+          <LinearGradient
+            colors={['rgba(236,72,153,0.14)', 'rgba(168,85,247,0.08)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ borderRadius: 20, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(236,72,153,0.16)' }}
+          >
+            <Text style={{ color: '#8B84A7', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, fontFamily: FONT.displaySemiBold }}>EVENING ACCESS</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 10 }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ color: '#F1F0FF', fontSize: 26, fontWeight: '900', fontFamily: FONT.displayBold }}>
+                  {TICKET_TYPES.some(t => getTicketPriceDollars(t.key) > 0)
+                    ? `$${Math.min(...TICKET_TYPES.map(t => getTicketPriceDollars(t.key)).filter(v => v > 0)).toFixed(0)}`
+                    : 'Free'}
+                </Text>
+                <Text style={{ color: '#A09CB8', fontSize: 13, marginTop: 4 }}>Starting price for this experience</Text>
+              </View>
+              {countdownStr ? (
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                  <Text style={{ color: '#F1F0FF', fontSize: 12, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>{countdownStr}</Text>
+                </View>
+              ) : null}
+            </View>
+          </LinearGradient>
 
           {/* Meta rows */}
-          <View style={{ marginBottom: 4 }}>
+          <View style={{ marginBottom: 6, backgroundColor: '#10101C', borderRadius: 18, borderWidth: 1, borderColor: '#1A1A30', padding: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <Ionicons name="calendar-outline" size={16} color="#EC4899" />
               <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{dateStr}{timeStr ? ' · ' + timeStr : ''}</Text>
@@ -562,18 +587,6 @@ export default function EventDetailScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                 <Ionicons name="location-outline" size={16} color="#A855F7" />
                 <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{ev.venue}</Text>
-              </View>
-            ) : null}
-            {countdownStr ? (
-              <View style={{ alignSelf: 'flex-start', marginBottom: 10 }}>
-                <LinearGradient
-                  colors={['#EC4899', '#A855F7']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>{countdownStr}</Text>
-                </LinearGradient>
               </View>
             ) : null}
           </View>
@@ -625,7 +638,7 @@ export default function EventDetailScreen() {
                 marginBottom: 8,
               }}>
                 <Text style={{ color: '#F1F0FF', fontSize: 14, fontWeight: '700' }}>{t.label}</Text>
-                <Text style={{ color: '#EC4899', fontSize: 16, fontWeight: '800' }}>
+                <Text style={{ color: '#EC4899', fontSize: 18, fontWeight: '800', fontFamily: FONT.displayBold }}>
                   {getPriceForTicketType(t.key)}
                 </Text>
               </View>
@@ -641,7 +654,7 @@ export default function EventDetailScreen() {
               padding: 16,
               marginBottom: 12,
             }}>
-              <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2, fontFamily: FONT.displaySemiBold }}>
                 About
               </Text>
               <Text style={{ color: '#A09CB8', lineHeight: 22, fontSize: 14 }}>{ev.description}</Text>

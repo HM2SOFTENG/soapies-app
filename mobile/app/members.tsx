@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../lib/trpc';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../lib/auth';
+import { FONT } from '../lib/fonts';
 
 const PAGE_SIZE = 20;
 
@@ -199,12 +200,12 @@ function MemberCard({
           flexDirection: 'row',
           alignItems: 'center',
           marginHorizontal: 16,
-          marginBottom: 8,
-          padding: 14,
-          backgroundColor: '#10101C',
-          borderRadius: 14,
+          marginBottom: 10,
+          padding: 16,
+          backgroundColor: '#11111E',
+          borderRadius: 18,
           borderWidth: 1,
-          borderColor: '#1A1A30',
+          borderColor: '#1F1D33',
         }}
       >
         {/* Avatar with glow border */}
@@ -230,7 +231,7 @@ function MemberCard({
               flexWrap: 'wrap',
             }}
           >
-            <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{name}</Text>
+            <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 16 }}>{name}</Text>
             {community && (
               <View
                 style={{
@@ -261,7 +262,7 @@ function MemberCard({
                   paddingVertical: 2,
                 }}
               >
-                <Text style={{ color: '#EC4899', fontSize: 10, fontWeight: '700' }}>💗 Angel</Text>
+                <Text style={{ color: '#EC4899', fontSize: 10, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>💗 Angel</Text>
               </View>
             )}
           </View>
@@ -567,10 +568,10 @@ export default function MembersScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom', 'left', 'right']}>
       {/* Header */}
       <LinearGradient
-        colors={['#12051E', '#080810']}
+        colors={['#1A0A22', '#100815', '#080810']}
         style={{
           paddingTop: insets.top + 14,
-          paddingBottom: 16,
+          paddingBottom: 18,
           paddingHorizontal: 16,
           flexDirection: 'row',
           alignItems: 'center',
@@ -587,9 +588,10 @@ export default function MembersScreen() {
           <Text
             style={{
               color: '#F1F0FF',
-              fontSize: 24,
+              fontSize: 28,
               fontWeight: '900',
               letterSpacing: -0.3,
+              fontFamily: FONT.displayBold,
             }}
           >
             {isComposeMode ? 'New Message' : 'Members 👥'}
@@ -663,33 +665,36 @@ export default function MembersScreen() {
         style={{
           margin: 12,
           marginBottom: 8,
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: '#10101C',
-          borderRadius: 16,
+          backgroundColor: '#0F0F1B',
+          borderRadius: 22,
           borderWidth: 1,
-          borderColor: searchFocused ? '#EC489960' : '#EC489928',
+          borderColor: searchFocused ? '#EC489960' : '#EC489930',
           paddingHorizontal: 14,
-          paddingVertical: 12,
+          paddingVertical: 14,
         }}
       >
-        <Ionicons name="search" size={18} color="#5A5575" style={{ marginRight: 10 }} />
-        <TextInput
-          value={query}
-          onChangeText={handleSearchChange}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          placeholder="Search members..."
-          placeholderTextColor="#5A5575"
-          style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={() => handleSearchChange('')}>
-            <Ionicons name="close-circle" size={18} color="#5A5575" />
-          </TouchableOpacity>
-        )}
+        <Text style={{ color: '#8B84A7', fontSize: 11, fontWeight: '800', letterSpacing: 1.1, marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
+          DISCOVER
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="search" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+          <TextInput
+            value={query}
+            onChangeText={handleSearchChange}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            placeholder="Search members..."
+            placeholderTextColor="#5A5575"
+            style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => handleSearchChange('')}>
+              <Ionicons name="close-circle" size={18} color="#5A5575" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Active filter summary chips */}

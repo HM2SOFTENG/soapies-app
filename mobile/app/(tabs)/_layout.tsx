@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { DS } from '../../lib/design';
 import { trpc } from '../../lib/trpc';
 import { useAuth } from '../../lib/auth';
+import { FONT } from '../../lib/fonts';
 
 const SIGNAL_COLORS: Record<string, string> = {
   available: '#10B981',
@@ -12,27 +13,38 @@ const SIGNAL_COLORS: Record<string, string> = {
   busy:      '#F59E0B',
 };
 
-function BadgeIcon({ name, color, size, badge }: { name: any; color: string; size: number; badge?: number }) {
+function BadgeIcon({ name, color, size, badge, focused }: { name: any; color: string; size: number; badge?: number; focused?: boolean }) {
+  const scaleAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.spring(scaleAnim, { toValue: focused ? 1 : 0, useNativeDriver: true, speed: 26, bounciness: 8 }).start();
+  }, [focused]);
+  const scale = scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const translateY = scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -1] });
   return (
-    <View style={{ width: size + 10, height: size + 10, justifyContent: 'center', alignItems: 'center' }}>
+    <Animated.View style={[styles.iconWrap, focused && styles.iconWrapFocused, { transform: [{ scale }, { translateY }] }]}>
       <Ionicons name={name} size={size} color={color} />
       {!!badge && badge > 0 && (
         <View style={[styles.badge, { backgroundColor: DS.colors.pink }]}>
           <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
-function AdminBadgeIcon({ name, color, size }: { name: any; color: string; size: number }) {
+function AdminBadgeIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused?: boolean }) {
+  const scaleAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.spring(scaleAnim, { toValue: focused ? 1 : 0, useNativeDriver: true, speed: 26, bounciness: 8 }).start();
+  }, [focused]);
+  const scale = scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
   return (
-    <View style={{ width: size + 10, height: size + 10, justifyContent: 'center', alignItems: 'center' }}>
+    <Animated.View style={[styles.iconWrap, focused && styles.iconWrapFocused, { transform: [{ scale }] }]}>
       <Ionicons name={name} size={size} color={color} />
       <View style={[styles.adminDot, { backgroundColor: '#6366F1' }]}>
         <Ionicons name="shield-checkmark" size={7} color="#fff" />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -64,7 +76,7 @@ function PulseTabIcon({ color, size, focused, signalType }: { color: string; siz
   }, [isActive, signalType]);
   const iconColor = isActive ? sigColor : (focused ? DS.colors.pink : color);
   return (
-    <View style={{ width: size + 18, height: size + 18, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={[styles.iconWrap, (focused || isActive) && styles.iconWrapFocused]}>
       {isActive && (
         <Animated.View style={{ position: 'absolute', width: size + 12, height: size + 12, borderRadius: (size + 12) / 2, borderWidth: 1.5, borderColor: sigColor, opacity: ringOpacity, transform: [{ scale: ringScale }] }} />
       )}
@@ -80,15 +92,25 @@ function PulseTabIcon({ color, size, focused, signalType }: { color: string; siz
 
 function TabBarIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused: boolean }) {
   const glowAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const shimmerAnim = useRef(new Animated.Value(focused ? 1 : 0)).current;
   useEffect(() => {
-    Animated.spring(glowAnim, { toValue: focused ? 1 : 0, useNativeDriver: false, speed: 30 }).start();
+    Animated.spring(glowAnim, { toValue: focused ? 1 : 0, useNativeDriver: true, speed: 28, bounciness: 8 }).start();
+    if (focused) {
+      shimmerAnim.setValue(0);
+      Animated.timing(shimmerAnim, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+    }
   }, [focused]);
-  const dotOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.9] });
+  const dotOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.95] });
+  const scale = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] });
+  const translateY = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -1.5] });
+  const shimmerScale = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.2] });
+  const shimmerOpacity = shimmerAnim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0.22, 0] });
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+    <Animated.View style={[styles.iconWrap, focused && styles.iconWrapFocused, { transform: [{ scale }, { translateY }] }]}>
+      {focused && <Animated.View style={[styles.iconShimmer, { opacity: shimmerOpacity, transform: [{ scale: shimmerScale }] }]} />}
       <Ionicons name={name} size={size} color={color} />
-      <Animated.View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: DS.colors.pink, opacity: dotOpacity }} />
-    </View>
+      <Animated.View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: DS.colors.pink, opacity: dotOpacity, marginTop: 4 }} />
+    </Animated.View>
   );
 }
 
@@ -113,40 +135,69 @@ export default function TabsLayout() {
         lazy: true,
         tabBarStyle: {
           position: 'absolute',
-          bottom: 24,
-          left: 20,
-          right: 20,
-          height: 64,
-          borderRadius: 32,
-          backgroundColor: '#0C0C1A',
+          bottom: 20,
+          left: 16,
+          right: 16,
+          height: 76,
+          borderRadius: 38,
+          backgroundColor: 'rgba(12, 12, 26, 0.94)',
           borderWidth: 1,
-          borderColor: '#EC489928',
+          borderColor: 'rgba(236, 72, 153, 0.18)',
           shadowColor: '#EC4899',
-          shadowOpacity: 0.18,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 12,
-          paddingBottom: 0,
-          paddingTop: 0,
+          shadowOpacity: 0.24,
+          shadowRadius: 28,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 18,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
+        tabBarBackground: () => <View style={styles.tabBarGlow} />,
         tabBarActiveTintColor: DS.colors.pink,
-        tabBarInactiveTintColor: DS.colors.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginTop: 0, letterSpacing: 0.3 },
-        tabBarItemStyle: { paddingVertical: 6 },
+        tabBarInactiveTintColor: '#8D88A8',
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2, letterSpacing: 0.2, fontFamily: FONT.displaySemiBold },
+        tabBarItemStyle: { paddingVertical: 4 },
       }}
     >
-      <Tabs.Screen name="index"    options={{ title: 'Home',     tabBarIcon: ({ color, size, focused }) => <TabBarIcon name="home"          color={color} size={size} focused={focused} /> }} />
-      <Tabs.Screen name="events"   options={{ title: 'Events',   tabBarIcon: ({ color, size, focused }) => <TabBarIcon name="calendar"       color={color} size={size} focused={focused} /> }} />
-      <Tabs.Screen name="messages" options={{ title: 'Messages', tabBarIcon: ({ color, size })          => <BadgeIcon  name="chatbubbles"    color={color} size={size} badge={totalUnread} /> }} />
-      <Tabs.Screen name="pulse"    options={{ title: 'Pulse',    tabBarActiveTintColor: signalTabColor,  tabBarIcon: ({ color, size, focused }) => <PulseTabIcon color={color} size={size} focused={focused} signalType={mySignalType} /> }} />
-      <Tabs.Screen name="profile"  options={{ title: 'Profile',  tabBarIcon: ({ color, size, focused }) => isAdmin ? <AdminBadgeIcon name="person" color={color} size={size} /> : <TabBarIcon name="person" color={color} size={size} focused={focused} /> }} />
+      <Tabs.Screen name="index"    options={{ title: 'Home',     tabBarIcon: ({ color, size, focused }) => <TabBarIcon name="home" color={color} size={size} focused={focused} /> }} />
+      <Tabs.Screen name="events"   options={{ title: 'Events',   tabBarIcon: ({ color, size, focused }) => <TabBarIcon name="calendar" color={color} size={size} focused={focused} /> }} />
+      <Tabs.Screen name="messages" options={{ title: 'Messages', tabBarIcon: ({ color, size, focused }) => <BadgeIcon name="chatbubbles" color={color} size={size} badge={totalUnread} focused={focused} /> }} />
+      <Tabs.Screen name="pulse"    options={{ title: 'Pulse',    tabBarActiveTintColor: signalTabColor, tabBarIcon: ({ color, size, focused }) => <PulseTabIcon color={color} size={size} focused={focused} signalType={mySignalType} /> }} />
+      <Tabs.Screen name="profile"  options={{ title: 'Profile',  tabBarIcon: ({ color, size, focused }) => isAdmin ? <AdminBadgeIcon name="person" color={color} size={size} focused={focused} /> : <TabBarIcon name="person" color={color} size={size} focused={focused} /> }} />
       <Tabs.Screen name="notifications" options={{ title: 'Alerts', tabBarIcon: ({ color, size, focused }) => <TabBarIcon name="notifications" color={color} size={size} focused={focused} /> }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  badge:     { position: 'absolute', top: 0, right: 0, minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3 },
+  tabBarGlow: {
+    flex: 1,
+    borderRadius: 38,
+    backgroundColor: 'rgba(12, 12, 26, 0.96)',
+  },
+  iconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapFocused: {
+    backgroundColor: 'rgba(236, 72, 153, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(236, 72, 153, 0.16)',
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  iconShimmer: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  badge: { position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  adminDot:  { position: 'absolute', top: 0, right: 0, width: 13, height: 13, borderRadius: 6.5, justifyContent: 'center', alignItems: 'center' },
+  adminDot: { position: 'absolute', top: -1, right: -1, width: 13, height: 13, borderRadius: 6.5, justifyContent: 'center', alignItems: 'center' },
 });

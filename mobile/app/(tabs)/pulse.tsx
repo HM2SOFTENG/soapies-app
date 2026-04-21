@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, Modal, ScrollView, TextInput,
   Animated, Dimensions, Alert, Switch, StyleSheet, PanResponder,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import { calculateMatchScore, calculateMatchBreakdown, type MatchFactor } from '../../lib/pulseScore';
+import { FONT } from '../../lib/fonts';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -121,11 +122,11 @@ function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false, is
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0 });
 
   const sigColor = isPartner ? '#EC4899' : (SIGNAL_COLORS[member.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280');
-  let size = Math.round(36 + (matchScore / 100) * 36);
-  if (isPartner) size = Math.max(size, 56);
+  let size = Math.round(38 + (matchScore / 100) * 34);
+  if (isPartner) size = Math.max(size, 58);
+  const badgeOffset = Math.max(4, Math.round(size * 0.08));
 
   useEffect(() => {
     // Don't animate stale signals — they're no longer active
@@ -191,18 +192,40 @@ function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false, is
     >
       {/* Outer glow */}
       <View style={{
-        width: size + 16, height: size + 16, borderRadius: (size + 16) / 2,
+        width: size + 18, height: size + 18, borderRadius: (size + 18) / 2,
         backgroundColor: `${sigColor}16`,
+        borderWidth: 1,
+        borderColor: `${sigColor}1F`,
         alignItems: 'center', justifyContent: 'center',
       }}>
+        <LinearGradient
+          colors={['#FFFFFF10', '#FFFFFF03', '#00000018']}
+          start={{ x: 0.15, y: 0.1 }}
+          end={{ x: 0.85, y: 0.9 }}
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: 2,
+            right: 2,
+            bottom: 2,
+            borderRadius: (size + 14) / 2,
+          }}
+        />
         {/* Avatar */}
         <View style={{
           width: size, height: size, borderRadius: size / 2, overflow: 'hidden',
+          backgroundColor: '#120F1C',
           borderWidth: matchScore >= 70 ? 2.5 : 1.5,
           borderColor: matchScore >= 70 ? sigColor : `${sigColor}77`,
         }}>
           {member.avatarUrl ? (
-            <Image source={{ uri: member.avatarUrl }} style={{ width: size, height: size }} />
+            <>
+              <Image source={{ uri: member.avatarUrl }} style={{ width: size, height: size }} contentFit="cover" />
+              <LinearGradient
+                colors={['transparent', '#05050A66', '#05050ACC']}
+                style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: size * 0.42 }}
+              />
+            </>
           ) : (
             <LinearGradient
               colors={matchScore >= 70 ? ['#EC4899', '#A855F7'] : ['#A855F766', '#EC489944']}
@@ -218,8 +241,8 @@ function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false, is
 
       {/* Signal dot */}
       <View style={{
-        position: 'absolute', bottom: 6, right: 6,
-        width: 11, height: 11, borderRadius: 6,
+        position: 'absolute', bottom: badgeOffset, right: badgeOffset,
+        width: 12, height: 12, borderRadius: 6,
         backgroundColor: sigColor, borderWidth: 2, borderColor: '#0A0A0F',
       }} />
 
@@ -242,16 +265,27 @@ function MemberBubble({ member, matchScore, x, y, onPress, isPartner = false, is
       )}
 
       {/* First name */}
-      <Text
-        numberOfLines={1}
-        style={{
-          color: '#E5E7EB', fontSize: 9, fontWeight: '600',
-          textAlign: 'center', marginTop: 3, maxWidth: size + 20,
-          textShadowColor: '#000', textShadowRadius: 6,
-        }}
-      >
-        {member.displayName?.split(' ')[0] ?? ''}
-      </Text>
+      <View style={{
+        marginTop: 4,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 999,
+        backgroundColor: '#05050AB8',
+        borderWidth: 1,
+        borderColor: '#FFFFFF12',
+        maxWidth: size + 28,
+      }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: '#E5E7EB', fontSize: 9, fontWeight: '700',
+            textAlign: 'center',
+            textShadowColor: '#000', textShadowRadius: 6,
+          }}
+        >
+          {member.displayName?.split(' ')[0] ?? ''}
+        </Text>
+      </View>
 
       {/* Stale caption */}
       {isStale && (
@@ -712,7 +746,9 @@ export default function PulseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { hasToken } = useAuth();
-  const pulseHeight = SCREEN_HEIGHT - 190;
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isCompact = windowWidth < 390;
+  const pulseHeight = Math.max(430, windowHeight - insets.top - insets.bottom - (isCompact ? 210 : 230));
 
   const [myLocation, setMyLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [showSignalModal, setShowSignalModal] = useState(false);
@@ -842,8 +878,8 @@ export default function PulseScreen() {
   );
 
   const positions = useMemo(
-    () => layoutPositions(scoredMembers.length, SCREEN_WIDTH, pulseHeight),
-    [scoredMembers.length, pulseHeight],
+    () => layoutPositions(scoredMembers.length, windowWidth, pulseHeight),
+    [scoredMembers.length, windowWidth, pulseHeight],
   );
 
   const myConfig = SIGNAL_CONFIG[mySignalType];
@@ -851,75 +887,236 @@ export default function PulseScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0D0820' }} edges={['bottom']}>
       {/* ── Header ── */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: insets.top + 8, paddingBottom: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900' }}>Pulse 💗</Text>
-          <Text style={{ color: '#6B7280', fontSize: 12, marginTop: 1 }}>
-            {scoredMembers.length} active · {myLocation ? '📍 on' : '📍 off'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => { refetchMySignal(); setShowSignalModal(true); }}
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 6, paddingBottom: 10 }}>
+        <LinearGradient
+          colors={['#24103F', '#140A28', '#090813']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={{
-            flexDirection: 'row', alignItems: 'center', gap: 6,
-            paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-            backgroundColor: myConfig.bg, borderColor: myConfig.color, borderWidth: 1,
+            borderRadius: 28,
+            borderWidth: 1,
+            borderColor: '#ffffff14',
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            overflow: 'hidden',
           }}
         >
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: myConfig.color }} />
-          <Text style={{ color: myConfig.color, fontWeight: '700', fontSize: 13 }}>{myConfig.label}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Match Threshold Bar ── */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={{ color: '#6B7280', fontSize: 11, fontWeight: '600' }}>MIN MATCH</Text>
-          <Text style={{ color: minMatchThreshold > 0 ? '#EC4899' : '#6B7280', fontSize: 12, fontWeight: '800' }}>
-            {minMatchThreshold === 0 ? 'All' : `≥ ${minMatchThreshold}%`}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          {[0, 30, 50, 70, 85].map((t) => (
+          <View style={{ position: 'absolute', top: -30, right: -16, width: 116, height: 116, borderRadius: 58, backgroundColor: '#EC48991A' }} />
+          <View style={{ position: 'absolute', bottom: -46, left: -10, width: 136, height: 136, borderRadius: 68, backgroundColor: '#A855F714' }} />
+          <View style={{ flexDirection: isCompact ? 'column' : 'row', alignItems: isCompact ? 'stretch' : 'center' }}>
+            <View style={{ flex: 1, paddingRight: isCompact ? 0 : 12, marginBottom: isCompact ? 14 : 0 }}>
+              <Text style={{ color: '#B8A8D9', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 4 }}>
+                Live discovery field
+              </Text>
+              <Text style={{ color: '#fff', fontSize: 26, lineHeight: 28, fontFamily: FONT.displayBold }}>Pulse 💗</Text>
+              <Text style={{ color: '#9488B5', fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+                {scoredMembers.length} nearby, {myLocation ? 'location tuned in' : 'location off'}
+              </Text>
+            </View>
             <TouchableOpacity
-              key={t}
-              onPress={() => { Haptics.selectionAsync(); setMinMatchThreshold(t); }}
+              onPress={() => { refetchMySignal(); setShowSignalModal(true); }}
               style={{
-                flex: 1, paddingVertical: 6, borderRadius: 12, alignItems: 'center',
-                backgroundColor: minMatchThreshold === t ? '#EC489930' : '#1A1A24',
-                borderWidth: 1,
-                borderColor: minMatchThreshold === t ? '#EC4899' : '#2D2D3A',
+                alignSelf: isCompact ? 'stretch' : 'flex-start',
+                paddingHorizontal: 13, paddingVertical: 10, borderRadius: 18,
+                backgroundColor: '#090811A8', borderColor: `${myConfig.color}88`, borderWidth: 1,
+                minWidth: 106,
               }}
             >
-              <Text style={{ color: minMatchThreshold === t ? '#EC4899' : '#6B7280', fontSize: 11, fontWeight: '700' }}>
-                {t === 0 ? 'All' : `${t}%+`}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: myConfig.color }} />
+                <Text style={{ color: myConfig.color, fontWeight: '700', fontSize: 13, fontFamily: FONT.displaySemiBold }}>{myConfig.label}</Text>
+              </View>
+              <Text style={{ color: '#8F86A8', fontSize: 10, textAlign: 'center', marginTop: 4 }}>Tap to edit</Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            {[
+              { label: 'Visible', value: scoredMembers.length },
+              { label: 'Radius', value: maxDistance === 999 ? 'Any' : `${maxDistance}km` },
+              { label: 'Min match', value: minMatchThreshold === 0 ? 'All' : `${minMatchThreshold}%+` },
+            ].map((item) => (
+              <View
+                key={item.label}
+                style={{
+                  flexGrow: 1,
+                  minWidth: isCompact ? 140 : 0,
+                  borderRadius: 16,
+                  paddingHorizontal: 10,
+                  paddingVertical: 9,
+                  backgroundColor: '#FFFFFF0A',
+                  borderWidth: 1,
+                  borderColor: '#FFFFFF10',
+                }}
+              >
+                <Text style={{ color: '#8A7DAA', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 }}>{item.label}</Text>
+                <Text numberOfLines={1} style={{ color: '#F7F2FF', fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
       </View>
 
       {/* ── Bubble canvas ── */}
-      <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <View style={{ flex: 1, position: 'relative', overflow: 'hidden', marginHorizontal: 12, marginBottom: 12, borderRadius: 34, borderWidth: 1, borderColor: '#FFFFFF10' }}>
 
         {/* Depth gradient background */}
         <LinearGradient
-          colors={['#0D0820', '#080810', '#0A0015']}
+          colors={['#120B24', '#090812', '#05050B']}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
+        <LinearGradient
+          colors={['#EC48991A', 'transparent', '#A855F712']}
+          start={{ x: 0.15, y: 0.05 }}
+          end={{ x: 0.88, y: 0.95 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={{ position: 'absolute', top: -70, left: -30, width: 220, height: 220, borderRadius: 110, backgroundColor: '#A855F710' }} />
+        <View style={{ position: 'absolute', top: 40, right: -60, width: 240, height: 240, borderRadius: 120, backgroundColor: '#EC48990D' }} />
+        <View style={{ position: 'absolute', bottom: -80, left: windowWidth * 0.2, width: 280, height: 280, borderRadius: 140, backgroundColor: '#60A5FA08' }} />
+
+        {/* Radar grid / map texture */}
+        {[0.34, 0.52, 0.72, 0.9].map((scale, idx) => {
+          const size = Math.min(windowWidth - 44, pulseHeight - 72) * scale;
+          return (
+            <View
+              key={`grid-ring-${idx}`}
+              style={{
+                position: 'absolute',
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderWidth: 1,
+                borderColor: idx % 2 === 0 ? '#FFFFFF10' : '#EC489912',
+                left: windowWidth / 2 - size / 2,
+                top: pulseHeight / 2 - size / 2,
+              }}
+            />
+          );
+        })}
+        <View style={{
+          position: 'absolute',
+          left: windowWidth / 2 - 0.5,
+          top: pulseHeight * 0.08,
+          bottom: pulseHeight * 0.08,
+          width: 1,
+          backgroundColor: '#FFFFFF08',
+        }} />
+        <View style={{
+          position: 'absolute',
+          top: pulseHeight / 2 - 0.5,
+          left: 24,
+          right: 24,
+          height: 1,
+          backgroundColor: '#FFFFFF07',
+        }} />
+        <LinearGradient
+          colors={['#EC489900', '#EC489916', '#EC489900']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{
+            position: 'absolute',
+            width: windowWidth * 0.92,
+            height: 120,
+            left: windowWidth / 2 - (windowWidth * 0.92) / 2,
+            top: pulseHeight / 2 - 60,
+            borderRadius: 999,
+            transform: [{ rotate: '-22deg' }],
+            opacity: 0.55,
+          }}
+        />
+
+        {/* Integrated discovery controls */}
+        <View style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20 }}>
+          <View style={{
+            borderRadius: 22,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: '#FFFFFF12',
+            backgroundColor: '#090811CC',
+          }}>
+            <LinearGradient colors={['#FFFFFF10', '#FFFFFF04']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={{ color: '#F4EEFF', fontSize: 14, fontFamily: FONT.displaySemiBold }}>Discovery tuned</Text>
+                  <Text style={{ color: '#8F86A8', fontSize: 11, marginTop: 2 }}>
+                    Filter the field without leaving the map
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => { refetchMySignal(); setShowSignalModal(true); }}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    paddingHorizontal: 10, paddingVertical: 8, borderRadius: 14,
+                    backgroundColor: '#FFFFFF0A', borderWidth: 1, borderColor: '#FFFFFF12',
+                  }}
+                >
+                  <Ionicons name="options-outline" size={14} color="#F4EEFF" />
+                  <Text style={{ color: '#F4EEFF', fontSize: 12, fontWeight: '700' }}>Signal</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {[0, 30, 50, 70, 85].map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    onPress={() => { Haptics.selectionAsync(); setMinMatchThreshold(t); }}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14,
+                      backgroundColor: minMatchThreshold === t ? '#EC489934' : '#15131F',
+                      borderWidth: 1,
+                      borderColor: minMatchThreshold === t ? '#EC4899' : '#2D2D3A',
+                    }}
+                  >
+                    <Text style={{ color: minMatchThreshold === t ? '#F8D3E7' : '#8F86A8', fontSize: 12, fontWeight: '700' }}>
+                      {t === 0 ? 'All matches' : `${t}%+`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </LinearGradient>
+          </View>
+        </View>
+
+        <View style={{ position: 'absolute', left: 14, right: 14, bottom: 16, zIndex: 20, flexDirection: 'row', gap: 10 }}>
+          <View style={{
+            flex: 1,
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            backgroundColor: '#090811D9',
+            borderWidth: 1,
+            borderColor: '#FFFFFF10',
+          }}>
+            <Text style={{ color: '#8F86A8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Field radius</Text>
+            <Text style={{ color: '#F4EEFF', fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{maxDistance === 999 ? 'Anywhere' : `${maxDistance}km`}</Text>
+          </View>
+          <View style={{
+            flex: 1,
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            backgroundColor: '#090811D9',
+            borderWidth: 1,
+            borderColor: '#FFFFFF10',
+          }}>
+            <Text style={{ color: '#8F86A8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Signal state</Text>
+            <Text numberOfLines={1} style={{ color: myConfig.color, fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{myConfig.label}</Text>
+          </View>
+        </View>
 
         {/* Slow-rotating outer rings */}
         <SpinningRing
-          size={SCREEN_WIDTH * 1.4}
+          size={windowWidth * 1.4}
           duration={30000}
           clockwise={true}
           color="#EC489918"
           canvasHeight={pulseHeight}
         />
         <SpinningRing
-          size={SCREEN_WIDTH * 1.2}
+          size={windowWidth * 1.2}
           duration={45000}
           clockwise={false}
           color="#A855F714"
@@ -944,7 +1141,7 @@ export default function PulseScreen() {
               key={String(member.userId)}
               member={member}
               matchScore={member.matchScore}
-              x={positions[i]?.x ?? SCREEN_WIDTH / 2}
+              x={positions[i]?.x ?? windowWidth / 2}
               y={positions[i]?.y ?? pulseHeight / 2}
               onPress={() => setSelectedMember(member)}
               isPartner={member.isPartner}
@@ -956,15 +1153,26 @@ export default function PulseScreen() {
         {/* My bubble — center */}
         <View style={{
           position: 'absolute',
-          left: SCREEN_WIDTH / 2 - 40,
-          top: pulseHeight / 2 - 40,
+          left: windowWidth / 2 - 58,
+          top: pulseHeight / 2 - 58,
           alignItems: 'center',
+          zIndex: 5,
         }}>
-          <TouchableOpacity onPress={() => { refetchMySignal(); setShowSignalModal(true); }}>
+          <TouchableOpacity onPress={() => { refetchMySignal(); setShowSignalModal(true); }} activeOpacity={0.9}>
             <View style={{
-              width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
-              borderWidth: 2.5, borderColor: myConfig.color,
+              width: 116, height: 116, borderRadius: 58,
+              alignItems: 'center', justifyContent: 'center',
+              backgroundColor: '#0B0914E6', borderWidth: 1, borderColor: '#FFFFFF10',
+              shadowColor: myConfig.color, shadowOpacity: 0.35, shadowRadius: 28, shadowOffset: { width: 0, height: 10 },
             }}>
+              <LinearGradient
+                colors={[`${myConfig.color}33`, '#120C1E', `${myConfig.color}12`]}
+                style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 58 }}
+              />
+              <View style={{
+                width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
+                borderWidth: 2.5, borderColor: myConfig.color,
+              }}>
               {myProfile?.avatarUrl ? (
                 <Image source={{ uri: myProfile.avatarUrl }} style={{ width: 80, height: 80 }} />
               ) : (
@@ -983,22 +1191,34 @@ export default function PulseScreen() {
               width: 16, height: 16, borderRadius: 8,
               backgroundColor: myConfig.color, borderWidth: 2, borderColor: '#0A0A0F',
             }} />
-            <Text style={{ color: '#9CA3AF', fontSize: 11, textAlign: 'center', marginTop: 5 }}>You</Text>
+              <Text style={{ color: '#7A6F97', fontSize: 10, textAlign: 'center', marginTop: 10, textTransform: 'uppercase', letterSpacing: 1.4 }}>Broadcasting</Text>
+              <Text style={{ color: '#F3EEFF', fontSize: 18, textAlign: 'center', marginTop: 2, fontFamily: FONT.displayBold }}>You</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Empty state */}
         {scoredMembers.length === 0 && (
           <View style={{
-            position: 'absolute', bottom: 110, left: 0, right: 0,
-            alignItems: 'center', paddingHorizontal: 44,
+            position: 'absolute', bottom: 106, left: 0, right: 0,
+            alignItems: 'center', paddingHorizontal: isCompact ? 28 : 44,
           }}>
-            <Text style={{ fontSize: 38, marginBottom: 12 }}>👀</Text>
-            <Text style={{ color: '#9CA3AF', textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
-              No one's active right now.{'\n'}
-              Tap your signal above to go <Text style={{ color: '#EC4899', fontWeight: '700' }}>Available</Text> or{' '}
-              <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others' Pulse.
-            </Text>
+            <View style={{
+              borderRadius: 24,
+              paddingHorizontal: 24,
+              paddingVertical: 22,
+              backgroundColor: '#090811D4',
+              borderWidth: 1,
+              borderColor: '#FFFFFF10',
+              alignItems: 'center',
+            }}>
+              <Text style={{ fontSize: 38, marginBottom: 12 }}>👀</Text>
+              <Text style={{ color: '#9CA3AF', textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
+                No one's active right now.{'\n'}
+                Tap your signal above to go <Text style={{ color: '#EC4899', fontWeight: '700' }}>Available</Text> or{' '}
+                <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others' Pulse.
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -1014,7 +1234,7 @@ export default function PulseScreen() {
             maxHeight: '88%',
           }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A', alignSelf: 'center', marginBottom: 16 }} />
-            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 4 }}>Set Your Signal 📡</Text>
+            <Text style={{ color: '#fff', fontSize: 22, marginBottom: 4, fontFamily: FONT.displayBold }}>Set Your Signal 📡</Text>
             <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 20 }}>
               Signals expire after 4 hours. Only approved members can see you.
             </Text>
@@ -1174,7 +1394,7 @@ export default function PulseScreen() {
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   style={{ borderRadius: 14, padding: 16, alignItems: 'center', opacity: signalMutation.isPending ? 0.6 : 1 }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>
                     {signalMutation.isPending ? 'Saving...' : 'Update Signal 📡'}
                   </Text>
                 </LinearGradient>

@@ -7,13 +7,15 @@ import {
   TouchableOpacity,
   RefreshControl,
   Animated,
+  StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
 import NotificationItem from '../../components/NotificationItem';
+import { FONT } from '../../lib/fonts';
 
-// ── Skeleton loader ───────────────────────────────────────────────────────────
 function NotificationSkeleton() {
   const opacity = useRef(new Animated.Value(0.4)).current;
 
@@ -29,29 +31,11 @@ function NotificationSkeleton() {
   }, [opacity]);
 
   return (
-    <Animated.View
-      style={{
-        opacity,
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomColor: '#1A1A30',
-        borderBottomWidth: 1,
-        backgroundColor: '#10101C',
-      }}
-    >
-      {/* Icon circle */}
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: '#1A1A30',
-        }}
-      />
-      <View style={{ marginLeft: 12, gap: 8, flex: 1 }}>
-        <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: '#1A1A30' }} />
-        <View style={{ width: '85%', height: 10, borderRadius: 5, backgroundColor: '#1A1A30' }} />
+    <Animated.View style={[styles.skeletonRow, { opacity }]}>
+      <View style={styles.skeletonIcon} />
+      <View style={styles.skeletonBody}>
+        <View style={styles.skeletonLinePrimary} />
+        <View style={styles.skeletonLineSecondary} />
       </View>
     </Animated.View>
   );
@@ -60,7 +44,6 @@ function NotificationSkeleton() {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
-  // Optimistically track locally-read IDs so they vanish immediately on tap
   const [locallyReadIds, setLocallyReadIds] = useState<Set<number>>(new Set());
 
   const { data, isLoading, refetch } = trpc.notifications.list.useQuery(undefined, {
@@ -71,7 +54,6 @@ export default function NotificationsScreen() {
     onSuccess: () => { setLocallyReadIds(new Set()); refetch(); },
   });
   const markRead = trpc.notifications.markRead.useMutation({
-    // Silently refetch in background after marking read
     onSuccess: () => refetch(),
   });
 
@@ -81,7 +63,6 @@ export default function NotificationsScreen() {
   }, [markRead]);
 
   const notifications = (data as any[]) ?? [];
-  // Hide notifications that have been read (either server-confirmed or optimistically)
   const visibleNotifications = useMemo(
     () => notifications.filter((n: any) => !locallyReadIds.has(n.id)),
     [notifications, locallyReadIds],
@@ -107,51 +88,49 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom', 'left', 'right']}>
-      {/* Header */}
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <LinearGradient
-        colors={['#12051E', '#080810']}
-        style={{
-          paddingTop: insets.top + 18,
-          paddingBottom: 20,
-          paddingHorizontal: 20,
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}
+        colors={['#18071F', '#10061A', '#080810']}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
-        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: '#F1F0FF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 }}>
-            Alerts 🔔
-          </Text>
+        <View style={styles.headerGlow} />
+        <View style={styles.headerTopline}>
+          <View style={styles.eyebrowPill}>
+            <Text style={styles.eyebrowText}>AFTER DARK</Text>
+          </View>
+          <View style={styles.headerMiniStat}>
+            <Text style={styles.headerMiniValue}>{unreadCount}</Text>
+            <Text style={styles.headerMiniLabel}>fresh</Text>
+          </View>
+        </View>
+
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={styles.headerTitle}>Alerts</Text>
+            <Text style={styles.headerSubtitle}>
+              RSVPs, mentions, and little sparks from the community land here first.
+            </Text>
+          </View>
           {unreadCount > 0 && (
-            <View
-              style={{
-                backgroundColor: '#EC4899',
-                borderRadius: 10,
-                minWidth: 20,
-                height: 20,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: 5,
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Text>
+            <View style={styles.unreadBubble}>
+              <Text style={styles.unreadBubbleText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
             </View>
           )}
         </View>
+
         <TouchableOpacity
           onPress={() => {
             Haptics.selectionAsync();
             markAllRead.mutate();
           }}
-          disabled={markAllRead.isPending}
-          activeOpacity={0.7}
+          disabled={markAllRead.isPending || unreadCount === 0}
+          activeOpacity={0.8}
+          style={[styles.markAllBtn, unreadCount === 0 && styles.markAllBtnDisabled]}
         >
-          <Text style={{ color: '#EC4899', fontWeight: '700', fontSize: 13 }}>
-            Mark all read
-          </Text>
+          <LinearGradient colors={['rgba(236,72,153,0.18)', 'rgba(168,85,247,0.14)']} style={styles.markAllInner}>
+            <Ionicons name="checkmark-done" size={16} color="#EC4899" />
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -183,25 +162,10 @@ export default function NotificationsScreen() {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>🔔</Text>
-              <Text
-                style={{
-                  color: '#F1F0FF',
-                  fontSize: 18,
-                  fontWeight: '800',
-                  textAlign: 'center',
-                  marginBottom: 8,
-                }}
-              >
+              <Text style={styles.emptyTitle}>
                 You're all caught up!
               </Text>
-              <Text
-                style={{
-                  color: '#5A5575',
-                  fontSize: 15,
-                  fontWeight: '400',
-                  textAlign: 'center',
-                }}
-              >
+              <Text style={styles.emptyBody}>
                 We'll let you know when something happens
               </Text>
             </View>
@@ -211,3 +175,128 @@ export default function NotificationsScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#080810' },
+  header: {
+    paddingBottom: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+  },
+  headerGlow: {
+    position: 'absolute',
+    top: -44,
+    left: -10,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: 'rgba(236,72,153,0.12)',
+  },
+  headerTopline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  eyebrowPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  eyebrowText: {
+    color: '#F9A8D4',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    fontFamily: FONT.displaySemiBold,
+  },
+  headerMiniStat: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: 'rgba(168,85,247,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(168,85,247,0.2)',
+  },
+  headerMiniValue: {
+    color: '#DDD6FE',
+    fontSize: 18,
+    fontWeight: '900',
+    fontFamily: FONT.displayBold,
+  },
+  headerMiniLabel: { color: '#A09CB8', fontSize: 11, fontWeight: '700' },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
+  headerTitle: {
+    color: '#F1F0FF',
+    fontSize: 31,
+    fontWeight: '900',
+    letterSpacing: -0.9,
+    fontFamily: FONT.displayBold,
+  },
+  headerSubtitle: { color: '#A09CB8', fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 280 },
+  unreadBubble: {
+    minWidth: 40,
+    height: 40,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(236,72,153,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(236,72,153,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  unreadBubbleText: { color: '#F9A8D4', fontSize: 13, fontWeight: '800', fontFamily: FONT.displaySemiBold },
+  markAllBtn: { alignSelf: 'flex-start', borderRadius: 16, overflow: 'hidden' },
+  markAllBtnDisabled: { opacity: 0.45 },
+  markAllInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(236,72,153,0.18)',
+    borderRadius: 16,
+  },
+  markAllText: { color: '#EC4899', fontSize: 13, fontWeight: '800', fontFamily: FONT.displaySemiBold },
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomColor: '#1A1A30',
+    borderBottomWidth: 1,
+    backgroundColor: '#10101C',
+  },
+  skeletonIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1A1A30' },
+  skeletonBody: { marginLeft: 12, gap: 8, flex: 1 },
+  skeletonLinePrimary: { width: '60%', height: 12, borderRadius: 6, backgroundColor: '#1A1A30' },
+  skeletonLineSecondary: { width: '85%', height: 10, borderRadius: 5, backgroundColor: '#1A1A30' },
+  emptyTitle: {
+    color: '#F1F0FF',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontFamily: FONT.displayBold,
+  },
+  emptyBody: {
+    color: '#8B84A7',
+    fontSize: 15,
+    fontWeight: '400',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+});

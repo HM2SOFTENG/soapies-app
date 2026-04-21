@@ -1938,8 +1938,11 @@ export const appRouter = router({
     }),
     byId: protectedProcedure
       .input(z.object({ userId: z.number() }))
-      .query(async ({ input }) => {
-        return db.getPublicProfile(input.userId);
+      .query(async ({ ctx, input }) => {
+        const profile = await db.getPublicProfile(input.userId);
+        if (!profile) return null;
+        const mutualEvents = await db.getMutualEventsForUsers(ctx.user.id, input.userId);
+        return { ...profile, mutualEvents };
       }),
     wall: protectedProcedure
       .input(z.object({ userId: z.number(), limit: z.number().optional() }))

@@ -13,6 +13,7 @@ import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import ConversationItem from '../../components/ConversationItem';
 import BrandGradient from '../../components/BrandGradient';
+import { FONT } from '../../lib/fonts';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton() {
@@ -137,14 +138,31 @@ export default function MessagesScreen() {
       {/* ── Header ── */}
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }}>
         <LinearGradient
-          colors={['#12051E', '#080810']}
+          colors={['#18071F', '#10061A', '#080810']}
           style={[styles.header, { paddingTop: insets.top + 6 }]}
         >
+          <View style={styles.headerGlow} />
+          <View style={styles.headerTopline}>
+            <View style={styles.headerEyebrow}>
+              <Text style={styles.headerEyebrowText}>PRIVATE INBOX</Text>
+            </View>
+            {totalUnread > 0 ? (
+              <View style={styles.headerStatChip}>
+                <Text style={styles.headerStatValue}>{totalUnread}</Text>
+                <Text style={styles.headerStatLabel}>unread</Text>
+              </View>
+            ) : null}
+          </View>
+
           <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Messages 💬</Text>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.headerTitle}>Messages</Text>
+              <Text style={styles.headerSubtitle}>
+                Keep the flirtation, planning, and after-hours chatter in one velvet thread.
+              </Text>
               {totalUnread > 0 && (
                 <View style={styles.unreadBadge}>
+                  <Ionicons name="sparkles" size={12} color="#F9A8D4" />
                   <Text style={styles.unreadBadgeText}>
                     {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
                   </Text>
@@ -158,16 +176,17 @@ export default function MessagesScreen() {
                   onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
                   style={styles.headerBtn}
                 >
-                  <Ionicons name="checkmark-done" size={20} color="#EC4899" />
+                  <LinearGradient colors={['rgba(236,72,153,0.2)', 'rgba(168,85,247,0.18)']} style={styles.headerBtnInner}>
+                    <Ionicons name="checkmark-done" size={18} color="#EC4899" />
+                  </LinearGradient>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {/* ── Search ── */}
-          <Animated.View style={{ transform: [{ scale: searchScale }] }}>
+          <Animated.View style={[styles.searchShell, { transform: [{ scale: searchScale }] }]}>
             <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-              <Ionicons name="search" size={16} color="#5A5575" />
+              <Ionicons name="search" size={16} color="#8B84A7" />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -182,7 +201,7 @@ export default function MessagesScreen() {
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={16} color="#5A5575" />
+                  <Ionicons name="close-circle" size={16} color="#8B84A7" />
                 </TouchableOpacity>
               )}
             </View>
@@ -293,46 +312,134 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#080810' },
 
-  header: { paddingHorizontal: 20, paddingBottom: 16 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  headerTitle: { color: '#F1F0FF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+  },
+  headerGlow: {
+    position: 'absolute',
+    top: -40,
+    right: -10,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(168,85,247,0.12)',
+  },
+  headerTopline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  headerEyebrow: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  headerEyebrowText: {
+    color: '#C4B5FD',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    fontFamily: FONT.displaySemiBold,
+  },
+  headerStatChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: 'rgba(236,72,153,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(236,72,153,0.22)',
+  },
+  headerStatValue: {
+    color: '#F9A8D4',
+    fontSize: 18,
+    fontWeight: '900',
+    fontFamily: FONT.displayBold,
+  },
+  headerStatLabel: { color: '#A09CB8', fontSize: 11, fontWeight: '700' },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
+  headerTitle: {
+    color: '#F1F0FF',
+    fontSize: 31,
+    fontWeight: '900',
+    letterSpacing: -0.9,
+    fontFamily: FONT.displayBold,
+  },
+  headerSubtitle: {
+    color: '#A09CB8',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 8,
+    maxWidth: 280,
+  },
   headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   headerBtn: {
-    width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#EC489918',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  headerBtnInner: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(236,72,153,0.22)',
   },
 
   unreadBadge: {
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: 12,
     backgroundColor: '#EC489920',
     borderColor: '#EC489960',
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     shadowColor: '#EC4899',
     shadowOpacity: 0.3,
     shadowRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  unreadBadgeText: { color: '#EC4899', fontSize: 11, fontWeight: '800' },
+  unreadBadgeText: { color: '#F9A8D4', fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold },
 
+  searchShell: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 20,
+    padding: 1,
+  },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#10101C', borderRadius: 16,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#EC489928',
+    backgroundColor: '#10101C', borderRadius: 19,
+    paddingHorizontal: 14, paddingVertical: 13,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
   },
-  searchBarFocused: { borderColor: '#EC489960' },
+  searchBarFocused: { borderColor: '#EC489960', backgroundColor: '#120F20' },
   searchInput: { flex: 1, color: '#F1F0FF', fontSize: 15 },
 
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 20, paddingVertical: 10,
+    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10,
     backgroundColor: '#080810',
   },
   sectionTitle: {
-    color: '#5A5575', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase',
+    color: '#8B84A7', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: FONT.displaySemiBold,
   },
   sectionBadge: {
     backgroundColor: '#EC489920',
@@ -360,7 +467,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     borderWidth: 1, borderColor: '#EC489933',
   },
-  emptyTitle: { color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginTop: 2, marginBottom: 6 },
+  emptyTitle: { color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginTop: 2, marginBottom: 6, fontFamily: FONT.displayBold },
   emptyBody: { color: '#5A5575', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   emptyCtaPrimary: {
     alignSelf: 'stretch',
@@ -375,7 +482,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
   },
-  emptyCtaPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  emptyCtaPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 15, fontFamily: FONT.displaySemiBold },
   emptySecondary: {
     paddingVertical: 12,
     paddingHorizontal: 16,

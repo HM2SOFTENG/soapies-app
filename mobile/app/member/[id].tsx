@@ -18,6 +18,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import Avatar from '../../components/Avatar';
 import { communityColor } from '../../lib/utils';
+import { FONT } from '../../lib/fonts';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,15 @@ function safeParsePrefs(raw: any): Record<string, any> {
   if (!raw) return {};
   if (typeof raw === 'object') return raw;
   try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function formatSharedEventDate(date: string | Date | null | undefined) {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 const ORIENTATION_COLORS: Record<string, string> = {
@@ -196,6 +206,10 @@ export default function MemberProfileScreen() {
   const hasBio   = !!(m.bio || m.location || relationshipStatus);
   const hasTags  = interests.length > 0 || lookingFor.length > 0;
   const posts    = (wallPosts ?? []) as any[];
+  const mutualEvents = (m.mutualEvents ?? { upcoming: [], past: [] }) as { upcoming?: any[]; past?: any[] };
+  const upcomingTogether = mutualEvents.upcoming ?? [];
+  const pastTogether = mutualEvents.past ?? [];
+  const hasMutualEvents = upcomingTogether.length > 0 || pastTogether.length > 0;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -236,57 +250,83 @@ export default function MemberProfileScreen() {
 
         {/* ── A. Hero ──────────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#1A082E', '#0D0520', '#080810']}
-          start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-          style={{ paddingTop: insets.top + 60, paddingBottom: 24, alignItems: 'center', paddingHorizontal: 20 }}
+          colors={['#210C38', '#10071D', '#080810']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ paddingTop: insets.top + 60, paddingBottom: 26, paddingHorizontal: 16 }}
         >
-          {/* Avatar */}
-          <Animated.View style={{ transform: [{ scale: avatarScale }], opacity: avatarOpacity, marginBottom: 14 }}>
-            <View style={{
-              borderRadius: 60, padding: 3, borderWidth: 2, borderColor: '#EC489980',
-              shadowColor: '#EC4899', shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.75, shadowRadius: 22, elevation: 12,
-            }}>
-              <Avatar name={displayName} url={m.avatarUrl} size={106} />
-            </View>
-          </Animated.View>
+          <View style={{ borderRadius: 30, borderWidth: 1, borderColor: '#FFFFFF14', overflow: 'hidden', backgroundColor: '#090811B8' }}>
+            <View style={{ position: 'absolute', top: -48, right: -18, width: 150, height: 150, borderRadius: 75, backgroundColor: '#EC489920' }} />
+            <View style={{ position: 'absolute', bottom: -70, left: -26, width: 180, height: 180, borderRadius: 90, backgroundColor: '#A855F716' }} />
+            <View style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 20, alignItems: 'center' }}>
+              <Text style={{ color: '#B8A8D9', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+                Member spotlight
+              </Text>
 
-          {/* Name */}
-          <Animated.Text style={{
-            color: '#F1F0FF', fontSize: 26, fontWeight: '900',
-            textAlign: 'center', letterSpacing: -0.5, opacity: avatarOpacity,
-          }}>
-            {displayName}
-          </Animated.Text>
-
-          {/* Inline stats under name */}
-          <Animated.View style={{ flexDirection: 'row', gap: 20, marginTop: 10, opacity: avatarOpacity }}>
-            <View style={{ alignItems: 'center' }}>
-              <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '800' }}>{m.eventsAttended ?? 0}</Text>
-              <Text style={{ color: '#5A5575', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Events</Text>
-            </View>
-            <View style={{ width: 1, backgroundColor: '#1A1A30' }} />
-            <View style={{ alignItems: 'center' }}>
-              <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '800' }}>{m.postsCount ?? 0}</Text>
-              <Text style={{ color: '#5A5575', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Posts</Text>
-            </View>
-            {joinedDate && (
-              <>
-                <View style={{ width: 1, backgroundColor: '#1A1A30' }} />
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '800' }}>{joinedDate}</Text>
-                  <Text style={{ color: '#5A5575', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Joined</Text>
+              {/* Avatar */}
+              <Animated.View style={{ transform: [{ scale: avatarScale }], opacity: avatarOpacity, marginBottom: 14 }}>
+                <View style={{
+                  borderRadius: 64, padding: 4, borderWidth: 1.5, borderColor: '#FFFFFF18', backgroundColor: '#FFFFFF08',
+                  shadowColor: '#EC4899', shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.45, shadowRadius: 24, elevation: 12,
+                }}>
+                  <View style={{ borderRadius: 60, padding: 3, borderWidth: 2, borderColor: '#EC489980' }}>
+                    <Avatar name={displayName} url={m.avatarUrl} size={106} />
+                  </View>
                 </View>
-              </>
-            )}
-          </Animated.View>
+              </Animated.View>
 
-          {/* Badge row */}
-          <Animated.View style={{
-            flexDirection: 'row', flexWrap: 'wrap',
-            justifyContent: 'center', gap: 6, marginTop: 12,
-            opacity: avatarOpacity,
-          }}>
+              {m.memberRole && m.memberRole !== 'member' && (
+                <View style={{
+                  paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999,
+                  backgroundColor: m.memberRole === 'admin' ? '#ef444422' : '#f59e0b20',
+                  borderColor: m.memberRole === 'admin' ? '#ef444455' : '#f59e0b55',
+                  borderWidth: 1, marginBottom: 10,
+                }}>
+                  <Text style={{ color: m.memberRole === 'admin' ? '#ef4444' : '#f59e0b', fontSize: 12, fontFamily: FONT.displaySemiBold }}>
+                    {m.memberRole === 'admin' ? '⚙️ Admin' : '👼 Angel'}
+                  </Text>
+                </View>
+              )}
+
+              {/* Name */}
+              <Animated.Text style={{
+                color: '#F1F0FF', fontSize: 31,
+                textAlign: 'center', letterSpacing: -0.9, opacity: avatarOpacity,
+                fontFamily: FONT.displayBold,
+              }}>
+                {displayName}
+              </Animated.Text>
+
+              <Animated.Text style={{
+                color: '#9E94BD', fontSize: 14, textAlign: 'center', opacity: avatarOpacity, marginTop: 6,
+              }}>
+                {m.location || relationshipStatus || 'Open to good energy'}
+              </Animated.Text>
+
+              {/* Inline stats under name */}
+              <Animated.View style={{ flexDirection: 'row', gap: 12, marginTop: 18, opacity: avatarOpacity }}>
+                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF0B', borderWidth: 1, borderColor: '#FFFFFF10' }}>
+                  <Text style={{ color: '#F1F0FF', fontSize: 22, fontFamily: FONT.displayBold }}>{m.eventsAttended ?? 0}</Text>
+                  <Text style={{ color: '#7D739A', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Events</Text>
+                </View>
+                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF0B', borderWidth: 1, borderColor: '#FFFFFF10' }}>
+                  <Text style={{ color: '#F1F0FF', fontSize: 22, fontFamily: FONT.displayBold }}>{m.postsCount ?? 0}</Text>
+                  <Text style={{ color: '#7D739A', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Posts</Text>
+                </View>
+                {joinedDate && (
+                  <View style={{ alignItems: 'center', minWidth: 104, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF0B', borderWidth: 1, borderColor: '#FFFFFF10' }}>
+                    <Text style={{ color: '#F1F0FF', fontSize: 18, fontFamily: FONT.displayBold }}>{joinedDate}</Text>
+                    <Text style={{ color: '#7D739A', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Joined</Text>
+                  </View>
+                )}
+              </Animated.View>
+
+              {/* Badge row */}
+              <Animated.View style={{
+                flexDirection: 'row', flexWrap: 'wrap',
+                justifyContent: 'center', gap: 6, marginTop: 14,
+                opacity: avatarOpacity,
+              }}>
             {showSignal && (
               <View style={{
                 flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -336,20 +376,9 @@ export default function MemberProfileScreen() {
                 </Text>
               </View>
             )}
-            {m.memberRole && m.memberRole !== 'member' && (
-              <View style={{
-                paddingHorizontal: 12, paddingVertical: 4,
-                backgroundColor: m.memberRole === 'admin' ? '#ef444422' : '#f59e0b22',
-                borderRadius: 20,
-                borderColor: m.memberRole === 'admin' ? '#ef444455' : '#f59e0b55',
-                borderWidth: 1,
-              }}>
-                <Text style={{ color: m.memberRole === 'admin' ? '#ef4444' : '#f59e0b', fontWeight: '700', fontSize: 12 }}>
-                  {m.memberRole === 'admin' ? '⚙️ Admin' : '👼 Angel'}
-                </Text>
-              </View>
-            )}
           </Animated.View>
+            </View>
+          </View>
         </LinearGradient>
 
         {/* ── B. Signal detail card ─────────────────────────────────────── */}
@@ -371,7 +400,7 @@ export default function MemberProfileScreen() {
                   shadowColor: signalColor, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6,
                 }} />
               </View>
-              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
+              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, fontFamily: FONT.displaySemiBold }}>
                 {SIGNAL_LABELS[signal.signalType] ?? signal.signalType}
               </Text>
               {signal.seekingGender && (
@@ -404,7 +433,7 @@ export default function MemberProfileScreen() {
         {/* ── C. Connections — linked avatar cards ──────────────────────── */}
         {connections.length > 0 && (
           <Animated.View style={{ marginHorizontal: 16, marginTop: 12, opacity: contentOpacity }}>
-            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+            <Text style={{ color: '#7D739A', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.6 }}>
               💗 Connections
             </Text>
             {connections.map((conn: any) => (
@@ -429,7 +458,7 @@ export default function MemberProfileScreen() {
                         paddingHorizontal: 14, paddingVertical: 4,
                         backgroundColor: '#EC489918', borderRadius: 20, borderColor: '#EC489950', borderWidth: 1,
                       }}>
-                        <Text style={{ color: '#EC4899', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 }}>
+                        <Text style={{ color: '#EC4899', fontSize: 12, letterSpacing: 0.3, fontFamily: FONT.displaySemiBold }}>
                           {conn.relationshipType?.replace(/_/g, ' ')}
                         </Text>
                       </View>
@@ -498,7 +527,82 @@ export default function MemberProfileScreen() {
           </Animated.View>
         )}
 
-        {/* ── D. About + Tags — single combined card ────────────────────── */}
+        {/* ── D. Shared events ─────────────────────────────────────────── */}
+        {hasMutualEvents && (
+          <Animated.View style={{ marginHorizontal: 16, marginTop: 12, opacity: contentOpacity }}>
+            <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#FFFFFF10', backgroundColor: '#0D0B16' }}>
+              <LinearGradient colors={['#1A0D2C', '#0D0B16']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <View>
+                    <Text style={{ color: '#A89FC3', fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 6 }}>
+                      Shared events
+                    </Text>
+                    <Text style={{ color: '#F8F5FF', fontSize: 22, fontFamily: FONT.displayBold }}>
+                      Your nights together
+                    </Text>
+                  </View>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EC48991A', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="sparkles" size={18} color="#F472B6" />
+                  </View>
+                </View>
+
+                {upcomingTogether.length > 0 && (
+                  <View style={{ marginBottom: pastTogether.length > 0 ? 14 : 0 }}>
+                    <Text style={{ color: '#F472B6', fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
+                      Going together
+                    </Text>
+                    {upcomingTogether.map((event: any) => (
+                      <View key={`upcoming-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: '#FFFFFF08', borderWidth: 1, borderColor: '#FFFFFF12', marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: '#F8F5FF', fontSize: 17, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
+                            {event.title}
+                          </Text>
+                          <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#10B98120', borderWidth: 1, borderColor: '#10B98140' }}>
+                            <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>{event.mutualLabel}</Text>
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                          <Ionicons name="calendar-outline" size={14} color="#A89FC3" />
+                          <Text style={{ color: '#CFC8E4', fontSize: 13, marginLeft: 8 }}>{formatSharedEventDate(event.startDate)}</Text>
+                        </View>
+                        {!!event.location && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                            <Ionicons name="location-outline" size={14} color="#A89FC3" />
+                            <Text style={{ color: '#A89FC3', fontSize: 13, marginLeft: 8 }} numberOfLines={1}>{event.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {pastTogether.length > 0 && (
+                  <View>
+                    <Text style={{ color: '#C4B5FD', fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
+                      Attended together
+                    </Text>
+                    {pastTogether.map((event: any) => (
+                      <View key={`past-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: '#FFFFFF06', borderWidth: 1, borderColor: '#FFFFFF10', marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: '#F8F5FF', fontSize: 16, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
+                            {event.title}
+                          </Text>
+                          <Text style={{ color: '#C4B5FD', fontSize: 10, fontWeight: '800' }}>{event.mutualLabel}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+                          <Ionicons name="time-outline" size={14} color="#8F86AA" />
+                          <Text style={{ color: '#BFB7D7', fontSize: 13, marginLeft: 8 }}>{formatSharedEventDate(event.startDate)}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </LinearGradient>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* ── E. About + Tags — single combined card ────────────────────── */}
         {(hasBio || hasTags || m.orientation) && (
           <Animated.View style={{
             marginHorizontal: 16, marginTop: 12,
@@ -557,7 +661,7 @@ export default function MemberProfileScreen() {
         {/* ── E. Wall posts ─────────────────────────────────────────────── */}
         <Animated.View style={{ marginHorizontal: 16, marginTop: 16, opacity: contentOpacity }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Text style={{ color: '#5A5575', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+            <Text style={{ color: '#7D739A', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.6 }}>
               Posts
             </Text>
             {posts.length > 0 && (
@@ -664,7 +768,7 @@ export default function MemberProfileScreen() {
               ) : (
                 <>
                   <Ionicons name="send" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Message {firstName}</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>Message {firstName}</Text>
                 </>
               )}
             </LinearGradient>

@@ -23,6 +23,7 @@ import { useRouter } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { FONT } from '../../lib/fonts';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HERO_MAX = 320;
@@ -250,11 +251,11 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
             {/* Status + hot badge row */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
               <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: `${sc}20` }}>
-                <Text style={{ color: sc, fontSize: 10, fontWeight: '800' }}>{sl}</Text>
+                <Text style={{ color: sc, fontSize: 10, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>{sl}</Text>
               </View>
               {isHot && (
                 <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: `${colors.pink}30` }}>
-                  <Text style={{ color: colors.pink, fontSize: 10, fontWeight: '800' }}>🔥 {spotsLeft} left</Text>
+                  <Text style={{ color: colors.pink, fontSize: 10, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>🔥 {spotsLeft} left</Text>
                 </View>
               )}
               {isGoing && (
@@ -263,18 +264,18 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
                   backgroundColor: '#10B98122', borderColor: '#10B981', borderWidth: 1,
                   flexDirection: 'row', alignItems: 'center', gap: 4,
                 }}>
-                  <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '800' }}>✅ You're Going</Text>
+                  <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>✅ You're Going</Text>
                 </View>
               )}
               {event.status === 'published' && (
                 <View style={{ marginLeft: 'auto' }}>
-                  <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '700' }}>{daysUntil(event.startDate)}</Text>
+                  <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>{daysUntil(event.startDate)}</Text>
                 </View>
               )}
             </View>
 
             {/* Title */}
-            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 14, lineHeight: 19, marginBottom: 4 }} numberOfLines={2}>
+            <Text style={{ color: colors.text, fontWeight: '800', fontSize: 15, lineHeight: 20, marginBottom: 6, fontFamily: FONT.displayBold }} numberOfLines={2}>
               {event.title}
             </Text>
 
@@ -396,8 +397,8 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
 
       {/* Mini collapsed bar */}
       <Animated.View style={[styles.miniBar, { opacity: miniOpacity }]}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.pink, marginRight: 10 }} />
-        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, flex: 1 }} numberOfLines={1}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.pink, marginRight: 10, shadowColor: colors.pink, shadowOpacity: 0.6, shadowRadius: 10 }} />
+        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, flex: 1, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
           {event?.title ?? 'No upcoming events'}
         </Text>
         {countdown ? (
@@ -414,7 +415,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
           <BrandGradient
             style={styles.countdownPill}
           >
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>🎟 {countdown}</Text>
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>🎟 {countdown}</Text>
           </BrandGradient>
 
           <Text style={styles.heroTitle} numberOfLines={2}>{event.title}</Text>
@@ -441,14 +442,14 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
               {isGoing ? (
                 <LinearGradient colors={['#10B981', '#059669']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.heroBtn}>
                   <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>You're Going! ✅</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, fontFamily: FONT.displaySemiBold }}>You're Going! ✅</Text>
                 </LinearGradient>
               ) : (
                 <BrandGradient
                   style={styles.heroBtn}
                 >
                   <Ionicons name="ticket-outline" size={16} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Reserve My Spot</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, fontFamily: FONT.displaySemiBold }}>Reserve My Spot</Text>
                   <Ionicons name="arrow-forward" size={14} color="#fff" />
                 </BrandGradient>
               )}
@@ -567,20 +568,27 @@ export default function EventsScreen() {
       />
 
       {/* Filter tabs */}
-      <View style={styles.filterRow}>
-        {FILTER_TABS.map((tab, idx) => {
-          const active = activeFilter === tab;
-          return (
-            <Animated.View key={tab} style={{ transform: [{ scale: filterScale[idx] }] }}>
-              <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, active && styles.filterTabActive]}>
-                <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>{tab}</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        })}
-        <View style={{ flex: 1 }} />
-        <View style={styles.countBadge}>
-          <Text style={{ color: colors.pink, fontWeight: '800', fontSize: 13 }}>{filtered.length}</Text>
+      <View style={styles.filterRowWrap}>
+        <View style={styles.filterSummaryCard}>
+          <View>
+            <Text style={styles.filterSummaryEyebrow}>CURATED NIGHTS</Text>
+            <Text style={styles.filterSummaryTitle}>{filtered.length} experiences</Text>
+          </View>
+          <View style={styles.countBadge}>
+            <Text style={{ color: colors.pink, fontWeight: '800', fontSize: 13, fontFamily: FONT.displaySemiBold }}>{filtered.length}</Text>
+          </View>
+        </View>
+        <View style={styles.filterRow}>
+          {FILTER_TABS.map((tab, idx) => {
+            const active = activeFilter === tab;
+            return (
+              <Animated.View key={tab} style={{ transform: [{ scale: filterScale[idx] }] }}>
+                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, active && styles.filterTabActive]}>
+                  <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>{tab}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
         </View>
       </View>
 
@@ -607,7 +615,7 @@ export default function EventsScreen() {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Text style={{ fontSize: 64, marginBottom: 12 }}>🎉</Text>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 6 }}>Nothing here yet</Text>
+              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 6, fontFamily: FONT.displayBold }}>Nothing here yet</Text>
               <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 14 }}>
                 Check back soon — something exciting is always brewing
               </Text>
@@ -628,6 +636,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
   },
   skeletonCard: {
     backgroundColor: colors.card,
@@ -665,7 +677,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: `${colors.bg}CC`,
+    backgroundColor: 'rgba(8,8,16,0.88)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
   },
   heroContent: {
     position: 'absolute',
@@ -673,7 +687,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   countdownPill: {
     alignSelf: 'flex-start',
@@ -686,8 +700,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 26,
     fontWeight: '900',
-    marginBottom: 8,
+    marginBottom: 10,
     lineHeight: 32,
+    fontFamily: FONT.displayBold,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
@@ -709,15 +724,44 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
+  filterRowWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomColor: '#1A1A30',
+    borderBottomWidth: 1,
+    backgroundColor: '#080810',
+    gap: 12,
+  },
+  filterSummaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: '#10101C',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  filterSummaryEyebrow: {
+    color: '#8B84A7',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    fontFamily: FONT.displaySemiBold,
+  },
+  filterSummaryTitle: {
+    color: '#F1F0FF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 4,
+    fontFamily: FONT.displayBold,
+  },
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomColor: '#1A1A30',
-    borderBottomWidth: 1,
     gap: 8,
-    backgroundColor: '#080810',
   },
   filterTab: {
     paddingHorizontal: 18,
@@ -735,16 +779,23 @@ const styles = StyleSheet.create({
     color: '#5A5575',
     fontWeight: '600',
     fontSize: 13,
+    fontFamily: FONT.displaySemiBold,
   },
   filterLabelActive: {
     color: '#EC4899',
     fontWeight: '800' as const,
+    fontFamily: FONT.displaySemiBold,
   },
   countBadge: {
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: `${colors.pink}22`,
+    borderWidth: 1,
+    borderColor: `${colors.pink}25`,
   },
   monthDivider: {
     flexDirection: 'row',
@@ -758,5 +809,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontFamily: FONT.displaySemiBold,
   },
 });

@@ -350,6 +350,64 @@ export async function getReservationsByUser(userId: number) {
   return db.select().from(reservations).where(eq(reservations.userId, userId)).orderBy(desc(reservations.createdAt));
 }
 
+export async function getMutualEventsForUsers(currentUserId: number, otherUserId: number) {
+  const db = await getDb(); if (!db) return { upcoming: [], past: [] };
+
+  const currentReservations = await db
+    .select({ eventId: reservations.eventId })
+    .from(reservations)
+    .where(and(eq(reservations.userId, currentUserId), sql`${reservations.status} != 'cancelled'`));
+
+  const eventIds = Array.from(new Set(currentReservations.map((r) => Number(r.eventId)).filter(Boolean)));
+  if (!eventIds.length) return { upcoming: [], past: [] };
+
+  const sharedRows = await db
+    .select({
+      reservationId: reservations.id,
+      eventId: events.id,
+      title: events.title,
+      startDate: events.startDate,
+      endDate: events.endDate,
+      address: events.address,
+      venue: events.venue,
+      coverImageUrl: events.coverImageUrl,
+      reservationStatus: reservations.status,
+      paymentStatus: reservations.paymentStatus,
+      ticketType: reservations.ticketType,
+    })
+    .from(reservations)
+    .innerJoin(events, eq(reservations.eventId, events.id))
+    .where(and(
+      eq(reservations.userId, otherUserId),
+      inArray(reservations.eventId, eventIds),
+      sql`${reservations.status} != 'cancelled'`
+    ))
+    .orderBy(asc(events.startDate));
+
+  const now = Date.now();
+  const normalized = sharedRows.map((row) => {
+    const start = row.startDate ? new Date(row.startDate) : null;
+    const isUpcoming = !!start && start.getTime() >= now;
+    return {
+      id: Number(row.eventId),
+      title: row.title,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      location: row.address ?? row.venue ?? null,
+      venue: row.venue ?? null,
+      coverImageUrl: row.coverImageUrl ?? null,
+      ticketType: row.ticketType ?? null,
+      status: isUpcoming ? 'upcoming' : 'past',
+      mutualLabel: isUpcoming ? 'Going together' : 'Attended together',
+    };
+  });
+
+  return {
+    upcoming: normalized.filter((event) => event.status === 'upcoming').slice(0, 2),
+    past: normalized.filter((event) => event.status === 'past').sort((a, b) => +new Date(b.startDate) - +new Date(a.startDate)).slice(0, 3),
+  };
+}
+
 export async function updateReservation(id: number, data: any) {
   const db = await getDb(); if (!db) return;
   // When cancelling, decrement the event's currentAttendees (avoid going below 0)

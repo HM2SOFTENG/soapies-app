@@ -15,6 +15,12 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorBoundary from '../components/ErrorBoundary';
 import OfflineBanner from '../components/OfflineBanner';
 import { parseDeepLink } from '../lib/deepLinks';
+import { useFonts } from 'expo-font';
+import {
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
 
 // Configure how notifications appear when app is foregrounded
 Notifications.setNotificationHandler({
@@ -227,6 +233,16 @@ function DeepLinkHandler({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return <LoadingScreen />;
+  }
+
   // ErrorBoundary must be outermost so it catches errors from providers AND
   // the DeepLinkHandler itself. DeepLinkHandler needs to live inside the
   // router context but must NOT own the crash-fallback.

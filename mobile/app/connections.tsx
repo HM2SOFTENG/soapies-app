@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { trpc } from '../lib/trpc';
 import { useAuth } from '../lib/auth';
 import Avatar from '../components/Avatar';
+import { FONT } from '../lib/fonts';
 
 const RELATIONSHIP_TYPES = [
   { value: 'couple', label: '💑 Couple', desc: 'Romantic partnership' },
@@ -110,10 +111,32 @@ export default function ConnectionsScreen() {
         >
           <Ionicons name="arrow-back" size={18} color="#F1F0FF" />
         </TouchableOpacity>
-        <Text style={{ color: '#F1F0FF', fontSize: 26, fontWeight: '900', flex: 1 }}>Connections 💗</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#F1F0FF', fontSize: 28, fontWeight: '900', flex: 1, fontFamily: FONT.displayBold }}>Connections 💗</Text>
+          <Text style={{ color: '#8B84A7', fontSize: 12, marginTop: 2 }}>Keep your inner circle close</Text>
+        </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}>
+
+        <LinearGradient
+          colors={['rgba(236,72,153,0.16)', 'rgba(168,85,247,0.08)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ marginTop: 18, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)' }}
+        >
+          <Text style={{ color: '#8B84A7', fontSize: 11, letterSpacing: 1.1, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>YOUR NETWORK</Text>
+          <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8,8,16,0.45)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+              <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{connections.length}</Text>
+              <Text style={{ color: '#A09CB8', fontSize: 11, marginTop: 4 }}>Active</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: 'rgba(8,8,16,0.45)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
+              <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{incoming.length + outgoing.length}</Text>
+              <Text style={{ color: '#A09CB8', fontSize: 11, marginTop: 4 }}>Pending</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
         {/* ── Pending incoming ── */}
         {incoming.length > 0 && (
@@ -339,7 +362,7 @@ export default function ConnectionsScreen() {
             <View style={{ padding: 20, paddingBottom: 8 }}>
               {/* Drag handle */}
               <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A', alignSelf: 'center', marginBottom: 20 }} />
-              <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginBottom: 4 }}>
+              <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800', marginBottom: 4, fontFamily: FONT.displayBold }}>
                 Connect with {selectedMember?.displayName ?? selectedMember?.name}
               </Text>
               <Text style={{ color: '#5A5575', fontSize: 13, marginBottom: 4 }}>Select your relationship dynamic</Text>
@@ -399,7 +422,7 @@ export default function ConnectionsScreen() {
                     opacity: sendRequest.isPending ? 0.6 : 1,
                   }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>
                     {sendRequest.isPending ? 'Sending...' : 'Send Connection Request 💗'}
                   </Text>
                 </LinearGradient>

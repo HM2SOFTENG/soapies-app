@@ -20,6 +20,7 @@ import { useAuth } from '../../lib/auth';
 import { useToast } from '../../components/Toast';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
+import { FONT } from '../../lib/fonts';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -142,40 +143,51 @@ function ReferralPipelineCard({ row }: { row: any }) {
         </View>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 16 }}>
-        {REFERRAL_STEPS.map((step, index) => {
-          const active = index <= currentStep;
-          const isLast = index === REFERRAL_STEPS.length - 1;
-          return (
-            <React.Fragment key={step.key}>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 999,
-                  borderWidth: 2,
-                  borderColor: active ? colors.pink : '#2A2544',
-                  backgroundColor: active ? colors.pink : 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  {active ? <Ionicons name="checkmark" size={13} color="#fff" /> : <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#4B5563' }} />}
+      <View style={{ marginTop: 18 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {REFERRAL_STEPS.map((step, index) => {
+            const active = index <= currentStep;
+            const isLast = index === REFERRAL_STEPS.length - 1;
+            return (
+              <React.Fragment key={`${step.key}-dot`}>
+                <View style={{ width: 40, alignItems: 'center' }}>
+                  <View style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 999,
+                    borderWidth: 2,
+                    borderColor: active ? colors.pink : '#2A2544',
+                    backgroundColor: active ? colors.pink : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {active ? <Ionicons name="checkmark" size={13} color="#fff" /> : <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#4B5563' }} />}
+                  </View>
                 </View>
+                {!isLast && <View style={{ flex: 1, height: 2, backgroundColor: index < currentStep ? colors.pink : '#2A2544' }} />}
+              </React.Fragment>
+            );
+          })}
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+          {REFERRAL_STEPS.map((step, index) => {
+            const active = index <= currentStep;
+            return (
+              <View key={`${step.key}-label`} style={{ width: 52, alignItems: 'center' }}>
                 <Text style={{
                   color: active ? colors.text : colors.muted,
                   fontSize: 10,
                   fontWeight: active ? '700' : '500',
                   textAlign: 'center',
-                  marginTop: 6,
-                  paddingHorizontal: 2,
-                }}>
+                  lineHeight: 12,
+                }} numberOfLines={2}>
                   {step.label}
                 </Text>
               </View>
-              {!isLast && <View style={{ flex: 1, height: 2, marginTop: 11, backgroundColor: index < currentStep ? colors.pink : '#2A2544' }} />}
-            </React.Fragment>
-          );
-        })}
+            );
+          })}
+        </View>
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
@@ -324,7 +336,7 @@ export default function ProfileScreen() {
             style={{ marginBottom: 14, shadowColor: '#EC4899', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
           />
 
-          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800' }}>
+          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800', fontFamily: FONT.displayBold }}>
             {profile?.displayName ?? profile?.name ?? 'Member'}
           </Text>
 
@@ -340,7 +352,7 @@ export default function ProfileScreen() {
               marginTop: 8, gap: 4,
             }}>
               <Text style={{ fontSize: 14 }}>{roleConfig.emoji}</Text>
-              <Text style={{ color: roleConfig.color, fontWeight: '700', fontSize: 13 }}>{roleConfig.label}</Text>
+              <Text style={{ color: roleConfig.color, fontWeight: '700', fontSize: 13, fontFamily: FONT.displaySemiBold }}>{roleConfig.label}</Text>
             </View>
           )}
 
@@ -477,7 +489,7 @@ export default function ProfileScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600' }}>CREDITS BALANCE</Text>
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 2 }}>
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 2, fontFamily: FONT.displayBold }}>
               {credits}
             </Text>
           </View>
@@ -494,7 +506,7 @@ export default function ProfileScreen() {
             REFERRAL CODE
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ color: colors.pink, fontSize: 18, fontWeight: '800', flex: 1, letterSpacing: 2 }}>
+            <Text style={{ color: colors.pink, fontSize: 18, fontWeight: '800', flex: 1, letterSpacing: 2, fontFamily: FONT.displayBold }}>
               {myCode}
             </Text>
             <TouchableOpacity onPress={copyReferral} style={{ marginRight: 12 }}>
@@ -518,7 +530,7 @@ export default function ProfileScreen() {
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>Referral Tracker</Text>
+              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800', fontFamily: FONT.displayBold }}>Referral Tracker</Text>
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
                 Follow each referral from signup through approval, first event booking, and reward payout.
               </Text>
@@ -534,15 +546,15 @@ export default function ProfileScreen() {
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
             <View style={{ flex: 1, backgroundColor: 'rgba(236,72,153,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)' }}>
               <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Tracked</Text>
-              <Text style={{ color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 4 }}>{((myReferralsData as any[]) ?? []).length}</Text>
+              <Text style={{ color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{((myReferralsData as any[]) ?? []).length}</Text>
             </View>
             <View style={{ flex: 1, backgroundColor: 'rgba(16,185,129,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.18)' }}>
               <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Rewards earned</Text>
-              <Text style={{ color: '#34D399', fontSize: 22, fontWeight: '900', marginTop: 4 }}>{referralRewardsEarned}</Text>
+              <Text style={{ color: '#34D399', fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{referralRewardsEarned}</Text>
             </View>
             <View style={{ flex: 1, backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(168,85,247,0.18)' }}>
               <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>In progress</Text>
-              <Text style={{ color: colors.purple, fontSize: 22, fontWeight: '900', marginTop: 4 }}>{pendingReferralRewards}</Text>
+              <Text style={{ color: colors.purple, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{pendingReferralRewards}</Text>
             </View>
           </View>
 

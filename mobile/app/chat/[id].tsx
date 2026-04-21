@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
+import { FONT } from '../../lib/fonts';
 import Avatar from '../../components/Avatar';
 import { formatDistanceToNow } from '../../lib/utils';
 import { useAuth } from '../../lib/auth';
@@ -235,7 +236,7 @@ export default function ChatScreen() {
       >
         {/* ── Header ── */}
         <LinearGradient
-          colors={['#12051E', '#080810']}
+          colors={['#19091F', '#100816', '#080810']}
           style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -255,7 +256,9 @@ export default function ChatScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.headerName} numberOfLines={1}>{headerName}</Text>
-
+              <Text style={styles.headerMeta} numberOfLines={1}>
+                {conversation?.type === 'dm' ? 'Private conversation' : `${msgList.length} messages in the room`}
+              </Text>
             </View>
             {conversation?.type === 'dm' && conversation?.otherUserId && (
               <Ionicons name="chevron-forward" size={14} color="#5A5575" />
@@ -294,7 +297,7 @@ export default function ChatScreen() {
             ListEmptyComponent={
               <View style={{ flex: 1, alignItems: 'center', paddingTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🌙</Text>
-                <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '800' }}>No messages yet</Text>
+                <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800', fontFamily: FONT.displayBold }}>No messages yet</Text>
                 <Text style={{ color: '#5A5575', fontSize: 13, marginTop: 6 }}>Say hello! 👋</Text>
               </View>
             }
@@ -397,11 +400,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: 22,
     overflow: 'hidden',
+    shadowColor: '#EC4899',
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
   headerName: {
     color: '#F1F0FF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
+    fontFamily: FONT.displayBold,
+    letterSpacing: -0.3,
+  },
+  headerMeta: {
+    color: '#8B84A7',
+    fontSize: 12,
+    marginTop: 2,
   },
   onlineRow: {
     flexDirection: 'row',
@@ -439,7 +453,7 @@ const styles = StyleSheet.create({
   },
   bubbleSent: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 18,
     borderBottomRightRadius: 4,
     overflow: 'hidden',
@@ -486,13 +500,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopColor: '#1A1A30',
     borderTopWidth: 1,
-    backgroundColor: '#080810',
+    backgroundColor: '#0B0A14',
     gap: 8,
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#10101C',
-    borderColor: '#EC489928',
+    backgroundColor: '#11111F',
+    borderColor: '#EC489938',
     borderWidth: 1,
     borderRadius: 24,
     paddingHorizontal: 16,

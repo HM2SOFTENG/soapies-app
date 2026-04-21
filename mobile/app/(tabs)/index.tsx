@@ -33,6 +33,7 @@ import { uploadPhoto } from '../../lib/uploadPhoto';
 import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
 import { useToast } from '../../components/Toast';
+import { FONT } from '../../lib/fonts';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -60,18 +61,45 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   const headerY = useRef(new Animated.Value(24)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
+  const orbAnim = useRef(new Animated.Value(0)).current;
+  const avatarFloat = useRef(new Animated.Value(0)).current;
+  const greetingScale = useRef(new Animated.Value(0.96)).current;
+  const statCardPulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(headerOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(headerY,       { toValue: 0, duration: 700, useNativeDriver: true }),
+      Animated.timing(headerY, { toValue: 0, duration: 700, useNativeDriver: true }),
+      Animated.spring(greetingScale, { toValue: 1, useNativeDriver: true, speed: 18, bounciness: 6 }),
     ]).start();
+
     const glow = Animated.loop(Animated.sequence([
-      Animated.timing(glowAnim, { toValue: 1, duration: 3000, useNativeDriver: false }),
-      Animated.timing(glowAnim, { toValue: 0, duration: 3000, useNativeDriver: false }),
+      Animated.timing(glowAnim, { toValue: 1, duration: 3000, useNativeDriver: true }),
+      Animated.timing(glowAnim, { toValue: 0, duration: 3000, useNativeDriver: true }),
     ]));
+    const orbs = Animated.loop(Animated.sequence([
+      Animated.timing(orbAnim, { toValue: 1, duration: 5000, useNativeDriver: true }),
+      Animated.timing(orbAnim, { toValue: 0, duration: 5000, useNativeDriver: true }),
+    ]));
+    const statPulse = Animated.loop(Animated.sequence([
+      Animated.timing(statCardPulse, { toValue: 1, duration: 2600, useNativeDriver: true }),
+      Animated.timing(statCardPulse, { toValue: 0, duration: 2600, useNativeDriver: true }),
+    ]));
+    const floatAvatar = Animated.loop(Animated.sequence([
+      Animated.timing(avatarFloat, { toValue: 1, duration: 2200, useNativeDriver: true }),
+      Animated.timing(avatarFloat, { toValue: 0, duration: 2200, useNativeDriver: true }),
+    ]));
+
     glow.start();
-    return () => glow.stop();
+    orbs.start();
+    floatAvatar.start();
+    statPulse.start();
+    return () => {
+      glow.stop();
+      orbs.stop();
+      floatAvatar.stop();
+      statPulse.stop();
+    };
   }, []);
 
   const displayName = profile?.displayName ?? me?.name ?? 'there';
@@ -84,56 +112,93 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   const creditsRaw = typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
   const credits = `$${Number(creditsRaw).toFixed(2)}`;
   const attended = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
-  const avatarGlowColor = glowAnim.interpolate({ inputRange: [0, 1], outputRange: ['#A855F740', '#EC489960'] });
+  const avatarGlowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.34] });
+  const avatarTranslateY = avatarFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
+  const orbTranslateX = orbAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -18] });
+  const orbTranslateY = orbAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 16] });
+  const orbScale = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
 
   return (
     <LinearGradient
-      colors={['#1A082E', '#12051E', '#080810']}
-      start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 1 }}
-      style={{ paddingHorizontal: 20, paddingTop: insets.top + 18, paddingBottom: 28 }}
+      colors={['#220537', '#14051F', '#080810']}
+      start={{ x: 0, y: 0 }} end={{ x: 0.65, y: 1 }}
+      style={{ paddingHorizontal: 20, paddingTop: insets.top + 18, paddingBottom: 28, overflow: 'hidden' }}
     >
-      <Animated.View style={{ position: 'absolute', top: insets.top, right: -20, width: 140, height: 140, borderRadius: 70, backgroundColor: avatarGlowColor as any }} />
+      <Animated.View style={{ position: 'absolute', top: insets.top - 4, right: -26, width: 188, height: 188, borderRadius: 94, backgroundColor: '#EC4899', opacity: avatarGlowOpacity, transform: [{ translateX: orbTranslateX }, { translateY: orbTranslateY }, { scale: orbScale }] }} />
+      <Animated.View style={{ position: 'absolute', top: insets.top + 58, right: 56, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(251,191,36,0.85)', shadowColor: '#FBBF24', shadowOpacity: 0.8, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, transform: [{ scale: orbScale }] }} />
+      <Animated.View style={{ position: 'absolute', top: insets.top + 130, left: -18, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(168,85,247,0.08)', transform: [{ translateY: orbTranslateY }] }} />
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerY }] }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <View style={{ flex: 1, paddingRight: 14 }}>
-            <Text style={{ color: '#F1F0FF', fontSize: 30, fontWeight: '900', lineHeight: 36, letterSpacing: -0.5 }}>
-              {greeting} {emoji}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8, flexWrap: 'wrap' }}>
-              <View style={{ backgroundColor: roleConfig.bg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: `${roleConfig.color}44` }}>
-                <Text style={{ color: roleConfig.color, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>{roleConfig.label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                <Text style={{ color: '#C4B5FD', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>TODAY</Text>
               </View>
-              <Text style={{ color: '#5A5575', fontSize: 12, fontWeight: '600' }}>Soapies</Text>
+            </View>
+
+            <Animated.Text style={{ color: '#F1F0FF', fontSize: 34, fontWeight: '900', lineHeight: 40, letterSpacing: -1.2, transform: [{ scale: greetingScale }], fontFamily: FONT.displayBold }}>
+              {greeting} {emoji}
+            </Animated.Text>
+
+            <Text style={{ color: '#A09CB8', fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 260 }}>
+              Your private playground is waking up. Here’s your vibe, access, and momentum for today.
+            </Text>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
+              <View style={{ backgroundColor: roleConfig.bg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: `${roleConfig.color}44` }}>
+                <Text style={{ color: roleConfig.color, fontSize: 11, fontWeight: '800', letterSpacing: 0.5, fontFamily: FONT.displaySemiBold }}>{roleConfig.label}</Text>
+              </View>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
+                <Text style={{ color: '#8B84A7', fontSize: 11, fontWeight: '700' }}>Soapies</Text>
+              </View>
             </View>
           </View>
+
           <TouchableOpacity
             onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/profile'); } catch (_) {} }}
-            style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#EC489960', overflow: 'hidden', shadowColor: '#EC4899', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
+            activeOpacity={0.9}
+            style={{ padding: 6, marginTop: 4 }}
           >
-            <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={48} />
+            <Animated.View style={{ transform: [{ translateY: avatarTranslateY }] }}>
+              <View style={{ width: 68, height: 68, borderRadius: 34, padding: 3, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)', shadowColor: '#EC4899', shadowOpacity: 0.32, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }}>
+                <LinearGradient colors={['rgba(236,72,153,0.8)', 'rgba(168,85,247,0.7)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 31, padding: 2 }}>
+                  <View style={{ flex: 1, borderRadius: 29, overflow: 'hidden', backgroundColor: '#14091F' }}>
+                    <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={62} />
+                  </View>
+                </LinearGradient>
+              </View>
+            </Animated.View>
           </TouchableOpacity>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-          <StatChip icon="calendar" value={reservationsLoading ? '—' : String(attended)} label="Events"   color="#EC4899" />
-          <TouchableOpacity onPress={() => (router as any).push('/(tabs)/events')} activeOpacity={0.85} style={{ flex: 1 }}>
-            <StatChip icon="gift"     value={creditsLoading ? '—'    : credits}          label="Credits"  color="#A855F7" />
+
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+          <StatChip icon="calendar" value={reservationsLoading ? '—' : String(attended)} label="Events" color="#EC4899" detail="Booked this year" pulseValue={statCardPulse} />
+          <TouchableOpacity onPress={() => (router as any).push('/(tabs)/events')} activeOpacity={0.88} style={{ flex: 1 }}>
+            <StatChip icon="gift" value={creditsLoading ? '—' : credits} label="Credits" color="#A855F7" detail="Ready to spend" pulseValue={statCardPulse} />
           </TouchableOpacity>
-          <StatChip icon="star"       value={String(memberSince)}                         label="Since"    color="#F59E0B" />
+          <StatChip icon="sparkles" value={String(memberSince)} label="Since" color="#F59E0B" detail="Member era" pulseValue={statCardPulse} />
         </View>
       </Animated.View>
     </LinearGradient>
   );
 }
 
-function StatChip({ icon, value, label, color = '#EC4899' }: { icon: any; value: string; label: string; color?: string; loading?: boolean }) {
+function StatChip({ icon, value, label, color = '#EC4899', detail, pulseValue }: { icon: any; value: string; label: string; color?: string; loading?: boolean; detail?: string; pulseValue?: Animated.Value }) {
+  const scale = pulseValue ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [1, 1.015] }) : 1;
+  const highlightOpacity = pulseValue ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.18] }) : 0.08;
+
   return (
-    <View style={{ flex: 1, backgroundColor: `${color}12`, borderRadius: 14, borderColor: `${color}30`, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 10, alignItems: 'flex-start' }}>
-      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: `${color}25`, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
-        <Ionicons name={icon} size={15} color={color} />
+    <Animated.View style={{ flex: 1, backgroundColor: `${color}12`, borderRadius: 18, borderColor: `${color}34`, borderWidth: 1, paddingVertical: 12, paddingHorizontal: 12, alignItems: 'flex-start', overflow: 'hidden', transform: [{ scale }] }}>
+      <Animated.View style={{ position: 'absolute', top: -12, right: -12, width: 48, height: 48, borderRadius: 24, backgroundColor: color, opacity: highlightOpacity as any }} />
+      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${color}22`, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: `${color}22` }}>
+        <Ionicons name={icon} size={17} color={color} />
       </View>
-      <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '800', lineHeight: 18 }}>{value}</Text>
-      <Text style={{ color: '#5A5575', fontSize: 10, fontWeight: '600', letterSpacing: 0.4, marginTop: 1 }}>{label}</Text>
-    </View>
+      <Text style={{ color: '#F1F0FF', fontSize: 17, fontWeight: '900', lineHeight: 19, fontFamily: FONT.displayBold }}>{value}</Text>
+      <Text style={{ color: '#A09CB8', fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 4, textTransform: 'uppercase' }}>{label}</Text>
+      {!!detail && <Text style={{ color: '#6E6887', fontSize: 10, marginTop: 3 }}>{detail}</Text>}
+    </Animated.View>
   );
 }
 
@@ -205,7 +270,7 @@ function QuickActionGrid() {
                   >
                     <Ionicons name={item.icon} size={22} color={item.color} />
                   </View>
-                  <Text style={{ color: '#F1F0FF', fontSize: 13, fontWeight: '800', textAlign: 'center' }}>
+                  <Text style={{ color: '#F1F0FF', fontSize: 13, fontWeight: '800', textAlign: 'center', fontFamily: FONT.displaySemiBold }}>
                     {item.label}
                   </Text>
                 </TouchableOpacity>
@@ -284,39 +349,128 @@ function AnnouncementSection({
 
 // ── Upcoming Event Teaser ─────────────────────────────────────────────────────
 
-function EventTeaser({ event }: { event: any }) {
+function formatEventMarketingDate(date: string | Date) {
+  return new Date(date).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function startingPriceLabel(event: any) {
+  const prices = [event?.priceSingleFemale, event?.priceSingleMale, event?.priceCouple]
+    .map((v) => (v == null ? null : Number(v)))
+    .filter((v): v is number => Number.isFinite(v));
+  if (!prices.length) return 'Invite only';
+  return `From $${Math.min(...prices).toFixed(0)}`;
+}
+
+function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean }) {
   const router = useRouter();
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1.02, duration: 1400, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1,    duration: 1400, useNativeDriver: true }),
+    const pulse = Animated.loop(Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1.015, duration: 1700, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 1700, useNativeDriver: true }),
     ]));
-    loop.start();
-    return () => loop.stop();
+    const shimmer = Animated.loop(Animated.sequence([
+      Animated.timing(shimmerAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
+      Animated.timing(shimmerAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+      Animated.delay(500),
+    ]));
+    pulse.start();
+    shimmer.start();
+    return () => {
+      pulse.stop();
+      shimmer.stop();
+    };
   }, []);
   if (!event) return null;
-  const diff = new Date(event.startDate).getTime() - Date.now();
+  const start = new Date(event.startDate);
+  const diff = start.getTime() - Date.now();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  const label = days <= 0 ? '🔥 Tonight!' : days === 1 ? '🎉 Tomorrow' : `📅 In ${days} days`;
+  const label = days <= 0 ? 'Tonight' : days === 1 ? 'Tomorrow' : `In ${days} days`;
+  const price = startingPriceLabel(event);
+  const eventDate = formatEventMarketingDate(event.startDate);
+  const teaserCopy = isReserved
+    ? 'You’re on the list. Get ready for the vibe, the crowd, and the late-night energy.'
+    : 'Your next unforgettable night is almost here. Lock in your spot before this one fills.';
+  const cta = isReserved ? 'View event details' : 'Reserve your spot';
+  const shimmerX = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-220, 320] });
+
   return (
-    <Animated.View style={{ transform: [{ scale: pulseAnim }], marginHorizontal: 16, marginBottom: 14 }}>
-      <TouchableOpacity onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/events'); } catch (_) {} }} activeOpacity={0.9}>
+    <Animated.View style={{ transform: [{ scale: pulseAnim }], marginHorizontal: 16, marginBottom: 16 }}>
+      <TouchableOpacity onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/events'); } catch (_) {} }} activeOpacity={0.94}>
         <LinearGradient
-          colors={['#1A0830', '#EC489915', '#A855F710']}
+          colors={['#210635', '#12051E', '#080810']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 18, borderColor: '#EC489940', borderWidth: 1, padding: 16, flexDirection: 'row', alignItems: 'center' }}
+          style={{ borderRadius: 26, borderColor: 'rgba(236,72,153,0.22)', borderWidth: 1, overflow: 'hidden' }}
         >
-          <LinearGradient colors={['#EC4899', '#A855F7']} style={{ width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
-            <Ionicons name="calendar" size={24} color="#fff" />
-          </LinearGradient>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#EC4899', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 3 }}>Next Event</Text>
-            <Text style={{ color: '#F1F0FF', fontSize: 15, fontWeight: '800', letterSpacing: -0.2 }} numberOfLines={1}>{event.title}</Text>
-            <Text style={{ color: '#A855F7', fontSize: 12, fontWeight: '700', marginTop: 2 }}>{label}</Text>
-          </View>
-          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EC489920', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="chevron-forward" size={16} color="#EC4899" />
+          <View style={{ position: 'absolute', top: -40, right: -30, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(168,85,247,0.18)' }} />
+          <View style={{ position: 'absolute', bottom: -26, left: -16, width: 160, height: 100, borderRadius: 50, backgroundColor: 'rgba(236,72,153,0.12)' }} />
+          <Animated.View style={{ position: 'absolute', top: -20, bottom: -20, width: 90, opacity: 0.2, transform: [{ translateX: shimmerX }, { rotate: '-12deg' }] }}>
+            <LinearGradient colors={['transparent', 'rgba(255,255,255,0.25)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+          </Animated.View>
+
+          <View style={{ padding: 18 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <LinearGradient colors={['#EC4899', '#A855F7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, marginRight: 8 }}>{isReserved ? '✅' : '🎟️'}</Text>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>{label}</Text>
+              </LinearGradient>
+              <View style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, backgroundColor: isReserved ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: isReserved ? 'rgba(16,185,129,0.34)' : 'rgba(255,255,255,0.08)' }}>
+                <Text style={{ color: isReserved ? '#34D399' : '#F1F0FF', fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>
+                  {isReserved ? 'You’re going' : price}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ marginTop: 18 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 8 }}>
+                CURATED NIGHT
+              </Text>
+              <Text style={{ color: '#F1F0FF', fontSize: 32, lineHeight: 36, fontWeight: '900', letterSpacing: -1.1, fontFamily: FONT.displayBold }} numberOfLines={2}>
+                {event.title}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                <Ionicons name="calendar-outline" size={17} color="#F1F0FF" />
+              </View>
+              <View>
+                <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>{eventDate}</Text>
+                <Text style={{ color: '#8B84A7', fontSize: 12, marginTop: 2 }}>{event.location || 'Members-only venue'}</Text>
+              </View>
+            </View>
+
+            <Text style={{ color: '#C5BEDD', fontSize: 13, lineHeight: 20, marginTop: 14 }}>
+              {teaserCopy}
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                <Text style={{ color: '#7E7896', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>EXPERIENCE</Text>
+                <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{price}</Text>
+              </View>
+              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+                <Text style={{ color: '#7E7896', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>STATUS</Text>
+                <Text style={{ color: isReserved ? '#34D399' : '#F472B6', fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{isReserved ? 'Reserved' : 'Open now'}</Text>
+              </View>
+            </View>
+
+            <LinearGradient colors={isReserved ? ['#10B981', '#059669'] : ['#EC4899', '#A855F7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ marginTop: 18, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '700', letterSpacing: 0.9 }}>NEXT MOVE</Text>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{cta}</Text>
+              </View>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </View>
+            </LinearGradient>
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -599,6 +753,7 @@ export default function HomeScreen() {
   const dismissAnnouncement = trpc.announcements.dismiss.useMutation();
 
   const { data: eventsRaw } = trpc.events.list.useQuery({}, { staleTime: 120_000, enabled: hasToken }); // server auto-scopes to user's community
+  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000, enabled: hasToken });
 
   const myLikes = trpc.wall.myLikes.useQuery(undefined, { staleTime: 30_000, refetchOnWindowFocus: false, enabled: hasToken });
 
@@ -645,6 +800,13 @@ export default function HomeScreen() {
     () => allEvents.find((e: any) => e.status === 'published' && new Date(e.startDate) >= new Date()) ?? null,
     [allEvents],
   );
+
+  const reservedEventIds = useMemo(
+    () => new Set((((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').map((r: any) => Number(r.eventId)))),
+    [myReservationsData],
+  );
+
+  const isReservedForNextEvent = !!nextEvent && reservedEventIds.has(Number((nextEvent as any).id));
 
   const announcements = useMemo(() => {
     const all = (announcementsRaw as any[]) ?? [];
@@ -779,8 +941,8 @@ export default function HomeScreen() {
       {/* ── Upcoming Event ── */}
       {nextEvent && (
         <View style={{ marginBottom: 4 }}>
-          <SectionLabel title="Upcoming" />
-          <EventTeaser event={nextEvent} />
+          <SectionLabel title={isReservedForNextEvent ? 'Your Night' : 'Featured Experience'} />
+          <EventTeaser event={nextEvent} isReserved={isReservedForNextEvent} />
         </View>
       )}
 
@@ -794,7 +956,7 @@ export default function HomeScreen() {
 
     </View>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [me, profile, nextEvent, announcements]);
+  ), [me, profile, nextEvent, isReservedForNextEvent, announcements]);
 
   const FeedBar = (
     <View style={{ backgroundColor: '#080810', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
