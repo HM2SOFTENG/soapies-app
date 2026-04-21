@@ -321,8 +321,10 @@ export default function OnboardingScreen() {
         email: email.trim().toLowerCase(),
         password,
         name: email.split('@')[0],
+        // Temporary compatibility fallback: some live server paths still appear to require this field
+        // even though DOB is properly collected later in onboarding.
+        dateOfBirth: dobForServer ?? '1990-01-01',
       };
-      if (dobForServer) registerPayload.dateOfBirth = dobForServer;
 
       const result = await registerMutation.mutateAsync(registerPayload) as any;
 
