@@ -15,6 +15,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorBoundary from '../components/ErrorBoundary';
 import OfflineBanner from '../components/OfflineBanner';
 import { parseDeepLink } from '../lib/deepLinks';
+import { ThemeProvider, useTheme } from '../lib/theme';
 import { useFonts } from 'expo-font';
 import {
   SpaceGrotesk_500Medium,
@@ -232,32 +233,20 @@ function DeepLinkHandler({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-  });
+function AppShell() {
+  const { colors, isDark } = useTheme();
 
-  if (!fontsLoaded) {
-    return <LoadingScreen />;
-  }
-
-  // ErrorBoundary must be outermost so it catches errors from providers AND
-  // the DeepLinkHandler itself. DeepLinkHandler needs to live inside the
-  // router context but must NOT own the crash-fallback.
   return (
-    <ErrorBoundary>
-      <DeepLinkHandler>
+    <DeepLinkHandler>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <SafeAreaProvider>
             <ToastProvider>
               <AuthProvider>
-                <StatusBar style="light" translucent backgroundColor="transparent" />
+                <StatusBar style={isDark ? 'light' : 'dark'} translucent backgroundColor="transparent" />
                 <OfflineBanner />
                 <AuthGuard>
-                  <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: '#0D0D0D' } }}>
+                  <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }}>
                     <Stack.Screen name="index" />
                     <Stack.Screen name="(auth)" />
                     <Stack.Screen name="(tabs)" />
@@ -286,7 +275,29 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </QueryClientProvider>
       </trpc.Provider>
-      </DeepLinkHandler>
+    </DeepLinkHandler>
+  );
+}
+
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return <LoadingScreen />;
+  }
+
+  // ErrorBoundary must be outermost so it catches errors from providers AND
+  // the DeepLinkHandler itself. DeepLinkHandler needs to live inside the
+  // router context but must NOT own the crash-fallback.
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AppShell />
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

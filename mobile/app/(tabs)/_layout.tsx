@@ -6,6 +6,7 @@ import { DS } from '../../lib/design';
 import { trpc } from '../../lib/trpc';
 import { useAuth } from '../../lib/auth';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 const SIGNAL_COLORS: Record<string, string> = {
   available: '#10B981',
@@ -116,6 +117,7 @@ function TabBarIcon({ name, color, size, focused }: { name: any; color: string; 
 
 export default function TabsLayout() {
   const { user, hasToken } = useAuth();
+  const { colors, isDark } = useTheme();
   const isAdmin = user?.role === 'admin';
   const { data: unreadData } = trpc.messages.unreadCounts.useQuery(undefined, { staleTime: 15_000, refetchInterval: 30_000 });
   const { data: mySignalData } = trpc.members.mySignal.useQuery(undefined, { enabled: hasToken, staleTime: 60_000, refetchInterval: 5 * 60_000 });
@@ -127,7 +129,7 @@ export default function TabsLayout() {
     if (typeof unreadData === 'object') return Object.values(unreadData as Record<string, number>).reduce((sum: number, v) => sum + (Number(v) || 0), 0);
     return 0;
   })();
-  const signalTabColor = mySignalType && mySignalType !== 'offline' ? (SIGNAL_COLORS[mySignalType] ?? DS.colors.pink) : DS.colors.pink;
+  const signalTabColor = mySignalType && mySignalType !== 'offline' ? (SIGNAL_COLORS[mySignalType] ?? colors.primary) : colors.primary;
   return (
     <Tabs
       screenOptions={{
@@ -140,10 +142,10 @@ export default function TabsLayout() {
           right: 16,
           height: 76,
           borderRadius: 38,
-          backgroundColor: 'rgba(12, 12, 26, 0.94)',
+          backgroundColor: colors.tabBar,
           borderWidth: 1,
-          borderColor: 'rgba(236, 72, 153, 0.18)',
-          shadowColor: '#EC4899',
+          borderColor: colors.tabBarBorder,
+          shadowColor: colors.primary,
           shadowOpacity: 0.24,
           shadowRadius: 28,
           shadowOffset: { width: 0, height: 10 },
@@ -151,9 +153,9 @@ export default function TabsLayout() {
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarBackground: () => <View style={styles.tabBarGlow} />,
-        tabBarActiveTintColor: DS.colors.pink,
-        tabBarInactiveTintColor: '#8D88A8',
+        tabBarBackground: () => <View style={[styles.tabBarGlow, { backgroundColor: isDark ? 'rgba(12, 12, 26, 0.96)' : 'rgba(255, 248, 252, 0.98)' }]} />,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2, letterSpacing: 0.2, fontFamily: FONT.displaySemiBold },
         tabBarItemStyle: { paddingVertical: 4 },
       }}
@@ -172,7 +174,6 @@ const styles = StyleSheet.create({
   tabBarGlow: {
     flex: 1,
     borderRadius: 38,
-    backgroundColor: 'rgba(12, 12, 26, 0.96)',
   },
   iconWrap: {
     width: 34,

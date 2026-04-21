@@ -17,6 +17,7 @@ import Constants from 'expo-constants';
 import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
+import { useThemePreference, type ThemePreference } from '../lib/theme';
 import { queryClient } from './_layout';
 
 // ─── Storage Keys ────────────────────────────────────────────────────────────
@@ -204,15 +205,16 @@ function InfoRow({
 }
 
 type MessagingOption = 'everyone' | 'members' | 'nobody';
+type SegmentedValue = string;
 
-function SegmentedControl({
+function SegmentedControl<T extends SegmentedValue>({
   options,
   value,
   onChange,
 }: {
-  options: { label: string; value: MessagingOption }[];
-  value: MessagingOption;
-  onChange: (v: MessagingOption) => void;
+  options: { label: string; value: T }[];
+  value: T;
+  onChange: (v: T) => void;
 }) {
   return (
     <View style={{
@@ -255,6 +257,7 @@ function SegmentedControl({
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { preference: themePreference, setPreference: setThemePreference, scheme: activeTheme } = useThemePreference();
   const { user, logout } = useAuth();
   const { hasToken } = useAuth();
 
@@ -577,15 +580,42 @@ export default function SettingsScreen() {
 
         {/* ── APP ── */}
         <SectionHeader title="App" />
-        <ToggleRow
-          icon="moon-outline"
-          iconColor="#5A5575"
-          label="Dark Mode"
-          subtitle="Always on — can't be changed"
-          value={true}
-          onToggle={() => {}}
-          disabled
-        />
+        <View style={{
+          backgroundColor: '#10101C',
+          borderWidth: 1,
+          borderColor: '#1A1A30',
+          borderRadius: 14,
+          paddingVertical: 14,
+          marginHorizontal: 16,
+          marginBottom: 8,
+        }}>
+          <Text style={{
+            color: '#F1F0FF',
+            fontSize: 15,
+            fontWeight: '600',
+            marginHorizontal: 16,
+            marginBottom: 4,
+          }}>
+            Appearance
+          </Text>
+          <Text style={{
+            color: '#5A5575',
+            fontSize: 12,
+            marginHorizontal: 16,
+            marginBottom: 10,
+          }}>
+            Follow system, or always use light or dark mode. Currently {activeTheme}.
+          </Text>
+          <SegmentedControl
+            value={themePreference}
+            onChange={(value) => setThemePreference(value as ThemePreference)}
+            options={[
+              { label: 'System', value: 'system' },
+              { label: 'Light', value: 'light' },
+              { label: 'Dark', value: 'dark' },
+            ]}
+          />
+        </View>
         <InfoRow
           icon="information-circle-outline"
           label="App Version"
