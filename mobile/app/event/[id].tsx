@@ -93,7 +93,6 @@ export default function EventDetailScreen() {
   const ug = userGender.toLowerCase();
   const userIsMale   = MALE_VALS.includes(ug);
   const userIsFemale = FEMALE_VALS.includes(ug);
-  const oppositeGender = userIsMale ? 'female' : userIsFemale ? 'male' : undefined;
 
   // Debounce partner search so we don't fire on every keystroke
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -112,8 +111,6 @@ export default function EventDetailScreen() {
       page: 0,
       search: debouncedSearch || undefined,
       community: 'all',
-      // Only filter by gender when we have it — avoids empty results before profile loads
-      ...(oppositeGender ? { gender: oppositeGender } : {}),
     },
     {
       enabled: partnerPickerActive,
@@ -334,6 +331,7 @@ export default function EventDetailScreen() {
   function handleReserve() {
     const signedAt = (profileData as any)?.waiverSignedAt;
     if (!signedAt) {
+      setShowTicketModal(false);
       setShowWaiverModal(true);
       return;
     }
