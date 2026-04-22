@@ -191,13 +191,17 @@ async function startServer() {
         if (reservationId) {
           const db = await import("../db");
           try {
-            await db.updateReservation(reservationId, { status: 'cancelled', paymentStatus: 'failed' });
-            // Decrement attendee count
-            const pool = await db.getRawPool();
-            if (pool) await pool.execute(
-              'UPDATE events SET currentAttendees = GREATEST(0, currentAttendees - 1) WHERE id = (SELECT eventId FROM reservations WHERE id = ?)',
-              [reservationId]
+            const reservation = await db.getReservationById(reservationId);
+            const alreadyFinalized = reservation && (
+              reservation.status === 'cancelled'
+              || reservation.status === 'confirmed'
+              || reservation.status === 'checked_in'
+              || reservation.paymentStatus === 'paid'
             );
+
+            if (!alreadyFinalized) {
+              await db.updateReservation(reservationId, { status: 'cancelled', paymentStatus: 'failed' });
+            }
           } catch {}
         }
       }

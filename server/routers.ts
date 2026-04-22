@@ -845,6 +845,12 @@ export const appRouter = router({
         if (Number(res.userId) !== Number(ctx.user.id)) {
           throw new TRPCError({ code: "FORBIDDEN", message: "You can only pay for your own reservation" });
         }
+        if (res.status === "cancelled") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "This reservation has been cancelled" });
+        }
+        if (res.status === "checked_in" || res.paymentStatus === "paid") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "This reservation is already fully paid" });
+        }
 
         // Ticket price in cents — use live event prices when available
         const amounts: Record<string, number> = {
@@ -853,9 +859,12 @@ export const appRouter = router({
           single_male: Math.round(parseFloat(event.priceSingleMale ?? "145") * 100),
           volunteer: 0,
         };
-        const amount = amounts[res.ticketType ?? ""] ?? 0;
+        const fullAmount = amounts[res.ticketType ?? ""] ?? 0;
+        const creditsApplied = Math.round(parseFloat(String(res.creditsUsed ?? "0")) * 100);
+        const amountAlreadyPaid = Math.round(parseFloat(String(res.amountPaid ?? "0")) * 100);
+        const amount = Math.max(0, fullAmount - creditsApplied - amountAlreadyPaid);
         if (amount === 0)
-          throw new TRPCError({ code: "BAD_REQUEST", message: "No payment required for this ticket type" });
+          throw new TRPCError({ code: "BAD_REQUEST", message: "No payment is due for this reservation" });
 
         const baseUrl = process.env.APP_URL ?? "https://soapiesplaygrp.club";
         const result = await createCheckoutSession({
