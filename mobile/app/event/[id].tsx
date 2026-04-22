@@ -61,8 +61,9 @@ export default function EventDetailScreen() {
     { enabled: !!id },
   );
 
-  const { data: profileData } = trpc.profile.me.useQuery();
+  const { data: profileData, isLoading: profileLoading } = trpc.profile.me.useQuery();
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
+  const waiverRequired = !!profileData && !(profileData as any)?.waiverSignedAt;
   const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
   // Credits stored as dollars (e.g. 105.00 = $105.00)
   const creditBalanceDollars = typeof creditBalanceData === 'number' ? creditBalanceData : ((creditBalanceData as any)?.balance ?? 0);
@@ -346,6 +347,18 @@ export default function EventDetailScreen() {
     setShowPartnerPicker(false);
     setShowTicketModal(true);
   }
+
+  function handleCloseWaiverModal() {
+    setShowWaiverModal(false);
+    setWaiverSignature('');
+    setShowTicketModal(true);
+  }
+
+  const reserveButtonLabel = profileLoading
+    ? 'Checking reservation details...'
+    : waiverRequired
+      ? 'Review Waiver to Continue'
+      : 'Confirm Reservation';
 
   // Filter members by opposite gender for couple ticket partner selection
   const allMembers = (membersData as any[]) ?? [];
@@ -788,11 +801,35 @@ export default function EventDetailScreen() {
                   </View>
                 </TouchableOpacity>
 
+                {waiverRequired && !profileLoading && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      backgroundColor: '#F59E0B12',
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: '#F59E0B33',
+                      padding: 14,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Ionicons name="document-text-outline" size={18} color="#F59E0B" style={{ marginTop: 1 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#FDE68A', fontWeight: '800', fontSize: 13, marginBottom: 4 }}>Waiver required before reserving</Text>
+                      <Text style={{ color: '#D6CFC7', fontSize: 12, lineHeight: 18 }}>
+                        You will review and sign the community waiver before your reservation is submitted.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
                 <TouchableOpacity
                   onPress={handleReserve}
-                  disabled={reserveMutation.isPending || ticketType === 'couple'}
+                  disabled={reserveMutation.isPending || ticketType === 'couple' || profileLoading}
                   activeOpacity={0.85}
-                  style={{ marginTop: 8, opacity: (reserveMutation.isPending || ticketType === 'couple') ? 0.5 : 1 }}
+                  style={{ marginTop: 8, opacity: (reserveMutation.isPending || ticketType === 'couple' || profileLoading) ? 0.5 : 1 }}
                 >
                   <LinearGradient
                     colors={['#EC4899', '#A855F7']}
@@ -811,7 +848,7 @@ export default function EventDetailScreen() {
                     {reserveMutation.isPending ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Confirm Reservation</Text>
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{reserveButtonLabel}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -909,11 +946,35 @@ export default function EventDetailScreen() {
                   </Text>
                 </TouchableOpacity>
 
+                {waiverRequired && !profileLoading && (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      backgroundColor: '#F59E0B12',
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: '#F59E0B33',
+                      padding: 14,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Ionicons name="document-text-outline" size={18} color="#F59E0B" style={{ marginTop: 1 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#FDE68A', fontWeight: '800', fontSize: 13, marginBottom: 4 }}>Waiver required before reserving</Text>
+                      <Text style={{ color: '#D6CFC7', fontSize: 12, lineHeight: 18 }}>
+                        You will review and sign the community waiver before your reservation is submitted.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
                 <TouchableOpacity
                   onPress={handleReserve}
-                  disabled={reserveMutation.isPending || !partnerUserId}
+                  disabled={reserveMutation.isPending || !partnerUserId || profileLoading}
                   activeOpacity={0.85}
-                  style={{ opacity: (reserveMutation.isPending || !partnerUserId) ? 0.5 : 1 }}
+                  style={{ opacity: (reserveMutation.isPending || !partnerUserId || profileLoading) ? 0.5 : 1 }}
                 >
                   <LinearGradient
                     colors={['#EC4899', '#A855F7']}
@@ -932,7 +993,7 @@ export default function EventDetailScreen() {
                     {reserveMutation.isPending ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Confirm Reservation</Text>
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{reserveButtonLabel}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -1079,7 +1140,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* ───── Waiver gate modal (P1-4 / ITEM-025) ─────────────────────────── */}
-      <Modal visible={showWaiverModal} animationType="slide" transparent onRequestClose={() => setShowWaiverModal(false)}>
+      <Modal visible={showWaiverModal} animationType="slide" transparent onRequestClose={handleCloseWaiverModal}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' }}>
           <View style={{
             backgroundColor: '#0C0C1A',
@@ -1096,7 +1157,7 @@ export default function EventDetailScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Community Waiver</Text>
               <TouchableOpacity
-                onPress={() => { setShowWaiverModal(false); setWaiverSignature(''); }}
+                onPress={handleCloseWaiverModal}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close" size={22} color={colors.muted} />
