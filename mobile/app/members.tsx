@@ -54,7 +54,7 @@ const ROLE_OPTIONS = [
 const COMMUNITY_OPTIONS = [
   { label: 'My Community', value: undefined },
   { label: '🎉 Soapies', value: 'soapies' },
-  { label: '💑 Groupus', value: 'groupus' },
+  { label: '💑 Groupies', value: 'groupies' },
   { label: '🌈 Gaypeez', value: 'gaypeez' },
 ];
 
@@ -317,7 +317,7 @@ export default function MembersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string }>();
-  const isComposeMode = params.mode === 'compose';
+  const isComposeMode = params.mode === 'compose' || params.mode === 'message';
   const { hasToken } = useAuth();
 
   // Search & filter state

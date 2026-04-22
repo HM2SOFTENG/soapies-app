@@ -394,25 +394,26 @@ export default function EventDetailScreen() {
   // ── Render CTA ─────────────────────────────────────────────────────────────
   function renderCTA() {
     if (existingReservation) {
+      const hasPendingPayment = existingReservation.paymentStatus === 'pending';
       return (
         <View style={{ flex: 1 }}>
           <LinearGradient
-            colors={['#10B981', '#059669']}
+            colors={hasPendingPayment ? ['#F59E0B', '#D97706'] : ['#10B981', '#059669']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
           >
-            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Ionicons name={hasPendingPayment ? 'card-outline' : 'checkmark-circle'} size={20} color="#fff" />
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
-              You're Going! {existingReservation.status === 'pending' ? '(Payment Pending)' : '✅'}
+              {hasPendingPayment ? 'Reservation Held — Complete Payment' : "You're Going! ✅"}
             </Text>
           </LinearGradient>
-          {existingReservation.paymentStatus === 'pending' && (
+          {hasPendingPayment && (
             <TouchableOpacity
               onPress={() => router.push('/tickets' as any)}
               style={{ marginTop: 8, alignItems: 'center' }}
             >
-              <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>Pay Now → View Tickets</Text>
+              <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>Complete payment to secure your ticket</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -594,10 +595,10 @@ export default function EventDetailScreen() {
               <Ionicons name="calendar-outline" size={16} color="#EC4899" />
               <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{dateStr}{timeStr ? ' · ' + timeStr : ''}</Text>
             </View>
-            {ev.venue ? (
+            {(ev.venue || ev.location) ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                 <Ionicons name="location-outline" size={16} color="#A855F7" />
-                <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{ev.venue}</Text>
+                <Text style={{ color: '#A09CB8', marginLeft: 8, fontSize: 13 }}>{ev.venue || ev.location}</Text>
               </View>
             ) : null}
           </View>

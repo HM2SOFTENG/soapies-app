@@ -842,6 +842,10 @@ export const appRouter = router({
         if (!rows.length) throw new TRPCError({ code: "NOT_FOUND" });
         const { res, event } = rows[0];
 
+        if (Number(res.userId) !== Number(ctx.user.id)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You can only pay for your own reservation" });
+        }
+
         // Ticket price in cents — use live event prices when available
         const amounts: Record<string, number> = {
           single_female: Math.round(parseFloat(event.priceSingleFemale ?? "40") * 100),

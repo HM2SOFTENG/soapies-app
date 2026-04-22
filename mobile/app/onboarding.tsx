@@ -1297,7 +1297,7 @@ export default function OnboardingScreen() {
               {waiverAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
             </View>
             <Text style={{ color: colors.muted, flex: 1, lineHeight: 20, fontSize: 13 }}>
-              I am 18+ years old, agree to the{' '}
+              I am 21+ years old, agree to the{' '}
               <Text style={{ color: colors.pink }} onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}>
                 Community Guidelines &amp; Terms
               </Text>

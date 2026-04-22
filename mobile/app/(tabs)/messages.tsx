@@ -294,7 +294,7 @@ export default function MessagesScreen() {
 
       {/* ── FAB: New Message ── */}
       <TouchableOpacity
-        onPress={() => { Haptics.selectionAsync(); router.push('/members?mode=message' as any); }}
+        onPress={() => { Haptics.selectionAsync(); router.push('/members?mode=compose' as any); }}
         activeOpacity={0.85}
         style={styles.fab}
       >
