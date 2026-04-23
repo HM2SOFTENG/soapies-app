@@ -617,47 +617,41 @@ export const appRouter = router({
         }
       }
 
-      // Check for duplicate reservation
-      const existingRes = await db.getReservationsByUser(ctx.user.id);
-      const alreadyReserved = existingRes.some((r: any) => r.eventId === input.eventId && r.status !== 'cancelled');
-      if (alreadyReserved) {
-        throw new TRPCError({ code: 'CONFLICT', message: 'You already have a reservation for this event.' });
-      }
-      // Atomic capacity claim — prevents race condition overbooking
-      const slotClaimed = await db.atomicClaimEventSlot(input.eventId);
-      if (!slotClaimed) {
-        throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Sorry, this event is now at capacity.' });
-      }
-      // Handle credit payment — validate balance and deduct
-      let paymentStatus: 'pending' | 'paid' | 'partial' = 'pending';
       const creditsToUse = input.creditsUsed ?? 0;
-      if (creditsToUse > 0 || input.paymentMethod === 'credits') {
-        const balance = await db.getCreditBalance(ctx.user.id);
-        if (creditsToUse > balance) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: `Insufficient credits. You have $${(balance / 100).toFixed(2)} available.` });
+      const reservationResult = await db.createReservationTransaction({
+        ...input,
+        userId: ctx.user.id,
+        creditsUsedCents: creditsToUse,
+        notes: input.isVolunteer ? 'volunteer' : undefined,
+      });
+
+      if (!reservationResult.ok) {
+        if (reservationResult.reason === 'DUPLICATE_RESERVATION') {
+          throw new TRPCError({ code: 'CONFLICT', message: 'You already have a reservation for this event.' });
         }
-        // Server-side price lookup — never trust client-supplied totalAmount
-        const eventData = await db.getEventById(input.eventId) as any;
-        let serverPriceCents = 0;
-        if (eventData) {
-          const priceField = input.ticketType === 'single_female' ? 'priceSingleFemale'
-            : input.ticketType === 'single_male' ? 'priceSingleMale'
-            : input.ticketType === 'couple' ? 'priceCouple'
-            : null;
-          if (priceField && eventData[priceField]) {
-            serverPriceCents = Math.round(parseFloat(String(eventData[priceField])) * 100);
-          }
+        if (reservationResult.reason === 'PARTNER_ALREADY_RESERVED') {
+          throw new TRPCError({ code: 'CONFLICT', message: 'Your selected partner already has a reservation for this event.' });
         }
-        if (creditsToUse > serverPriceCents && serverPriceCents > 0) {
+        if (reservationResult.reason === 'PARTNER_SELF') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'You cannot select yourself as your partner.' });
+        }
+        if (reservationResult.reason === 'EVENT_AT_CAPACITY') {
+          throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Sorry, this event is now at capacity.' });
+        }
+        if (reservationResult.reason === 'INSUFFICIENT_CREDITS') {
+          const availableCents = Number(reservationResult.detail ?? '0');
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Insufficient credits. You have $${(availableCents / 100).toFixed(2)} available.` });
+        }
+        if (reservationResult.reason === 'CREDITS_EXCEED_PRICE') {
           throw new TRPCError({ code: 'BAD_REQUEST', message: 'Credits exceed ticket price.' });
         }
-        // Deduct credits as a negative entry
-        await db.addCredit(ctx.user.id, -creditsToUse, 'debit', `Credits applied to event reservation — ${creditsToUse} cents`);
-        // Determine payment status
-        paymentStatus = creditsToUse >= serverPriceCents ? 'paid' : 'partial';
+        if (reservationResult.reason === 'EVENT_NOT_FOUND') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Event not found.' });
+        }
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Unable to create reservation right now.' });
       }
-      const reservationId = await db.createReservation({ ...input, userId: ctx.user.id, creditsUsed: String(creditsToUse / 100), status: "pending", paymentStatus, notes: input.isVolunteer ? 'volunteer' : undefined });
-      // Attendee count already incremented atomically in atomicClaimEventSlot above
+
+      const reservationId = reservationResult.reservationId;
       // Process referral conversion on first reservation (fires only if not already converted)
       if (reservationId) {
         // Update wristband color based on reservation data
@@ -665,6 +659,16 @@ export const appRouter = router({
           await db.updateReservationWristband(reservationId as number);
         } catch (err) {
           console.error("[Wristband] Failed to update wristband:", err);
+        }
+
+        if (reservationResult.paymentStatus === 'paid') {
+          try {
+            const { generateTicketQR } = await import('./services/tickets');
+            const qrCode = await generateTicketQR(reservationId);
+            await db.createTicketForReservation(reservationId, ctx.user.id, qrCode);
+          } catch (err) {
+            console.error('[Reservation] Failed to create immediate ticket:', err);
+          }
         }
 
         // Auto-assign volunteer to shift if volunteer ticket
@@ -697,23 +701,8 @@ export const appRouter = router({
         }
         // Auto-wall-post disabled — clutters the feed with system noise
 
-        // ── Couple ticket: create partner reservation + notify ─────────────
-        if (input.ticketType === 'couple' && input.partnerUserId) {
-          try {
-            await db.createReservation({
-              userId: input.partnerUserId,
-              eventId: input.eventId,
-              ticketType: 'couple',
-              status: 'pending',
-              paymentStatus: 'pending',
-              paymentMethod: input.paymentMethod ?? 'venmo',
-              partnerUserId: ctx.user.id,
-            });
-            await db.incrementEventAttendees(input.eventId);
-          } catch (err) {
-            console.error('[Couple] Failed to create partner reservation:', err);
-          }
-
+        // ── Couple ticket: partner reservation already created transactionally; notify after commit ─────────────
+        if (input.ticketType === 'couple' && input.partnerUserId && reservationResult.partnerReservationId) {
           // Notify partner via push/in-app
           try {
             const requesterProfile = await db.getProfileByUserId(ctx.user.id);

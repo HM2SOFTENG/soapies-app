@@ -340,6 +340,228 @@ export async function createReservation(data: any) {
   return r[0].insertId;
 }
 
+type ReservationTicketType = "single_female" | "single_male" | "couple" | "volunteer" | undefined;
+
+export type CreateReservationTransactionInput = {
+  eventId: number;
+  userId: number;
+  ticketType?: ReservationTicketType;
+  quantity?: number;
+  paymentMethod?: string;
+  paymentStatus?: "pending" | "paid" | "partial" | "failed" | "refunded";
+  orientationSignal?: string;
+  isQueerPlay?: boolean;
+  isVolunteer?: boolean;
+  partnerUserId?: number;
+  testResultUrl?: string;
+  creditsUsedCents?: number;
+  notes?: string;
+};
+
+export type CreateReservationTransactionResult =
+  | {
+      ok: true;
+      reservationId: number;
+      partnerReservationId: number | null;
+      paymentStatus: "pending" | "paid" | "partial";
+      reservationStatus: "pending" | "confirmed";
+      totalAmount: string | null;
+      creditsUsed: string;
+      serverPriceCents: number;
+    }
+  | {
+      ok: false;
+      reason:
+        | "DB_UNAVAILABLE"
+        | "EVENT_NOT_FOUND"
+        | "DUPLICATE_RESERVATION"
+        | "PARTNER_SELF"
+        | "PARTNER_ALREADY_RESERVED"
+        | "EVENT_AT_CAPACITY"
+        | "INSUFFICIENT_CREDITS"
+        | "CREDITS_EXCEED_PRICE";
+      detail?: string;
+    };
+
+function getReservationTicketPriceCents(eventRow: any, ticketType?: ReservationTicketType): number {
+  if (ticketType === "single_female") return Math.round(parseFloat(String(eventRow?.priceSingleFemale ?? "40")) * 100);
+  if (ticketType === "single_male") return Math.round(parseFloat(String(eventRow?.priceSingleMale ?? "145")) * 100);
+  if (ticketType === "couple") return Math.round(parseFloat(String(eventRow?.priceCouple ?? "130")) * 100);
+  return 0;
+}
+
+export async function createReservationTransaction(
+  input: CreateReservationTransactionInput,
+): Promise<CreateReservationTransactionResult> {
+  const pool = await getRawPool();
+  if (!pool) return { ok: false, reason: "DB_UNAVAILABLE" };
+
+  const creditsToUse = Math.max(0, Math.trunc(input.creditsUsedCents ?? 0));
+  const attendeeSlots = input.ticketType === "couple" && input.partnerUserId ? 2 : 1;
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const [eventRows] = await conn.execute(
+      `SELECT id, capacity, currentAttendees, priceSingleFemale, priceSingleMale, priceCouple
+         FROM events
+        WHERE id = ?
+        LIMIT 1
+        FOR UPDATE`,
+      [input.eventId],
+    );
+    const eventRow = (eventRows as any[])[0];
+    if (!eventRow) {
+      await conn.rollback();
+      return { ok: false, reason: "EVENT_NOT_FOUND" };
+    }
+
+    const [existingRows] = await conn.execute(
+      `SELECT id
+         FROM reservations
+        WHERE userId = ? AND eventId = ? AND status != 'cancelled'
+        LIMIT 1
+        FOR UPDATE`,
+      [input.userId, input.eventId],
+    );
+    if ((existingRows as any[]).length > 0) {
+      await conn.rollback();
+      return { ok: false, reason: "DUPLICATE_RESERVATION" };
+    }
+
+    if (input.partnerUserId) {
+      if (Number(input.partnerUserId) === Number(input.userId)) {
+        await conn.rollback();
+        return { ok: false, reason: "PARTNER_SELF" };
+      }
+
+      const [partnerRows] = await conn.execute(
+        `SELECT id
+           FROM reservations
+          WHERE userId = ? AND eventId = ? AND status != 'cancelled'
+          LIMIT 1
+          FOR UPDATE`,
+        [input.partnerUserId, input.eventId],
+      );
+      if ((partnerRows as any[]).length > 0) {
+        await conn.rollback();
+        return { ok: false, reason: "PARTNER_ALREADY_RESERVED" };
+      }
+    }
+
+    const capacity = eventRow.capacity == null ? null : Number(eventRow.capacity);
+    const currentAttendees = Number(eventRow.currentAttendees ?? 0);
+    if (capacity && capacity > 0 && currentAttendees + attendeeSlots > capacity) {
+      await conn.rollback();
+      return { ok: false, reason: "EVENT_AT_CAPACITY" };
+    }
+
+    const serverPriceCents = getReservationTicketPriceCents(eventRow, input.ticketType);
+    if (creditsToUse > serverPriceCents && serverPriceCents > 0) {
+      await conn.rollback();
+      return { ok: false, reason: "CREDITS_EXCEED_PRICE" };
+    }
+
+    if (creditsToUse > 0) {
+      const [balanceRows] = await conn.execute(
+        `SELECT COALESCE(balance, 0) AS balance
+           FROM member_credits
+          WHERE userId = ?
+          ORDER BY id DESC
+          LIMIT 1
+          FOR UPDATE`,
+        [input.userId],
+      );
+      const availableBalance = Math.round(parseFloat(String((balanceRows as any[])[0]?.balance ?? 0)));
+      if (creditsToUse > availableBalance) {
+        await conn.rollback();
+        return { ok: false, reason: "INSUFFICIENT_CREDITS", detail: String(availableBalance) };
+      }
+
+      await conn.execute(
+        `INSERT INTO member_credits (userId, amount, type, description, balance)
+         VALUES (?, ?, 'debit', ?, ?)`,
+        [
+          input.userId,
+          String(-creditsToUse),
+          `Credits applied to event reservation — ${creditsToUse} cents`,
+          String(availableBalance - creditsToUse),
+        ],
+      );
+    }
+
+    let paymentStatus: "pending" | "paid" | "partial" = "pending";
+    if (serverPriceCents === 0) {
+      paymentStatus = "paid";
+    } else if (creditsToUse > 0) {
+      paymentStatus = creditsToUse >= serverPriceCents ? "paid" : "partial";
+    }
+    const reservationStatus: "pending" | "confirmed" = paymentStatus === "paid" ? "confirmed" : "pending";
+    const totalAmount = serverPriceCents > 0 ? (serverPriceCents / 100).toFixed(2) : null;
+    const creditsUsed = (creditsToUse / 100).toFixed(2);
+
+    const [insertedReservation] = await conn.execute(
+      `INSERT INTO reservations
+        (eventId, userId, ticketType, quantity, totalAmount, creditsUsed, paymentMethod, paymentStatus, status, notes, orientationSignal, isQueerPlay, partnerUserId, testResultUrl)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        input.eventId,
+        input.userId,
+        input.ticketType ?? null,
+        input.quantity ?? 1,
+        totalAmount,
+        creditsUsed,
+        input.paymentMethod ?? null,
+        paymentStatus,
+        reservationStatus,
+        input.notes ?? null,
+        input.orientationSignal ?? null,
+        input.isQueerPlay ? 1 : 0,
+        input.partnerUserId ?? null,
+        input.testResultUrl ?? null,
+      ],
+    );
+
+    const reservationId = Number((insertedReservation as any).insertId);
+    let partnerReservationId: number | null = null;
+
+    if (input.ticketType === "couple" && input.partnerUserId) {
+      const [insertedPartnerReservation] = await conn.execute(
+        `INSERT INTO reservations
+          (eventId, userId, ticketType, quantity, paymentMethod, paymentStatus, status, partnerUserId)
+         VALUES (?, ?, 'couple', 1, ?, 'pending', 'pending', ?)`,
+        [input.eventId, input.partnerUserId, input.paymentMethod ?? "venmo", input.userId],
+      );
+      partnerReservationId = Number((insertedPartnerReservation as any).insertId);
+    }
+
+    await conn.execute(
+      `UPDATE events
+          SET currentAttendees = currentAttendees + ?
+        WHERE id = ?`,
+      [attendeeSlots, input.eventId],
+    );
+
+    await conn.commit();
+    return {
+      ok: true,
+      reservationId,
+      partnerReservationId,
+      paymentStatus,
+      reservationStatus,
+      totalAmount,
+      creditsUsed,
+      serverPriceCents,
+    };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
 export async function getReservationsByEvent(eventId: number) {
   const db = await getDb(); if (!db) return [];
   return db.select().from(reservations).where(eq(reservations.eventId, eventId)).orderBy(desc(reservations.createdAt));
