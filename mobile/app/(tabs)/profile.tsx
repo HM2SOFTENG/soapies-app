@@ -21,6 +21,7 @@ import { useToast } from '../../components/Toast';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ function capitalize(str: string) {
 function StatBox({ label, value }: { label: string; value: number | string }) {
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
-      <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900' as const }}>{value}</Text>
+      <Text style={{ color: colors.text, fontSize: 24, fontWeight: '900' as const }}>{value}</Text>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{label}</Text>
     </View>
   );
@@ -231,7 +232,19 @@ function ReferralPipelineCard({ row }: { row: any }) {
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const theme = useTheme();
   const { logout, user } = useAuth();
+  const t = {
+    page: theme.colors.background,
+    surface: theme.colors.card,
+    elevated: theme.colors.surfaceMuted,
+    border: theme.colors.border,
+    text: theme.colors.text,
+    subtext: theme.colors.textSecondary,
+    muted: theme.colors.textMuted,
+    headerGradient: theme.gradients.screen,
+    divider: theme.colors.divider,
+  };
   const isAdmin = user?.role === 'admin';
   const router = useRouter();
   const { hasToken } = useAuth();
@@ -312,19 +325,19 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#080810', justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.page }} edges={['bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
 
         {/* ── Gradient Header ── */}
         <LinearGradient
-          colors={['#1A082E', '#0D0520', '#080810']}
+          colors={t.headerGradient as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={{ paddingTop: insets.top + 20, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
@@ -384,16 +397,16 @@ export default function ProfileScreen() {
         <View style={{
           flexDirection: 'row',
           marginHorizontal: 20,
-          backgroundColor: '#10101C',
+          backgroundColor: t.surface,
           borderRadius: 16,
           padding: 20,
-          borderColor: '#1A1A30',
+          borderColor: t.border,
           borderWidth: 1,
         }}>
           <StatBox label="Events" value={eventsCount} />
-          <View style={{ width: 1, backgroundColor: '#1A1A30' }} />
+          <View style={{ width: 1, backgroundColor: t.divider }} />
           <StatBox label="Posts" value={profile?.postsCount ?? 0} />
-          <View style={{ width: 1, backgroundColor: '#1A1A30' }} />
+          <View style={{ width: 1, backgroundColor: t.divider }} />
           <StatBox label="Referrals" value={referralsCount} />
         </View>
 
@@ -401,9 +414,9 @@ export default function ProfileScreen() {
         {(profile?.location || profile?.gender || profile?.orientation || prefs?.relationshipStatus) && (
           <View style={{
             marginHorizontal: 20, marginTop: 16,
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderRadius: 16, padding: 16,
-            borderColor: '#1A1A30', borderWidth: 1,
+            borderColor: t.border, borderWidth: 1,
           }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>About Me</Text>
             {profile?.location && (
@@ -425,9 +438,9 @@ export default function ProfileScreen() {
         {prefs?.interests?.length > 0 && (
           <View style={{
             marginHorizontal: 20, marginTop: 12,
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderRadius: 16, padding: 16,
-            borderColor: '#1A1A30', borderWidth: 1,
+            borderColor: t.border, borderWidth: 1,
           }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Interests</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -450,9 +463,9 @@ export default function ProfileScreen() {
         {prefs?.lookingFor?.length > 0 && (
           <View style={{
             marginHorizontal: 20, marginTop: 12,
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderRadius: 16, padding: 16,
-            borderColor: '#1A1A30', borderWidth: 1,
+            borderColor: t.border, borderWidth: 1,
           }}>
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Looking For</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -474,9 +487,9 @@ export default function ProfileScreen() {
         {/* ── Credits Balance ── */}
         <View style={{
           marginHorizontal: 20, marginTop: 16,
-          backgroundColor: '#10101C',
+          backgroundColor: t.surface,
           borderRadius: 16, padding: 16,
-          borderColor: '#1A1A30', borderWidth: 1,
+          borderColor: t.border, borderWidth: 1,
           flexDirection: 'row', alignItems: 'center',
         }}>
           <View style={{
@@ -498,9 +511,9 @@ export default function ProfileScreen() {
         {/* ── Referral Code ── */}
         <View style={{
           marginHorizontal: 20, marginTop: 12,
-          backgroundColor: '#10101C',
+          backgroundColor: t.surface,
           borderRadius: 16, padding: 16,
-          borderColor: '#1A1A30', borderWidth: 1,
+          borderColor: t.border, borderWidth: 1,
         }}>
           <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
             REFERRAL CODE
@@ -524,9 +537,9 @@ export default function ProfileScreen() {
         {/* ── Referral Tracker ── */}
         <View style={{
           marginHorizontal: 20, marginTop: 12,
-          backgroundColor: '#10101C',
+          backgroundColor: t.surface,
           borderRadius: 16, padding: 16,
-          borderColor: '#1A1A30', borderWidth: 1,
+          borderColor: t.border, borderWidth: 1,
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
@@ -559,7 +572,7 @@ export default function ProfileScreen() {
           </View>
 
           {((myReferralsData as any[]) ?? []).length === 0 ? (
-            <View style={{ marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: '#0D0D18', borderWidth: 1, borderColor: '#1A1A30' }}>
+            <View style={{ marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: t.elevated, borderWidth: 1, borderColor: t.border }}>
               <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>No referrals yet</Text>
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
                 When someone signs up with your code, their progress will appear here automatically.
@@ -611,10 +624,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/edit-profile' as any)}
             style={{
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: '#1A1A30', borderWidth: 1,
+              borderColor: t.border, borderWidth: 1,
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.pink} />
@@ -626,10 +639,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/settings' as any)}
             style={{
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: '#1A1A30', borderWidth: 1,
+              borderColor: t.border, borderWidth: 1,
             }}
           >
             <Ionicons name="settings-outline" size={20} color={colors.muted} />
@@ -641,10 +654,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/tickets' as any)}
             style={{
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: '#1A1A30', borderWidth: 1,
+              borderColor: t.border, borderWidth: 1,
             }}
           >
             <Ionicons name="ticket-outline" size={20} color={colors.pink} />
@@ -656,10 +669,10 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => router.push('/members' as any)}
             style={{
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: '#1A1A30', borderWidth: 1,
+              borderColor: t.border, borderWidth: 1,
             }}
           >
             <Ionicons name="people-outline" size={20} color={colors.pink} />
@@ -672,10 +685,10 @@ export default function ProfileScreen() {
             onPress={handleLogout}
             disabled={logoutMutation.isPending}
             style={{
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
               flexDirection: 'row', alignItems: 'center',
-              borderColor: '#1A1A30', borderWidth: 1,
+              borderColor: t.border, borderWidth: 1,
             }}
           >
             {logoutMutation.isPending ? (

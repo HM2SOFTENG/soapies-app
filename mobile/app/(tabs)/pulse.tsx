@@ -17,6 +17,7 @@ import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import { calculateMatchScore, calculateMatchBreakdown, type MatchFactor } from '../../lib/pulseScore';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -744,6 +745,19 @@ function MemberDetailModal({
 // ─── PulseScreen ───────────────────────────────────────────────────────────────
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const themed = useMemo(() => ({
+    screen: theme.isDark ? '#0D0820' : theme.colors.backgroundDeep,
+    headerGradient: theme.isDark ? ['#24103F', '#140A28', '#090813'] as const : ['#FFF7FC', '#F8EDFA', '#F3E7F7'] as const,
+    headerBorder: theme.isDark ? '#ffffff14' : theme.colors.border,
+    headerGlowPink: theme.isDark ? '#EC48991A' : 'rgba(236,72,153,0.08)',
+    headerGlowPurple: theme.isDark ? '#A855F714' : 'rgba(168,85,247,0.08)',
+    fieldCard: theme.isDark ? '#090811D9' : 'rgba(255,255,255,0.9)',
+    fieldBorder: theme.isDark ? '#FFFFFF10' : theme.colors.border,
+    fieldLabel: theme.isDark ? '#8F86A8' : theme.colors.textMuted,
+    fieldValue: theme.colors.text,
+    canvasBorder: theme.isDark ? '#FFFFFF10' : theme.colors.border,
+  }), [theme]);
   const router = useRouter();
   const { hasToken } = useAuth();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -885,24 +899,24 @@ export default function PulseScreen() {
   const myConfig = SIGNAL_CONFIG[mySignalType];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0D0820' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: themed.screen }} edges={['bottom']}>
       {/* ── Header ── */}
       <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 6, paddingBottom: 10 }}>
         <LinearGradient
-          colors={['#24103F', '#140A28', '#090813']}
+          colors={themed.headerGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
             borderRadius: 28,
             borderWidth: 1,
-            borderColor: '#ffffff14',
+            borderColor: themed.headerBorder,
             paddingHorizontal: 16,
             paddingVertical: 14,
             overflow: 'hidden',
           }}
         >
-          <View style={{ position: 'absolute', top: -30, right: -16, width: 116, height: 116, borderRadius: 58, backgroundColor: '#EC48991A' }} />
-          <View style={{ position: 'absolute', bottom: -46, left: -10, width: 136, height: 136, borderRadius: 68, backgroundColor: '#A855F714' }} />
+          <View style={{ position: 'absolute', top: -30, right: -16, width: 116, height: 116, borderRadius: 58, backgroundColor: themed.headerGlowPink }} />
+          <View style={{ position: 'absolute', bottom: -46, left: -10, width: 136, height: 136, borderRadius: 68, backgroundColor: themed.headerGlowPurple }} />
           <View style={{ flexDirection: isCompact ? 'column' : 'row', alignItems: isCompact ? 'stretch' : 'center' }}>
             <View style={{ flex: 1, paddingRight: isCompact ? 0 : 12, marginBottom: isCompact ? 14 : 0 }}>
               <Text style={{ color: '#B8A8D9', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 4 }}>
@@ -958,7 +972,7 @@ export default function PulseScreen() {
       </View>
 
       {/* ── Bubble canvas ── */}
-      <View style={{ flex: 1, position: 'relative', overflow: 'hidden', marginHorizontal: 12, marginBottom: 12, borderRadius: 34, borderWidth: 1, borderColor: '#FFFFFF10' }}>
+      <View style={{ flex: 1, position: 'relative', overflow: 'hidden', marginHorizontal: 12, marginBottom: 12, borderRadius: 34, borderWidth: 1, borderColor: themed.canvasBorder }}>
 
         {/* Depth gradient background */}
         <LinearGradient
@@ -1086,23 +1100,23 @@ export default function PulseScreen() {
             borderRadius: 18,
             paddingHorizontal: 14,
             paddingVertical: 12,
-            backgroundColor: '#090811D9',
+            backgroundColor: themed.fieldCard,
             borderWidth: 1,
-            borderColor: '#FFFFFF10',
+            borderColor: themed.fieldBorder,
           }}>
-            <Text style={{ color: '#8F86A8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Field radius</Text>
-            <Text style={{ color: '#F4EEFF', fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{maxDistance === 999 ? 'Anywhere' : `${maxDistance}km`}</Text>
+            <Text style={{ color: themed.fieldLabel, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Field radius</Text>
+            <Text style={{ color: themed.fieldValue, fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{maxDistance === 999 ? 'Anywhere' : `${maxDistance}km`}</Text>
           </View>
           <View style={{
             flex: 1,
             borderRadius: 18,
             paddingHorizontal: 14,
             paddingVertical: 12,
-            backgroundColor: '#090811D9',
+            backgroundColor: themed.fieldCard,
             borderWidth: 1,
-            borderColor: '#FFFFFF10',
+            borderColor: themed.fieldBorder,
           }}>
-            <Text style={{ color: '#8F86A8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Signal state</Text>
+            <Text style={{ color: themed.fieldLabel, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Signal state</Text>
             <Text numberOfLines={1} style={{ color: myConfig.color, fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{myConfig.label}</Text>
           </View>
         </View>

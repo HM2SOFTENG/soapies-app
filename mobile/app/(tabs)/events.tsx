@@ -24,6 +24,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HERO_MAX = 320;
@@ -97,7 +98,7 @@ function eventEmoji(title: string): string {
 
 // ── Shimmer Skeleton ─────────────────────────────────────────────────────────
 
-function ShimmerSkeleton() {
+function ShimmerSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -112,8 +113,8 @@ function ShimmerSkeleton() {
   const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
-    <Animated.View style={[styles.skeletonCard, { opacity }]}>
-      <View style={styles.skeletonThumb} />
+    <Animated.View style={[styles.skeletonCard, { opacity, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+      <View style={[styles.skeletonThumb, { backgroundColor: theme.colors.border }]} />
       <View style={styles.skeletonBody}>
         <View style={[styles.skeletonLine, { width: '75%', height: 16 }]} />
         <View style={[styles.skeletonLine, { width: '50%', height: 11, marginTop: 8 }]} />
@@ -321,6 +322,24 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
 function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: Animated.Value; isGoing?: boolean }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const theme = useTheme();
+  const themed = useMemo(() => ({
+    screen: theme.colors.background,
+    card: theme.colors.card,
+    cardBorder: theme.colors.border,
+    filterBorder: theme.colors.border,
+    filterWrapBg: theme.colors.background,
+    summaryBg: theme.colors.card,
+    summaryBorder: theme.colors.border,
+    text: theme.colors.text,
+    textMuted: theme.colors.textSecondary,
+    pillBg: theme.isDark ? '#10101C' : theme.colors.surfaceHigh,
+    pillMuted: theme.isDark ? '#5A5575' : theme.colors.textMuted,
+    pillBorder: theme.isDark ? '#1A1A30' : theme.colors.border,
+    heroOverlay: theme.isDark ? ['transparent', '#08081099', '#080810'] as const : ['transparent', 'rgba(255,248,252,0.5)', theme.colors.background] as const,
+    miniBar: theme.isDark ? 'rgba(8,8,16,0.88)' : 'rgba(255,248,252,0.92)',
+    miniBarBorder: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.colors.border,
+  }), [theme]);
   const [imgError, setImgError] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
@@ -383,7 +402,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
 
       {/* Dark overlay so text is always legible */}
       <LinearGradient
-        colors={['transparent', '#08081099', '#080810']}
+        colors={themed.heroOverlay}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFillObject}
       />
@@ -396,9 +415,9 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
       )}
 
       {/* Mini collapsed bar */}
-      <Animated.View style={[styles.miniBar, { opacity: miniOpacity }]}>
+      <Animated.View style={[styles.miniBar, { opacity: miniOpacity, backgroundColor: themed.miniBar, borderTopColor: themed.miniBarBorder }]}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.pink, marginRight: 10, shadowColor: colors.pink, shadowOpacity: 0.6, shadowRadius: 10 }} />
-        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, flex: 1, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
+        <Text style={{ color: themed.text, fontWeight: '700', fontSize: 14, flex: 1, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
           {event?.title ?? 'No upcoming events'}
         </Text>
         {countdown ? (
@@ -458,7 +477,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
         </Animated.View>
       ) : (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: colors.muted, fontSize: 16 }}>No upcoming events</Text>
+          <Text style={{ color: themed.textMuted, fontSize: 16 }}>No upcoming events</Text>
         </View>
       )}
     </Animated.View>
@@ -468,11 +487,12 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
 // ── Month Divider ─────────────────────────────────────────────────────────────
 
 function MonthDivider({ month }: { month: string }) {
+  const theme = useTheme();
   return (
     <View style={styles.monthDivider}>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-      <Text style={styles.monthLabel}>{month}</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
+      <Text style={[styles.monthLabel, { color: theme.colors.textMuted }]}>{month}</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
     </View>
   );
 }
@@ -483,6 +503,19 @@ const FILTER_TABS = ['All', 'Upcoming', 'Past'] as const;
 type FilterTab = typeof FILTER_TABS[number];
 
 export default function EventsScreen() {
+  const theme = useTheme();
+  const themed = useMemo(() => ({
+    summaryBg: theme.colors.card,
+    summaryBorder: theme.colors.border,
+    wrapBg: theme.colors.background,
+    wrapBorder: theme.colors.border,
+    title: theme.colors.text,
+    muted: theme.colors.textSecondary,
+    pillBg: theme.isDark ? '#10101C' : theme.colors.surfaceHigh,
+    pillBorder: theme.isDark ? '#1A1A30' : theme.colors.border,
+    pillText: theme.isDark ? '#5A5575' : theme.colors.textMuted,
+    activeBg: theme.isDark ? '#EC489920' : 'rgba(236,72,153,0.12)',
+  }), [theme]);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('Upcoming');
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -559,7 +592,7 @@ export default function EventsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
       {/* Hero */}
       <HeroSection
         event={nextEvent}
@@ -568,11 +601,11 @@ export default function EventsScreen() {
       />
 
       {/* Filter tabs */}
-      <View style={styles.filterRowWrap}>
-        <View style={styles.filterSummaryCard}>
+      <View style={[styles.filterRowWrap, { backgroundColor: themed.wrapBg, borderBottomColor: themed.wrapBorder }]}>
+        <View style={[styles.filterSummaryCard, { backgroundColor: themed.summaryBg, borderColor: themed.summaryBorder }]}>
           <View>
-            <Text style={styles.filterSummaryEyebrow}>CURATED NIGHTS</Text>
-            <Text style={styles.filterSummaryTitle}>{filtered.length} experiences</Text>
+            <Text style={[styles.filterSummaryEyebrow, { color: themed.muted }]}>CURATED NIGHTS</Text>
+            <Text style={[styles.filterSummaryTitle, { color: themed.title }]}>{filtered.length} experiences</Text>
           </View>
           <View style={styles.countBadge}>
             <Text style={{ color: colors.pink, fontWeight: '800', fontSize: 13, fontFamily: FONT.displaySemiBold }}>{filtered.length}</Text>
@@ -583,8 +616,8 @@ export default function EventsScreen() {
             const active = activeFilter === tab;
             return (
               <Animated.View key={tab} style={{ transform: [{ scale: filterScale[idx] }] }}>
-                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, active && styles.filterTabActive]}>
-                  <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>{tab}</Text>
+                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, { backgroundColor: themed.pillBg, borderColor: themed.pillBorder }, active && [styles.filterTabActive, { backgroundColor: themed.activeBg, borderColor: theme.colors.primary }]]}>
+                  <Text style={[styles.filterLabel, { color: themed.pillText }, active && [styles.filterLabelActive, { color: theme.colors.primary }]]}>{tab}</Text>
                 </TouchableOpacity>
               </Animated.View>
             );
@@ -595,7 +628,7 @@ export default function EventsScreen() {
       {/* List */}
       {isLoading ? (
         <View style={{ padding: 16 }}>
-          {[0, 1, 2].map(i => <ShimmerSkeleton key={i} />)}
+          {[0, 1, 2].map(i => <ShimmerSkeleton key={i} theme={theme} />)}
         </View>
       ) : (
         <Animated.FlatList

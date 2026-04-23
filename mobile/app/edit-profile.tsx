@@ -22,13 +22,16 @@ import { trpc } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import { uploadPhoto } from '../lib/uploadPhoto';
 import { useToast } from '../components/Toast';
+import { useTheme } from '../lib/theme';
 
 // ── Locked field for sensitive profile data ──────────────────────────────────
 function LockedField({ label, value, onRequestChange }: { label: string; value: string; onRequestChange: () => void }) {
+  const theme = useTheme();
+  const t = { muted: theme.colors.textMuted, input: theme.colors.input, border: theme.colors.border };
   return (
     <View style={{ marginBottom: 16 }}>
       <Text style={{
-        color: '#5A5575',
+        color: t.muted,
         fontSize: 11,
         fontWeight: '800',
         textTransform: 'uppercase',
@@ -40,15 +43,15 @@ function LockedField({ label, value, onRequestChange }: { label: string; value: 
       <View style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#0C0C1A',
+        backgroundColor: t.input,
         borderRadius: 14,
-        borderColor: '#1A1A30',
+        borderColor: t.border,
         borderWidth: 1,
         paddingHorizontal: 16,
         paddingVertical: 13,
       }}>
-        <Text style={{ flex: 1, color: '#5A5575', fontSize: 15 }}>{value || 'Not set'}</Text>
-        <Ionicons name="lock-closed" size={16} color="#5A5575" style={{ marginRight: 10 }} />
+        <Text style={{ flex: 1, color: t.muted, fontSize: 15 }}>{value || 'Not set'}</Text>
+        <Ionicons name="lock-closed" size={16} color={t.muted} style={{ marginRight: 10 }} />
         <TouchableOpacity onPress={onRequestChange}>
           <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>Request Change</Text>
         </TouchableOpacity>
@@ -61,6 +64,19 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const utils = trpc.useUtils();
+  const theme = useTheme();
+  const t = {
+    page: theme.colors.background,
+    elevated: theme.colors.floating,
+    surface: theme.colors.card,
+    border: theme.colors.border,
+    text: theme.colors.text,
+    subtext: theme.colors.textSecondary,
+    muted: theme.colors.textMuted,
+    headerGradient: theme.gradients.screen,
+    input: theme.colors.input,
+    focus: theme.colors.focusRing,
+  };
 
   const { data: profileData, isLoading } = trpc.profile.me.useQuery();
   const { data: meData } = trpc.auth.me.useQuery();
@@ -157,7 +173,7 @@ export default function EditProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#080810', justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
@@ -181,10 +197,10 @@ export default function EditProfileScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.page }} edges={['bottom']}>
       {/* ── Gradient Header ── */}
       <LinearGradient
-        colors={['#12051E', '#080810']}
+        colors={t.headerGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 20 }}
@@ -196,18 +212,18 @@ export default function EditProfileScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderWidth: 1,
-              borderColor: '#1A1A30',
+              borderColor: t.border,
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: 14,
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Ionicons name="chevron-back" size={22} color="#F1F0FF" />
+            <Ionicons name="chevron-back" size={22} color={t.text} />
           </Pressable>
-          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', flex: 1 }}>Edit Profile ✏️</Text>
+          <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', flex: 1 }}>Edit Profile ✏️</Text>
         </View>
       </LinearGradient>
 
@@ -243,8 +259,8 @@ export default function EditProfileScreen() {
                       onError={() => {}}
                     />
                   ) : (
-                    <View style={{ flex: 1, backgroundColor: '#10101C', alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name="person" size={40} color="#5A5575" />
+                    <View style={{ flex: 1, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="person" size={40} color={t.muted} />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -279,10 +295,10 @@ export default function EditProfileScreen() {
 
           {/* ── Personal Info Section Card ── */}
           <View style={{
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#1A1A30',
+            borderColor: t.border,
             padding: 16,
             marginHorizontal: 16,
             marginBottom: 12,
@@ -290,7 +306,7 @@ export default function EditProfileScreen() {
             {editableFields.map((field, idx) => (
               <View key={field.label} style={{ marginBottom: idx === editableFields.length - 1 ? 0 : 18 }}>
                 <Text style={{
-                  color: '#5A5575',
+                  color: t.muted,
                   fontSize: 11,
                   fontWeight: '800',
                   textTransform: 'uppercase',
@@ -303,26 +319,26 @@ export default function EditProfileScreen() {
                   value={field.value}
                   onChangeText={(v) => field.setter(field.multiline ? v.slice(0, field.maxLen) : v)}
                   placeholder={field.placeholder}
-                  placeholderTextColor="#5A5575"
+                  placeholderTextColor={t.muted}
                   multiline={field.multiline}
                   numberOfLines={field.multiline ? 4 : 1}
                   onFocus={() => setFocusedField(field.label)}
                   onBlur={() => setFocusedField(null)}
                   style={{
-                    backgroundColor: '#0C0C1A',
+                    backgroundColor: t.input,
                     borderWidth: 1,
-                    borderColor: focusedField === field.label ? '#EC489960' : '#1A1A30',
+                    borderColor: focusedField === field.label ? t.focus : t.border,
                     borderRadius: 14,
                     paddingHorizontal: 16,
                     paddingVertical: 13,
-                    color: '#F1F0FF',
+                    color: t.text,
                     fontSize: 15,
                     minHeight: field.multiline ? 100 : undefined,
                     textAlignVertical: field.multiline ? 'top' : 'center',
                   }}
                 />
                 {field.multiline && (
-                  <Text style={{ color: '#5A5575', fontSize: 11, textAlign: 'right', marginTop: 4 }}>
+                  <Text style={{ color: t.muted, fontSize: 11, textAlign: 'right', marginTop: 4 }}>
                     {field.value.length}/{field.maxLen}
                   </Text>
                 )}
@@ -332,10 +348,10 @@ export default function EditProfileScreen() {
 
           {/* ── Sensitive Fields Section Card ── */}
           <View style={{
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#1A1A30',
+            borderColor: t.border,
             padding: 16,
             marginHorizontal: 16,
             marginBottom: 20,

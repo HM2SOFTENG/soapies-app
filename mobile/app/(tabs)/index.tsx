@@ -34,6 +34,7 @@ import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
 import { useToast } from '../../components/Toast';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -719,6 +720,19 @@ function SectionLabel({ title }: { title: string }) {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const themed = useMemo(() => ({
+    screen: theme.colors.background,
+    sectionBg: theme.colors.background,
+    card: theme.colors.card,
+    cardBorder: theme.colors.border,
+    text: theme.colors.text,
+    textSecondary: theme.colors.textSecondary,
+    textMuted: theme.colors.textMuted,
+    composerPrompt: theme.isDark ? '#5A5575' : theme.colors.textMuted,
+    composerIconPink: theme.isDark ? '#EC489980' : 'rgba(236,72,153,0.7)',
+    composerIconPurple: theme.isDark ? '#A855F780' : 'rgba(168,85,247,0.7)',
+  }), [theme]);
   const toast = useToast();
   const [refreshing, setRefreshing]         = useState(false);
   const [showComposer, setShowComposer]     = useState(false);
@@ -933,7 +947,7 @@ export default function HomeScreen() {
       <AnimatedHeader me={me} profile={profile} />
 
       {/* ── Quick Actions ── */}
-      <View style={{ paddingTop: 20, paddingBottom: 6, backgroundColor: '#080810' }}>
+      <View style={{ paddingTop: 20, paddingBottom: 6, backgroundColor: themed.sectionBg }}>
         <SectionLabel title="Quick Actions" />
         <QuickActionGrid />
       </View>
@@ -959,26 +973,26 @@ export default function HomeScreen() {
   ), [me, profile, nextEvent, isReservedForNextEvent, announcements]);
 
   const FeedBar = (
-    <View style={{ backgroundColor: '#080810', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
+    <View style={{ backgroundColor: themed.sectionBg, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
       <SectionLabel title="Community Feed" />
       <TouchableOpacity
         onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
-        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#10101C', borderRadius: 16, padding: 14, borderColor: '#EC489928', borderWidth: 1, marginBottom: 10, shadowColor: '#EC4899', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: themed.card, borderRadius: 16, padding: 14, borderColor: theme.isDark ? '#EC489928' : theme.colors.border, borderWidth: 1, marginBottom: 10, shadowColor: '#EC4899', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
       >
         <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={34} />
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ color: '#5A5575', fontSize: 14, fontWeight: '500' }}>What's on your mind?</Text>
+          <Text style={{ color: themed.composerPrompt, fontSize: 14, fontWeight: '500' }}>What's on your mind?</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Ionicons name="image-outline" size={20} color="#EC489980" />
-          <Ionicons name="camera-outline" size={20} color="#A855F780" />
+          <Ionicons name="image-outline" size={20} color={themed.composerIconPink} />
+          <Ionicons name="camera-outline" size={20} color={themed.composerIconPurple} />
         </View>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: themed.screen }} edges={['bottom']}>
       {isLoading ? (
         <ScrollView>
           {ListHeader}
@@ -1021,10 +1035,10 @@ export default function HomeScreen() {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>💫</Text>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
+              <Text style={{ color: themed.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
                 It's quiet in here…
               </Text>
-              <Text style={{ color: colors.muted, fontSize: 15, textAlign: 'center', marginBottom: 24 }}>
+              <Text style={{ color: themed.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24 }}>
                 Be the first to share something with the community
               </Text>
               <Pressable

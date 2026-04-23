@@ -12,6 +12,7 @@ import { trpc } from '../lib/trpc';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../lib/auth';
 import { FONT } from '../lib/fonts';
+import { useTheme } from '../lib/theme';
 
 const PAGE_SIZE = 20;
 
@@ -69,6 +70,7 @@ function AnimatedChip({
   active: boolean;
   onSelect: (v: string | undefined) => void;
 }) {
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>
@@ -89,9 +91,9 @@ function AnimatedChip({
           paddingHorizontal: 14,
           paddingVertical: 7,
           borderRadius: 20,
-          backgroundColor: active ? '#EC489920' : '#10101C',
+          backgroundColor: active ? '#EC489920' : colors.card,
           borderWidth: 1,
-          borderColor: active ? '#EC4899' : '#1A1A30',
+          borderColor: active ? '#EC4899' : colors.border,
         }}
       >
         <Text
@@ -162,6 +164,7 @@ function MemberCard({
   onPress: () => void;
   isComposeMode: boolean;
 }) {
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>
@@ -202,10 +205,10 @@ function MemberCard({
           marginHorizontal: 16,
           marginBottom: 10,
           padding: 16,
-          backgroundColor: '#11111E',
+          backgroundColor: colors.card,
           borderRadius: 18,
           borderWidth: 1,
-          borderColor: '#1F1D33',
+          borderColor: colors.border,
         }}
       >
         {/* Avatar with glow border */}
@@ -231,7 +234,7 @@ function MemberCard({
               flexWrap: 'wrap',
             }}
           >
-            <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 16 }}>{name}</Text>
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{name}</Text>
             {community && (
               <View
                 style={{
@@ -269,7 +272,7 @@ function MemberCard({
 
           {/* Orientation + gender */}
           {(orientation || gender) && (
-            <Text style={{ color: '#A09CB8', fontSize: 12, marginBottom: 3 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 3 }}>
               {[orientation, gender].filter(Boolean).join(' · ')}
             </Text>
           )}
@@ -289,7 +292,7 @@ function MemberCard({
                     paddingVertical: 2,
                   }}
                 >
-                  <Text style={{ color: '#5A5575', fontSize: 10 }}>{tag}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 10 }}>{tag}</Text>
                 </View>
               ))}
             </View>
@@ -297,7 +300,7 @@ function MemberCard({
 
           {/* Location */}
           {location && (
-            <Text style={{ color: '#5A5575', fontSize: 12 }}>{location}</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{location}</Text>
           )}
         </View>
 
@@ -314,6 +317,20 @@ function MemberCard({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function MembersScreen() {
+  const theme = useTheme();
+  const t = {
+    page: theme.colors.background,
+    surface: theme.colors.card,
+    elevated: theme.colors.floating,
+    border: theme.colors.border,
+    text: theme.colors.text,
+    subtext: theme.colors.textSecondary,
+    muted: theme.colors.textMuted,
+    headerGradient: theme.gradients.screen,
+    searchSurface: theme.isDark ? '#0F0F1B' : theme.colors.surfaceHigh,
+    searchBorder: theme.isDark ? '#EC489930' : theme.colors.borderAccent,
+    searchBorderFocus: theme.colors.focusRing,
+  };
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string }>();
@@ -565,10 +582,10 @@ export default function MembersScreen() {
     });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.page }} edges={['bottom', 'left', 'right']}>
       {/* Header */}
       <LinearGradient
-        colors={['#1A0A22', '#100815', '#080810']}
+        colors={t.headerGradient as any}
         style={{
           paddingTop: insets.top + 14,
           paddingBottom: 18,
@@ -587,7 +604,7 @@ export default function MembersScreen() {
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text
             style={{
-              color: '#F1F0FF',
+              color: t.text,
               fontSize: 28,
               fontWeight: '900',
               letterSpacing: -0.3,
@@ -665,10 +682,10 @@ export default function MembersScreen() {
         style={{
           margin: 12,
           marginBottom: 8,
-          backgroundColor: '#0F0F1B',
+          backgroundColor: t.searchSurface,
           borderRadius: 22,
           borderWidth: 1,
-          borderColor: searchFocused ? '#EC489960' : '#EC489930',
+          borderColor: searchFocused ? t.searchBorderFocus : t.searchBorder,
           paddingHorizontal: 14,
           paddingVertical: 14,
         }}
@@ -684,8 +701,8 @@ export default function MembersScreen() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             placeholder="Search members..."
-            placeholderTextColor="#5A5575"
-            style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+            placeholderTextColor={t.muted}
+            style={{ flex: 1, color: t.text, fontSize: 15 }}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -738,12 +755,12 @@ export default function MembersScreen() {
       {showFilters && (
         <View
           style={{
-            backgroundColor: '#0C0C1A',
+            backgroundColor: t.elevated,
             borderBottomLeftRadius: 16,
             borderBottomRightRadius: 16,
             borderTopWidth: 1,
             borderWidth: 1,
-            borderColor: '#1A1A30',
+            borderColor: t.border,
             marginHorizontal: 0,
             paddingVertical: 12,
           }}
@@ -751,7 +768,7 @@ export default function MembersScreen() {
           {/* GENDER */}
           <Text
             style={{
-              color: '#5A5575',
+              color: t.muted,
               fontSize: 11,
               fontWeight: '800',
               letterSpacing: 1.2,
@@ -767,7 +784,7 @@ export default function MembersScreen() {
           {/* ORIENTATION */}
           <Text
             style={{
-              color: '#5A5575',
+              color: t.muted,
               fontSize: 11,
               fontWeight: '800',
               letterSpacing: 1.2,
@@ -788,7 +805,7 @@ export default function MembersScreen() {
           {/* LOOKING FOR */}
           <Text
             style={{
-              color: '#5A5575',
+              color: t.muted,
               fontSize: 11,
               fontWeight: '800',
               letterSpacing: 1.2,
@@ -809,7 +826,7 @@ export default function MembersScreen() {
           {/* ROLE */}
           <Text
             style={{
-              color: '#5A5575',
+              color: t.muted,
               fontSize: 11,
               fontWeight: '800',
               letterSpacing: 1.2,
@@ -830,7 +847,7 @@ export default function MembersScreen() {
           {/* COMMUNITY */}
           <Text
             style={{
-              color: '#5A5575',
+              color: t.muted,
               fontSize: 11,
               fontWeight: '800',
               letterSpacing: 1.2,
@@ -858,7 +875,7 @@ export default function MembersScreen() {
               marginTop: 12,
             }}
           >
-            <Text style={{ color: '#F1F0FF', fontSize: 14 }}>📷  Has Profile Photo</Text>
+            <Text style={{ color: t.text, fontSize: 14 }}>📷  Has Profile Photo</Text>
             <Switch
               value={pendingHasPhoto}
               onValueChange={setPendingHasPhoto}
@@ -875,13 +892,13 @@ export default function MembersScreen() {
                 flex: 1,
                 paddingVertical: 11,
                 borderRadius: 12,
-                backgroundColor: '#10101C',
+                backgroundColor: t.surface,
                 borderWidth: 1,
-                borderColor: '#1A1A30',
+                borderColor: t.border,
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: '#5A5575', fontWeight: '700', fontSize: 14 }}>Clear All</Text>
+              <Text style={{ color: t.muted, fontWeight: '700', fontSize: 14 }}>Clear All</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={applyFilters}
@@ -930,7 +947,7 @@ export default function MembersScreen() {
               <Text style={{ fontSize: 48, marginBottom: 12 }}>👥</Text>
               <Text
                 style={{
-                  color: '#F1F0FF',
+                  color: t.text,
                   fontSize: 18,
                   fontWeight: '800',
                   textAlign: 'center',
@@ -939,7 +956,7 @@ export default function MembersScreen() {
               >
                 {query || activeFilterCount > 0 ? 'No members found' : 'No members yet'}
               </Text>
-              <Text style={{ color: '#5A5575', fontSize: 15, textAlign: 'center' }}>
+              <Text style={{ color: t.muted, fontSize: 15, textAlign: 'center' }}>
                 {query
                   ? 'Try a different search term'
                   : activeFilterCount > 0

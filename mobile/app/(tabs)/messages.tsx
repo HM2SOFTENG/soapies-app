@@ -14,9 +14,10 @@ import { useAuth } from '../../lib/auth';
 import ConversationItem from '../../components/ConversationItem';
 import BrandGradient from '../../components/BrandGradient';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
-function Skeleton() {
+function Skeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
   const anim = useRef(new Animated.Value(0.3)).current;
   useEffect(() => {
     Animated.loop(
@@ -27,11 +28,11 @@ function Skeleton() {
     ).start();
   }, []);
   return (
-    <Animated.View style={[styles.skeletonRow, { opacity: anim }]}>
-      <View style={styles.skeletonAvatar} />
+    <Animated.View style={[styles.skeletonRow, { opacity: anim, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+      <View style={[styles.skeletonAvatar, { backgroundColor: theme.colors.border }]} />
       <View style={{ flex: 1, gap: 8 }}>
-        <View style={[styles.skeletonLine, { width: '45%' }]} />
-        <View style={[styles.skeletonLine, { width: '70%', height: 11 }]} />
+        <View style={[styles.skeletonLine, { width: '45%', backgroundColor: theme.colors.border }]} />
+        <View style={[styles.skeletonLine, { width: '70%', height: 11, backgroundColor: theme.colors.border }]} />
       </View>
     </Animated.View>
   );
@@ -52,6 +53,24 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const themed = useMemo(() => ({
+    screen: theme.colors.background,
+    headerGradient: theme.isDark ? ['#18071F', '#10061A', '#080810'] as const : ['#FFF7FC', '#FBEFFC', '#F7EFFA'] as const,
+    headerBorder: theme.isDark ? 'rgba(255,255,255,0.05)' : theme.colors.border,
+    glow: theme.isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.08)',
+    chipBg: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.72)',
+    chipBorder: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.colors.border,
+    title: theme.colors.text,
+    subtitle: theme.colors.textSecondary,
+    mutedStrong: theme.isDark ? '#8B84A7' : theme.colors.textSecondary,
+    mutedSoft: theme.isDark ? '#5A5575' : theme.colors.textMuted,
+    surface: theme.colors.card,
+    surfaceAlt: theme.isDark ? '#120F20' : theme.colors.surfaceHigh,
+    surfaceBorder: theme.isDark ? 'rgba(255,255,255,0.05)' : theme.colors.border,
+    accentSoft: theme.isDark ? '#EC489920' : 'rgba(236,72,153,0.1)',
+    accentBorder: theme.isDark ? '#EC489960' : 'rgba(236,72,153,0.2)',
+  }), [theme]);
   const router = useRouter();
   const { hasToken } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
@@ -133,17 +152,17 @@ export default function MessagesScreen() {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themed.screen }]} edges={['bottom']}>
 
       {/* ── Header ── */}
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }}>
         <LinearGradient
-          colors={['#18071F', '#10061A', '#080810']}
-          style={[styles.header, { paddingTop: insets.top + 6 }]}
+          colors={themed.headerGradient}
+          style={[styles.header, { paddingTop: insets.top + 6, borderBottomColor: themed.headerBorder }]}
         >
-          <View style={styles.headerGlow} />
+          <View style={[styles.headerGlow, { backgroundColor: themed.glow }]} />
           <View style={styles.headerTopline}>
-            <View style={styles.headerEyebrow}>
+            <View style={[styles.headerEyebrow, { backgroundColor: themed.chipBg, borderColor: themed.chipBorder }]}>
               <Text style={styles.headerEyebrowText}>PRIVATE INBOX</Text>
             </View>
             {totalUnread > 0 ? (
@@ -156,14 +175,14 @@ export default function MessagesScreen() {
 
           <View style={styles.headerRow}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={styles.headerTitle}>Messages</Text>
-              <Text style={styles.headerSubtitle}>
+              <Text style={[styles.headerTitle, { color: themed.title }]}>Messages</Text>
+              <Text style={[styles.headerSubtitle, { color: themed.subtitle }]}>
                 Keep the flirtation, planning, and after-hours chatter in one velvet thread.
               </Text>
               {totalUnread > 0 && (
-                <View style={styles.unreadBadge}>
-                  <Ionicons name="sparkles" size={12} color="#F9A8D4" />
-                  <Text style={styles.unreadBadgeText}>
+                <View style={[styles.unreadBadge, { backgroundColor: themed.accentSoft, borderColor: themed.accentBorder }]}>
+                  <Ionicons name="sparkles" size={12} color={theme.colors.primary} />
+                  <Text style={[styles.unreadBadgeText, { color: theme.colors.primary }]}>
                     {totalUnread} unread message{totalUnread > 1 ? 's' : ''}
                   </Text>
                 </View>
@@ -176,7 +195,7 @@ export default function MessagesScreen() {
                   onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
                   style={styles.headerBtn}
                 >
-                  <LinearGradient colors={['rgba(236,72,153,0.2)', 'rgba(168,85,247,0.18)']} style={styles.headerBtnInner}>
+                  <LinearGradient colors={theme.isDark ? ['rgba(236,72,153,0.2)', 'rgba(168,85,247,0.18)'] : ['rgba(236,72,153,0.12)', 'rgba(168,85,247,0.12)']} style={styles.headerBtnInner}>
                     <Ionicons name="checkmark-done" size={18} color="#EC4899" />
                   </LinearGradient>
                 </TouchableOpacity>
@@ -185,23 +204,23 @@ export default function MessagesScreen() {
           </View>
 
           <Animated.View style={[styles.searchShell, { transform: [{ scale: searchScale }] }]}>
-            <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-              <Ionicons name="search" size={16} color="#8B84A7" />
+            <View style={[styles.searchBar, { backgroundColor: themed.surface, borderColor: themed.surfaceBorder }, searchFocused && [styles.searchBarFocused, { borderColor: themed.accentBorder, backgroundColor: themed.surfaceAlt }]]}>
+              <Ionicons name="search" size={16} color={themed.mutedStrong} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onFocus={onSearchFocus}
                 onBlur={onSearchBlur}
                 placeholder="Search messages..."
-                placeholderTextColor="#5A5575"
-                style={styles.searchInput}
+                placeholderTextColor={themed.mutedSoft}
+                style={[styles.searchInput, { color: themed.title }]}
                 returnKeyType="search"
                 autoCorrect={false}
                 autoCapitalize="none"
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={16} color="#8B84A7" />
+                  <Ionicons name="close-circle" size={16} color={themed.mutedStrong} />
                 </TouchableOpacity>
               )}
             </View>
@@ -212,7 +231,7 @@ export default function MessagesScreen() {
       {/* ── Content ── */}
       {isLoading ? (
         <View style={{ paddingTop: 8 }}>
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} />)}
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} theme={theme} />)}
         </View>
       ) : (
         <SectionList
@@ -239,8 +258,8 @@ export default function MessagesScreen() {
               {searchQuery ? (
                 <>
                   <Text style={styles.emptyEmoji}>🔍</Text>
-                  <Text style={styles.emptyTitle}>No results</Text>
-                  <Text style={styles.emptyBody}>No conversations match "{searchQuery}"</Text>
+                  <Text style={[styles.emptyTitle, { color: themed.title }]}>No results</Text>
+                  <Text style={[styles.emptyBody, { color: themed.mutedSoft }]}>No conversations match "{searchQuery}"</Text>
                   <TouchableOpacity
                     onPress={() => setSearchQuery('')}
                     style={styles.emptySecondary}
@@ -253,8 +272,8 @@ export default function MessagesScreen() {
                   <View style={styles.emptyIconWrap}>
                     <Text style={styles.emptyEmoji}>💬</Text>
                   </View>
-                  <Text style={styles.emptyTitle}>No conversations yet</Text>
-                  <Text style={styles.emptyBody}>
+                  <Text style={[styles.emptyTitle, { color: themed.title }]}>No conversations yet</Text>
+                  <Text style={[styles.emptyBody, { color: themed.mutedSoft }]}>
                     Start a conversation with a community member, or join a channel at your next event.
                   </Text>
 
@@ -280,7 +299,7 @@ export default function MessagesScreen() {
                     style={styles.emptySecondary}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.emptySecondaryText}>See upcoming events</Text>
+                    <Text style={[styles.emptySecondaryText, { color: theme.colors.primary }]}>See upcoming events</Text>
                   </TouchableOpacity>
                 </>
               )}

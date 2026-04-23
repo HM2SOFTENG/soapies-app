@@ -19,11 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { trpc } from '../../lib/trpc';
-import { colors } from '../../lib/colors';
 import { FONT } from '../../lib/fonts';
 import Avatar from '../../components/Avatar';
 import { formatDistanceToNow } from '../../lib/utils';
 import { useAuth } from '../../lib/auth';
+import { useTheme, type ThemeColors } from '../../lib/theme';
 
 const REACTIONS = ['❤️', '😂', '😮', '👍', '🔥', '💀'];
 
@@ -32,6 +32,8 @@ export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { colors, alpha } = useTheme();
+  const styles = useMemo(() => createStyles(colors, alpha), [colors, alpha]);
   const [text, setText] = useState('');
   const [selectedMessageId, setSelectedMessageId] = useState<number | null>(null);
   const [showReactions, setShowReactions] = useState(false);
@@ -236,11 +238,11 @@ export default function ChatScreen() {
       >
         {/* ── Header ── */}
         <LinearGradient
-          colors={['#19091F', '#100816', '#080810']}
+          colors={[colors.pageHeader, colors.background, colors.backgroundDeep]}
           style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -261,7 +263,7 @@ export default function ChatScreen() {
               </Text>
             </View>
             {conversation?.type === 'dm' && conversation?.otherUserId && (
-              <Ionicons name="chevron-forward" size={14} color="#5A5575" />
+              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
             )}
           </TouchableOpacity>
           {conversation?.type === 'dm' && conversation?.otherUserId && (
@@ -271,7 +273,7 @@ export default function ChatScreen() {
               accessibilityRole="button"
               style={{ padding: 8, marginLeft: 4 }}
             >
-              <Ionicons name="ellipsis-vertical" size={20} color="#5A5575" />
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </LinearGradient>
@@ -297,8 +299,8 @@ export default function ChatScreen() {
             ListEmptyComponent={
               <View style={{ flex: 1, alignItems: 'center', paddingTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🌙</Text>
-                <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800', fontFamily: FONT.displayBold }}>No messages yet</Text>
-                <Text style={{ color: '#5A5575', fontSize: 13, marginTop: 6 }}>Say hello! 👋</Text>
+                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', fontFamily: FONT.displayBold }}>No messages yet</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 6 }}>Say hello! 👋</Text>
               </View>
             }
           />
@@ -310,7 +312,7 @@ export default function ChatScreen() {
             value={text}
             onChangeText={setText}
             placeholder="Message…"
-            placeholderTextColor="#5A5575"
+            placeholderTextColor={colors.textMuted}
             multiline
             maxLength={2000}
             style={styles.textInput}
@@ -331,7 +333,7 @@ export default function ChatScreen() {
                 </LinearGradient>
               ) : (
                 <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
-                  <Ionicons name="send" size={18} color="#5A5575" />
+                  <Ionicons name="send" size={18} color={colors.textMuted} />
                 </View>
               )}
             </TouchableOpacity>
@@ -349,7 +351,7 @@ export default function ChatScreen() {
           <View style={styles.reactionPicker}>
             {/* Blur-like gradient overlay */}
             <LinearGradient
-              colors={['#1A1A30', '#10101C']}
+              colors={[colors.surfaceHigh, colors.surface]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -370,186 +372,188 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080810' },
+function createStyles(colors: ThemeColors, alpha: (color: string, opacity: number) => string) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.page },
 
-  // ── Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#10101C',
-    borderColor: '#1A1A30',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatarWrap: {
-    borderColor: '#EC489960',
-    borderWidth: 2,
-    borderRadius: 22,
-    overflow: 'hidden',
-    shadowColor: '#EC4899',
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  headerName: {
-    color: '#F1F0FF',
-    fontSize: 18,
-    fontWeight: '800',
-    fontFamily: FONT.displayBold,
-    letterSpacing: -0.3,
-  },
-  headerMeta: {
-    color: '#8B84A7',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  onlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 1,
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#4ADE80',
-  },
-  onlineText: {
-    color: '#4ADE80',
-    fontSize: 11,
-    fontWeight: '600',
-  },
+    // ── Header
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingBottom: 12,
+      gap: 12,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerAvatarWrap: {
+      borderColor: alpha(colors.primary, 0.38),
+      borderWidth: 2,
+      borderRadius: 22,
+      overflow: 'hidden',
+      shadowColor: colors.primary,
+      shadowOpacity: 0.28,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+    },
+    headerName: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '800',
+      fontFamily: FONT.displayBold,
+      letterSpacing: -0.3,
+    },
+    headerMeta: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    onlineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 1,
+    },
+    onlineDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.success,
+    },
+    onlineText: {
+      color: colors.success,
+      fontSize: 11,
+      fontWeight: '600',
+    },
 
-  // ── Avatars in message list
-  avatarGlow: {
-    borderColor: '#EC489960',
-    borderWidth: 2,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
+    // ── Avatars in message list
+    avatarGlow: {
+      borderColor: alpha(colors.primary, 0.38),
+      borderWidth: 2,
+      borderRadius: 22,
+      overflow: 'hidden',
+    },
 
-  // ── Bubbles
-  senderName: {
-    color: '#A855F7',
-    fontSize: 11,
-    fontWeight: '700',
-    marginBottom: 3,
-    marginLeft: 4,
-  },
-  bubbleSent: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 18,
-    borderBottomRightRadius: 4,
-    overflow: 'hidden',
-  },
-  bubbleReceived: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-    backgroundColor: '#10101C',
-    borderColor: '#1A1A30',
-    borderWidth: 1,
-  },
-  bubbleText: {
-    color: '#fff',
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  deletedText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontStyle: 'italic',
-    fontSize: 14,
-  },
-  timestamp: {
-    color: '#5A5575',
-    fontSize: 10,
-    marginTop: 3,
-    marginHorizontal: 4,
-  },
-  reactionChip: {
-    backgroundColor: '#10101C',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderColor: '#1A1A30',
-    borderWidth: 1,
-  },
+    // ── Bubbles
+    senderName: {
+      color: colors.secondary,
+      fontSize: 11,
+      fontWeight: '700',
+      marginBottom: 3,
+      marginLeft: 4,
+    },
+    bubbleSent: {
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderRadius: 18,
+      borderBottomRightRadius: 4,
+      overflow: 'hidden',
+    },
+    bubbleReceived: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 18,
+      borderBottomLeftRadius: 4,
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    bubbleText: {
+      color: colors.text,
+      fontSize: 15,
+      lineHeight: 20,
+    },
+    deletedText: {
+      color: alpha(colors.text, 0.5),
+      fontStyle: 'italic',
+      fontSize: 14,
+    },
+    timestamp: {
+      color: colors.textMuted,
+      fontSize: 10,
+      marginTop: 3,
+      marginHorizontal: 4,
+    },
+    reactionChip: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
 
-  // ── Input bar
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopColor: '#1A1A30',
-    borderTopWidth: 1,
-    backgroundColor: '#0B0A14',
-    gap: 8,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#11111F',
-    borderColor: '#EC489938',
-    borderWidth: 1,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    color: '#F1F0FF',
-    fontSize: 15,
-    maxHeight: 120,
-  },
-  sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  sendBtnDisabled: {
-    backgroundColor: '#1A1A30',
-  },
+    // ── Input bar
+    inputBar: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderTopColor: colors.border,
+      borderTopWidth: 1,
+      backgroundColor: colors.floating,
+      gap: 8,
+    },
+    textInput: {
+      flex: 1,
+      backgroundColor: colors.input,
+      borderColor: alpha(colors.primary, 0.22),
+      borderWidth: 1,
+      borderRadius: 24,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      color: colors.text,
+      fontSize: 15,
+      maxHeight: 120,
+    },
+    sendBtn: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    sendBtnDisabled: {
+      backgroundColor: colors.border,
+    },
 
-  // ── Reaction picker
-  reactionOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reactionPicker: {
-    flexDirection: 'row',
-    borderRadius: 24,
-    padding: 10,
-    gap: 8,
-    borderColor: '#1A1A30',
-    borderWidth: 1,
-    overflow: 'hidden',
-    backgroundColor: '#10101C',
-  },
-  reactionBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1A1A30',
-  },
-});
+    // ── Reaction picker
+    reactionOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    reactionPicker: {
+      flexDirection: 'row',
+      borderRadius: 24,
+      padding: 10,
+      gap: 8,
+      borderColor: colors.border,
+      borderWidth: 1,
+      overflow: 'hidden',
+      backgroundColor: colors.surface,
+    },
+    reactionBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceHigh,
+    },
+  });
+}

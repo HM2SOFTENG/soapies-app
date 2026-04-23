@@ -15,10 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { trpc } from '../../lib/trpc';
-import { colors } from '../../lib/colors';
 import Avatar from '../../components/Avatar';
 import { communityColor } from '../../lib/utils';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +69,7 @@ export default function MemberProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
+  const { colors, alpha, isDark } = useTheme();
 
   const { data: member, isLoading } = trpc.members.byId.useQuery(
     { userId: Number(id) }, { enabled: !!id },
@@ -167,15 +168,15 @@ export default function MemberProfileScreen() {
   // ── Loading / not-found guards ────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: colors.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
       </View>
     );
   }
   if (!m) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: colors.muted }}>Member not found</Text>
+      <View style={{ flex: 1, backgroundColor: colors.page, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: colors.textMuted }}>Member not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
           <Text style={{ color: colors.pink }}>Go back</Text>
         </TouchableOpacity>
@@ -214,7 +215,7 @@ export default function MemberProfileScreen() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.page }}>
 
       {/* Back button */}
       <TouchableOpacity
@@ -224,11 +225,11 @@ export default function MemberProfileScreen() {
         style={{
           position: 'absolute', top: insets.top + 10, left: 16, zIndex: 10,
           width: 40, height: 40, borderRadius: 20,
-          backgroundColor: '#0C0C1A80', borderWidth: 1, borderColor: '#1A1A30',
+          backgroundColor: alpha(colors.floating, 0.88), borderWidth: 1, borderColor: colors.border,
           alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+        <Ionicons name="arrow-back" size={20} color={colors.text} />
       </TouchableOpacity>
 
       {/* Block / Report button */}
@@ -239,37 +240,37 @@ export default function MemberProfileScreen() {
         style={{
           position: 'absolute', top: insets.top + 10, right: 16, zIndex: 10,
           width: 40, height: 40, borderRadius: 20,
-          backgroundColor: '#0C0C1A80', borderWidth: 1, borderColor: '#1A1A30',
+          backgroundColor: alpha(colors.floating, 0.88), borderWidth: 1, borderColor: colors.border,
           alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <Ionicons name="ellipsis-horizontal" size={20} color="#F1F0FF" />
+        <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
 
         {/* ── A. Hero ──────────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#210C38', '#10071D', '#080810']}
+          colors={isDark ? ['#210C38', '#10071D', '#080810'] : ['#FFF1F8', '#FFF7FB', '#FFF8FC']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ paddingTop: insets.top + 60, paddingBottom: 26, paddingHorizontal: 16 }}
         >
-          <View style={{ borderRadius: 30, borderWidth: 1, borderColor: '#FFFFFF14', overflow: 'hidden', backgroundColor: '#090811B8' }}>
-            <View style={{ position: 'absolute', top: -48, right: -18, width: 150, height: 150, borderRadius: 75, backgroundColor: '#EC489920' }} />
-            <View style={{ position: 'absolute', bottom: -70, left: -26, width: 180, height: 180, borderRadius: 90, backgroundColor: '#A855F716' }} />
+          <View style={{ borderRadius: 30, borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.45), overflow: 'hidden', backgroundColor: alpha(colors.surface, isDark ? 0.72 : 0.92) }}>
+            <View style={{ position: 'absolute', top: -48, right: -18, width: 150, height: 150, borderRadius: 75, backgroundColor: alpha(colors.primary, isDark ? 0.12 : 0.08) }} />
+            <View style={{ position: 'absolute', bottom: -70, left: -26, width: 180, height: 180, borderRadius: 90, backgroundColor: alpha(colors.secondary, isDark ? 0.09 : 0.07) }} />
             <View style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#B8A8D9', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
                 Member spotlight
               </Text>
 
               {/* Avatar */}
               <Animated.View style={{ transform: [{ scale: avatarScale }], opacity: avatarOpacity, marginBottom: 14 }}>
                 <View style={{
-                  borderRadius: 64, padding: 4, borderWidth: 1.5, borderColor: '#FFFFFF18', backgroundColor: '#FFFFFF08',
-                  shadowColor: '#EC4899', shadowOffset: { width: 0, height: 8 },
+                  borderRadius: 64, padding: 4, borderWidth: 1.5, borderColor: alpha(colors.white, isDark ? 0.1 : 0.36), backgroundColor: alpha(colors.white, isDark ? 0.06 : 0.4),
+                  shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 },
                   shadowOpacity: 0.45, shadowRadius: 24, elevation: 12,
                 }}>
-                  <View style={{ borderRadius: 60, padding: 3, borderWidth: 2, borderColor: '#EC489980' }}>
+                  <View style={{ borderRadius: 60, padding: 3, borderWidth: 2, borderColor: alpha(colors.primary, 0.5) }}>
                     <Avatar name={displayName} url={m.avatarUrl} size={106} />
                   </View>
                 </View>
@@ -278,11 +279,11 @@ export default function MemberProfileScreen() {
               {m.memberRole && m.memberRole !== 'member' && (
                 <View style={{
                   paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999,
-                  backgroundColor: m.memberRole === 'admin' ? '#ef444422' : '#f59e0b20',
-                  borderColor: m.memberRole === 'admin' ? '#ef444455' : '#f59e0b55',
+                  backgroundColor: m.memberRole === 'admin' ? alpha(colors.danger, 0.14) : alpha(colors.warning, 0.14),
+                  borderColor: m.memberRole === 'admin' ? alpha(colors.danger, 0.34) : alpha(colors.warning, 0.34),
                   borderWidth: 1, marginBottom: 10,
                 }}>
-                  <Text style={{ color: m.memberRole === 'admin' ? '#ef4444' : '#f59e0b', fontSize: 12, fontFamily: FONT.displaySemiBold }}>
+                  <Text style={{ color: m.memberRole === 'admin' ? colors.danger : colors.warning, fontSize: 12, fontFamily: FONT.displaySemiBold }}>
                     {m.memberRole === 'admin' ? '⚙️ Admin' : '👼 Angel'}
                   </Text>
                 </View>
@@ -290,7 +291,7 @@ export default function MemberProfileScreen() {
 
               {/* Name */}
               <Animated.Text style={{
-                color: '#F1F0FF', fontSize: 31,
+                color: colors.text, fontSize: 31,
                 textAlign: 'center', letterSpacing: -0.9, opacity: avatarOpacity,
                 fontFamily: FONT.displayBold,
               }}>
@@ -298,25 +299,25 @@ export default function MemberProfileScreen() {
               </Animated.Text>
 
               <Animated.Text style={{
-                color: '#9E94BD', fontSize: 14, textAlign: 'center', opacity: avatarOpacity, marginTop: 6,
+                color: colors.textSecondary, fontSize: 14, textAlign: 'center', opacity: avatarOpacity, marginTop: 6,
               }}>
                 {m.location || relationshipStatus || 'Open to good energy'}
               </Animated.Text>
 
               {/* Inline stats under name */}
               <Animated.View style={{ flexDirection: 'row', gap: 12, marginTop: 18, opacity: avatarOpacity }}>
-                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF0B', borderWidth: 1, borderColor: '#FFFFFF10' }}>
-                  <Text style={{ color: '#F1F0FF', fontSize: 22, fontFamily: FONT.displayBold }}>{m.eventsAttended ?? 0}</Text>
-                  <Text style={{ color: '#7D739A', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Events</Text>
+                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, isDark ? 0.07 : 0.6), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42) }}>
+                  <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>{m.eventsAttended ?? 0}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Events</Text>
                 </View>
-                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF0B', borderWidth: 1, borderColor: '#FFFFFF10' }}>
-                  <Text style={{ color: '#F1F0FF', fontSize: 22, fontFamily: FONT.displayBold }}>{m.postsCount ?? 0}</Text>
-                  <Text style={{ color: '#7D739A', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Posts</Text>
+                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, isDark ? 0.07 : 0.6), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42) }}>
+                  <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>{m.postsCount ?? 0}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Posts</Text>
                 </View>
                 {joinedDate && (
-                  <View style={{ alignItems: 'center', minWidth: 104, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: '#FFFFFF0B', borderWidth: 1, borderColor: '#FFFFFF10' }}>
-                    <Text style={{ color: '#F1F0FF', fontSize: 18, fontFamily: FONT.displayBold }}>{joinedDate}</Text>
-                    <Text style={{ color: '#7D739A', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Joined</Text>
+                  <View style={{ alignItems: 'center', minWidth: 104, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, isDark ? 0.07 : 0.6), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42) }}>
+                    <Text style={{ color: colors.text, fontSize: 18, fontFamily: FONT.displayBold }}>{joinedDate}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Joined</Text>
                   </View>
                 )}
               </Animated.View>
@@ -348,7 +349,7 @@ export default function MemberProfileScreen() {
             {m.gender && (
               <View style={{
                 paddingHorizontal: 12, paddingVertical: 4,
-                backgroundColor: '#67e8f915', borderRadius: 20, borderColor: '#67e8f935', borderWidth: 1,
+                backgroundColor: alpha('#67e8f9', 0.12), borderRadius: 20, borderColor: alpha('#67e8f9', 0.26), borderWidth: 1,
               }}>
                 <Text style={{ color: '#67e8f9', fontWeight: '700', fontSize: 12 }}>
                   {m.gender.charAt(0).toUpperCase() + m.gender.slice(1)}
@@ -358,9 +359,9 @@ export default function MemberProfileScreen() {
             {community && (
               <View style={{
                 paddingHorizontal: 12, paddingVertical: 4,
-                backgroundColor: '#A855F720', borderRadius: 20, borderColor: '#A855F740', borderWidth: 1,
+                backgroundColor: alpha(colors.purple, 0.12), borderRadius: 20, borderColor: alpha(colors.purple, 0.26), borderWidth: 1,
               }}>
-                <Text style={{ color: '#A855F7', fontWeight: '700', fontSize: 12 }}>
+                <Text style={{ color: colors.purple, fontWeight: '700', fontSize: 12 }}>
                   {community.charAt(0).toUpperCase() + community.slice(1)}
                 </Text>
               </View>
@@ -416,14 +417,14 @@ export default function MemberProfileScreen() {
               {signal.isQueerFriendly && (
                 <View style={{
                   paddingHorizontal: 10, paddingVertical: 3,
-                  backgroundColor: '#67e8f922', borderRadius: 12, borderColor: '#67e8f944', borderWidth: 1,
+                  backgroundColor: alpha('#67e8f9', 0.14), borderRadius: 12, borderColor: alpha('#67e8f9', 0.28), borderWidth: 1,
                 }}>
                   <Text style={{ color: '#67e8f9', fontSize: 12, fontWeight: '600' }}>Queer Friendly</Text>
                 </View>
               )}
             </View>
             {signal.message ? (
-              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 8, fontStyle: 'italic' }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontStyle: 'italic' }}>
                 "{signal.message}"
               </Text>
             ) : null}
@@ -433,7 +434,7 @@ export default function MemberProfileScreen() {
         {/* ── C. Connections — linked avatar cards ──────────────────────── */}
         {connections.length > 0 && (
           <Animated.View style={{ marginHorizontal: 16, marginTop: 12, opacity: contentOpacity }}>
-            <Text style={{ color: '#7D739A', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.6 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.6 }}>
               💗 Connections
             </Text>
             {connections.map((conn: any) => (
@@ -445,10 +446,10 @@ export default function MemberProfileScreen() {
               >
                 <View style={{
                   borderRadius: 20, borderWidth: 1,
-                  borderColor: '#EC489940', backgroundColor: '#0D0820', overflow: 'hidden',
+                  borderColor: alpha(colors.primary, 0.24), backgroundColor: colors.card, overflow: 'hidden',
                 }}>
                   <LinearGradient
-                    colors={['#1A082E80', '#0D052080', '#08050F80']}
+                    colors={[alpha(colors.secondary, isDark ? 0.3 : 0.12), alpha(colors.primary, isDark ? 0.18 : 0.08), alpha(colors.card, isDark ? 0.96 : 0.92)]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                     style={{ padding: 18 }}
                   >
@@ -456,9 +457,9 @@ export default function MemberProfileScreen() {
                     <View style={{ alignItems: 'center', marginBottom: 14 }}>
                       <View style={{
                         paddingHorizontal: 14, paddingVertical: 4,
-                        backgroundColor: '#EC489918', borderRadius: 20, borderColor: '#EC489950', borderWidth: 1,
+                        backgroundColor: alpha(colors.pink, 0.12), borderRadius: 20, borderColor: alpha(colors.pink, 0.3), borderWidth: 1,
                       }}>
-                        <Text style={{ color: '#EC4899', fontSize: 12, letterSpacing: 0.3, fontFamily: FONT.displaySemiBold }}>
+                        <Text style={{ color: colors.pink, fontSize: 12, letterSpacing: 0.3, fontFamily: FONT.displaySemiBold }}>
                           {conn.relationshipType?.replace(/_/g, ' ')}
                         </Text>
                       </View>
@@ -469,13 +470,13 @@ export default function MemberProfileScreen() {
                       {/* Left: this profile */}
                       <View style={{ alignItems: 'center' }}>
                         <View style={{
-                          borderRadius: 34, borderWidth: 2.5, borderColor: '#EC4899',
-                          shadowColor: '#EC4899', shadowOffset: { width: 0, height: 0 },
+                          borderRadius: 34, borderWidth: 2.5, borderColor: colors.pink,
+                          shadowColor: colors.pink, shadowOffset: { width: 0, height: 0 },
                           shadowOpacity: 0.6, shadowRadius: 10, elevation: 8,
                         }}>
                           <Avatar name={displayName} url={m.avatarUrl} size={64} />
                         </View>
-                        <Text style={{ color: '#A09CB8', fontSize: 12, fontWeight: '600', marginTop: 7, maxWidth: 80, textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginTop: 7, maxWidth: 80, textAlign: 'center' }} numberOfLines={1}>
                           {firstName}
                         </Text>
                       </View>
@@ -483,31 +484,31 @@ export default function MemberProfileScreen() {
                       {/* Heart bridge */}
                       <View style={{ alignItems: 'center', marginHorizontal: 4, zIndex: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View style={{ width: 24, height: 2, borderTopWidth: 1.5, borderTopColor: '#EC489960' }} />
+                          <View style={{ width: 24, height: 2, borderTopWidth: 1.5, borderTopColor: alpha(colors.pink, 0.38) }} />
                           <View style={{
-                            width: 34, height: 34, borderRadius: 17, backgroundColor: '#130825',
-                            borderWidth: 1.5, borderColor: '#EC489980',
+                            width: 34, height: 34, borderRadius: 17, backgroundColor: colors.floating,
+                            borderWidth: 1.5, borderColor: alpha(colors.pink, 0.5),
                             alignItems: 'center', justifyContent: 'center',
-                            shadowColor: '#EC4899', shadowOffset: { width: 0, height: 0 },
+                            shadowColor: colors.pink, shadowOffset: { width: 0, height: 0 },
                             shadowOpacity: 0.9, shadowRadius: 10,
                           }}>
                             <Text style={{ fontSize: 15 }}>💗</Text>
                           </View>
-                          <View style={{ width: 24, height: 2, borderTopWidth: 1.5, borderTopColor: '#EC489960' }} />
+                          <View style={{ width: 24, height: 2, borderTopWidth: 1.5, borderTopColor: alpha(colors.pink, 0.38) }} />
                         </View>
-                        <Text style={{ color: '#5A5575', fontSize: 9, marginTop: 5, letterSpacing: 0.5, textTransform: 'uppercase' }}>linked</Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 9, marginTop: 5, letterSpacing: 0.5, textTransform: 'uppercase' }}>linked</Text>
                       </View>
 
                       {/* Right: partner */}
                       <View style={{ alignItems: 'center' }}>
                         <View style={{
-                          borderRadius: 34, borderWidth: 2.5, borderColor: '#A855F7',
-                          shadowColor: '#A855F7', shadowOffset: { width: 0, height: 0 },
+                          borderRadius: 34, borderWidth: 2.5, borderColor: colors.purple,
+                          shadowColor: colors.purple, shadowOffset: { width: 0, height: 0 },
                           shadowOpacity: 0.6, shadowRadius: 10, elevation: 8,
                         }}>
                           <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={64} />
                         </View>
-                        <Text style={{ color: '#A09CB8', fontSize: 12, fontWeight: '600', marginTop: 7, maxWidth: 80, textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginTop: 7, maxWidth: 80, textAlign: 'center' }} numberOfLines={1}>
                           {(conn.partnerDisplayName ?? '').split(' ')[0]}
                         </Text>
                       </View>
@@ -515,10 +516,10 @@ export default function MemberProfileScreen() {
 
                     {/* Tap hint */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 12 }}>
-                      <Text style={{ color: '#5A5575', fontSize: 11 }}>
+                      <Text style={{ color: colors.textMuted, fontSize: 11 }}>
                         View {(conn.partnerDisplayName ?? '').split(' ')[0]}'s profile
                       </Text>
-                      <Ionicons name="chevron-forward" size={11} color="#5A5575" />
+                      <Ionicons name="chevron-forward" size={11} color={colors.textMuted} />
                     </View>
                   </LinearGradient>
                 </View>
@@ -530,31 +531,31 @@ export default function MemberProfileScreen() {
         {/* ── D. Shared events ─────────────────────────────────────────── */}
         {hasMutualEvents && (
           <Animated.View style={{ marginHorizontal: 16, marginTop: 12, opacity: contentOpacity }}>
-            <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#FFFFFF10', backgroundColor: '#0D0B16' }}>
-              <LinearGradient colors={['#1A0D2C', '#0D0B16']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
+            <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42), backgroundColor: colors.card }}>
+              <LinearGradient colors={[alpha(colors.secondary, isDark ? 0.22 : 0.12), alpha(colors.primary, isDark ? 0.12 : 0.06), colors.card]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <View>
-                    <Text style={{ color: '#A89FC3', fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 6 }}>
+                    <Text style={{ color: colors.textMuted, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 6 }}>
                       Shared events
                     </Text>
-                    <Text style={{ color: '#F8F5FF', fontSize: 22, fontFamily: FONT.displayBold }}>
+                    <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>
                       Your nights together
                     </Text>
                   </View>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EC48991A', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="sparkles" size={18} color="#F472B6" />
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: alpha(colors.pink, 0.1), alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="sparkles" size={18} color={colors.pink} />
                   </View>
                 </View>
 
                 {upcomingTogether.length > 0 && (
                   <View style={{ marginBottom: pastTogether.length > 0 ? 14 : 0 }}>
-                    <Text style={{ color: '#F472B6', fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
+                    <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
                       Going together
                     </Text>
                     {upcomingTogether.map((event: any) => (
-                      <View key={`upcoming-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: '#FFFFFF08', borderWidth: 1, borderColor: '#FFFFFF12', marginBottom: 10 }}>
+                      <View key={`upcoming-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: alpha(colors.white, isDark ? 0.08 : 0.72), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.12 : 0.82), marginBottom: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Text style={{ color: '#F8F5FF', fontSize: 17, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
+                          <Text style={{ color: colors.text, fontSize: 17, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
                             {event.title}
                           </Text>
                           <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#10B98120', borderWidth: 1, borderColor: '#10B98140' }}>
@@ -562,13 +563,13 @@ export default function MemberProfileScreen() {
                           </View>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-                          <Ionicons name="calendar-outline" size={14} color="#A89FC3" />
-                          <Text style={{ color: '#CFC8E4', fontSize: 13, marginLeft: 8 }}>{formatSharedEventDate(event.startDate)}</Text>
+                          <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                          <Text style={{ color: colors.textSecondary, fontSize: 13, marginLeft: 8 }}>{formatSharedEventDate(event.startDate)}</Text>
                         </View>
                         {!!event.location && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                            <Ionicons name="location-outline" size={14} color="#A89FC3" />
-                            <Text style={{ color: '#A89FC3', fontSize: 13, marginLeft: 8 }} numberOfLines={1}>{event.location}</Text>
+                            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                            <Text style={{ color: colors.textMuted, fontSize: 13, marginLeft: 8 }} numberOfLines={1}>{event.location}</Text>
                           </View>
                         )}
                       </View>
@@ -578,20 +579,20 @@ export default function MemberProfileScreen() {
 
                 {pastTogether.length > 0 && (
                   <View>
-                    <Text style={{ color: '#C4B5FD', fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
+                    <Text style={{ color: colors.purple, fontSize: 12, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
                       Attended together
                     </Text>
                     {pastTogether.map((event: any) => (
-                      <View key={`past-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: '#FFFFFF06', borderWidth: 1, borderColor: '#FFFFFF10', marginBottom: 10 }}>
+                      <View key={`past-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: alpha(colors.white, isDark ? 0.06 : 0.64), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.1 : 0.78), marginBottom: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Text style={{ color: '#F8F5FF', fontSize: 16, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
+                          <Text style={{ color: colors.text, fontSize: 16, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
                             {event.title}
                           </Text>
-                          <Text style={{ color: '#C4B5FD', fontSize: 10, fontWeight: '800' }}>{event.mutualLabel}</Text>
+                          <Text style={{ color: colors.purple, fontSize: 10, fontWeight: '800' }}>{event.mutualLabel}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-                          <Ionicons name="time-outline" size={14} color="#8F86AA" />
-                          <Text style={{ color: '#BFB7D7', fontSize: 13, marginLeft: 8 }}>{formatSharedEventDate(event.startDate)}</Text>
+                          <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+                          <Text style={{ color: colors.textSecondary, fontSize: 13, marginLeft: 8 }}>{formatSharedEventDate(event.startDate)}</Text>
                         </View>
                       </View>
                     ))}
@@ -611,7 +612,7 @@ export default function MemberProfileScreen() {
           }}>
             {/* Bio */}
             {m.bio && (
-              <Text style={{ color: '#A09CB8', fontSize: 14, lineHeight: 21, marginBottom: 12 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 12 }}>
                 {m.bio}
               </Text>
             )}
@@ -620,14 +621,14 @@ export default function MemberProfileScreen() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: hasTags ? 14 : 0 }}>
               {m.location && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <Ionicons name="location-outline" size={13} color={colors.muted} />
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>{m.location}</Text>
+                  <Ionicons name="location-outline" size={13} color={colors.textMuted} />
+                  <Text style={{ color: colors.textMuted, fontSize: 13 }}>{m.location}</Text>
                 </View>
               )}
               {relationshipStatus && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <Ionicons name="ribbon-outline" size={13} color={colors.muted} />
-                  <Text style={{ color: colors.muted, fontSize: 13 }}>
+                  <Ionicons name="ribbon-outline" size={13} color={colors.textMuted} />
+                  <Text style={{ color: colors.textMuted, fontSize: 13 }}>
                     {relationshipStatus.charAt(0).toUpperCase() + relationshipStatus.slice(1)}
                   </Text>
                 </View>
@@ -640,17 +641,17 @@ export default function MemberProfileScreen() {
                 {interests.map((tag) => (
                   <View key={`i-${tag}`} style={{
                     paddingHorizontal: 10, paddingVertical: 4,
-                    backgroundColor: '#A855F720', borderRadius: 12, borderColor: '#A855F740', borderWidth: 1,
+                    backgroundColor: alpha(colors.purple, 0.12), borderRadius: 12, borderColor: alpha(colors.purple, 0.26), borderWidth: 1,
                   }}>
-                    <Text style={{ color: '#A855F7', fontSize: 12, fontWeight: '700' }}>{tag}</Text>
+                    <Text style={{ color: colors.purple, fontSize: 12, fontWeight: '700' }}>{tag}</Text>
                   </View>
                 ))}
                 {lookingFor.map((tag) => (
                   <View key={`l-${tag}`} style={{
                     paddingHorizontal: 10, paddingVertical: 4,
-                    backgroundColor: '#EC489912', borderRadius: 12, borderColor: '#EC489930', borderWidth: 1,
+                    backgroundColor: alpha(colors.pink, 0.1), borderRadius: 12, borderColor: alpha(colors.pink, 0.22), borderWidth: 1,
                   }}>
-                    <Text style={{ color: '#EC4899', fontSize: 12, fontWeight: '700' }}>{tag}</Text>
+                    <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700' }}>{tag}</Text>
                   </View>
                 ))}
               </View>
@@ -661,7 +662,7 @@ export default function MemberProfileScreen() {
         {/* ── E. Wall posts ─────────────────────────────────────────────── */}
         <Animated.View style={{ marginHorizontal: 16, marginTop: 16, opacity: contentOpacity }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Text style={{ color: '#7D739A', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.6 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.6 }}>
               Posts
             </Text>
             {posts.length > 0 && (
@@ -683,8 +684,8 @@ export default function MemberProfileScreen() {
               borderWidth: 1, borderColor: colors.border,
             }}>
               <Text style={{ fontSize: 32, marginBottom: 10 }}>🌸</Text>
-              <Text style={{ color: colors.muted, fontSize: 15, fontWeight: '600' }}>No posts yet</Text>
-              <Text style={{ color: '#5A5575', fontSize: 13, marginTop: 4 }}>{firstName} hasn't posted anything</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 15, fontWeight: '600' }}>No posts yet</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 4 }}>{firstName} hasn't posted anything</Text>
             </View>
           ) : (
             posts.map((post: any) => (
@@ -702,13 +703,13 @@ export default function MemberProfileScreen() {
                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>
                       {post.resolvedAuthorName ?? post.profile?.displayName ?? displayName}
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 11 }}>
+                    <Text style={{ color: colors.textMuted, fontSize: 11 }}>
                       {timeAgo(post.post?.createdAt ?? post.createdAt)}
                     </Text>
                   </View>
                 </View>
                 {(post.post?.content ?? post.content) ? (
-                  <Text style={{ color: '#A09CB8', fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 8 }}>
                     {post.post?.content ?? post.content}
                   </Text>
                 ) : null}
@@ -721,12 +722,12 @@ export default function MemberProfileScreen() {
                 ) : null}
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="heart-outline" size={14} color={colors.muted} />
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>{post.post?.likesCount ?? post.likesCount ?? 0}</Text>
+                    <Ionicons name="heart-outline" size={14} color={colors.textMuted} />
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{post.post?.likesCount ?? post.likesCount ?? 0}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Ionicons name="chatbubble-outline" size={14} color={colors.muted} />
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>{post.post?.commentsCount ?? post.commentsCount ?? 0}</Text>
+                    <Ionicons name="chatbubble-outline" size={14} color={colors.textMuted} />
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>{post.post?.commentsCount ?? post.commentsCount ?? 0}</Text>
                   </View>
                 </View>
               </View>
@@ -740,7 +741,7 @@ export default function MemberProfileScreen() {
       <View style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         padding: 20, paddingBottom: insets.bottom + 16,
-        backgroundColor: '#080810', borderTopColor: '#1A1A30', borderTopWidth: 1,
+        backgroundColor: colors.page, borderTopColor: colors.border, borderTopWidth: 1,
       }}>
         <Animated.View style={{ transform: [{ scale: msgScale }] }}>
           <TouchableOpacity

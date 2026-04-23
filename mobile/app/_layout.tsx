@@ -234,7 +234,7 @@ function DeepLinkHandler({ children }: { children: React.ReactNode }) {
 }
 
 function AppShell() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <DeepLinkHandler>
@@ -243,7 +243,7 @@ function AppShell() {
           <SafeAreaProvider>
             <ToastProvider>
               <AuthProvider>
-                <StatusBar style={isDark ? 'light' : 'dark'} translucent backgroundColor="transparent" />
+                <StatusBar style={colors.statusBar} translucent backgroundColor="transparent" />
                 <OfflineBanner />
                 <AuthGuard>
                   <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }}>

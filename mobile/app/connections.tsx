@@ -12,6 +12,7 @@ import { trpc } from '../lib/trpc';
 import { useAuth } from '../lib/auth';
 import Avatar from '../components/Avatar';
 import { FONT } from '../lib/fonts';
+import { useTheme } from '../lib/theme';
 
 const RELATIONSHIP_TYPES = [
   { value: 'couple', label: '💑 Couple', desc: 'Romantic partnership' },
@@ -41,6 +42,22 @@ export default function ConnectionsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { hasToken } = useAuth();
+  const theme = useTheme();
+  const t = {
+    page: theme.colors.background,
+    surface: theme.colors.card,
+    elevated: theme.colors.floating,
+    border: theme.colors.border,
+    text: theme.colors.text,
+    subtext: theme.colors.textSecondary,
+    muted: theme.colors.textMuted,
+    searchBorder: theme.isDark ? '#EC489928' : theme.colors.borderAccent,
+    headerGradient: theme.isDark ? ['#12051E', '#080810'] : ['#FFF4FB', '#FFF8FC'],
+    heroCard: theme.isDark ? 'rgba(8,8,16,0.45)' : 'rgba(255,255,255,0.82)',
+    heroCardBorder: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.colors.border,
+    overlay: theme.isDark ? 'rgba(0,0,0,0.85)' : 'rgba(36,22,41,0.24)',
+    modalHandle: theme.isDark ? '#2D2D3A' : '#D9C9D9',
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<any>(null);
@@ -92,10 +109,10 @@ export default function ConnectionsScreen() {
   const members = Array.isArray(searchResults) ? searchResults : [];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.page }} edges={['bottom']}>
       {/* Header */}
       <LinearGradient
-        colors={['#12051E', '#080810']}
+        colors={t.headerGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}
@@ -104,16 +121,16 @@ export default function ConnectionsScreen() {
           onPress={() => router.back()}
           style={{
             width: 40, height: 40, borderRadius: 20,
-            backgroundColor: '#10101C', borderWidth: 1, borderColor: '#1A1A30',
+            backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
             alignItems: 'center', justifyContent: 'center',
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={18} color="#F1F0FF" />
+          <Ionicons name="arrow-back" size={18} color={t.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#F1F0FF', fontSize: 28, fontWeight: '900', flex: 1, fontFamily: FONT.displayBold }}>Connections 💗</Text>
-          <Text style={{ color: '#8B84A7', fontSize: 12, marginTop: 2 }}>Keep your inner circle close</Text>
+          <Text style={{ color: t.text, fontSize: 28, fontWeight: '900', flex: 1, fontFamily: FONT.displayBold }}>Connections 💗</Text>
+          <Text style={{ color: t.subtext, fontSize: 12, marginTop: 2 }}>Keep your inner circle close</Text>
         </View>
       </LinearGradient>
 
@@ -125,15 +142,15 @@ export default function ConnectionsScreen() {
           end={{ x: 1, y: 1 }}
           style={{ marginTop: 18, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)' }}
         >
-          <Text style={{ color: '#8B84A7', fontSize: 11, letterSpacing: 1.1, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>YOUR NETWORK</Text>
+          <Text style={{ color: t.subtext, fontSize: 11, letterSpacing: 1.1, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>YOUR NETWORK</Text>
           <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
-            <View style={{ flex: 1, backgroundColor: 'rgba(8,8,16,0.45)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
-              <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{connections.length}</Text>
-              <Text style={{ color: '#A09CB8', fontSize: 11, marginTop: 4 }}>Active</Text>
+            <View style={{ flex: 1, backgroundColor: t.heroCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: t.heroCardBorder }}>
+              <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{connections.length}</Text>
+              <Text style={{ color: t.subtext, fontSize: 11, marginTop: 4 }}>Active</Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: 'rgba(8,8,16,0.45)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }}>
-              <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{incoming.length + outgoing.length}</Text>
-              <Text style={{ color: '#A09CB8', fontSize: 11, marginTop: 4 }}>Pending</Text>
+            <View style={{ flex: 1, backgroundColor: t.heroCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: t.heroCardBorder }}>
+              <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{incoming.length + outgoing.length}</Text>
+              <Text style={{ color: t.subtext, fontSize: 11, marginTop: 4 }}>Pending</Text>
             </View>
           </View>
         </LinearGradient>
@@ -154,8 +171,8 @@ export default function ConnectionsScreen() {
                     <Avatar name={inv.inviterName} url={inv.inviterAvatarUrl} size={44} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{inv.inviterName}</Text>
-                    <Text style={{ color: '#5A5575', fontSize: 13 }}>wants to connect as</Text>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{inv.inviterName}</Text>
+                    <Text style={{ color: t.muted, fontSize: 13 }}>wants to connect as</Text>
                     <View style={{ alignSelf: 'flex-start', backgroundColor: '#EC489920', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginTop: 3, borderWidth: 1, borderColor: '#EC489944' }}>
                       <Text style={{ color: '#EC4899', fontWeight: '600', fontSize: 12 }}>{relLabel(inv.relationshipType)}</Text>
                     </View>
@@ -194,27 +211,27 @@ export default function ConnectionsScreen() {
 
         {/* ── Active connections ── */}
         <View style={{ marginTop: incoming.length > 0 ? 8 : 20, marginBottom: 8 }}>
-          <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+          <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Active Connections
           </Text>
           {connections.length === 0 ? (
-            <View style={{ backgroundColor: '#10101C', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#1A1A30' }}>
+            <View style={{ backgroundColor: t.surface, borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: t.border }}>
               <Text style={{ fontSize: 36, marginBottom: 10 }}>💗</Text>
-              <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 16, marginBottom: 6 }}>No connections yet</Text>
-              <Text style={{ color: '#5A5575', textAlign: 'center', fontSize: 14 }}>Search for a member below to send your first connection request.</Text>
+              <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>No connections yet</Text>
+              <Text style={{ color: t.muted, textAlign: 'center', fontSize: 14 }}>Search for a member below to send your first connection request.</Text>
             </View>
           ) : (
             connections.map((conn: any) => (
               <View key={conn.groupId} style={{
-                backgroundColor: '#10101C', borderRadius: 16, padding: 14,
-                marginBottom: 10, borderWidth: 1, borderColor: '#1A1A30',
+                backgroundColor: t.surface, borderRadius: 16, padding: 14,
+                marginBottom: 10, borderWidth: 1, borderColor: t.border,
               }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={{ borderRadius: 28, borderWidth: 2, borderColor: '#EC4899', marginRight: 14, shadowColor: '#EC4899', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }}>
                     <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={48} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{conn.partnerDisplayName}</Text>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{conn.partnerDisplayName}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
                       <View style={{ backgroundColor: '#EC489920', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#EC489944' }}>
                         <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '600' }}>{relLabel(conn.relationshipType)}</Text>
@@ -224,7 +241,7 @@ export default function ConnectionsScreen() {
                       </View>
                     </View>
                     {conn.connectedSince && (
-                      <Text style={{ color: '#5A5575', fontSize: 11, marginTop: 4 }}>
+                      <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
                         Since {new Date(conn.connectedSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </Text>
                     )}
@@ -247,21 +264,21 @@ export default function ConnectionsScreen() {
         {/* ── Outgoing pending ── */}
         {outgoing.length > 0 && (
           <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+            <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
               Sent Requests
             </Text>
             {outgoing.map((inv: any) => (
               <View key={inv.id} style={{
-                backgroundColor: '#10101C', borderRadius: 16, padding: 14,
-                marginBottom: 10, borderWidth: 1, borderColor: '#1A1A30',
+                backgroundColor: t.surface, borderRadius: 16, padding: 14,
+                marginBottom: 10, borderWidth: 1, borderColor: t.border,
                 flexDirection: 'row', alignItems: 'center',
               }}>
                 <View style={{ flex: 1 }}>
                   <View style={{ backgroundColor: '#F59E0B20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#F59E0B44', marginBottom: 4 }}>
                     <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>Pending</Text>
                   </View>
-                  <Text style={{ color: '#5A5575', fontSize: 13 }}>Connection request sent</Text>
-                  <Text style={{ color: '#F1F0FF', fontSize: 12, marginTop: 2 }}>
+                  <Text style={{ color: t.muted, fontSize: 13 }}>Connection request sent</Text>
+                  <Text style={{ color: t.text, fontSize: 12, marginTop: 2 }}>
                     Expires {new Date(inv.expiresAt).toLocaleDateString()}
                   </Text>
                 </View>
@@ -278,15 +295,15 @@ export default function ConnectionsScreen() {
 
         {/* ── Connect with someone ── */}
         <View style={{ marginTop: 4 }}>
-          <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+          <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Connect with Someone
           </Text>
           {/* Search bar */}
           <View style={{
-            backgroundColor: '#10101C', borderRadius: 16,
+            backgroundColor: t.surface, borderRadius: 16,
             flexDirection: 'row', alignItems: 'center',
             paddingHorizontal: 14, paddingVertical: 12,
-            borderWidth: 1, borderColor: '#EC489928',
+            borderWidth: 1, borderColor: t.searchBorder,
             marginBottom: 12,
           }}>
             <Ionicons name="search" size={16} color="#5A5575" style={{ marginRight: 8 }} />
@@ -294,8 +311,8 @@ export default function ConnectionsScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search members..."
-              placeholderTextColor="#5A5575"
-              style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+              placeholderTextColor={t.muted}
+              style={{ flex: 1, color: t.text, fontSize: 15 }}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -308,13 +325,13 @@ export default function ConnectionsScreen() {
             searchLoading ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                 <ActivityIndicator color="#EC4899" />
-                <Text style={{ color: '#5A5575', fontSize: 13, marginTop: 10 }}>Searching...</Text>
+                <Text style={{ color: t.muted, fontSize: 13, marginTop: 10 }}>Searching...</Text>
               </View>
             ) : members.length === 0 ? (
-              <View style={{ backgroundColor: '#10101C', borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: '#1A1A30' }}>
+              <View style={{ backgroundColor: t.surface, borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: t.border }}>
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
-                <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15, marginBottom: 4 }}>No members found</Text>
-                <Text style={{ color: '#5A5575', fontSize: 13, textAlign: 'center' }}>
+                <Text style={{ color: t.text, fontWeight: '700', fontSize: 15, marginBottom: 4 }}>No members found</Text>
+                <Text style={{ color: t.muted, fontSize: 13, textAlign: 'center' }}>
                   {searchError ? `Error: ${(searchError as any)?.message ?? 'Search failed'}` : `No results for "${trimmedQuery}"`}
                 </Text>
               </View>
@@ -324,18 +341,18 @@ export default function ConnectionsScreen() {
                   key={m.id ?? m.userId}
                   onPress={() => { setSelectedMember(m); setShowRelPicker(true); }}
                   style={{
-                    backgroundColor: '#10101C', borderRadius: 16, padding: 14,
+                    backgroundColor: t.surface, borderRadius: 16, padding: 14,
                     marginBottom: 10, flexDirection: 'row', alignItems: 'center',
-                    borderWidth: 1, borderColor: '#1A1A30',
+                    borderWidth: 1, borderColor: t.border,
                   }}
                 >
                   <View style={{ borderRadius: 24, borderWidth: 1.5, borderColor: '#EC489960', marginRight: 12 }}>
                     <Avatar name={m.displayName ?? m.name} url={m.avatarUrl} size={40} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{m.displayName ?? m.name}</Text>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{m.displayName ?? m.name}</Text>
                     {m.communityId && (
-                      <Text style={{ color: '#5A5575', fontSize: 12, textTransform: 'capitalize', marginTop: 2 }}>{m.communityId}</Text>
+                      <Text style={{ color: t.muted, fontSize: 12, textTransform: 'capitalize', marginTop: 2 }}>{m.communityId}</Text>
                     )}
                   </View>
                   <View style={{ backgroundColor: '#EC489920', borderRadius: 20, padding: 6, borderWidth: 1, borderColor: '#EC489944' }}>
@@ -351,21 +368,21 @@ export default function ConnectionsScreen() {
       {/* ── Relationship type picker modal ── */}
       <Modal visible={showRelPicker} transparent animationType="slide" onRequestClose={() => setShowRelPicker(false)}>
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}
+          style={{ flex: 1, backgroundColor: t.overlay, justifyContent: 'flex-end' }}
           activeOpacity={1}
           onPress={() => setShowRelPicker(false)}
         >
           <View
             onStartShouldSetResponder={() => true}
-            style={{ backgroundColor: '#0C0C1A', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '82%' }}
+            style={{ backgroundColor: t.elevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '82%' }}
           >
             <View style={{ padding: 20, paddingBottom: 8 }}>
               {/* Drag handle */}
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A', alignSelf: 'center', marginBottom: 20 }} />
-              <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800', marginBottom: 4, fontFamily: FONT.displayBold }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: t.modalHandle, alignSelf: 'center', marginBottom: 20 }} />
+              <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginBottom: 4, fontFamily: FONT.displayBold }}>
                 Connect with {selectedMember?.displayName ?? selectedMember?.name}
               </Text>
-              <Text style={{ color: '#5A5575', fontSize: 13, marginBottom: 4 }}>Select your relationship dynamic</Text>
+              <Text style={{ color: t.muted, fontSize: 13, marginBottom: 4 }}>Select your relationship dynamic</Text>
             </View>
 
             <FlatList
@@ -384,14 +401,14 @@ export default function ConnectionsScreen() {
                     style={{
                       flexDirection: 'row', alignItems: 'center', padding: 14,
                       borderRadius: 12, marginBottom: 8,
-                      backgroundColor: selected ? '#EC489912' : '#10101C',
+                      backgroundColor: selected ? '#EC489912' : t.surface,
                       borderWidth: 1,
-                      borderColor: selected ? '#EC4899' : '#1A1A30',
+                      borderColor: selected ? '#EC4899' : t.border,
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 15 }}>{item.label}</Text>
-                      <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 2 }}>{item.desc}</Text>
+                      <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{item.label}</Text>
+                      <Text style={{ color: t.muted, fontSize: 12, marginTop: 2 }}>{item.desc}</Text>
                     </View>
                     {selected && <Ionicons name="checkmark-circle" size={20} color="#EC4899" />}
                   </TouchableOpacity>

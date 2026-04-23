@@ -2,22 +2,21 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Switch,
   Alert,
   Linking,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { trpc } from '../lib/trpc';
-import { colors } from '../lib/colors';
+import { colors as brandColors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
-import { useThemePreference, type ThemePreference } from '../lib/theme';
+import { useTheme, useThemePreference, type ThemePreference } from '../lib/theme';
+import ThemedScreen from '../components/ThemedScreen';
 import { queryClient } from './_layout';
 
 // ─── Storage Keys ────────────────────────────────────────────────────────────
@@ -33,9 +32,10 @@ const PRIVACY_MESSAGING_KEY = 'privacy_who_can_message';
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function SectionHeader({ title }: { title: string }) {
+  const { colors: themeColors } = useTheme();
   return (
     <Text style={{
-      color: '#5A5575',
+      color: themeColors.textMuted,
       fontSize: 11,
       fontWeight: '800',
       textTransform: 'uppercase',
@@ -66,13 +66,14 @@ function ToggleRow({
   onToggle: (v: boolean) => void;
   disabled?: boolean;
 }) {
+  const { colors: themeColors, alpha } = useTheme();
   return (
     <View style={{
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#10101C',
+      backgroundColor: themeColors.card,
       borderWidth: 1,
-      borderColor: '#1A1A30',
+      borderColor: themeColors.border,
       borderRadius: 14,
       padding: 16,
       marginHorizontal: 16,
@@ -82,25 +83,25 @@ function ToggleRow({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: disabled ? '#5A557533' : `${iconColor}33`,
+        backgroundColor: disabled ? alpha(themeColors.textMuted, 0.2) : alpha(iconColor, 0.2),
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
       }}>
-        <Ionicons name={icon} size={18} color={disabled ? '#5A5575' : iconColor} />
+        <Ionicons name={icon} size={18} color={disabled ? themeColors.textMuted : iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: disabled ? '#5A5575' : '#F1F0FF', fontSize: 15, fontWeight: '600' }}>{label}</Text>
-        {subtitle && <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
+        <Text style={{ color: disabled ? themeColors.textMuted : themeColors.text, fontSize: 15, fontWeight: '600' }}>{label}</Text>
+        {subtitle && <Text style={{ color: themeColors.textMuted, fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
       </View>
       {disabled ? (
-        <Ionicons name="lock-closed-outline" size={18} color="#5A5575" />
+        <Ionicons name="lock-closed-outline" size={18} color={themeColors.textMuted} />
       ) : (
         <Switch
           value={value}
           onValueChange={onToggle}
-          trackColor={{ false: '#1A1A30', true: '#EC4899' }}
-          thumbColor="#fff"
+          trackColor={{ false: themeColors.switchTrackOff, true: themeColors.primary }}
+          thumbColor={themeColors.switchThumb}
         />
       )}
     </View>
@@ -122,10 +123,11 @@ function ChevronRow({
   onPress: () => void;
   destructive?: boolean;
 }) {
-  const labelColor = destructive ? '#EF4444' : '#F1F0FF';
-  const ic = iconColor ?? (destructive ? '#EF4444' : colors.pink);
-  const bgColor = destructive ? '#EF444410' : '#10101C';
-  const borderColor = destructive ? '#EF444420' : '#1A1A30';
+  const { colors: themeColors, alpha } = useTheme();
+  const labelColor = destructive ? themeColors.danger : themeColors.text;
+  const ic = iconColor ?? (destructive ? themeColors.danger : brandColors.pink);
+  const bgColor = destructive ? themeColors.dangerSoft : themeColors.card;
+  const borderColor = destructive ? alpha(themeColors.danger, 0.18) : themeColors.border;
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -145,7 +147,7 @@ function ChevronRow({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: destructive ? '#EF444420' : `${ic}33`,
+        backgroundColor: destructive ? alpha(themeColors.danger, 0.12) : alpha(ic, 0.2),
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
@@ -154,9 +156,9 @@ function ChevronRow({
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ color: labelColor, fontSize: 15, fontWeight: '600' }}>{label}</Text>
-        {subtitle && <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
+        {subtitle && <Text style={{ color: themeColors.textMuted, fontSize: 12, marginTop: 2 }}>{subtitle}</Text>}
       </View>
-      <Ionicons name="chevron-forward" size={16} color="#5A5575" />
+      <Ionicons name="chevron-forward" size={16} color={themeColors.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -172,14 +174,15 @@ function InfoRow({
   label: string;
   value: string;
 }) {
-  const ic = iconColor ?? '#5A5575';
+  const { colors: themeColors, alpha } = useTheme();
+  const ic = iconColor ?? themeColors.textMuted;
   return (
     <View style={{
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#10101C',
+      backgroundColor: themeColors.card,
       borderWidth: 1,
-      borderColor: '#1A1A30',
+      borderColor: themeColors.border,
       borderRadius: 14,
       padding: 16,
       marginHorizontal: 16,
@@ -189,7 +192,7 @@ function InfoRow({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: `${ic}33`,
+        backgroundColor: alpha(ic, 0.2),
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
@@ -197,9 +200,9 @@ function InfoRow({
         <Ionicons name={icon} size={18} color={ic} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: '#F1F0FF', fontSize: 15, fontWeight: '600' }}>{label}</Text>
+        <Text style={{ color: themeColors.text, fontSize: 15, fontWeight: '600' }}>{label}</Text>
       </View>
-      <Text style={{ color: '#5A5575', fontSize: 14 }}>{value}</Text>
+      <Text style={{ color: themeColors.textMuted, fontSize: 14 }}>{value}</Text>
     </View>
   );
 }
@@ -216,16 +219,17 @@ function SegmentedControl<T extends SegmentedValue>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const { colors: themeColors } = useTheme();
   return (
     <View style={{
       flexDirection: 'row',
-      backgroundColor: '#0C0C1A',
+      backgroundColor: themeColors.input,
       borderRadius: 10,
       padding: 3,
       marginHorizontal: 16,
       marginBottom: 4,
       borderWidth: 1,
-      borderColor: '#1A1A30',
+      borderColor: themeColors.border,
     }}>
       {options.map((opt) => (
         <TouchableOpacity
@@ -236,11 +240,11 @@ function SegmentedControl<T extends SegmentedValue>({
             paddingVertical: 8,
             alignItems: 'center',
             borderRadius: 8,
-            backgroundColor: value === opt.value ? '#EC4899' : 'transparent',
+            backgroundColor: value === opt.value ? themeColors.primary : 'transparent',
           }}
         >
           <Text style={{
-            color: value === opt.value ? '#fff' : '#5A5575',
+            color: value === opt.value ? themeColors.white : themeColors.textMuted,
             fontSize: 13,
             fontWeight: '600',
           }}>
@@ -257,6 +261,7 @@ function SegmentedControl<T extends SegmentedValue>({
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors: themeColors, alpha } = useTheme();
   const { preference: themePreference, setPreference: setThemePreference, scheme: activeTheme } = useThemePreference();
   const { user, logout } = useAuth();
   const { hasToken } = useAuth();
@@ -381,14 +386,9 @@ export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? (Constants.manifest as any)?.version ?? '1.0.0';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <ThemedScreen scroll contentContainerStyle={{ paddingBottom: 120 }}>
       {/* ── Gradient Header ── */}
-      <LinearGradient
-        colors={['#12051E', '#080810']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={{ paddingTop: insets.top + 12, paddingBottom: 18, paddingHorizontal: 20 }}
-      >
+      <View style={{ paddingTop: insets.top + 12, paddingBottom: 18, paddingHorizontal: 20 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -396,21 +396,19 @@ export default function SettingsScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: '#10101C',
+              backgroundColor: themeColors.card,
               borderWidth: 1,
-              borderColor: '#1A1A30',
+              borderColor: themeColors.border,
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+            <Ionicons name="arrow-back" size={20} color={themeColors.text} />
           </TouchableOpacity>
-          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', flex: 1 }}>Settings ⚙️</Text>
+          <Text style={{ color: themeColors.text, fontSize: 24, fontWeight: '900', flex: 1 }}>Settings ⚙️</Text>
         </View>
-      </LinearGradient>
-
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      </View>
 
         {/* ── CONNECTIONS ── */}
         <SectionHeader title="Connections" />
@@ -419,9 +417,9 @@ export default function SettingsScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: '#10101C',
+            backgroundColor: themeColors.card,
             borderWidth: 1,
-            borderColor: '#1A1A30',
+            borderColor: themeColors.border,
             borderRadius: 14,
             padding: 16,
             marginHorizontal: 16,
@@ -430,18 +428,18 @@ export default function SettingsScreen() {
         >
           <View style={{
             width: 36, height: 36, borderRadius: 10,
-            backgroundColor: `${colors.pink}33`,
+            backgroundColor: alpha(brandColors.pink, 0.2),
             alignItems: 'center', justifyContent: 'center', marginRight: 12,
           }}>
             <Text style={{ fontSize: 18 }}>💗</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#F1F0FF', fontWeight: '600', fontSize: 15 }}>Connections & Partners</Text>
-            <Text style={{ color: '#5A5575', fontSize: 12, marginTop: 1 }}>Manage your connections</Text>
+            <Text style={{ color: themeColors.text, fontWeight: '600', fontSize: 15 }}>Connections & Partners</Text>
+            <Text style={{ color: themeColors.textMuted, fontSize: 12, marginTop: 1 }}>Manage your connections</Text>
           </View>
           {pendingCount > 0 && (
             <View style={{
-              backgroundColor: colors.pink, borderRadius: 10,
+              backgroundColor: brandColors.pink, borderRadius: 10,
               minWidth: 20, height: 20,
               alignItems: 'center', justifyContent: 'center',
               paddingHorizontal: 5, marginRight: 8,
@@ -449,27 +447,27 @@ export default function SettingsScreen() {
               <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{pendingCount}</Text>
             </View>
           )}
-          <Ionicons name="chevron-forward" size={16} color="#5A5575" />
+          <Ionicons name="chevron-forward" size={16} color={themeColors.textMuted} />
         </TouchableOpacity>
 
         {/* ── ACCOUNT ── */}
         <SectionHeader title="Account" />
         <ChevronRow
           icon="create-outline"
-          iconColor={colors.pink}
+          iconColor={brandColors.pink}
           label="Display Name"
           subtitle={me?.name ?? me?.displayName ?? undefined}
           onPress={() => router.push('/edit-profile' as any)}
         />
         <ChevronRow
           icon="lock-closed-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Change Password"
           onPress={() => router.push({ pathname: '/(auth)/forgot-password' as any, params: { prefill: email } })}
         />
         <ChevronRow
           icon="mail-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Email / Phone"
           subtitle={[email, phone].filter(Boolean).join(' · ') || 'Not set'}
           onPress={() =>
@@ -487,7 +485,7 @@ export default function SettingsScreen() {
         <SectionHeader title="Notifications" />
         <ToggleRow
           icon="notifications-outline"
-          iconColor={colors.pink}
+          iconColor={brandColors.pink}
           label="Push Notifications"
           subtitle="Master toggle for all push alerts"
           value={notifPush}
@@ -495,7 +493,7 @@ export default function SettingsScreen() {
         />
         <ToggleRow
           icon="chatbubble-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="New Messages"
           value={notifMessages && notifPush}
           onToggle={() => toggleNotif(NOTIF_MESSAGES_KEY, notifMessages, setNotifMessages)}
@@ -503,7 +501,7 @@ export default function SettingsScreen() {
         />
         <ToggleRow
           icon="calendar-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Event Reminders"
           value={notifEvents && notifPush}
           onToggle={() => toggleNotif(NOTIF_EVENTS_KEY, notifEvents, setNotifEvents)}
@@ -511,7 +509,7 @@ export default function SettingsScreen() {
         />
         <ToggleRow
           icon="globe-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Community Posts"
           value={notifCommunity && notifPush}
           onToggle={() => toggleNotif(NOTIF_COMMUNITY_KEY, notifCommunity, setNotifCommunity)}
@@ -519,7 +517,7 @@ export default function SettingsScreen() {
         />
         <ToggleRow
           icon="megaphone-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Admin Announcements"
           value={notifAdmin && notifPush}
           onToggle={() => toggleNotif(NOTIF_ADMIN_KEY, notifAdmin, setNotifAdmin)}
@@ -530,7 +528,7 @@ export default function SettingsScreen() {
         <SectionHeader title="Privacy" />
         <ToggleRow
           icon="people-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Show in Members Directory"
           subtitle="Let other members find your profile"
           value={showInDirectory}
@@ -541,7 +539,7 @@ export default function SettingsScreen() {
         />
         <ToggleRow
           icon="location-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Show Location in Pulse"
           subtitle="Visible to members in Pulse feed"
           value={showPulseLoc}
@@ -550,16 +548,16 @@ export default function SettingsScreen() {
 
         {/* Messaging segmented control */}
         <View style={{
-          backgroundColor: '#10101C',
+          backgroundColor: themeColors.card,
           borderWidth: 1,
-          borderColor: '#1A1A30',
+          borderColor: themeColors.border,
           borderRadius: 14,
           paddingVertical: 14,
           marginHorizontal: 16,
           marginBottom: 8,
         }}>
           <Text style={{
-            color: '#F1F0FF',
+            color: themeColors.text,
             fontSize: 15,
             fontWeight: '600',
             marginHorizontal: 16,
@@ -581,16 +579,16 @@ export default function SettingsScreen() {
         {/* ── APP ── */}
         <SectionHeader title="App" />
         <View style={{
-          backgroundColor: '#10101C',
+          backgroundColor: themeColors.card,
           borderWidth: 1,
-          borderColor: '#1A1A30',
+          borderColor: themeColors.border,
           borderRadius: 14,
           paddingVertical: 14,
           marginHorizontal: 16,
           marginBottom: 8,
         }}>
           <Text style={{
-            color: '#F1F0FF',
+            color: themeColors.text,
             fontSize: 15,
             fontWeight: '600',
             marginHorizontal: 16,
@@ -599,7 +597,7 @@ export default function SettingsScreen() {
             Appearance
           </Text>
           <Text style={{
-            color: '#5A5575',
+            color: themeColors.textMuted,
             fontSize: 12,
             marginHorizontal: 16,
             marginBottom: 10,
@@ -623,7 +621,7 @@ export default function SettingsScreen() {
         />
         <ChevronRow
           icon="refresh-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Clear Cache"
           subtitle="Clears local data and query cache"
           onPress={handleClearCache}
@@ -641,31 +639,30 @@ export default function SettingsScreen() {
         <SectionHeader title="Support" />
         <ChevronRow
           icon="mail-outline"
-          iconColor={colors.pink}
+          iconColor={brandColors.pink}
           label="Contact Support"
           onPress={() => Linking.openURL('mailto:support@soapies.app')}
         />
         <ChevronRow
           icon="book-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Community Guidelines"
           onPress={() => Linking.openURL('https://soapies.app/guidelines')}
         />
         <ChevronRow
           icon="shield-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Privacy Policy"
           onPress={() => Linking.openURL('https://soapies.app/privacy')}
         />
         <ChevronRow
           icon="document-text-outline"
-          iconColor={colors.purple}
+          iconColor={brandColors.purple}
           label="Terms of Service"
           onPress={() => Linking.openURL('https://soapies.app/terms')}
         />
 
         <View style={{ height: 16 }} />
-      </ScrollView>
-    </SafeAreaView>
+    </ThemedScreen>
   );
 }

@@ -18,9 +18,9 @@ import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { trpc } from '../lib/trpc';
-import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../components/Toast';
+import { useTheme, type ThemeColors } from '../lib/theme';
 
 const STEPS = ['Photo', 'About', 'Identity', 'Location'];
 
@@ -33,6 +33,8 @@ export default function ProfileSetupScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const toast = useToast();
+  const { colors, alpha } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors, alpha), [colors, alpha]);
 
   const [step, setStep] = useState(0);
 
@@ -204,7 +206,7 @@ export default function ProfileSetupScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {step === 0 && <StepPhoto avatarUrl={avatarUrl} isUploading={isUploading} onPickPhoto={handlePickPhoto} />}
+        {step === 0 && <StepPhoto avatarUrl={avatarUrl} isUploading={isUploading} onPickPhoto={handlePickPhoto} colors={colors} styles={styles} />}
         {step === 1 && (
           <StepAbout
             displayName={displayName} setDisplayName={setDisplayName}
@@ -212,15 +214,20 @@ export default function ProfileSetupScreen() {
             dobYear={dobYear} setDobYear={setDobYear}
             dobMonth={dobMonth} setDobMonth={setDobMonth}
             dobDay={dobDay} setDobDay={setDobDay}
+            colors={colors}
+            styles={styles}
+            alpha={alpha}
           />
         )}
         {step === 2 && (
           <StepIdentity
             gender={gender} setGender={setGender}
             orientation={orientation} setOrientation={setOrientation}
+            colors={colors}
+            styles={styles}
           />
         )}
-        {step === 3 && <StepLocation location={location} setLocation={setLocation} />}
+        {step === 3 && <StepLocation location={location} setLocation={setLocation} colors={colors} styles={styles} />}
       </ScrollView>
 
       {/* Footer button */}
@@ -247,7 +254,7 @@ export default function ProfileSetupScreen() {
 
         {isLastStep && (
           <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: 14, alignItems: 'center' }}>
-            <Text style={{ color: colors.muted, fontSize: 14 }}>Skip for now</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>Skip for now</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -261,10 +268,14 @@ function StepPhoto({
   avatarUrl,
   isUploading,
   onPickPhoto,
+  colors,
+  styles,
 }: {
   avatarUrl: string;
   isUploading: boolean;
   onPickPhoto: () => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={styles.stepContainer}>
@@ -277,7 +288,7 @@ function StepPhoto({
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={52} color={colors.muted} />
+              <Ionicons name="person" size={52} color={colors.textMuted} />
             </View>
           )}
         </View>
@@ -291,12 +302,12 @@ function StepPhoto({
       </TouchableOpacity>
 
       {!avatarUrl && (
-        <Text style={{ color: colors.muted, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
+        <Text style={{ color: colors.textMuted, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
           Tap to upload a photo
         </Text>
       )}
       {avatarUrl && !isUploading && (
-        <Text style={{ color: '#34D399', marginTop: 16, textAlign: 'center', fontSize: 13 }}>
+        <Text style={{ color: colors.success, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
           ✓ Photo uploaded successfully
         </Text>
       )}
@@ -310,12 +321,18 @@ function StepAbout({
   dobYear, setDobYear,
   dobMonth, setDobMonth,
   dobDay, setDobDay,
+  colors,
+  styles,
+  alpha,
 }: {
   displayName: string; setDisplayName: (v: string) => void;
   bio: string; setBio: (v: string) => void;
   dobYear: string; setDobYear: (v: string) => void;
   dobMonth: string; setDobMonth: (v: string) => void;
   dobDay: string; setDobDay: (v: string) => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
+  alpha: (color: string, opacity: number) => string;
 }) {
   function calculateAge(year: string, month: string, day: string): number | null {
     if (!year || !month || !day) return null;
@@ -341,18 +358,18 @@ function StepAbout({
           value={displayName}
           onChangeText={setDisplayName}
           placeholder="Your display name"
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
       </View>
 
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>BIO <Text style={{ color: colors.muted }}>{bio.length}/200</Text></Text>
+        <Text style={styles.fieldLabel}>BIO <Text style={{ color: colors.textMuted }}>{bio.length}/200</Text></Text>
         <TextInput
           value={bio}
           onChangeText={(v) => setBio(v.slice(0, 200))}
           placeholder="Tell the community about yourself..."
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={colors.textMuted}
           multiline
           numberOfLines={3}
           maxLength={200}
@@ -368,7 +385,7 @@ function StepAbout({
             value={dobMonth}
             onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
             placeholder="MM"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             maxLength={2}
             style={[styles.input, { flex: 1 }]}
@@ -377,7 +394,7 @@ function StepAbout({
             value={dobDay}
             onChangeText={(v) => setDobDay(v.replace(/\D/g, '').slice(0, 2))}
             placeholder="DD"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             maxLength={2}
             style={[styles.input, { flex: 1 }]}
@@ -386,7 +403,7 @@ function StepAbout({
             value={dobYear}
             onChangeText={(v) => setDobYear(v.replace(/\D/g, '').slice(0, 4))}
             placeholder="YYYY"
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
             maxLength={4}
             style={[styles.input, { flex: 2 }]}
@@ -395,14 +412,14 @@ function StepAbout({
         {currentAge !== null && (
           <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
             {isAdult ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B98122', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                <Text style={{ color: '#10B981', fontWeight: '700', marginLeft: 4 }}>{currentAge} years old ✓</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: alpha(colors.success, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                <Text style={{ color: colors.success, fontWeight: '700', marginLeft: 4 }}>{currentAge} years old ✓</Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444422', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                <Ionicons name="close-circle" size={16} color="#EF4444" />
-                <Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 4 }}>Must be 18+ to join</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: alpha(colors.danger, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                <Ionicons name="close-circle" size={16} color={colors.danger} />
+                <Text style={{ color: colors.danger, fontWeight: '700', marginLeft: 4 }}>Must be 18+ to join</Text>
               </View>
             )}
           </View>
@@ -415,9 +432,13 @@ function StepAbout({
 function StepIdentity({
   gender, setGender,
   orientation, setOrientation,
+  colors,
+  styles,
 }: {
   gender: string; setGender: (v: string) => void;
   orientation: string; setOrientation: (v: string) => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={styles.stepContainer}>
@@ -425,10 +446,10 @@ function StepIdentity({
       <Text style={styles.stepSubheading}>Help us personalise your experience</Text>
 
       <Text style={[styles.fieldLabel, { marginTop: 24, marginBottom: 10 }]}>GENDER *</Text>
-      <PillGrid options={GENDER_OPTIONS} selected={gender} onSelect={setGender} />
+      <PillGrid options={GENDER_OPTIONS} selected={gender} onSelect={setGender} colors={colors} styles={styles} />
 
       <Text style={[styles.fieldLabel, { marginTop: 24, marginBottom: 10 }]}>ORIENTATION *</Text>
-      <PillGrid options={ORIENTATION_OPTIONS} selected={orientation} onSelect={setOrientation} />
+      <PillGrid options={ORIENTATION_OPTIONS} selected={orientation} onSelect={setOrientation} colors={colors} styles={styles} />
     </View>
   );
 }
@@ -436,9 +457,13 @@ function StepIdentity({
 function StepLocation({
   location,
   setLocation,
+  colors,
+  styles,
 }: {
   location: string;
   setLocation: (v: string) => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={styles.stepContainer}>
@@ -451,7 +476,7 @@ function StepLocation({
           value={location}
           onChangeText={setLocation}
           placeholder="e.g. Los Angeles, CA"
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={colors.textMuted}
           style={styles.input}
         />
       </View>
@@ -463,10 +488,14 @@ function PillGrid({
   options,
   selected,
   onSelect,
+  colors,
+  styles,
 }: {
   options: string[];
   selected: string;
   onSelect: (v: string) => void;
+  colors: ThemeColors;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={styles.pillGrid}>
@@ -491,155 +520,158 @@ function PillGrid({
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  stepTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    backgroundColor: colors.pink,
-    width: 20,
-  },
-  dotDone: {
-    backgroundColor: colors.purple,
-  },
-  dotInactive: {
-    backgroundColor: colors.border,
-  },
-  body: {
-    flexGrow: 1,
-    paddingBottom: 32,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  nextBtn: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-  },
-  nextBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  stepContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-  },
-  stepHeading: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  stepSubheading: {
-    color: colors.muted,
-    fontSize: 15,
-  },
-  avatarCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.pink,
-  },
-  avatarImage: {
-    width: 120,
-    height: 120,
-  },
-  avatarPlaceholder: {
-    flex: 1,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraOverlay: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    backgroundColor: colors.pink,
-    borderRadius: 16,
-    padding: 7,
-    borderWidth: 2,
-    borderColor: colors.bg,
-  },
-  fieldGroup: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.text,
-    fontSize: 15,
-    minHeight: 48,
-  },
-  pillGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    minWidth: '30%',
-    alignItems: 'center',
-  },
-  pillSelected: {
-    borderColor: colors.pink,
-    backgroundColor: 'rgba(236, 72, 153, 0.15)',
-  },
-  pillText: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  pillTextSelected: {
-    color: colors.pink,
-    fontWeight: '700',
-  },
-});
+function createStyles(colors: ThemeColors, alpha: (color: string, opacity: number) => string) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.page,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    stepTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '700',
+      marginBottom: 6,
+    },
+    dotsRow: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    dotActive: {
+      backgroundColor: colors.pink,
+      width: 20,
+    },
+    dotDone: {
+      backgroundColor: colors.purple,
+    },
+    dotInactive: {
+      backgroundColor: colors.border,
+    },
+    body: {
+      flexGrow: 1,
+      paddingBottom: 32,
+    },
+    footer: {
+      paddingHorizontal: 24,
+      paddingBottom: 24,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.page,
+    },
+    nextBtn: {
+      paddingVertical: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 14,
+    },
+    nextBtnText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 16,
+    },
+    stepContainer: {
+      paddingHorizontal: 24,
+      paddingTop: 32,
+    },
+    stepHeading: {
+      color: colors.text,
+      fontSize: 24,
+      fontWeight: '800',
+      marginBottom: 8,
+    },
+    stepSubheading: {
+      color: colors.textSecondary,
+      fontSize: 15,
+    },
+    avatarCircle: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: colors.pink,
+    },
+    avatarImage: {
+      width: 120,
+      height: 120,
+    },
+    avatarPlaceholder: {
+      flex: 1,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cameraOverlay: {
+      position: 'absolute',
+      bottom: 2,
+      right: 2,
+      backgroundColor: colors.pink,
+      borderRadius: 16,
+      padding: 7,
+      borderWidth: 2,
+      borderColor: colors.page,
+    },
+    fieldGroup: {
+      marginBottom: 20,
+    },
+    fieldLabel: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '600',
+      marginBottom: 8,
+      letterSpacing: 0.5,
+    },
+    input: {
+      backgroundColor: colors.input,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.text,
+      fontSize: 15,
+      minHeight: 48,
+    },
+    pillGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    pill: {
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: 24,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      minWidth: '30%',
+      alignItems: 'center',
+    },
+    pillSelected: {
+      borderColor: colors.pink,
+      backgroundColor: alpha(colors.pink, 0.15),
+    },
+    pillText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    pillTextSelected: {
+      color: colors.pink,
+      fontWeight: '700',
+    },
+  });
+}

@@ -15,8 +15,9 @@ import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
 import NotificationItem from '../../components/NotificationItem';
 import { FONT } from '../../lib/fonts';
+import { useTheme } from '../../lib/theme';
 
-function NotificationSkeleton() {
+function NotificationSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
   const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
@@ -31,11 +32,11 @@ function NotificationSkeleton() {
   }, [opacity]);
 
   return (
-    <Animated.View style={[styles.skeletonRow, { opacity }]}>
-      <View style={styles.skeletonIcon} />
+    <Animated.View style={[styles.skeletonRow, { opacity, backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+      <View style={[styles.skeletonIcon, { backgroundColor: theme.colors.border }]} />
       <View style={styles.skeletonBody}>
-        <View style={styles.skeletonLinePrimary} />
-        <View style={styles.skeletonLineSecondary} />
+        <View style={[styles.skeletonLinePrimary, { backgroundColor: theme.colors.border }]} />
+        <View style={[styles.skeletonLineSecondary, { backgroundColor: theme.colors.border }]} />
       </View>
     </Animated.View>
   );
@@ -43,6 +44,28 @@ function NotificationSkeleton() {
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const themed = useMemo(() => ({
+    screen: theme.colors.background,
+    headerGradient: theme.isDark ? ['#18071F', '#10061A', '#080810'] as const : ['#FFF7FC', '#FBEFFC', '#F7EFFA'] as const,
+    headerBorder: theme.isDark ? 'rgba(255,255,255,0.05)' : theme.colors.border,
+    eyebrowBg: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.72)',
+    eyebrowBorder: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.colors.border,
+    eyebrowText: theme.isDark ? '#F9A8D4' : theme.colors.primary,
+    glow: theme.isDark ? 'rgba(236,72,153,0.12)' : 'rgba(236,72,153,0.08)',
+    miniStatBg: theme.isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.1)',
+    miniStatBorder: theme.isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.18)',
+    miniStatValue: theme.isDark ? '#DDD6FE' : theme.colors.secondary,
+    miniStatLabel: theme.colors.textSecondary,
+    title: theme.colors.text,
+    subtitle: theme.colors.textSecondary,
+    bubbleBg: theme.isDark ? 'rgba(236,72,153,0.16)' : 'rgba(236,72,153,0.1)',
+    bubbleBorder: theme.isDark ? 'rgba(236,72,153,0.22)' : 'rgba(236,72,153,0.16)',
+    bubbleText: theme.isDark ? '#F9A8D4' : theme.colors.primary,
+    buttonGradient: theme.isDark ? ['rgba(236,72,153,0.18)', 'rgba(168,85,247,0.14)'] as const : ['rgba(236,72,153,0.12)', 'rgba(168,85,247,0.1)'] as const,
+    emptyTitle: theme.colors.text,
+    emptyBody: theme.colors.textSecondary,
+  }), [theme]);
   const [refreshing, setRefreshing] = useState(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<number>>(new Set());
 
@@ -88,32 +111,32 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themed.screen }]} edges={['bottom', 'left', 'right']}>
       <LinearGradient
-        colors={['#18071F', '#10061A', '#080810']}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
+        colors={themed.headerGradient}
+        style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: themed.headerBorder }]}
       >
-        <View style={styles.headerGlow} />
+        <View style={[styles.headerGlow, { backgroundColor: themed.glow }]} />
         <View style={styles.headerTopline}>
-          <View style={styles.eyebrowPill}>
-            <Text style={styles.eyebrowText}>AFTER DARK</Text>
+          <View style={[styles.eyebrowPill, { backgroundColor: themed.eyebrowBg, borderColor: themed.eyebrowBorder }]}>
+            <Text style={[styles.eyebrowText, { color: themed.eyebrowText }]}>AFTER DARK</Text>
           </View>
-          <View style={styles.headerMiniStat}>
-            <Text style={styles.headerMiniValue}>{unreadCount}</Text>
-            <Text style={styles.headerMiniLabel}>fresh</Text>
+          <View style={[styles.headerMiniStat, { backgroundColor: themed.miniStatBg, borderColor: themed.miniStatBorder }]}>
+            <Text style={[styles.headerMiniValue, { color: themed.miniStatValue }]}>{unreadCount}</Text>
+            <Text style={[styles.headerMiniLabel, { color: themed.miniStatLabel }]}>fresh</Text>
           </View>
         </View>
 
         <View style={styles.headerRow}>
           <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={styles.headerTitle}>Alerts</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: themed.title }]}>Alerts</Text>
+            <Text style={[styles.headerSubtitle, { color: themed.subtitle }]}>
               RSVPs, mentions, and little sparks from the community land here first.
             </Text>
           </View>
           {unreadCount > 0 && (
-            <View style={styles.unreadBubble}>
-              <Text style={styles.unreadBubbleText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            <View style={[styles.unreadBubble, { backgroundColor: themed.bubbleBg, borderColor: themed.bubbleBorder }]}>
+              <Text style={[styles.unreadBubbleText, { color: themed.bubbleText }]}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
             </View>
           )}
         </View>
@@ -127,7 +150,7 @@ export default function NotificationsScreen() {
           activeOpacity={0.8}
           style={[styles.markAllBtn, unreadCount === 0 && styles.markAllBtnDisabled]}
         >
-          <LinearGradient colors={['rgba(236,72,153,0.18)', 'rgba(168,85,247,0.14)']} style={styles.markAllInner}>
+          <LinearGradient colors={themed.buttonGradient} style={styles.markAllInner}>
             <Ionicons name="checkmark-done" size={16} color="#EC4899" />
             <Text style={styles.markAllText}>Mark all read</Text>
           </LinearGradient>
@@ -136,10 +159,10 @@ export default function NotificationsScreen() {
 
       {isLoading ? (
         <View>
-          <NotificationSkeleton />
-          <NotificationSkeleton />
-          <NotificationSkeleton />
-          <NotificationSkeleton />
+          <NotificationSkeleton theme={theme} />
+          <NotificationSkeleton theme={theme} />
+          <NotificationSkeleton theme={theme} />
+          <NotificationSkeleton theme={theme} />
         </View>
       ) : (
         <FlatList
@@ -162,10 +185,10 @@ export default function NotificationsScreen() {
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>🔔</Text>
-              <Text style={styles.emptyTitle}>
+              <Text style={[styles.emptyTitle, { color: themed.emptyTitle }]}>
                 You're all caught up!
               </Text>
-              <Text style={styles.emptyBody}>
+              <Text style={[styles.emptyBody, { color: themed.emptyBody }]}>
                 We'll let you know when something happens
               </Text>
             </View>
