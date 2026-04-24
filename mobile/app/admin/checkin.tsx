@@ -14,6 +14,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
+import { useTheme } from '../../lib/theme';
 
 interface ScanResult {
   success: boolean;
@@ -43,6 +44,7 @@ const TICKET_TYPE_LABELS: Record<string, string> = {
 export default function AdminCheckinScreen() {
   const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle: string }>();
   const router = useRouter();
+  const theme = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
@@ -102,7 +104,7 @@ export default function AdminCheckinScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
@@ -110,12 +112,12 @@ export default function AdminCheckinScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-        <Ionicons name="camera-outline" size={64} color={colors.muted} style={{ marginBottom: 16 }} />
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+        <Ionicons name="camera-outline" size={64} color={theme.colors.textMuted} style={{ marginBottom: 16 }} />
+        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
           Camera Permission Required
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
           We need camera access to scan QR codes at check-in.
         </Text>
         <TouchableOpacity
@@ -125,30 +127,30 @@ export default function AdminCheckinScreen() {
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Grant Permission</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: colors.muted }}>Go Back</Text>
+          <Text style={{ color: theme.colors.textMuted }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <View style={{
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 14,
-        borderBottomColor: colors.border,
+        borderBottomColor: theme.colors.border,
         borderBottomWidth: 1,
       }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Check-In Scanner</Text>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Check-In Scanner</Text>
           {eventTitle ? (
-            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{eventTitle}</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{eventTitle}</Text>
           ) : null}
         </View>
         {isCheckingIn && <ActivityIndicator color={colors.pink} size="small" />}
@@ -193,8 +195,8 @@ export default function AdminCheckinScreen() {
 
       {/* Bottom panel */}
       <View style={{
-        backgroundColor: colors.bg,
-        borderTopColor: colors.border,
+        backgroundColor: theme.colors.background,
+        borderTopColor: theme.colors.border,
         borderTopWidth: 1,
         padding: 16,
         gap: 14,

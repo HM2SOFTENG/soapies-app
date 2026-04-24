@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleProp, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../lib/colors';
+import { useTheme } from '../lib/theme';
 import { getInitials } from '../lib/utils';
 
 const SIZES = {
@@ -25,6 +25,7 @@ const Avatar = React.memo(function Avatar({ name, url, size = 'md', style }: Ava
   const px = typeof size === 'number' ? size : SIZES[size];
   const fontSize = px * 0.35;
   const borderRadius = px / 2;
+  const { colors } = useTheme();
 
   if (url) {
     return (

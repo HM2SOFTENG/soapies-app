@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
-import { colors } from '../../lib/colors';
+import { useTheme } from '../../lib/theme';
 
 const COMMUNITIES = [
   { label: 'All Communities', value: undefined },
@@ -27,6 +27,7 @@ const QUICK_TEMPLATES = [
 export default function PushNotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   const [tab, setTab] = useState<'broadcast' | 'individual'>('broadcast');
   const [title, setTitle] = useState('');
@@ -89,41 +90,41 @@ export default function PushNotificationsScreen() {
   const isPending = broadcastMutation.isPending || sendToUserMutation.isPending;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <LinearGradient
-        colors={['#1A082E', '#080810']}
+        colors={[theme.alpha(theme.colors.secondary, 0.22), theme.alpha(theme.colors.primary, 0.1), theme.colors.background]}
         style={{ paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 20 }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#ffffff15', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: theme.alpha(theme.colors.white, 0.12), alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+            <Ionicons name="arrow-back" size={20} color={theme.colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800' }}>Push Notifications</Text>
-            <Text style={{ color: '#5A5575', fontSize: 13 }}>Send to members</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800' }}>Push Notifications</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Send to members</Text>
           </View>
-          <View style={{ backgroundColor: '#EC489920', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: '#EC489940' }}>
-            <Text style={{ color: '#EC4899', fontSize: 12, fontWeight: '700' }}>📣 ADMIN</Text>
+          <View style={{ backgroundColor: theme.alpha(theme.colors.primary, 0.12), borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: theme.alpha(theme.colors.primary, 0.24) }}>
+            <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: '700' }}>📣 ADMIN</Text>
           </View>
         </View>
 
         {/* Tab toggle */}
-        <View style={{ flexDirection: 'row', backgroundColor: '#0C0C1A', borderRadius: 12, padding: 3, marginTop: 14, borderWidth: 1, borderColor: '#1A1A30' }}>
+        <View style={{ flexDirection: 'row', backgroundColor: theme.colors.floating, borderRadius: 12, padding: 3, marginTop: 14, borderWidth: 1, borderColor: theme.colors.border }}>
           {(['broadcast', 'individual'] as const).map((t) => (
             <TouchableOpacity
               key={t}
               onPress={() => setTab(t)}
               style={{
                 flex: 1, borderRadius: 10, paddingVertical: 9,
-                backgroundColor: tab === t ? '#EC4899' : 'transparent',
+                backgroundColor: tab === t ? theme.colors.primary : 'transparent',
                 alignItems: 'center',
               }}
             >
-              <Text style={{ color: tab === t ? '#fff' : '#5A5575', fontWeight: '700', fontSize: 13 }}>
+              <Text style={{ color: tab === t ? theme.colors.white : theme.colors.textMuted, fontWeight: '700', fontSize: 13 }}>
                 {t === 'broadcast' ? '📣 Broadcast' : '👤 Individual'}
               </Text>
             </TouchableOpacity>
@@ -134,7 +135,7 @@ export default function PushNotificationsScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
 
         {/* Quick templates */}
-        <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
           Quick Templates
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
@@ -144,11 +145,11 @@ export default function PushNotificationsScreen() {
                 key={t.label}
                 onPress={() => applyTemplate(t)}
                 style={{
-                  backgroundColor: '#10101C', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-                  borderWidth: 1, borderColor: '#1A1A30',
+                  backgroundColor: theme.colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+                  borderWidth: 1, borderColor: theme.colors.border,
                 }}
               >
-                <Text style={{ color: '#F1F0FF', fontWeight: '600', fontSize: 13 }}>{t.label}</Text>
+                <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 13 }}>{t.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -157,7 +158,7 @@ export default function PushNotificationsScreen() {
         {/* Audience filter (broadcast only) */}
         {tab === 'broadcast' && (
           <>
-            <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
               Audience
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
@@ -168,11 +169,11 @@ export default function PushNotificationsScreen() {
                   style={{
                     paddingHorizontal: 14, paddingVertical: 8,
                     borderRadius: 20, borderWidth: 1,
-                    backgroundColor: communityFilter === c.value ? '#EC489920' : '#10101C',
-                    borderColor: communityFilter === c.value ? '#EC4899' : '#1A1A30',
+                    backgroundColor: communityFilter === c.value ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.surface,
+                    borderColor: communityFilter === c.value ? theme.colors.primary : theme.colors.border,
                   }}
                 >
-                  <Text style={{ color: communityFilter === c.value ? '#EC4899' : '#A09CB8', fontWeight: '600', fontSize: 13 }}>
+                  <Text style={{ color: communityFilter === c.value ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '600', fontSize: 13 }}>
                     {c.label}
                   </Text>
                 </TouchableOpacity>
@@ -184,21 +185,21 @@ export default function PushNotificationsScreen() {
         {/* Individual user selector */}
         {tab === 'individual' && (
           <>
-            <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
               Select Member
             </Text>
             <TextInput
               value={targetUserId}
               onChangeText={setTargetUserId}
               placeholder="User ID (tap member below to fill)"
-              placeholderTextColor="#5A5575"
+              placeholderTextColor={theme.colors.textMuted}
               keyboardType="numeric"
               style={{
-                backgroundColor: '#10101C', borderRadius: 12, borderWidth: 1, borderColor: '#1A1A30',
-                color: '#F1F0FF', padding: 14, fontSize: 15, marginBottom: 12,
+                backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border,
+                color: theme.colors.text, padding: 14, fontSize: 15, marginBottom: 12,
               }}
             />
-            <View style={{ maxHeight: 200, backgroundColor: '#10101C', borderRadius: 12, borderWidth: 1, borderColor: '#1A1A30', marginBottom: 20, overflow: 'hidden' }}>
+            <View style={{ maxHeight: 200, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 20, overflow: 'hidden' }}>
               <ScrollView>
                 {members.slice(0, 50).map((m: any) => (
                   <TouchableOpacity
@@ -206,21 +207,21 @@ export default function PushNotificationsScreen() {
                     onPress={() => setTargetUserId(String(m.userId ?? m.id))}
                     style={{
                       flexDirection: 'row', alignItems: 'center', padding: 12,
-                      borderBottomWidth: 1, borderBottomColor: '#1A1A30',
-                      backgroundColor: targetUserId === String(m.userId ?? m.id) ? '#EC489915' : 'transparent',
+                      borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+                      backgroundColor: targetUserId === String(m.userId ?? m.id) ? theme.alpha(theme.colors.primary, 0.08) : 'transparent',
                     }}
                   >
-                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#EC489930', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                      <Text style={{ color: '#EC4899', fontWeight: '700', fontSize: 13 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.alpha(theme.colors.primary, 0.18), alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                      <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 13 }}>
                         {(m.displayName ?? m.name ?? '?')[0]?.toUpperCase()}
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#F1F0FF', fontWeight: '600', fontSize: 13 }}>{m.displayName ?? m.name}</Text>
-                      <Text style={{ color: '#5A5575', fontSize: 11 }}>ID: {m.userId ?? m.id} · {m.communityId ?? m.community}</Text>
+                      <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 13 }}>{m.displayName ?? m.name}</Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>ID: {m.userId ?? m.id} · {m.communityId ?? m.community}</Text>
                     </View>
                     {targetUserId === String(m.userId ?? m.id) && (
-                      <Ionicons name="checkmark-circle" size={18} color="#EC4899" />
+                      <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -230,55 +231,55 @@ export default function PushNotificationsScreen() {
         )}
 
         {/* Compose */}
-        <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 }}>
           Compose
         </Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
           placeholder="Notification title"
-          placeholderTextColor="#5A5575"
+          placeholderTextColor={theme.colors.textMuted}
           maxLength={100}
           style={{
-            backgroundColor: '#10101C', borderRadius: 12, borderWidth: 1, borderColor: title ? '#EC489960' : '#1A1A30',
-            color: '#F1F0FF', padding: 14, fontSize: 15, marginBottom: 10,
+            backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: title ? theme.alpha(theme.colors.primary, 0.38) : theme.colors.border,
+            color: theme.colors.text, padding: 14, fontSize: 15, marginBottom: 10,
           }}
         />
         <TextInput
           value={body}
           onChangeText={setBody}
           placeholder="Message body..."
-          placeholderTextColor="#5A5575"
+          placeholderTextColor={theme.colors.textMuted}
           multiline
           numberOfLines={4}
           maxLength={500}
           style={{
-            backgroundColor: '#10101C', borderRadius: 12, borderWidth: 1, borderColor: body ? '#EC489960' : '#1A1A30',
-            color: '#F1F0FF', padding: 14, fontSize: 15, minHeight: 100,
+            backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: body ? theme.alpha(theme.colors.primary, 0.38) : theme.colors.border,
+            color: theme.colors.text, padding: 14, fontSize: 15, minHeight: 100,
             textAlignVertical: 'top', marginBottom: 6,
           }}
         />
-        <Text style={{ color: '#5A5575', fontSize: 11, textAlign: 'right', marginBottom: 20 }}>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 11, textAlign: 'right', marginBottom: 20 }}>
           {body.length}/500
         </Text>
 
         {/* Preview */}
         {(title || body) && (
           <View style={{
-            backgroundColor: '#10101C', borderRadius: 16, padding: 16,
-            borderWidth: 1, borderColor: '#1A1A30', marginBottom: 20,
+            backgroundColor: theme.colors.surface, borderRadius: 16, padding: 16,
+            borderWidth: 1, borderColor: theme.colors.border, marginBottom: 20,
           }}>
-            <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>Preview</Text>
-            <View style={{ backgroundColor: '#1A1A30', borderRadius: 12, padding: 14 }}>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>Preview</Text>
+            <View style={{ backgroundColor: theme.colors.surfaceHigh, borderRadius: 12, padding: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <View style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: '#EC4899', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 14 }}>🧼</Text>
                 </View>
-                <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 13, flex: 1 }}>Soapies</Text>
-                <Text style={{ color: '#5A5575', fontSize: 11 }}>now</Text>
+                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 13, flex: 1 }}>Soapies</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>now</Text>
               </View>
-              <Text style={{ color: '#F1F0FF', fontWeight: '600', fontSize: 14 }}>{title || '—'}</Text>
-              <Text style={{ color: '#A09CB8', fontSize: 13, marginTop: 3 }}>{body || '—'}</Text>
+              <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 14 }}>{title || '—'}</Text>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 13, marginTop: 3 }}>{body || '—'}</Text>
             </View>
           </View>
         )}
@@ -286,7 +287,7 @@ export default function PushNotificationsScreen() {
         {/* Send button */}
         <TouchableOpacity onPress={handleSend} disabled={isPending} activeOpacity={0.85}>
           <LinearGradient
-            colors={['#EC4899', '#A855F7']}
+            colors={[theme.colors.pink, theme.colors.purple]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={{
               borderRadius: 16, padding: 16, alignItems: 'center',
@@ -295,11 +296,11 @@ export default function PushNotificationsScreen() {
             }}
           >
             {isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.white} />
             ) : (
               <>
-                <Ionicons name="send" size={18} color="#fff" />
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                <Ionicons name="send" size={18} color={theme.colors.white} />
+                <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16 }}>
                   {tab === 'broadcast' ? 'Broadcast to All' : 'Send to Member'}
                 </Text>
               </>

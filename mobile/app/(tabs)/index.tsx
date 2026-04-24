@@ -59,6 +59,7 @@ function getGreeting(name: string) {
 function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors: themeColors, alpha, isDark } = useTheme();
   const headerY = useRef(new Animated.Value(24)).current;
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
@@ -121,29 +122,29 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
 
   return (
     <LinearGradient
-      colors={['#220537', '#14051F', '#080810']}
+      colors={isDark ? ['#220537', '#14051F', '#080810'] : ['#FFF4FA', '#FFF8FC', '#FFFDFC']}
       start={{ x: 0, y: 0 }} end={{ x: 0.65, y: 1 }}
       style={{ paddingHorizontal: 20, paddingTop: insets.top + 18, paddingBottom: 28, overflow: 'hidden' }}
     >
-      <Animated.View style={{ position: 'absolute', top: insets.top - 4, right: -26, width: 188, height: 188, borderRadius: 94, backgroundColor: '#EC4899', opacity: avatarGlowOpacity, transform: [{ translateX: orbTranslateX }, { translateY: orbTranslateY }, { scale: orbScale }] }} />
-      <Animated.View style={{ position: 'absolute', top: insets.top + 58, right: 56, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(251,191,36,0.85)', shadowColor: '#FBBF24', shadowOpacity: 0.8, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, transform: [{ scale: orbScale }] }} />
-      <Animated.View style={{ position: 'absolute', top: insets.top + 130, left: -18, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(168,85,247,0.08)', transform: [{ translateY: orbTranslateY }] }} />
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+      <Animated.View style={{ position: 'absolute', top: insets.top - 4, right: -26, width: 188, height: 188, borderRadius: 94, backgroundColor: themeColors.pink, opacity: avatarGlowOpacity, transform: [{ translateX: orbTranslateX }, { translateY: orbTranslateY }, { scale: orbScale }] }} />
+      <Animated.View style={{ position: 'absolute', top: insets.top + 58, right: 56, width: 18, height: 18, borderRadius: 9, backgroundColor: alpha('#FBBF24', isDark ? 0.85 : 0.5), shadowColor: '#FBBF24', shadowOpacity: isDark ? 0.8 : 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, transform: [{ scale: orbScale }] }} />
+      <Animated.View style={{ position: 'absolute', top: insets.top + 130, left: -18, width: 110, height: 110, borderRadius: 55, backgroundColor: alpha(themeColors.purple, isDark ? 0.08 : 0.06), transform: [{ translateY: orbTranslateY }] }} />
+      <View style={{ position: 'absolute', left: 20, right: 20, bottom: 0, height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.border, 0.7) }} />
 
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerY }] }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <View style={{ flex: 1, paddingRight: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-                <Text style={{ color: '#C4B5FD', fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>TODAY</Text>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.surface, 0.92), borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : alpha(themeColors.border, 0.9) }}>
+                <Text style={{ color: isDark ? '#C4B5FD' : themeColors.purple, fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>TODAY</Text>
               </View>
             </View>
 
-            <Animated.Text style={{ color: '#F1F0FF', fontSize: 34, fontWeight: '900', lineHeight: 40, letterSpacing: -1.2, transform: [{ scale: greetingScale }], fontFamily: FONT.displayBold }}>
+            <Animated.Text style={{ color: themeColors.text, fontSize: 34, fontWeight: '900', lineHeight: 40, letterSpacing: -1.2, transform: [{ scale: greetingScale }], fontFamily: FONT.displayBold }}>
               {greeting} {emoji}
             </Animated.Text>
 
-            <Text style={{ color: '#A09CB8', fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 260 }}>
+            <Text style={{ color: themeColors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 260 }}>
               Your private playground is waking up. Here’s your vibe, access, and momentum for today.
             </Text>
 
@@ -151,8 +152,8 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
               <View style={{ backgroundColor: roleConfig.bg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: `${roleConfig.color}44` }}>
                 <Text style={{ color: roleConfig.color, fontSize: 11, fontWeight: '800', letterSpacing: 0.5, fontFamily: FONT.displaySemiBold }}>{roleConfig.label}</Text>
               </View>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' }}>
-                <Text style={{ color: '#8B84A7', fontSize: 11, fontWeight: '700' }}>Soapies</Text>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : alpha(themeColors.surface, 0.92), borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.07)' : alpha(themeColors.border, 0.9) }}>
+                <Text style={{ color: themeColors.textMuted, fontSize: 11, fontWeight: '700' }}>Soapies</Text>
               </View>
             </View>
           </View>
@@ -163,9 +164,9 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
             style={{ padding: 6, marginTop: 4 }}
           >
             <Animated.View style={{ transform: [{ translateY: avatarTranslateY }] }}>
-              <View style={{ width: 68, height: 68, borderRadius: 34, padding: 3, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)', shadowColor: '#EC4899', shadowOpacity: 0.32, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }}>
-                <LinearGradient colors={['rgba(236,72,153,0.8)', 'rgba(168,85,247,0.7)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 31, padding: 2 }}>
-                  <View style={{ flex: 1, borderRadius: 29, overflow: 'hidden', backgroundColor: '#14091F' }}>
+              <View style={{ width: 68, height: 68, borderRadius: 34, padding: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.surface, 0.96), borderWidth: 1, borderColor: alpha(themeColors.pink, isDark ? 0.18 : 0.22), shadowColor: themeColors.pink, shadowOpacity: isDark ? 0.32 : 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }}>
+                <LinearGradient colors={[alpha(themeColors.pink, isDark ? 0.8 : 0.65), alpha(themeColors.purple, isDark ? 0.7 : 0.5)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 31, padding: 2 }}>
+                  <View style={{ flex: 1, borderRadius: 29, overflow: 'hidden', backgroundColor: isDark ? '#14091F' : themeColors.surface }}>
                     <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={62} />
                   </View>
                 </LinearGradient>
@@ -187,18 +188,19 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
 }
 
 function StatChip({ icon, value, label, color = '#EC4899', detail, pulseValue }: { icon: any; value: string; label: string; color?: string; loading?: boolean; detail?: string; pulseValue?: Animated.Value }) {
+  const { colors: themeColors, alpha, isDark } = useTheme();
   const scale = pulseValue ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [1, 1.015] }) : 1;
   const highlightOpacity = pulseValue ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.18] }) : 0.08;
 
   return (
-    <Animated.View style={{ flex: 1, backgroundColor: `${color}12`, borderRadius: 18, borderColor: `${color}34`, borderWidth: 1, paddingVertical: 12, paddingHorizontal: 12, alignItems: 'flex-start', overflow: 'hidden', transform: [{ scale }] }}>
+    <Animated.View style={{ flex: 1, backgroundColor: isDark ? `${color}12` : alpha(themeColors.surface, 0.96), borderRadius: 18, borderColor: isDark ? `${color}34` : alpha(color, 0.22), borderWidth: 1, paddingVertical: 12, paddingHorizontal: 12, alignItems: 'flex-start', overflow: 'hidden', transform: [{ scale }] }}>
       <Animated.View style={{ position: 'absolute', top: -12, right: -12, width: 48, height: 48, borderRadius: 24, backgroundColor: color, opacity: highlightOpacity as any }} />
-      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: `${color}22`, alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: `${color}22` }}>
+      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: alpha(color, isDark ? 0.13 : 0.11), alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: alpha(color, isDark ? 0.13 : 0.18) }}>
         <Ionicons name={icon} size={17} color={color} />
       </View>
-      <Text style={{ color: '#F1F0FF', fontSize: 17, fontWeight: '900', lineHeight: 19, fontFamily: FONT.displayBold }}>{value}</Text>
-      <Text style={{ color: '#A09CB8', fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 4, textTransform: 'uppercase' }}>{label}</Text>
-      {!!detail && <Text style={{ color: '#6E6887', fontSize: 10, marginTop: 3 }}>{detail}</Text>}
+      <Text style={{ color: themeColors.text, fontSize: 17, fontWeight: '900', lineHeight: 19, fontFamily: FONT.displayBold }}>{value}</Text>
+      <Text style={{ color: themeColors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 4, textTransform: 'uppercase' }}>{label}</Text>
+      {!!detail && <Text style={{ color: themeColors.textMuted, fontSize: 10, marginTop: 3 }}>{detail}</Text>}
     </Animated.View>
   );
 }
@@ -214,6 +216,8 @@ const ACTIONS = [
 
 function QuickActionGrid() {
   const router = useRouter();
+  const theme = useTheme();
+  const { colors: themeColors, alpha, isDark } = theme;
   const scales = useRef(ACTIONS.map(() => new Animated.Value(1))).current;
 
   function onPressIn(i: number) {
@@ -226,6 +230,8 @@ function QuickActionGrid() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try { (router as any).push(item.route as any); } catch (_) {}
   }
+
+  const cardBackground = theme.isDark ? '#10101C' : themeColors.surface;
 
   const rows: (typeof ACTIONS)[] = [];
   for (let i = 0; i < ACTIONS.length; i += 2) {
@@ -246,15 +252,15 @@ function QuickActionGrid() {
                   onPressOut={() => onPressOut(idx)}
                   onPress={() => onPress(item)}
                   style={{
-                    backgroundColor: '#10101C',
+                    backgroundColor: cardBackground,
                     borderRadius: 18,
-                    borderColor: `${item.color}22`,
+                    borderColor: isDark ? `${item.color}22` : alpha(item.color, 0.18),
                     borderWidth: 1,
                     paddingVertical: 22,
                     alignItems: 'center',
                     gap: 10,
                     shadowColor: item.color,
-                    shadowOpacity: 0.10,
+                    shadowOpacity: isDark ? 0.1 : 0.06,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: 3 },
                   }}
@@ -264,14 +270,14 @@ function QuickActionGrid() {
                       width: 44,
                       height: 44,
                       borderRadius: 22,
-                      backgroundColor: `${item.color}22`,
+                      backgroundColor: alpha(item.color, isDark ? 0.13 : 0.11),
                       justifyContent: 'center',
                       alignItems: 'center',
                     }}
                   >
                     <Ionicons name={item.icon} size={22} color={item.color} />
                   </View>
-                  <Text style={{ color: '#F1F0FF', fontSize: 13, fontWeight: '800', textAlign: 'center', fontFamily: FONT.displaySemiBold }}>
+                  <Text style={{ color: themeColors.text, fontSize: 13, fontWeight: '800', textAlign: 'center', fontFamily: FONT.displaySemiBold }}>
                     {item.label}
                   </Text>
                 </TouchableOpacity>
@@ -295,19 +301,20 @@ function AnnouncementCard({ announcement, onDismiss }: { announcement: any; onDi
       Animated.timing(slideIn, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
   }, []);
+  const { colors: themeColors, alpha, isDark } = useTheme();
   return (
     <Animated.View style={{ opacity, transform: [{ translateY: slideIn }], minWidth: SCREEN_WIDTH * 0.78 }}>
-      <View style={{ backgroundColor: '#10101C', borderRadius: 16, borderWidth: 1, borderColor: '#EC489930', marginRight: 10, overflow: 'hidden', flexDirection: 'row' }}>
-        <LinearGradient colors={['#EC4899', '#A855F7']} style={{ width: 3 }} />
+      <View style={{ backgroundColor: isDark ? '#10101C' : themeColors.surface, borderRadius: 16, borderWidth: 1, borderColor: isDark ? '#EC489930' : alpha(themeColors.pink, 0.14), marginRight: 10, overflow: 'hidden', flexDirection: 'row' }}>
+        <LinearGradient colors={[themeColors.pink, themeColors.purple]} style={{ width: 3 }} />
         <View style={{ flex: 1, padding: 14, flexDirection: 'row', alignItems: 'flex-start' }}>
-          <Ionicons name="megaphone" size={16} color="#EC4899" style={{ marginTop: 1, marginRight: 10 }} />
+          <Ionicons name="megaphone" size={16} color={themeColors.pink} style={{ marginTop: 1, marginRight: 10 }} />
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#F1F0FF', fontWeight: '800', fontSize: 13, marginBottom: 3 }}>{announcement.title}</Text>
-            <Text style={{ color: '#A09CB8', fontSize: 12, lineHeight: 17 }} numberOfLines={3}>{announcement.content}</Text>
+            <Text style={{ color: themeColors.text, fontWeight: '800', fontSize: 13, marginBottom: 3 }}>{announcement.title}</Text>
+            <Text style={{ color: themeColors.textSecondary, fontSize: 12, lineHeight: 17 }} numberOfLines={3}>{announcement.content}</Text>
           </View>
           {announcement.dismissible !== false && (
             <TouchableOpacity onPress={() => onDismiss(announcement.id)} style={{ marginLeft: 8, padding: 2 }}>
-              <Ionicons name="close" size={16} color="#5A5575" />
+              <Ionicons name="close" size={16} color={themeColors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -370,6 +377,7 @@ function startingPriceLabel(event: any) {
 
 function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean }) {
   const router = useRouter();
+  const { colors: themeColors, isDark, alpha } = useTheme();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -406,14 +414,14 @@ function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean })
     <Animated.View style={{ transform: [{ scale: pulseAnim }], marginHorizontal: 16, marginBottom: 16 }}>
       <TouchableOpacity onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/events'); } catch (_) {} }} activeOpacity={0.94}>
         <LinearGradient
-          colors={['#210635', '#12051E', '#080810']}
+          colors={isDark ? ['#210635', '#12051E', '#080810'] : ['#FFF8FC', '#FFF0F8', '#F8ECFA']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 26, borderColor: 'rgba(236,72,153,0.22)', borderWidth: 1, overflow: 'hidden' }}
+          style={{ borderRadius: 26, borderColor: isDark ? 'rgba(236,72,153,0.22)' : themeColors.border, borderWidth: 1, overflow: 'hidden' }}
         >
-          <View style={{ position: 'absolute', top: -40, right: -30, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(168,85,247,0.18)' }} />
-          <View style={{ position: 'absolute', bottom: -26, left: -16, width: 160, height: 100, borderRadius: 50, backgroundColor: 'rgba(236,72,153,0.12)' }} />
-          <Animated.View style={{ position: 'absolute', top: -20, bottom: -20, width: 90, opacity: 0.2, transform: [{ translateX: shimmerX }, { rotate: '-12deg' }] }}>
-            <LinearGradient colors={['transparent', 'rgba(255,255,255,0.25)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+          <View style={{ position: 'absolute', top: -40, right: -30, width: 170, height: 170, borderRadius: 85, backgroundColor: isDark ? 'rgba(168,85,247,0.18)' : alpha(themeColors.secondary, 0.12) }} />
+          <View style={{ position: 'absolute', bottom: -26, left: -16, width: 160, height: 100, borderRadius: 50, backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : alpha(themeColors.primary, 0.10) }} />
+          <Animated.View style={{ position: 'absolute', top: -20, bottom: -20, width: 90, opacity: isDark ? 0.2 : 0.12, transform: [{ translateX: shimmerX }, { rotate: '-12deg' }] }}>
+            <LinearGradient colors={['transparent', isDark ? 'rgba(255,255,255,0.25)' : alpha(themeColors.primary, 0.18), 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
           </Animated.View>
 
           <View style={{ padding: 18 }}>
@@ -422,43 +430,43 @@ function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean })
                 <Text style={{ fontSize: 13, marginRight: 8 }}>{isReserved ? '✅' : '🎟️'}</Text>
                 <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>{label}</Text>
               </LinearGradient>
-              <View style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, backgroundColor: isReserved ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: isReserved ? 'rgba(16,185,129,0.34)' : 'rgba(255,255,255,0.08)' }}>
-                <Text style={{ color: isReserved ? '#34D399' : '#F1F0FF', fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>
+              <View style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, backgroundColor: isReserved ? 'rgba(16,185,129,0.18)' : (isDark ? 'rgba(255,255,255,0.06)' : themeColors.surfaceHigh), borderWidth: 1, borderColor: isReserved ? 'rgba(16,185,129,0.34)' : (isDark ? 'rgba(255,255,255,0.08)' : themeColors.border) }}>
+                <Text style={{ color: isReserved ? '#34D399' : themeColors.text, fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>
                   {isReserved ? 'You’re going' : price}
                 </Text>
               </View>
             </View>
 
             <View style={{ marginTop: 18 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 8 }}>
+              <Text style={{ color: isDark ? 'rgba(255,255,255,0.6)' : themeColors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 8 }}>
                 CURATED NIGHT
               </Text>
-              <Text style={{ color: '#F1F0FF', fontSize: 32, lineHeight: 36, fontWeight: '900', letterSpacing: -1.1, fontFamily: FONT.displayBold }} numberOfLines={2}>
+              <Text style={{ color: themeColors.text, fontSize: 32, lineHeight: 36, fontWeight: '900', letterSpacing: -1.1, fontFamily: FONT.displayBold }} numberOfLines={2}>
                 {event.title}
               </Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                <Ionicons name="calendar-outline" size={17} color="#F1F0FF" />
+              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                <Ionicons name="calendar-outline" size={17} color={themeColors.text} />
               </View>
               <View>
-                <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>{eventDate}</Text>
-                <Text style={{ color: '#8B84A7', fontSize: 12, marginTop: 2 }}>{event.location || 'Members-only venue'}</Text>
+                <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>{eventDate}</Text>
+                <Text style={{ color: isDark ? '#8B84A7' : themeColors.textMuted, fontSize: 12, marginTop: 2 }}>{event.location || 'Members-only venue'}</Text>
               </View>
             </View>
 
-            <Text style={{ color: '#C5BEDD', fontSize: 13, lineHeight: 20, marginTop: 14 }}>
+            <Text style={{ color: isDark ? '#C5BEDD' : themeColors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 14 }}>
               {teaserCopy}
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-                <Text style={{ color: '#7E7896', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>EXPERIENCE</Text>
-                <Text style={{ color: '#F1F0FF', fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{price}</Text>
+              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : themeColors.surfaceHigh, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.border }}>
+                <Text style={{ color: isDark ? '#7E7896' : themeColors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>EXPERIENCE</Text>
+                <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{price}</Text>
               </View>
-              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
-                <Text style={{ color: '#7E7896', fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>STATUS</Text>
+              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : themeColors.surfaceHigh, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.border }}>
+                <Text style={{ color: isDark ? '#7E7896' : themeColors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>STATUS</Text>
                 <Text style={{ color: isReserved ? '#34D399' : '#F472B6', fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{isReserved ? 'Reserved' : 'Open now'}</Text>
               </View>
             </View>
@@ -482,6 +490,7 @@ function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean })
 // ── Post Skeleton ─────────────────────────────────────────────────────────────
 
 function PostSkeleton() {
+  const theme = useTheme();
   const opacity = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
     const pulse = Animated.loop(
@@ -498,26 +507,26 @@ function PostSkeleton() {
     <Animated.View
       style={{
         opacity,
-        backgroundColor: colors.card,
+        backgroundColor: theme.colors.card,
         borderRadius: 16,
         marginHorizontal: 16,
         marginBottom: 12,
-        borderColor: colors.border,
+        borderColor: theme.colors.border,
         borderWidth: 1,
         padding: 16,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.border }} />
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.border }} />
         <View style={{ marginLeft: 10, gap: 6 }}>
-          <View style={{ width: 100, height: 12, borderRadius: 6, backgroundColor: colors.border }} />
-          <View style={{ width: 60, height: 10, borderRadius: 5, backgroundColor: colors.border }} />
+          <View style={{ width: 100, height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
+          <View style={{ width: 60, height: 10, borderRadius: 5, backgroundColor: theme.colors.border }} />
         </View>
       </View>
       <View style={{ gap: 8 }}>
-        <View style={{ width: '100%', height: 12, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ width: '80%', height: 12, borderRadius: 6, backgroundColor: colors.border }} />
-        <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: colors.border }} />
+        <View style={{ width: '100%', height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
+        <View style={{ width: '80%', height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
+        <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
       </View>
     </Animated.View>
   );
@@ -539,6 +548,8 @@ function CommentsSheet({
   onRefreshFeed: () => void;
 }) {
   const [commentText, setCommentText] = useState('');
+  const theme = useTheme();
+  const { colors: themeColors } = theme;
   const { data: meData } = trpc.auth.me.useQuery();
   const me = meData as any;
 
@@ -579,11 +590,11 @@ function CommentsSheet({
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
           <View
             style={{
-              backgroundColor: colors.bg,
+              backgroundColor: themeColors.background,
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               maxHeight: '80%',
-              borderColor: colors.border,
+              borderColor: themeColors.border,
               borderTopWidth: 1,
             }}
           >
@@ -593,28 +604,28 @@ function CommentsSheet({
                 alignItems: 'center',
                 padding: 20,
                 paddingBottom: 12,
-                borderBottomColor: colors.border,
+                borderBottomColor: themeColors.border,
                 borderBottomWidth: 1,
               }}
             >
-              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700', flex: 1 }}>
+              <Text style={{ color: themeColors.text, fontSize: 17, fontWeight: '700', flex: 1 }}>
                 Comments {comments.length > 0 ? `(${comments.length})` : ''}
               </Text>
               {isOwn && (
                 <TouchableOpacity onPress={handleDeletePost} style={{ marginRight: 14 }} disabled={deletePost.isPending}>
-                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  <Ionicons name="trash-outline" size={20} color={themeColors.danger} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity onPress={onClose}>
-                <Ionicons name="close" size={24} color={colors.muted} />
+                <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ padding: 16, gap: 12 }}>
               {loadingComments ? (
-                <ActivityIndicator color={colors.pink} style={{ paddingVertical: 20 }} />
+                <ActivityIndicator color={theme.colors.pink} style={{ paddingVertical: 20 }} />
               ) : comments.length === 0 ? (
-                <Text style={{ color: colors.muted, textAlign: 'center', paddingVertical: 20 }}>
+                <Text style={{ color: themeColors.textMuted, textAlign: 'center', paddingVertical: 20 }}>
                   No comments yet. Be the first!
                 </Text>
               ) : (
@@ -625,26 +636,26 @@ function CommentsSheet({
                         width: 32,
                         height: 32,
                         borderRadius: 16,
-                        backgroundColor: colors.card,
+                        backgroundColor: themeColors.card,
                         justifyContent: 'center',
                         alignItems: 'center',
                         flexShrink: 0,
                       }}
                     >
-                      <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 12 }}>
+                      <Text style={{ color: themeColors.pink, fontWeight: '700', fontSize: 12 }}>
                         {(c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? '?').charAt(0).toUpperCase()}
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 13 }}>
+                        <Text style={{ color: themeColors.text, fontWeight: '700', fontSize: 13 }}>
                           {c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? 'Member'}
                         </Text>
-                        <Text style={{ color: colors.muted, fontSize: 11 }}>
+                        <Text style={{ color: themeColors.textMuted, fontSize: 11 }}>
                           {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}
                         </Text>
                       </View>
-                      <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 19 }}>{c.content}</Text>
+                      <Text style={{ color: themeColors.textSecondary, fontSize: 14, lineHeight: 19 }}>{c.content}</Text>
                     </View>
                   </View>
                 ))
@@ -656,7 +667,7 @@ function CommentsSheet({
                 flexDirection: 'row',
                 alignItems: 'center',
                 padding: 16,
-                borderTopColor: colors.border,
+                borderTopColor: themeColors.border,
                 borderTopWidth: 1,
                 gap: 10,
               }}
@@ -665,17 +676,17 @@ function CommentsSheet({
                 value={commentText}
                 onChangeText={setCommentText}
                 placeholder="Add a comment..."
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={themeColors.textMuted}
                 multiline
                 style={{
                   flex: 1,
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
+                  backgroundColor: themeColors.card,
+                  borderColor: themeColors.border,
                   borderWidth: 1,
                   borderRadius: 20,
                   paddingHorizontal: 14,
                   paddingVertical: 10,
-                  color: colors.text,
+                  color: themeColors.text,
                   fontSize: 14,
                   maxHeight: 100,
                 }}
@@ -687,15 +698,15 @@ function CommentsSheet({
                   width: 40,
                   height: 40,
                   borderRadius: 20,
-                  backgroundColor: commentText.trim() ? colors.pink : colors.card,
+                  backgroundColor: commentText.trim() ? themeColors.pink : themeColors.card,
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}
               >
                 {addComment.isPending ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={themeColors.white} size="small" />
                 ) : (
-                  <Ionicons name="send" size={18} color={commentText.trim() ? '#fff' : colors.muted} />
+                  <Ionicons name="send" size={18} color={commentText.trim() ? themeColors.white : themeColors.textMuted} />
                 )}
               </TouchableOpacity>
             </View>
@@ -732,7 +743,7 @@ export default function HomeScreen() {
     composerPrompt: theme.isDark ? '#5A5575' : theme.colors.textMuted,
     composerIconPink: theme.isDark ? '#EC489980' : 'rgba(236,72,153,0.7)',
     composerIconPurple: theme.isDark ? '#A855F780' : 'rgba(168,85,247,0.7)',
-  }), [theme]);
+  }), [theme.scheme]);
   const toast = useToast();
   const [refreshing, setRefreshing]         = useState(false);
   const [showComposer, setShowComposer]     = useState(false);
@@ -1029,7 +1040,7 @@ export default function HomeScreen() {
           initialNumToRender={8}
           updateCellsBatchingPeriod={50}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.pink} />
           }
           contentContainerStyle={{ paddingBottom: 120 }}
           ListEmptyComponent={
@@ -1064,22 +1075,22 @@ export default function HomeScreen() {
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
             <View
               style={{
-                backgroundColor: colors.bg,
+                backgroundColor: theme.colors.background,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 padding: 20,
                 paddingBottom: 40,
-                borderColor: colors.border,
+                borderColor: theme.colors.border,
                 borderTopWidth: 1,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                 <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={36} />
-                <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 10 }}>New Post</Text>
+                <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 10 }}>New Post</Text>
                 <TouchableOpacity
                   onPress={() => { setShowComposer(false); setComposerText(''); setComposerMedia(null); setComposerLink(''); setShowLinkInput(false); }}
                 >
-                  <Ionicons name="close" size={24} color={colors.muted} />
+                  <Ionicons name="close" size={24} color={theme.colors.textMuted} />
                 </TouchableOpacity>
               </View>
 
@@ -1087,18 +1098,18 @@ export default function HomeScreen() {
                 value={composerText}
                 onChangeText={setComposerText}
                 placeholder="What's on your mind?"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={theme.colors.textMuted}
                 multiline
                 maxLength={1000}
                 autoFocus
                 style={{
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
+                  backgroundColor: theme.colors.card,
+                  borderColor: theme.colors.border,
                   borderWidth: 1,
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   paddingVertical: 12,
-                  color: colors.text,
+                  color: theme.colors.text,
                   fontSize: 15,
                   minHeight: 100,
                   textAlignVertical: 'top',
@@ -1123,41 +1134,41 @@ export default function HomeScreen() {
               )}
 
               {showLinkInput && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 10, borderColor: '#10B981', borderWidth: 1, paddingHorizontal: 12, marginBottom: 10, gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 10, borderColor: '#10B981', borderWidth: 1, paddingHorizontal: 12, marginBottom: 10, gap: 8 }}>
                   <Ionicons name="link-outline" size={16} color="#10B981" />
                   <TextInput
                     value={composerLink}
                     onChangeText={setComposerLink}
                     placeholder="Paste a link..."
-                    placeholderTextColor={colors.muted}
-                    style={{ flex: 1, color: colors.text, paddingVertical: 10, fontSize: 14 }}
+                    placeholderTextColor={theme.colors.textMuted}
+                    style={{ flex: 1, color: theme.colors.text, paddingVertical: 10, fontSize: 14 }}
                     keyboardType="url"
                     autoCapitalize="none"
                   />
                   {composerLink ? (
                     <TouchableOpacity onPress={() => setComposerLink('')}>
-                      <Ionicons name="close-circle" size={18} color={colors.muted} />
+                      <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
               )}
 
-              <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 10, borderTopColor: colors.border, borderTopWidth: 1, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 10, borderTopColor: theme.colors.border, borderTopWidth: 1, marginBottom: 12 }}>
                 <TouchableOpacity onPress={pickImage} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="image-outline" size={22} color={colors.pink} />
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>Photo</Text>
+                  <Ionicons name="image-outline" size={22} color={theme.colors.pink} />
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>Photo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={openCamera} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="camera-outline" size={22} color={colors.purple} />
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>Camera</Text>
+                  <Ionicons name="camera-outline" size={22} color={theme.colors.purple} />
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>Camera</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowLinkInput(!showLinkInput)} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
                   <Ionicons name="link-outline" size={22} color="#10B981" />
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>Link</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>Link</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={pickFile} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
                   <Ionicons name="document-attach-outline" size={22} color="#F59E0B" />
-                  <Text style={{ color: colors.muted, fontSize: 11 }}>File</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>File</Text>
                 </TouchableOpacity>
               </View>
 

@@ -97,6 +97,11 @@ function createThemeColors(scheme: ThemeScheme) {
     successSoft: withAlpha(palette.success, isDark ? 0.16 : 0.12),
     warningSoft: withAlpha(palette.warning, isDark ? 0.16 : 0.12),
     dangerSoft: withAlpha(palette.danger, isDark ? 0.12 : 0.08),
+    infoSoft: withAlpha('#67E8F9', isDark ? 0.18 : 0.12),
+    successBorder: withAlpha(palette.success, isDark ? 0.4 : 0.26),
+    warningBorder: withAlpha(palette.warning, isDark ? 0.4 : 0.24),
+    dangerBorder: withAlpha(palette.danger, isDark ? 0.34 : 0.22),
+    infoBorder: withAlpha('#67E8F9', isDark ? 0.36 : 0.24),
     shadow: isDark ? '#000000' : '#A14B7D',
     statusBar: (isDark ? 'light' : 'dark') as 'light' | 'dark',
   };

@@ -21,6 +21,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { trpc } from '../lib/trpc';
 import { useToast } from '../components/Toast';
 import { colors } from '../lib/colors';
+import { useTheme } from '../lib/theme';
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: '#10B981',
@@ -73,6 +74,8 @@ function TicketCard({
   uploadingId: number | null;
   payingId: number | null;
 }) {
+  const theme = useTheme();
+  const t = theme.colors;
   const title = ticket.event?.title ?? ticket.eventTitle ?? 'Event';
   const dateStr = ticket.event?.startDate
     ? new Date(ticket.event.startDate).toLocaleDateString('en-US', {
@@ -101,11 +104,11 @@ function TicketCard({
   return (
     <View
       style={{
-        backgroundColor: '#10101C',
+        backgroundColor: t.surface,
         borderRadius: 20,
         marginHorizontal: 16,
         marginBottom: 14,
-        borderColor: '#1A1A30',
+        borderColor: t.border,
         borderWidth: 1,
         overflow: 'hidden',
       }}
@@ -120,23 +123,23 @@ function TicketCard({
 
       {/* Event top section */}
       <LinearGradient
-        colors={['#1A0830', '#10101C']}
+        colors={theme.isDark ? ['#1A0830', '#10101C'] : [t.surfaceHigh, t.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 }}
       >
-        <Text style={{ color: '#F1F0FF', fontWeight: '800', fontSize: 15, marginBottom: 8 }}>
+        <Text style={{ color: t.text, fontWeight: '800', fontSize: 15, marginBottom: 8 }}>
           {title}
         </Text>
         <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Ionicons name="calendar-outline" size={13} color="#EC4899" />
-            <Text style={{ color: '#A09CB8', fontSize: 12 }}>{dateStr}</Text>
+            <Ionicons name="calendar-outline" size={13} color={colors.pink} />
+            <Text style={{ color: t.textMuted, fontSize: 12 }}>{dateStr}</Text>
           </View>
           {(ticket.eventVenue || ticket.event?.venue) && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Ionicons name="location-outline" size={13} color="#5A5575" />
-              <Text style={{ color: '#A09CB8', fontSize: 12 }}>
+              <Ionicons name="location-outline" size={13} color={t.textMuted} />
+              <Text style={{ color: t.textMuted, fontSize: 12 }}>
                 {ticket.eventVenue ?? ticket.event?.venue}
               </Text>
             </View>
@@ -251,11 +254,11 @@ function TicketCard({
               borderRadius: 12,
               paddingVertical: 11,
               alignItems: 'center',
-              backgroundColor: `#9CA3AF11`,
+              backgroundColor: t.surfaceMuted,
               borderWidth: 1,
-              borderColor: `#9CA3AF22`,
+              borderColor: t.border,
             }}>
-              <Text style={{ color: '#5A5575', fontSize: 13 }}>
+              <Text style={{ color: t.textMuted, fontSize: 13 }}>
                 {ticket.status === 'cancelled' ? 'Cancelled' : 'QR pending confirmation'}
               </Text>
             </View>
@@ -274,17 +277,17 @@ function TicketCard({
               marginTop: 10,
               paddingVertical: 10,
               borderRadius: 10,
-              backgroundColor: `#9CA3AF11`,
-              borderColor: `#9CA3AF22`,
+              backgroundColor: t.surfaceMuted,
+              borderColor: t.border,
               borderWidth: 1,
             }}
           >
             {uploadingId === ticket.id ? (
-              <ActivityIndicator color="#5A5575" size="small" />
+              <ActivityIndicator color={t.textMuted} size="small" />
             ) : (
               <>
-                <Ionicons name="document-attach-outline" size={16} color="#5A5575" />
-                <Text style={{ color: '#5A5575', fontSize: 13, marginLeft: 6 }}>Upload Test Result</Text>
+                <Ionicons name="document-attach-outline" size={16} color={t.textMuted} />
+                <Text style={{ color: t.textMuted, fontSize: 13, marginLeft: 6 }}>Upload Test Result</Text>
               </>
             )}
           </TouchableOpacity>
@@ -298,6 +301,8 @@ export default function TicketsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
+  const theme = useTheme();
+  const t = theme.colors;
   const [refreshing, setRefreshing] = useState(false);
   const [qrModal, setQrModal] = useState<{ visible: boolean; code: string; title: string }>({
     visible: false, code: '', title: '',
@@ -410,10 +415,10 @@ export default function TicketsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#080810' }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.background }} edges={['bottom']}>
       {/* ── Gradient Header ── */}
       <LinearGradient
-        colors={['#12051E', '#080810']}
+        colors={theme.gradients.screen as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ paddingTop: insets.top + 12, paddingBottom: 18, paddingHorizontal: 20 }}
@@ -425,17 +430,17 @@ export default function TicketsScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: '#10101C',
+              backgroundColor: t.surface,
               borderWidth: 1,
-              borderColor: '#1A1A30',
+              borderColor: t.border,
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color="#F1F0FF" />
+            <Ionicons name="arrow-back" size={20} color={t.text} />
           </TouchableOpacity>
-          <Text style={{ color: '#F1F0FF', fontSize: 24, fontWeight: '900', flex: 1 }}>My Tickets 🎟️</Text>
+          <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', flex: 1 }}>My Tickets 🎟️</Text>
         </View>
       </LinearGradient>
 
@@ -454,10 +459,10 @@ export default function TicketsScreen() {
             // ── Empty state ──
             <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 56, marginBottom: 16 }}>🎟️</Text>
-              <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
+              <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
                 No tickets yet
               </Text>
-              <Text style={{ color: '#5A5575', fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
+              <Text style={{ color: t.textMuted, fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
                 Reserve a spot at an upcoming event to get your tickets
               </Text>
               <TouchableOpacity
@@ -491,7 +496,7 @@ export default function TicketsScreen() {
                       <Ionicons name="time-outline" size={16} color={colors.pink} />
                       <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 14 }}>Payment Pending</Text>
                     </View>
-                    <Text style={{ color: '#5A5575', fontSize: 13, lineHeight: 19 }}>
+                    <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 19 }}>
                       Complete payment to confirm your spot. Tap "Pay Now" on any pending reservation.
                     </Text>
                   </View>
@@ -512,7 +517,7 @@ export default function TicketsScreen() {
                 <>
                   {pendingTickets.length > 0 && (
                     <Text style={{
-                      color: '#5A5575',
+                      color: t.textMuted,
                       fontSize: 11,
                       fontWeight: '800',
                       marginHorizontal: 16,
@@ -546,21 +551,21 @@ export default function TicketsScreen() {
       <Modal visible={showPaymentAgreement} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
           <View style={{
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             borderTopWidth: 1,
             borderLeftWidth: 1,
             borderRightWidth: 1,
-            borderColor: '#1A1A30',
+            borderColor: t.border,
             padding: 24,
             maxHeight: '85%',
           }}>
-            <Text style={{ color: '#F1F0FF', fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
+            <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
               🎉 Community Agreement
             </Text>
             <ScrollView style={{ marginBottom: 20 }}>
-              <Text style={{ color: '#A09CB8', fontSize: 14, lineHeight: 22 }}>
+              <Text style={{ color: t.textSecondary, fontSize: 14, lineHeight: 22 }}>
                 By attending a Soapies event, you agree to:
                 {`\n\n`}🤝 Respect all community members and their boundaries at all times
                 {`\n\n`}🚫 No means no — consent is mandatory and non-negotiable
@@ -589,7 +594,7 @@ export default function TicketsScreen() {
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowPaymentAgreement(false)} style={{ marginTop: 14, alignItems: 'center' }}>
-              <Text style={{ color: '#5A5575', fontSize: 15 }}>Cancel</Text>
+              <Text style={{ color: t.textMuted, fontSize: 15 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -599,18 +604,18 @@ export default function TicketsScreen() {
       <Modal visible={qrModal.visible} animationType="fade" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
           <View style={{
-            backgroundColor: '#10101C',
+            backgroundColor: t.surface,
             borderRadius: 24,
             padding: 28,
             width: '100%',
             alignItems: 'center',
-            borderColor: '#1A1A30',
+            borderColor: t.border,
             borderWidth: 1,
           }}>
-            <Text style={{ color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginBottom: 6, textAlign: 'center' }}>
+            <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginBottom: 6, textAlign: 'center' }}>
               {qrModal.title}
             </Text>
-            <Text style={{ color: '#5A5575', fontSize: 13, marginBottom: 24 }}>
+            <Text style={{ color: t.textMuted, fontSize: 13, marginBottom: 24 }}>
               Show this at the door
             </Text>
 
@@ -632,7 +637,7 @@ export default function TicketsScreen() {
               ) : null}
             </View>
 
-            <Text style={{ color: '#5A5575', fontSize: 11, marginTop: 16, letterSpacing: 1, textAlign: 'center' }}>
+            <Text style={{ color: t.textMuted, fontSize: 11, marginTop: 16, letterSpacing: 1, textAlign: 'center' }}>
               {qrModal.code}
             </Text>
 
@@ -643,12 +648,12 @@ export default function TicketsScreen() {
                 paddingVertical: 14,
                 paddingHorizontal: 40,
                 borderRadius: 14,
-                backgroundColor: '#1A1A30',
-                borderColor: '#2A2A40',
+                backgroundColor: t.surfaceHigh,
+                borderColor: t.border,
                 borderWidth: 1,
               }}
             >
-              <Text style={{ color: '#F1F0FF', fontWeight: '700', fontSize: 16 }}>Close</Text>
+              <Text style={{ color: t.text, fontWeight: '700', fontSize: 16 }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>

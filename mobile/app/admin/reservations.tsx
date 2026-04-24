@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 const TICKET_LABELS: Record<string, string> = {
   single_female: 'Single Woman',
@@ -26,6 +27,7 @@ const TICKET_LABELS: Record<string, string> = {
 export default function AdminReservationsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
   const utils = trpc.useUtils();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -57,9 +59,9 @@ export default function AdminReservationsScreen() {
   // Guard AFTER all hooks
   if (!isAdmin) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}>
           <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -87,14 +89,14 @@ export default function AdminReservationsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Manage Reservations</Text>
-        <View style={{ backgroundColor: '#F59E0B22', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 }}>
-          <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 13 }}>{reservations.length} pending</Text>
+        <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Manage Reservations</Text>
+        <View style={{ backgroundColor: theme.colors.warningSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: theme.colors.warningBorder }}>
+          <Text style={{ color: theme.colors.warning, fontWeight: '700', fontSize: 13 }}>{reservations.length} pending</Text>
         </View>
       </View>
 
@@ -109,8 +111,8 @@ export default function AdminReservationsScreen() {
         >
           {reservations.length === 0 && (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Ionicons name="checkmark-circle-outline" size={48} color="#10B981" />
-              <Text style={{ color: colors.muted, marginTop: 12, fontSize: 15 }}>No pending reservations</Text>
+              <Ionicons name="checkmark-circle-outline" size={48} color={theme.colors.success} />
+              <Text style={{ color: theme.colors.textMuted, marginTop: 12, fontSize: 15 }}>No pending reservations</Text>
             </View>
           )}
           {reservations.map((res: any) => {
@@ -125,33 +127,33 @@ export default function AdminReservationsScreen() {
               <View
                 key={res.id}
                 style={{
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.colors.surface,
                   borderRadius: 14,
                   padding: 16,
                   marginBottom: 12,
-                  borderColor: '#F59E0B44',
+                  borderColor: theme.colors.warningBorder,
                   borderWidth: 1,
                 }}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{name}</Text>
-                    {email ? <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>{email}</Text> : null}
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 16 }}>{name}</Text>
+                    {email ? <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 2 }}>{email}</Text> : null}
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
                     {amount && (
-                      <Text style={{ color: '#10B981', fontWeight: '700', fontSize: 15 }}>
+                      <Text style={{ color: theme.colors.success, fontWeight: '700', fontSize: 15 }}>
                         ${parseFloat(amount).toFixed(0)}
                       </Text>
                     )}
-                    <View style={{ backgroundColor: '#F59E0B22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
-                      <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>{paymentMethod}</Text>
+                    <View style={{ backgroundColor: theme.colors.warningSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.warningBorder }}>
+                      <Text style={{ color: theme.colors.warning, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>{paymentMethod}</Text>
                     </View>
                   </View>
                 </View>
 
                 <Text style={{ color: colors.purple, fontWeight: '600', fontSize: 14, marginBottom: 2 }}>{eventName}</Text>
-                <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 14 }}>{ticketLabel}</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 14 }}>{ticketLabel}</Text>
 
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <TouchableOpacity
@@ -160,15 +162,15 @@ export default function AdminReservationsScreen() {
                     style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}
                   >
                     <LinearGradient
-                      colors={['#10B981', '#059669']}
+                      colors={[theme.colors.success, '#059669']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={{ paddingVertical: 12, alignItems: 'center', opacity: (confirmMutation.isPending || rejectMutation.isPending) ? 0.7 : 1 }}
                     >
                       {confirmMutation.isPending ? (
-                        <ActivityIndicator color="#fff" size="small" />
+                        <ActivityIndicator color={theme.colors.white} size="small" />
                       ) : (
-                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>✓ Confirm</Text>
+                        <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 14 }}>✓ Confirm</Text>
                       )}
                     </LinearGradient>
                   </TouchableOpacity>
@@ -180,12 +182,12 @@ export default function AdminReservationsScreen() {
                       borderRadius: 10,
                       paddingVertical: 12,
                       alignItems: 'center',
-                      backgroundColor: '#EF444422',
-                      borderColor: '#EF444444',
+                      backgroundColor: theme.colors.dangerSoft,
+                      borderColor: theme.colors.dangerBorder,
                       borderWidth: 1,
                     }}
                   >
-                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 14 }}>✕ Reject</Text>
+                    <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 14 }}>✕ Reject</Text>
                   </TouchableOpacity>
                 </View>
               </View>

@@ -40,11 +40,12 @@ function Skeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
 
 // ── Section header ────────────────────────────────────────────────────────────
 function SectionHeader({ title, count }: { title: string; count: number }) {
+  const theme = useTheme();
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionBadge}>
-        <Text style={styles.sectionBadgeText}>{count}</Text>
+    <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{title}</Text>
+      <View style={[styles.sectionBadge, { backgroundColor: theme.colors.tintSoft, borderColor: theme.alpha(theme.colors.primary, 0.2) }]}>
+        <Text style={[styles.sectionBadgeText, { color: theme.colors.primary }]}>{count}</Text>
       </View>
     </View>
   );
@@ -77,7 +78,7 @@ export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
-  // Entrance animation — fade + slide from top
+  // Entrance animation - fade + slide from top
   const headerOpacity = useRef(new Animated.Value(0)).current;
   const headerTranslateY = useRef(new Animated.Value(-20)).current;
   const searchScale = useRef(new Animated.Value(1)).current;
@@ -162,13 +163,13 @@ export default function MessagesScreen() {
         >
           <View style={[styles.headerGlow, { backgroundColor: themed.glow }]} />
           <View style={styles.headerTopline}>
-            <View style={[styles.headerEyebrow, { backgroundColor: themed.chipBg, borderColor: themed.chipBorder }]}>
-              <Text style={styles.headerEyebrowText}>PRIVATE INBOX</Text>
+            <View style={[styles.headerEyebrow, { backgroundColor: themed.chipBg, borderColor: themed.chipBorder }]}> 
+              <Text style={[styles.headerEyebrowText, { color: theme.isDark ? '#C4B5FD' : theme.colors.secondary }]}>PRIVATE INBOX</Text>
             </View>
             {totalUnread > 0 ? (
-              <View style={styles.headerStatChip}>
-                <Text style={styles.headerStatValue}>{totalUnread}</Text>
-                <Text style={styles.headerStatLabel}>unread</Text>
+              <View style={[styles.headerStatChip, { backgroundColor: themed.accentSoft, borderColor: themed.accentBorder }]}>
+                <Text style={[styles.headerStatValue, { color: theme.isDark ? '#F9A8D4' : theme.colors.primary }]}>{totalUnread}</Text>
+                <Text style={[styles.headerStatLabel, { color: themed.mutedStrong }]}>unread</Text>
               </View>
             ) : null}
           </View>
@@ -193,10 +194,10 @@ export default function MessagesScreen() {
               {totalUnread > 0 && (
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); markAllRead.mutate(); }}
-                  style={styles.headerBtn}
+                  style={[styles.headerBtn, { shadowColor: theme.colors.primary }]}
                 >
-                  <LinearGradient colors={theme.isDark ? ['rgba(236,72,153,0.2)', 'rgba(168,85,247,0.18)'] : ['rgba(236,72,153,0.12)', 'rgba(168,85,247,0.12)']} style={styles.headerBtnInner}>
-                    <Ionicons name="checkmark-done" size={18} color="#EC4899" />
+                  <LinearGradient colors={theme.isDark ? ['rgba(236,72,153,0.2)', 'rgba(168,85,247,0.18)'] : ['rgba(236,72,153,0.12)', 'rgba(168,85,247,0.12)']} style={[styles.headerBtnInner, { borderColor: themed.accentBorder }]}>
+                    <Ionicons name="checkmark-done" size={18} color={theme.colors.primary} />
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -264,12 +265,12 @@ export default function MessagesScreen() {
                     onPress={() => setSearchQuery('')}
                     style={styles.emptySecondary}
                   >
-                    <Text style={styles.emptySecondaryText}>Clear search</Text>
+                    <Text style={[styles.emptySecondaryText, { color: theme.colors.primary }]}>Clear search</Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <View style={styles.emptyIconWrap}>
+                  <View style={[styles.emptyIconWrap, { backgroundColor: theme.alpha(theme.colors.primary, 0.09), borderColor: theme.alpha(theme.colors.primary, 0.16) }]}>
                     <Text style={styles.emptyEmoji}>💬</Text>
                   </View>
                   <Text style={[styles.emptyTitle, { color: themed.title }]}>No conversations yet</Text>
@@ -280,7 +281,7 @@ export default function MessagesScreen() {
                   <TouchableOpacity
                     onPress={() => {
                       Haptics.selectionAsync();
-                      router.push('/members?mode=compose' as any);
+                      router.push({ pathname: '/members', params: { mode: 'compose', returnTo: '/(tabs)/messages' } } as any);
                     }}
                     style={styles.emptyCtaPrimary}
                     activeOpacity={0.85}
@@ -313,9 +314,9 @@ export default function MessagesScreen() {
 
       {/* ── FAB: New Message ── */}
       <TouchableOpacity
-        onPress={() => { Haptics.selectionAsync(); router.push('/members?mode=compose' as any); }}
+        onPress={() => { Haptics.selectionAsync(); router.push({ pathname: '/members', params: { mode: 'compose', returnTo: '/(tabs)/messages' } } as any); }}
         activeOpacity={0.85}
-        style={styles.fab}
+        style={[styles.fab, { shadowColor: theme.colors.primary }]}
       >
         <LinearGradient
           colors={['#EC4899', '#A855F7']}
@@ -329,13 +330,12 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080810' },
+  container: { flex: 1 },
 
   header: {
     paddingHorizontal: 20,
     paddingBottom: 18,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
   },
   headerGlow: {
@@ -345,7 +345,6 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(168,85,247,0.12)',
   },
   headerTopline: {
     flexDirection: 'row',
@@ -357,12 +356,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   headerEyebrowText: {
-    color: '#C4B5FD',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.1,
@@ -375,27 +371,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 16,
-    backgroundColor: 'rgba(236,72,153,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(236,72,153,0.22)',
   },
   headerStatValue: {
-    color: '#F9A8D4',
     fontSize: 18,
     fontWeight: '900',
     fontFamily: FONT.displayBold,
   },
-  headerStatLabel: { color: '#A09CB8', fontSize: 11, fontWeight: '700' },
+  headerStatLabel: { fontSize: 11, fontWeight: '700' },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   headerTitle: {
-    color: '#F1F0FF',
     fontSize: 31,
     fontWeight: '900',
     letterSpacing: -0.9,
     fontFamily: FONT.displayBold,
   },
   headerSubtitle: {
-    color: '#A09CB8',
     fontSize: 13,
     lineHeight: 20,
     marginTop: 8,
@@ -405,7 +396,6 @@ const styles = StyleSheet.create({
   headerBtn: {
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#EC4899',
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -417,77 +407,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(236,72,153,0.22)',
   },
 
   unreadBadge: {
     alignSelf: 'flex-start',
     marginTop: 12,
-    backgroundColor: '#EC489920',
-    borderColor: '#EC489960',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    shadowColor: '#EC4899',
     shadowOpacity: 0.3,
     shadowRadius: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  unreadBadgeText: { color: '#F9A8D4', fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold },
+  unreadBadgeText: { fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold },
 
   searchShell: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 20,
     padding: 1,
   },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#10101C', borderRadius: 19,
+    borderRadius: 19,
     paddingHorizontal: 14, paddingVertical: 13,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
   },
-  searchBarFocused: { borderColor: '#EC489960', backgroundColor: '#120F20' },
-  searchInput: { flex: 1, color: '#F1F0FF', fontSize: 15 },
+  searchBarFocused: {},
+  searchInput: { flex: 1, fontSize: 15 },
 
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10,
-    backgroundColor: '#080810',
   },
   sectionTitle: {
-    color: '#8B84A7', fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: FONT.displaySemiBold,
+    fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', fontFamily: FONT.displaySemiBold,
   },
   sectionBadge: {
-    backgroundColor: '#EC489920',
-    borderColor: '#EC489940',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  sectionBadgeText: { color: '#EC4899', fontSize: 11, fontWeight: '800' },
+  sectionBadgeText: { fontSize: 11, fontWeight: '800' },
 
   skeletonRow: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 13,
-    backgroundColor: '#10101C', borderColor: '#1A1A30', borderBottomWidth: 1,
+    borderBottomWidth: 1,
   },
-  skeletonAvatar: { width: 54, height: 54, borderRadius: 17, backgroundColor: '#1A1A30' },
-  skeletonLine: { height: 13, borderRadius: 6, backgroundColor: '#1A1A30' },
+  skeletonAvatar: { width: 54, height: 54, borderRadius: 17 },
+  skeletonLine: { height: 13, borderRadius: 6 },
 
   empty: { alignItems: 'center', paddingTop: 72, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },
   emptyIconWrap: {
     width: 84, height: 84, borderRadius: 42,
-    backgroundColor: '#EC489918',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 18,
-    borderWidth: 1, borderColor: '#EC489933',
+    borderWidth: 1,
   },
-  emptyTitle: { color: '#F1F0FF', fontSize: 18, fontWeight: '800', marginTop: 2, marginBottom: 6, fontFamily: FONT.displayBold },
-  emptyBody: { color: '#5A5575', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', marginTop: 2, marginBottom: 6, fontFamily: FONT.displayBold },
+  emptyBody: { textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   emptyCtaPrimary: {
     alignSelf: 'stretch',
     borderRadius: 14,
@@ -506,13 +487,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
-  emptySecondaryText: { color: '#EC4899', fontSize: 14, fontWeight: '600' },
+  emptySecondaryText: { fontSize: 14, fontWeight: '600' },
 
   fab: {
     position: 'absolute',
     bottom: 100,
     right: 20,
-    shadowColor: '#EC4899',
     shadowOpacity: 0.45,
     shadowRadius: 12,
     elevation: 8,

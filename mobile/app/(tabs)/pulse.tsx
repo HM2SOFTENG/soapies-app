@@ -429,6 +429,7 @@ interface MemberDetailModalProps {
   onClose: () => void;
   onViewProfile: (userId: number) => void;
   onMessage: (userId: number) => void;
+  onPoke: (userId: number) => void;
 }
 
 function getFactorColor(factor: MatchFactor): string {
@@ -449,8 +450,9 @@ function getFactorColor(factor: MatchFactor): string {
 
 function MemberDetailModal({
   member, myProfile, myPrefs, mySignalType, seekingGender, maxDistance,
-  onClose, onViewProfile, onMessage,
+  onClose, onViewProfile, onMessage, onPoke,
 }: MemberDetailModalProps) {
+  const theme = useTheme();
   const sigColor = member
     ? (SIGNAL_COLORS[member.signalType as keyof typeof SIGNAL_COLORS] ?? '#6B7280')
     : '#6B7280';
@@ -530,33 +532,35 @@ function MemberDetailModal({
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         {/* Backdrop — tap to dismiss */}
         <TouchableOpacity
-          style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' }}
+          style={{ ...StyleSheet.absoluteFillObject, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.85)' : theme.colors.overlay }}
           activeOpacity={1}
           onPress={onClose}
         />
         {/* Card — sits on top of backdrop, scroll is unimpeded */}
         <View
           style={{
-            backgroundColor: '#0F0F1A',
+            backgroundColor: theme.colors.surface,
             borderTopLeftRadius: 28, borderTopRightRadius: 28,
             maxHeight: SCREEN_HEIGHT * 0.92,
             minHeight: SCREEN_HEIGHT * 0.85,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
           }}>
           {/* Drag handle + close button row */}
           <View style={{ paddingTop: 14, paddingHorizontal: 20, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A' }} />
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border }} />
             <TouchableOpacity
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onClose(); }}
               hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
               style={{
                 position: 'absolute', right: 0, top: 0,
                 width: 36, height: 36, borderRadius: 18,
-                backgroundColor: '#1E1E2E',
-                borderWidth: 1, borderColor: '#2D2D3A',
+                backgroundColor: theme.colors.surfaceHigh,
+                borderWidth: 1, borderColor: theme.colors.border,
                 alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <Ionicons name="close" size={18} color="#9CA3AF" />
+              <Ionicons name="close" size={18} color={theme.colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -587,7 +591,7 @@ function MemberDetailModal({
                 </View>
               </Animated.View>
 
-              <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 6 }}>
+              <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', marginBottom: 6 }}>
                 {member.displayName}
               </Text>
 
@@ -602,12 +606,12 @@ function MemberDetailModal({
               {member.expiresAt && new Date(member.expiresAt).getTime() < Date.now() ? (
                 <View style={{
                   flexDirection: 'row', alignItems: 'center', gap: 6,
-                  backgroundColor: '#1F1F2E', paddingHorizontal: 10, paddingVertical: 5,
-                  borderRadius: 10, borderWidth: 1, borderColor: '#2D2D3A',
+                  backgroundColor: theme.colors.surfaceHigh, paddingHorizontal: 10, paddingVertical: 5,
+                  borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border,
                   marginBottom: 10,
                 }}>
-                  <Ionicons name="time-outline" size={12} color="#9CA3AF" />
-                  <Text style={{ color: '#9CA3AF', fontSize: 11, fontWeight: '600' }}>
+                  <Ionicons name="time-outline" size={12} color={theme.colors.textMuted} />
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '600' }}>
                     Signal expired — may not be current
                   </Text>
                 </View>
@@ -615,7 +619,7 @@ function MemberDetailModal({
 
               {member.message ? (
                 <Text numberOfLines={2} style={{
-                  color: '#9CA3AF', fontSize: 13, fontStyle: 'italic',
+                  color: theme.colors.textSecondary, fontSize: 13, fontStyle: 'italic',
                   textAlign: 'center', lineHeight: 20, marginBottom: 10, paddingHorizontal: 16,
                 }}>
                   "{member.message}"
@@ -635,7 +639,7 @@ function MemberDetailModal({
                 {/* Base ring */}
                 <View style={{
                   position: 'absolute', width: 110, height: 110, borderRadius: 55,
-                  borderWidth: 4, borderColor: '#2D2D3A',
+                  borderWidth: 4, borderColor: theme.colors.border,
                 }} />
                 {/* Colored overlay (opacity-animated) */}
                 <Animated.View style={{
@@ -644,19 +648,19 @@ function MemberDetailModal({
                   opacity: ringOpacity,
                 }} />
                 <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900', lineHeight: 34 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 30, fontWeight: '900', lineHeight: 34 }}>
                     {displayScore}
                   </Text>
-                  <Text style={{ color: '#9CA3AF', fontSize: 11, fontWeight: '600' }}>% Match</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '600' }}>% Match</Text>
                 </View>
               </View>
-              <Text style={{ color: '#E5E7EB', fontWeight: '700', fontSize: 15, marginTop: 10 }}>
+              <Text style={{ color: theme.colors.textSecondary, fontWeight: '700', fontSize: 15, marginTop: 10 }}>
                 {matchLabel}
               </Text>
             </View>
 
             {/* ── Breakdown rows ── */}
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15, marginBottom: 14 }}>
+            <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, marginBottom: 14 }}>
               Why you match
             </Text>
 
@@ -675,7 +679,7 @@ function MemberDetailModal({
                   {/* Emoji box */}
                   <View style={{
                     width: 36, height: 36, borderRadius: 10,
-                    backgroundColor: factor.matched ? `${fColor}22` : '#1A1A24',
+                    backgroundColor: factor.matched ? `${fColor}22` : theme.colors.surfaceHigh,
                     borderWidth: factor.matched ? 1 : 0,
                     borderColor: factor.matched ? `${fColor}44` : 'transparent',
                     alignItems: 'center', justifyContent: 'center', marginRight: 10,
@@ -686,13 +690,13 @@ function MemberDetailModal({
                   {/* Label + detail */}
                   <View style={{ flex: 1 }}>
                     <Text style={{
-                      color: factor.matched ? '#fff' : '#6B7280',
+                      color: factor.matched ? theme.colors.text : theme.colors.textMuted,
                       fontWeight: factor.matched ? '700' : '500', fontSize: 13,
                     }}>
                       {factor.label}
                     </Text>
                     {factor.detail ? (
-                      <Text style={{ color: factor.matched ? '#9CA3AF' : '#4B5563', fontSize: 11, marginTop: 1 }}>
+                      <Text style={{ color: factor.matched ? theme.colors.textSecondary : theme.colors.textMuted, fontSize: 11, marginTop: 1 }}>
                         {factor.detail}
                       </Text>
                     ) : null}
@@ -702,9 +706,9 @@ function MemberDetailModal({
                   <View style={{
                     flexDirection: 'row', alignItems: 'center', gap: 3,
                     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
-                    backgroundColor: factor.matched ? `${fColor}22` : '#1A1A2480',
+                    backgroundColor: factor.matched ? `${fColor}22` : theme.colors.surfaceHigh,
                   }}>
-                    <Text style={{ color: factor.matched ? fColor : '#374151', fontWeight: '700', fontSize: 12 }}>
+                    <Text style={{ color: factor.matched ? fColor : theme.colors.textMuted, fontWeight: '700', fontSize: 12 }}>
                       +{factor.points}
                     </Text>
                     {factor.matched ? <Text style={{ color: '#10B981', fontSize: 11 }}>✓</Text> : null}
@@ -715,6 +719,18 @@ function MemberDetailModal({
 
             {/* ── Action buttons ── */}
             <View style={{ marginTop: 20, gap: 10 }}>
+              {member.signalType === 'available' && (
+                <TouchableOpacity
+                  onPress={() => onPoke(member.userId)}
+                  style={{
+                    borderRadius: 14, padding: 15, alignItems: 'center',
+                    borderWidth: 1.5, borderColor: sigColor, backgroundColor: `${sigColor}14`,
+                  }}
+                >
+                  <Text style={{ color: sigColor, fontWeight: '700', fontSize: 15 }}>👋 Poke for Casual Meetup</Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity onPress={() => onMessage(member.userId)}>
                 <LinearGradient
                   colors={['#EC4899', '#A855F7']}
@@ -729,10 +745,10 @@ function MemberDetailModal({
                 onPress={() => onViewProfile(member.userId)}
                 style={{
                   borderRadius: 14, padding: 15, alignItems: 'center',
-                  borderWidth: 1.5, borderColor: '#EC4899', backgroundColor: 'transparent',
+                  borderWidth: 1.5, borderColor: theme.colors.primary, backgroundColor: 'transparent',
                 }}
               >
-                <Text style={{ color: '#EC4899', fontWeight: '700', fontSize: 15 }}>View Full Profile</Text>
+                <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 15 }}>View Full Profile</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -919,11 +935,11 @@ export default function PulseScreen() {
           <View style={{ position: 'absolute', bottom: -46, left: -10, width: 136, height: 136, borderRadius: 68, backgroundColor: themed.headerGlowPurple }} />
           <View style={{ flexDirection: isCompact ? 'column' : 'row', alignItems: isCompact ? 'stretch' : 'center' }}>
             <View style={{ flex: 1, paddingRight: isCompact ? 0 : 12, marginBottom: isCompact ? 14 : 0 }}>
-              <Text style={{ color: '#B8A8D9', fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 4 }}>
+              <Text style={{ color: theme.isDark ? '#B8A8D9' : theme.colors.textSecondary, fontSize: 10, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 4 }}>
                 Live discovery field
               </Text>
-              <Text style={{ color: '#fff', fontSize: 26, lineHeight: 28, fontFamily: FONT.displayBold }}>Pulse 💗</Text>
-              <Text style={{ color: '#9488B5', fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+              <Text style={{ color: theme.colors.text, fontSize: 26, lineHeight: 28, fontFamily: FONT.displayBold }}>Pulse 💗</Text>
+              <Text style={{ color: theme.isDark ? '#9488B5' : theme.colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
                 {scoredMembers.length} nearby, {myLocation ? 'location tuned in' : 'location off'}
               </Text>
             </View>
@@ -932,7 +948,7 @@ export default function PulseScreen() {
               style={{
                 alignSelf: isCompact ? 'stretch' : 'flex-start',
                 paddingHorizontal: 13, paddingVertical: 10, borderRadius: 18,
-                backgroundColor: '#090811A8', borderColor: `${myConfig.color}88`, borderWidth: 1,
+                backgroundColor: theme.isDark ? '#090811A8' : theme.colors.surfaceHigh, borderColor: `${myConfig.color}88`, borderWidth: 1,
                 minWidth: 106,
               }}
             >
@@ -940,7 +956,7 @@ export default function PulseScreen() {
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: myConfig.color }} />
                 <Text style={{ color: myConfig.color, fontWeight: '700', fontSize: 13, fontFamily: FONT.displaySemiBold }}>{myConfig.label}</Text>
               </View>
-              <Text style={{ color: '#8F86A8', fontSize: 10, textAlign: 'center', marginTop: 4 }}>Tap to edit</Text>
+              <Text style={{ color: theme.isDark ? '#8F86A8' : theme.colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 4 }}>Tap to edit</Text>
             </TouchableOpacity>
           </View>
 
@@ -958,13 +974,13 @@ export default function PulseScreen() {
                   borderRadius: 16,
                   paddingHorizontal: 10,
                   paddingVertical: 9,
-                  backgroundColor: '#FFFFFF0A',
+                  backgroundColor: theme.isDark ? '#FFFFFF0A' : theme.colors.surfaceHigh,
                   borderWidth: 1,
-                  borderColor: '#FFFFFF10',
+                  borderColor: theme.isDark ? '#FFFFFF10' : theme.colors.border,
                 }}
               >
-                <Text style={{ color: '#8A7DAA', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 }}>{item.label}</Text>
-                <Text numberOfLines={1} style={{ color: '#F7F2FF', fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{item.value}</Text>
+                <Text style={{ color: theme.isDark ? '#8A7DAA' : theme.colors.textMuted, fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 }}>{item.label}</Text>
+                <Text numberOfLines={1} style={{ color: theme.colors.text, fontSize: 16, marginTop: 4, fontFamily: FONT.displayBold }}>{item.value}</Text>
               </View>
             ))}
           </View>
@@ -1084,7 +1100,7 @@ export default function PulseScreen() {
                       borderColor: minMatchThreshold === t ? '#EC4899' : '#2D2D3A',
                     }}
                   >
-                    <Text style={{ color: minMatchThreshold === t ? '#F8D3E7' : '#8F86A8', fontSize: 12, fontWeight: '700' }}>
+                    <Text style={{ color: minMatchThreshold === t ? (theme.isDark ? '#F8D3E7' : theme.colors.primary) : (theme.isDark ? '#8F86A8' : theme.colors.textMuted), fontSize: 12, fontWeight: '700' }}>
                       {t === 0 ? 'All matches' : `${t}%+`}
                     </Text>
                   </TouchableOpacity>
@@ -1176,11 +1192,13 @@ export default function PulseScreen() {
             <View style={{
               width: 116, height: 116, borderRadius: 58,
               alignItems: 'center', justifyContent: 'center',
-              backgroundColor: '#0B0914E6', borderWidth: 1, borderColor: '#FFFFFF10',
-              shadowColor: myConfig.color, shadowOpacity: 0.35, shadowRadius: 28, shadowOffset: { width: 0, height: 10 },
+              backgroundColor: theme.isDark ? '#0B0914E6' : theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.isDark ? '#FFFFFF10' : theme.colors.border,
+              shadowColor: myConfig.color, shadowOpacity: theme.isDark ? 0.35 : 0.18, shadowRadius: 28, shadowOffset: { width: 0, height: 10 },
             }}>
               <LinearGradient
-                colors={[`${myConfig.color}33`, '#120C1E', `${myConfig.color}12`]}
+                colors={theme.isDark ? [`${myConfig.color}33`, '#120C1E', `${myConfig.color}12`] : [`${myConfig.color}18`, '#FFFFFF', `${myConfig.color}10`]}
                 style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 58 }}
               />
               <View style={{
@@ -1203,10 +1221,10 @@ export default function PulseScreen() {
             <View style={{
               position: 'absolute', bottom: 0, right: 0,
               width: 16, height: 16, borderRadius: 8,
-              backgroundColor: myConfig.color, borderWidth: 2, borderColor: '#0A0A0F',
+              backgroundColor: myConfig.color, borderWidth: 2, borderColor: theme.isDark ? '#0A0A0F' : theme.colors.surface,
             }} />
-              <Text style={{ color: '#7A6F97', fontSize: 10, textAlign: 'center', marginTop: 10, textTransform: 'uppercase', letterSpacing: 1.4 }}>Broadcasting</Text>
-              <Text style={{ color: '#F3EEFF', fontSize: 18, textAlign: 'center', marginTop: 2, fontFamily: FONT.displayBold }}>You</Text>
+              <Text style={{ color: theme.isDark ? '#7A6F97' : theme.colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 10, textTransform: 'uppercase', letterSpacing: 1.4 }}>Broadcasting</Text>
+              <Text style={{ color: theme.isDark ? '#F3EEFF' : theme.colors.text, fontSize: 18, textAlign: 'center', marginTop: 2, fontFamily: FONT.displayBold }}>You</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -1221,13 +1239,13 @@ export default function PulseScreen() {
               borderRadius: 24,
               paddingHorizontal: 24,
               paddingVertical: 22,
-              backgroundColor: '#090811D4',
+              backgroundColor: theme.colors.surface,
               borderWidth: 1,
-              borderColor: '#FFFFFF10',
+              borderColor: theme.colors.border,
               alignItems: 'center',
             }}>
               <Text style={{ fontSize: 38, marginBottom: 12 }}>👀</Text>
-              <Text style={{ color: '#9CA3AF', textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
+              <Text style={{ color: theme.colors.textSecondary, textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
                 No one's active right now.{'\n'}
                 Tap your signal above to go <Text style={{ color: '#EC4899', fontWeight: '700' }}>Available</Text> or{' '}
                 <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others' Pulse.
@@ -1239,17 +1257,19 @@ export default function PulseScreen() {
 
       {/* ── Signal modal ── */}
       <Modal visible={showSignalModal} transparent animationType="slide">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', justifyContent: 'flex-end' }}>
+        <View style={{ flex: 1, backgroundColor: theme.isDark ? 'rgba(0,0,0,0.82)' : theme.colors.overlay, justifyContent: 'flex-end' }}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={{
-            backgroundColor: '#111118',
+            backgroundColor: theme.colors.surface,
             borderTopLeftRadius: 24, borderTopRightRadius: 24,
             paddingTop: 20, paddingHorizontal: 24, paddingBottom: 36,
             maxHeight: '88%',
+            borderWidth: 1,
+            borderColor: theme.colors.border,
           }}>
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: '#2D2D3A', alignSelf: 'center', marginBottom: 16 }} />
-            <Text style={{ color: '#fff', fontSize: 22, marginBottom: 4, fontFamily: FONT.displayBold }}>Set Your Signal 📡</Text>
-            <Text style={{ color: '#6B7280', fontSize: 13, marginBottom: 20 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 16 }} />
+            <Text style={{ color: theme.colors.text, fontSize: 22, marginBottom: 4, fontFamily: FONT.displayBold }}>Set Your Signal 📡</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 20 }}>
               Signals expire after 4 hours. Only approved members can see you.
             </Text>
 
@@ -1263,13 +1283,13 @@ export default function PulseScreen() {
                     onPress={() => setMySignalType(t)}
                     style={{
                       flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
-                      backgroundColor: mySignalType === t ? SIGNAL_CONFIG[t].bg : '#1A1A24',
-                      borderColor: mySignalType === t ? SIGNAL_CONFIG[t].color : '#2D2D3A',
+                      backgroundColor: mySignalType === t ? SIGNAL_CONFIG[t].bg : theme.colors.surfaceHigh,
+                      borderColor: mySignalType === t ? SIGNAL_CONFIG[t].color : theme.colors.border,
                       borderWidth: 1,
                     }}
                   >
                     <Text style={{
-                      color: mySignalType === t ? SIGNAL_CONFIG[t].color : '#6B7280',
+                      color: mySignalType === t ? SIGNAL_CONFIG[t].color : theme.colors.textMuted,
                       fontSize: 11, fontWeight: '700',
                     }}>
                       {cap(t)}
@@ -1308,12 +1328,12 @@ export default function PulseScreen() {
                         }}
                         style={{
                           paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                          backgroundColor: selected ? '#EC489930' : '#1A1A24',
-                          borderColor: selected ? '#EC4899' : '#2D2D3A',
+                          backgroundColor: selected ? '#EC489930' : theme.colors.surfaceHigh,
+                          borderColor: selected ? '#EC4899' : theme.colors.border,
                           borderWidth: 1,
                         }}
                       >
-                        <Text style={{ color: selected ? '#EC4899' : '#6B7280', fontWeight: '600' }}>{g}</Text>
+                        <Text style={{ color: selected ? '#EC4899' : theme.colors.textMuted, fontWeight: '600' }}>{g}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1344,12 +1364,12 @@ export default function PulseScreen() {
                         }}
                         style={{
                           paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                          backgroundColor: selected ? '#A855F730' : '#1A1A24',
-                          borderColor: selected ? '#A855F7' : '#2D2D3A',
+                          backgroundColor: selected ? '#A855F730' : theme.colors.surfaceHigh,
+                          borderColor: selected ? '#A855F7' : theme.colors.border,
                           borderWidth: 1,
                         }}
                       >
-                        <Text style={{ color: selected ? '#A855F7' : '#6B7280', fontWeight: '600' }}>{d.label}</Text>
+                        <Text style={{ color: selected ? '#A855F7' : theme.colors.textMuted, fontWeight: '600' }}>{d.label}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1366,12 +1386,12 @@ export default function PulseScreen() {
                       onPress={() => setMaxDistance(d.value)}
                       style={{
                         paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-                        backgroundColor: maxDistance === d.value ? '#A855F730' : '#1A1A24',
-                        borderColor: maxDistance === d.value ? '#A855F7' : '#2D2D3A',
+                        backgroundColor: maxDistance === d.value ? '#A855F730' : theme.colors.surfaceHigh,
+                        borderColor: maxDistance === d.value ? '#A855F7' : theme.colors.border,
                         borderWidth: 1,
                       }}
                     >
-                      <Text style={{ color: maxDistance === d.value ? '#A855F7' : '#6B7280', fontWeight: '600' }}>{d.label}</Text>
+                      <Text style={{ color: maxDistance === d.value ? '#A855F7' : theme.colors.textMuted, fontWeight: '600' }}>{d.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -1383,17 +1403,17 @@ export default function PulseScreen() {
                 value={signalMessage}
                 onChangeText={setSignalMessage}
                 placeholder="What's on your mind..."
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={theme.colors.textMuted}
                 style={{
-                  backgroundColor: '#1A1A24', borderRadius: 12, borderColor: '#2D2D3A',
-                  borderWidth: 1, padding: 12, color: '#fff', marginBottom: 16,
+                  backgroundColor: theme.colors.surfaceHigh, borderRadius: 12, borderColor: theme.colors.border,
+                  borderWidth: 1, padding: 12, color: theme.colors.text, marginBottom: 16,
                 }}
                 maxLength={200}
               />
 
               {/* Queer friendly toggle */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
-                <Text style={{ color: '#fff', flex: 1, fontSize: 15 }}>🌈 Queer Friendly</Text>
+                <Text style={{ color: theme.colors.text, flex: 1, fontSize: 15 }}>🌈 Queer Friendly</Text>
                 <Switch
                   value={isQueerFriendly}
                   onValueChange={setIsQueerFriendly}
@@ -1415,7 +1435,7 @@ export default function PulseScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => setShowSignalModal(false)} style={{ marginTop: 14, alignItems: 'center' }}>
-                <Text style={{ color: '#6B7280', fontSize: 15 }}>Cancel</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 15 }}>Cancel</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -1438,6 +1458,9 @@ export default function PulseScreen() {
         }}
         onMessage={(userId) => {
           createConversation.mutate({ participantIds: [userId] });
+        }}
+        onPoke={(userId) => {
+          pokeMutation.mutate({ userId });
         }}
       />
     </SafeAreaView>

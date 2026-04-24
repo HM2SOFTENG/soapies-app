@@ -47,30 +47,34 @@ function capitalize(str: string) {
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function StatBox({ label, value }: { label: string; value: number | string }) {
+  const theme = useTheme();
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
-      <Text style={{ color: colors.text, fontSize: 24, fontWeight: '900' as const }}>{value}</Text>
-      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{label}</Text>
+      <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '900' as const }}>{value}</Text>
+      <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
 function InfoRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+  const theme = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
       <View style={{
         width: 32, height: 32, borderRadius: 10,
-        backgroundColor: `${colors.purple}22`,
+        backgroundColor: theme.alpha(theme.colors.purple, 0.12),
         alignItems: 'center', justifyContent: 'center',
         marginRight: 12,
+        borderWidth: 1,
+        borderColor: theme.alpha(theme.colors.purple, 0.18),
       }}>
-        <Ionicons name={icon} size={16} color={colors.purple} />
+        <Ionicons name={icon} size={16} color={theme.colors.purple} />
       </View>
       <View>
-        <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
           {label}
         </Text>
-        <Text style={{ color: colors.text, fontSize: 14, fontWeight: '500', marginTop: 1 }}>
+        <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '500', marginTop: 1 }}>
           {value}
         </Text>
       </View>
@@ -103,17 +107,18 @@ function getReferralStep(row: any) {
 }
 
 function ReferralPipelineCard({ row }: { row: any }) {
+  const theme = useTheme();
   const currentStep = getReferralStep(row);
   const earnedDollars = Number(row?.creditAmount ?? 0) / 100;
 
   return (
     <View style={{
       marginTop: 12,
-      backgroundColor: row?.creditAwarded || row?.referralConverted ? 'rgba(16, 185, 129, 0.10)' : '#10101C',
+      backgroundColor: row?.creditAwarded || row?.referralConverted ? theme.colors.successSoft : theme.colors.surface,
       borderRadius: 18,
       padding: 16,
       borderWidth: 1,
-      borderColor: row?.creditAwarded || row?.referralConverted ? 'rgba(16, 185, 129, 0.25)' : '#1A1A30',
+      borderColor: row?.creditAwarded || row?.referralConverted ? theme.colors.successBorder : theme.colors.border,
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <View style={{ flex: 1 }}>
@@ -236,7 +241,7 @@ export default function ProfileScreen() {
   const { logout, user } = useAuth();
   const t = {
     page: theme.colors.background,
-    surface: theme.colors.card,
+    surface: theme.colors.surface,
     elevated: theme.colors.surfaceMuted,
     border: theme.colors.border,
     text: theme.colors.text,
@@ -349,7 +354,7 @@ export default function ProfileScreen() {
             style={{ marginBottom: 14, shadowColor: '#EC4899', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
           />
 
-          <Text style={{ color: colors.text, fontSize: 26, fontWeight: '800', fontFamily: FONT.displayBold }}>
+          <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', fontFamily: FONT.displayBold }}>
             {profile?.displayName ?? profile?.name ?? 'Member'}
           </Text>
 
@@ -374,12 +379,12 @@ export default function ProfileScreen() {
             <View style={{
               marginTop: 8,
               paddingHorizontal: 14, paddingVertical: 5,
-              backgroundColor: colors.card,
+              backgroundColor: t.elevated,
               borderRadius: 20,
-              borderColor: colors.border,
+              borderColor: t.border,
               borderWidth: 1,
             }}>
-              <Text style={{ color: colors.purple, fontWeight: '700', fontSize: 13 }}>
+              <Text style={{ color: theme.colors.purple, fontWeight: '700', fontSize: 13 }}>
                 {communityLabel}
               </Text>
             </View>
@@ -387,7 +392,7 @@ export default function ProfileScreen() {
 
           {/* Bio */}
           {profile?.bio && (
-            <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 }}>
+            <Text style={{ color: t.subtext, fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 }}>
               {profile.bio}
             </Text>
           )}
@@ -418,7 +423,7 @@ export default function ProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: t.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>About Me</Text>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>About Me</Text>
             {profile?.location && (
               <InfoRow icon="location-outline" label="Location" value={profile.location} />
             )}
@@ -442,7 +447,7 @@ export default function ProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: t.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Interests</Text>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Interests</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {prefs.interests.map((interest: string) => (
                 <View key={interest} style={{
@@ -467,7 +472,7 @@ export default function ProfileScreen() {
             borderRadius: 16, padding: 16,
             borderColor: t.border, borderWidth: 1,
           }}>
-            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Looking For</Text>
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Looking For</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {prefs.lookingFor.map((item: string) => (
                 <View key={item} style={{
@@ -501,8 +506,8 @@ export default function ProfileScreen() {
             <Ionicons name="star" size={20} color={colors.pink} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600' }}>CREDITS BALANCE</Text>
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', marginTop: 2, fontFamily: FONT.displayBold }}>
+            <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600' }}>CREDITS BALANCE</Text>
+            <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginTop: 2, fontFamily: FONT.displayBold }}>
               {credits}
             </Text>
           </View>
@@ -515,7 +520,7 @@ export default function ProfileScreen() {
           borderRadius: 16, padding: 16,
           borderColor: t.border, borderWidth: 1,
         }}>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
+          <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
             REFERRAL CODE
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -529,7 +534,7 @@ export default function ProfileScreen() {
               <Ionicons name="share-outline" size={20} color={colors.purple} />
             </TouchableOpacity>
           </View>
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10, lineHeight: 18 }}>
+          <Text style={{ color: t.subtext, fontSize: 12, marginTop: 10, lineHeight: 18 }}>
             Share your code and track when someone joins, applies, books their first event, and when your reward lands.
           </Text>
         </View>
@@ -543,8 +548,8 @@ export default function ProfileScreen() {
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800', fontFamily: FONT.displayBold }}>Referral Tracker</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
+              <Text style={{ color: t.text, fontSize: 16, fontWeight: '800', fontFamily: FONT.displayBold }}>Referral Tracker</Text>
+              <Text style={{ color: t.subtext, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
                 Follow each referral from signup through approval, first event booking, and reward payout.
               </Text>
             </View>
@@ -557,24 +562,24 @@ export default function ProfileScreen() {
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-            <View style={{ flex: 1, backgroundColor: 'rgba(236,72,153,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)' }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Tracked</Text>
-              <Text style={{ color: colors.text, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{((myReferralsData as any[]) ?? []).length}</Text>
+            <View style={{ flex: 1, backgroundColor: theme.colors.tintSoft, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: theme.alpha(theme.colors.primary, 0.18) }}>
+              <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Tracked</Text>
+              <Text style={{ color: t.text, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{((myReferralsData as any[]) ?? []).length}</Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: 'rgba(16,185,129,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(16,185,129,0.18)' }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Rewards earned</Text>
-              <Text style={{ color: '#34D399', fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{referralRewardsEarned}</Text>
+            <View style={{ flex: 1, backgroundColor: theme.colors.successSoft, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: theme.colors.successBorder }}>
+              <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Rewards earned</Text>
+              <Text style={{ color: theme.colors.success, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{referralRewardsEarned}</Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(168,85,247,0.18)' }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>In progress</Text>
-              <Text style={{ color: colors.purple, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{pendingReferralRewards}</Text>
+            <View style={{ flex: 1, backgroundColor: theme.alpha(theme.colors.purple, 0.1), borderRadius: 14, padding: 12, borderWidth: 1, borderColor: theme.alpha(theme.colors.purple, 0.18) }}>
+              <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>In progress</Text>
+              <Text style={{ color: theme.colors.purple, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{pendingReferralRewards}</Text>
             </View>
           </View>
 
           {((myReferralsData as any[]) ?? []).length === 0 ? (
             <View style={{ marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: t.elevated, borderWidth: 1, borderColor: t.border }}>
-              <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>No referrals yet</Text>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
+              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>No referrals yet</Text>
+              <Text style={{ color: t.subtext, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
                 When someone signs up with your code, their progress will appear here automatically.
               </Text>
             </View>
@@ -607,7 +612,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <Ionicons name="shield-checkmark" size={20} color={colors.purple} />
-                <Text style={{ color: colors.text, fontWeight: '700', marginLeft: 12, flex: 1 }}>Admin Dashboard</Text>
+                <Text style={{ color: t.text, fontWeight: '700', marginLeft: 12, flex: 1 }}>Admin Dashboard</Text>
                 <View style={{
                   backgroundColor: `${colors.purple}44`,
                   paddingHorizontal: 10, paddingVertical: 3,
@@ -631,7 +636,7 @@ export default function ProfileScreen() {
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.pink} />
-            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>Edit Profile</Text>
+            <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>Edit Profile</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
@@ -646,7 +651,7 @@ export default function ProfileScreen() {
             }}
           >
             <Ionicons name="settings-outline" size={20} color={colors.muted} />
-            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>Settings</Text>
+            <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>Settings</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
@@ -661,7 +666,7 @@ export default function ProfileScreen() {
             }}
           >
             <Ionicons name="ticket-outline" size={20} color={colors.pink} />
-            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>My Tickets</Text>
+            <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>My Tickets</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 
@@ -676,7 +681,7 @@ export default function ProfileScreen() {
             }}
           >
             <Ionicons name="people-outline" size={20} color={colors.pink} />
-            <Text style={{ color: colors.text, fontWeight: '600', marginLeft: 12 }}>Member Directory</Text>
+            <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>Member Directory</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
 

@@ -92,7 +92,7 @@ function StepIndicators({ currentStep, totalSteps }: { currentStep: number; tota
         return (
           <View
             key={i}
-            style={{ height: 6, flex: 1, borderRadius: 3, backgroundColor: '#1A1A30' }}
+            style={{ height: 6, flex: 1, borderRadius: 3, backgroundColor: colors.border }}
           />
         );
       })}
@@ -573,7 +573,7 @@ export default function OnboardingScreen() {
 
   return (
     <LinearGradient
-      colors={['#04040A', '#0D0520', '#080810']}
+      colors={theme.isDark ? ['#04040A', '#0D0520', '#080810'] : ['#FFF7FB', '#FFF1F8', '#FFF8FC']}
       locations={[0, 0.4, 1]}
       style={{ flex: 1 }}
     >
@@ -658,7 +658,7 @@ export default function OnboardingScreen() {
               onPress={() => router.push('/(auth)/login')}
               style={{ marginTop: 20 }}
             >
-              <Text style={{ color: colors.muted, fontSize: 14 }}>
+              <Text style={{ color: colors.textMuted, fontSize: 14 }}>
                 Already have an account?{' '}
                 <Text style={{ color: colors.pink, fontWeight: '700' }}>Log In</Text>
               </Text>
@@ -683,7 +683,7 @@ export default function OnboardingScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -698,7 +698,7 @@ export default function OnboardingScreen() {
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPassword}
                   autoComplete="new-password"
                   style={[styles.input, { flex: 1, paddingRight: 48 }]}
@@ -707,16 +707,16 @@ export default function OnboardingScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeBtn}
                 >
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.muted} />
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
               {pwStrength && (
                 <View style={{ marginTop: 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>Password Strength</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>Password Strength</Text>
                     <Text style={{ color: pwStrength.color, fontSize: 12, fontWeight: '700' }}>{pwStrength.label}</Text>
                   </View>
-                  <View style={{ height: 4, backgroundColor: colors.border, borderRadius: 2 }}>
+                  <View style={{ height: 4, backgroundColor: '#1A1A30', borderRadius: 2 }}>
                     <View style={{ height: 4, width: `${pwStrength.pct}%`, backgroundColor: pwStrength.color, borderRadius: 2 }} />
                   </View>
                 </View>
@@ -730,7 +730,7 @@ export default function OnboardingScreen() {
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showConfirmPassword}
                   autoComplete="new-password"
                   style={[styles.input, { flex: 1, paddingRight: 48 }]}
@@ -739,7 +739,7 @@ export default function OnboardingScreen() {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   style={styles.eyeBtn}
                 >
-                  <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={colors.muted} />
+                  <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
               {confirmPassword.length > 0 && password !== confirmPassword && (
@@ -756,7 +756,7 @@ export default function OnboardingScreen() {
               <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
                 {agreedToTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={{ color: colors.muted, fontSize: 13, flex: 1, marginLeft: 10 }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13, flex: 1, marginLeft: 10 }}>
                 I agree to the{' '}
                 <Text
                   style={{ color: colors.pink, textDecorationLine: 'underline' }}
@@ -823,7 +823,7 @@ export default function OnboardingScreen() {
               value={otpCode}
               onChangeText={(v) => setOtpCode(v.replace(/\D/g, '').slice(0, 6))}
               placeholder="123456"
-              placeholderTextColor={colors.muted}
+              placeholderTextColor={colors.textMuted}
               keyboardType="number-pad"
               maxLength={6}
               style={[styles.input, { textAlign: 'center', fontSize: 28, letterSpacing: 12, fontWeight: '700' }]}
@@ -856,7 +856,7 @@ export default function OnboardingScreen() {
               style={{ marginTop: 20, alignItems: 'center' }}
             >
               {resendTimer > 0
-                ? <Text style={{ color: colors.muted, fontSize: 14 }}>Resend in {resendTimer}s</Text>
+                ? <Text style={{ color: colors.textMuted, fontSize: 14 }}>Resend in {resendTimer}s</Text>
                 : <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '600' }}>
                     {resendMutation.isPending ? 'Sending...' : 'Resend Code'}
                   </Text>
@@ -881,7 +881,7 @@ export default function OnboardingScreen() {
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder="Your display name"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.textMuted}
                 style={styles.input}
               />
             </View>
@@ -894,7 +894,7 @@ export default function OnboardingScreen() {
                   value={dobMonth}
                   onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
                   placeholder="MM"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   maxLength={2}
                   style={[styles.input, { flex: 1, textAlign: 'center' }]}
@@ -903,7 +903,7 @@ export default function OnboardingScreen() {
                   value={dobDay}
                   onChangeText={(v) => setDobDay(v.replace(/\D/g, '').slice(0, 2))}
                   placeholder="DD"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   maxLength={2}
                   style={[styles.input, { flex: 1, textAlign: 'center' }]}
@@ -912,7 +912,7 @@ export default function OnboardingScreen() {
                   value={dobYear}
                   onChangeText={(v) => setDobYear(v.replace(/\D/g, '').slice(0, 4))}
                   placeholder="YYYY"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="numeric"
                   maxLength={4}
                   style={[styles.input, { flex: 2, textAlign: 'center' }]}
@@ -992,13 +992,13 @@ export default function OnboardingScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>
                 BIO *{' '}
-                <Text style={{ color: colors.muted, fontWeight: '400' }}>{bio.length}/200</Text>
+                <Text style={{ color: colors.textMuted, fontWeight: '400' }}>{bio.length}/200</Text>
               </Text>
               <TextInput
                 value={bio}
                 onChangeText={(v) => setBio(v.slice(0, 200))}
                 placeholder="Tell the community about yourself..."
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={4}
                 maxLength={200}
@@ -1013,19 +1013,19 @@ export default function OnboardingScreen() {
                 value={location}
                 onChangeText={setLocation}
                 placeholder="City, State"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.textMuted}
                 style={styles.input}
               />
             </View>
 
             {/* Phone */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>PHONE <Text style={{ fontWeight: '400', color: colors.muted }}>(optional)</Text></Text>
+              <Text style={styles.fieldLabel}>PHONE <Text style={{ fontWeight: '400', color: colors.textMuted }}>(optional)</Text></Text>
               <TextInput
                 value={phone}
                 onChangeText={setPhone}
                 placeholder="+1 (555) 000-0000"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 style={styles.input}
               />
@@ -1033,7 +1033,7 @@ export default function OnboardingScreen() {
 
             {/* Referral Code */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>REFERRAL CODE <Text style={{ fontWeight: '400', color: colors.muted }}>(optional)</Text></Text>
+              <Text style={styles.fieldLabel}>REFERRAL CODE <Text style={{ fontWeight: '400', color: colors.textMuted }}>(optional)</Text></Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TextInput
                   value={referralCode}
@@ -1044,7 +1044,7 @@ export default function OnboardingScreen() {
                     setReferrerName('');
                   }}
                   placeholder="SOAP12345"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.textMuted}
                   autoCapitalize="characters"
                   style={[styles.input, { flex: 1 }]}
                 />
@@ -1101,7 +1101,7 @@ export default function OnboardingScreen() {
             <Text style={styles.stepSubheading}>Show the community who you are — minimum 3 photos required.</Text>
 
             <View style={[styles.fieldGroup, { alignItems: 'flex-end' }]}>
-              <Text style={{ color: uploadedCount >= 3 ? '#10B981' : colors.muted, fontSize: 13, fontWeight: '600' }}>
+              <Text style={{ color: uploadedCount >= 3 ? '#10B981' : colors.textMuted, fontSize: 13, fontWeight: '600' }}>
                 {uploadedCount}/6 photos {uploadedCount >= 3 ? '✓' : ''}
               </Text>
             </View>
@@ -1140,8 +1140,8 @@ export default function OnboardingScreen() {
                         style={styles.photoAddBtn}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="add" size={28} color={colors.muted} />
-                        {i === 0 && <Text style={{ color: colors.muted, fontSize: 10, marginTop: 4 }}>Main</Text>}
+                        <Ionicons name="add" size={28} color={colors.textMuted} />
+                        {i === 0 && <Text style={{ color: colors.textMuted, fontSize: 10, marginTop: 4 }}>Main</Text>}
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1187,7 +1187,7 @@ export default function OnboardingScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
               INTERESTS *{' '}
-              <Text style={{ fontWeight: '400', color: interests.length > 0 ? '#10B981' : colors.muted }}>
+              <Text style={{ fontWeight: '400', color: interests.length > 0 ? '#10B981' : colors.textMuted }}>
                 {interests.length} selected
               </Text>
             </Text>
@@ -1197,7 +1197,7 @@ export default function OnboardingScreen() {
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
               LOOKING FOR *{' '}
-              <Text style={{ fontWeight: '400', color: lookingFor.length > 0 ? '#10B981' : colors.muted }}>
+              <Text style={{ fontWeight: '400', color: lookingFor.length > 0 ? '#10B981' : colors.textMuted }}>
                 {lookingFor.length} selected
               </Text>
             </Text>
@@ -1236,7 +1236,7 @@ export default function OnboardingScreen() {
               <Image source={{ uri: firstPhoto.localUri }} style={styles.summaryAvatar} />
             ) : (
               <View style={[styles.summaryAvatar, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="person" size={36} color={colors.muted} />
+                <Ionicons name="person" size={36} color={colors.textMuted} />
               </View>
             )}
 
@@ -1246,7 +1246,7 @@ export default function OnboardingScreen() {
                 {COMMUNITY_OPTIONS.find((c) => c.id === communityId)?.name ?? communityId}
               </Text>
             )}
-            <Text style={{ color: colors.muted, fontSize: 13 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13 }}>
               {gender}{currentAge ? `, ${currentAge}` : ''}{location ? ` · ${location}` : ''}
             </Text>
 
@@ -1268,15 +1268,15 @@ export default function OnboardingScreen() {
             )}
 
             <View style={styles.summaryRow}>
-              <Ionicons name="images-outline" size={16} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 6 }}>
+              <Ionicons name="images-outline" size={16} color={colors.textMuted} />
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginLeft: 6 }}>
                 {uploadedCount} photos uploaded
               </Text>
             </View>
           </View>
 
           <View style={{ marginTop: 8, marginBottom: 16, padding: 14, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 20, textAlign: 'center' }}>
               Our team reviews all applications within 24-48 hours. You'll receive an email notification with the decision.
             </Text>
           </View>
@@ -1296,7 +1296,7 @@ export default function OnboardingScreen() {
             }}>
               {waiverAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
             </View>
-            <Text style={{ color: colors.muted, flex: 1, lineHeight: 20, fontSize: 13 }}>
+            <Text style={{ color: colors.textMuted, flex: 1, lineHeight: 20, fontSize: 13 }}>
               I am 21+ years old, agree to the{' '}
               <Text style={{ color: colors.pink }} onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}>
                 Community Guidelines &amp; Terms
@@ -1365,7 +1365,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headerSub: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 2,
   },
@@ -1414,7 +1414,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   welcomeTitle: {
-    color: '#F1F0FF',
+    color: colors.text,
     fontSize: 38,
     fontWeight: '900',
     textAlign: 'center',
@@ -1422,7 +1422,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   welcomeSubtitle: {
-    color: '#A09CB8',
+    color: colors.textSecondary,
     fontSize: 16,
     textAlign: 'center',
     marginTop: 12,
@@ -1435,13 +1435,13 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   stepHeading: {
-    color: '#F1F0FF',
+    color: colors.text,
     fontSize: 28,
     fontWeight: '900',
     marginBottom: 8,
   },
   stepSubheading: {
-    color: '#A09CB8',
+    color: colors.textSecondary,
     fontSize: 15,
     marginBottom: 28,
     lineHeight: 23,
@@ -1450,20 +1450,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   fieldLabel: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#0C0C1A',
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: '#1A1A30',
+    borderColor: colors.border,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 13,
-    color: '#F1F0FF',
+    color: colors.text,
     fontSize: 15,
     minHeight: 48,
   },
@@ -1558,7 +1558,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   communityCardDesc: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 13,
   },
 
@@ -1578,7 +1578,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(236,72,153,0.15)',
   },
   pillText: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1679,7 +1679,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(236,72,153,0.15)',
   },
   chipText: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -1713,7 +1713,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   summaryBio: {
-    color: colors.muted,
+    color: colors.textMuted,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 10,

@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatDistanceToNow } from '../lib/utils';
+import { useTheme } from '../lib/theme';
 
 interface NotifIconConfig {
   name: React.ComponentProps<typeof Ionicons>['name'];
@@ -82,6 +83,7 @@ function resolveRoute(type: string, data: Record<string, any>, targetId?: string
 
 const NotificationItem = React.memo(function NotificationItem({ notification, onMarkRead }: NotificationItemProps) {
   const router = useRouter();
+  const theme = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   function handlePress() {
@@ -134,9 +136,9 @@ const NotificationItem = React.memo(function NotificationItem({ notification, on
           transform: [{ scale }],
           flexDirection: 'row',
           padding: 16,
-          borderBottomColor: '#1A1A30',
+          borderBottomColor: theme.colors.border,
           borderBottomWidth: 1,
-          backgroundColor: '#10101C',
+          backgroundColor: theme.colors.surface,
           overflow: 'hidden',
         }}
       >
@@ -162,7 +164,7 @@ const NotificationItem = React.memo(function NotificationItem({ notification, on
             width: 40,
             height: 40,
             borderRadius: 20,
-            backgroundColor: `${icon.color}33`,
+            backgroundColor: theme.alpha(icon.color, 0.16),
             justifyContent: 'center',
             alignItems: 'center',
             flexShrink: 0,
@@ -175,7 +177,7 @@ const NotificationItem = React.memo(function NotificationItem({ notification, on
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text
             style={{
-              color: '#F1F0FF',
+              color: theme.colors.text,
               fontWeight: '700',
               fontSize: 14,
               marginBottom: 2,
@@ -184,11 +186,11 @@ const NotificationItem = React.memo(function NotificationItem({ notification, on
             {notification.title ?? notification.type ?? 'Notification'}
           </Text>
           {notification.body ? (
-            <Text style={{ color: '#A09CB8', fontSize: 13, lineHeight: 18 }}>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
               {notification.body}
             </Text>
           ) : null}
-          <Text style={{ color: '#5A5575', fontSize: 11, marginTop: 4 }}>{timeAgo}</Text>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 4 }}>{timeAgo}</Text>
         </View>
 
         {isUnread && (

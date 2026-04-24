@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 const STATUS_COLORS: Record<string, string> = {
   published: '#10B981',
@@ -63,10 +64,14 @@ function LabeledInput({ label, value, onChangeText, placeholder, multiline, keyb
 export default function AdminEventsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
   const utils = trpc.useUtils();
 
   const [showCreate, setShowCreate] = useState(false);
   const [editEvent, setEditEvent] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | EventStatus>('all');
+  const [eventQuery, setEventQuery] = useState('');
+  const [sortMode, setSortMode] = useState<'upcoming' | 'recent'>('upcoming');
 
   // Form state
   const [form, setForm] = useState({
@@ -91,6 +96,29 @@ export default function AdminEventsScreen() {
   );
   const events = (data as any[]) ?? [];
 
+  const filteredEvents = useMemo(() => {
+    const now = Date.now();
+    const q = eventQuery.trim().toLowerCase();
+    const filtered = events.filter((ev: any) => {
+      const matchesStatus = statusFilter === 'all' ? true : ev.status === statusFilter;
+      const haystack = [ev.title, ev.venue, ev.address, ev.description].filter(Boolean).join(' ').toLowerCase();
+      const matchesQuery = q ? haystack.includes(q) : true;
+      return matchesStatus && matchesQuery;
+    });
+
+    return filtered.sort((a: any, b: any) => {
+      const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+      if (sortMode === 'recent') return bTime - aTime;
+
+      const aUpcoming = aTime >= now;
+      const bUpcoming = bTime >= now;
+      if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+      if (aUpcoming && bUpcoming) return aTime - bTime;
+      return bTime - aTime;
+    });
+  }, [events, eventQuery, sortMode, statusFilter]);
+
   const createMutation = trpc.events.create.useMutation({
     onSuccess: () => {
       utils.events.all.invalidate();
@@ -113,9 +141,9 @@ export default function AdminEventsScreen() {
   // Guard AFTER all hooks
   if (!isAdmin) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}>
           <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -179,13 +207,13 @@ export default function AdminEventsScreen() {
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.isDark ? theme.alpha(theme.colors.white, 0.06) : theme.colors.surfaceHigh, borderWidth: 1, borderColor: theme.colors.border }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Manage Events</Text>
+        <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Manage Events</Text>
         <TouchableOpacity
           onPress={() => { resetForm(); setEditEvent(null); setShowCreate(true); }}
           style={{ backgroundColor: `${colors.pink}22`, borderRadius: 20, padding: 8, borderColor: `${colors.pink}44`, borderWidth: 1 }}
@@ -200,13 +228,48 @@ export default function AdminEventsScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
-          {events.length === 0 && (
+          <View style={{ backgroundColor: theme.colors.surface, borderRadius: 14, padding: 14, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1, gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.page, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 2 }}>
+              <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
+              <TextInput
+                value={eventQuery}
+                onChangeText={setEventQuery}
+                placeholder="Search events"
+                placeholderTextColor={theme.colors.textMuted}
+                style={{ flex: 1, color: theme.colors.text, paddingVertical: 10, fontSize: 14 }}
+              />
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {[{ key: 'all', label: 'All' }, ...STATUSES.map((s) => ({ key: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))].map((option: any) => {
+                const active = statusFilter === option.key;
+                return (
+                  <TouchableOpacity key={option.key} onPress={() => setStatusFilter(option.key)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: active ? theme.colors.primary : theme.colors.border, backgroundColor: active ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.page }}>
+                    <Text style={{ color: active ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{option.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {[{ key: 'upcoming', label: 'Upcoming First' }, { key: 'recent', label: 'Most Recent' }].map((option) => {
+                const active = sortMode === option.key;
+                return (
+                  <TouchableOpacity key={option.key} onPress={() => setSortMode(option.key as any)} style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: active ? theme.colors.primary : theme.colors.border, backgroundColor: active ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.page, alignItems: 'center' }}>
+                    <Text style={{ color: active ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{option.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {filteredEvents.length === 0 && (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Ionicons name="calendar-outline" size={48} color={colors.muted} />
-              <Text style={{ color: colors.muted, marginTop: 12, fontSize: 15 }}>No events yet</Text>
+              <Ionicons name="calendar-outline" size={48} color={theme.colors.textMuted} />
+              <Text style={{ color: theme.colors.textMuted, marginTop: 12, fontSize: 15 }}>No events yet</Text>
             </View>
           )}
-          {events.map((ev: any) => {
+          {filteredEvents.map((ev: any) => {
             const statusColor = STATUS_COLORS[ev.status] ?? colors.muted;
             const dateStr = ev.startDate
               ? new Date(ev.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -215,19 +278,19 @@ export default function AdminEventsScreen() {
               <View
                 key={ev.id}
                 style={{
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.colors.surface,
                   borderRadius: 14,
                   padding: 16,
                   marginBottom: 12,
-                  borderColor: colors.border,
+                  borderColor: theme.colors.border,
                   borderWidth: 1,
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{ev.title}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>{dateStr}</Text>
-                    {ev.venue && <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{ev.venue}</Text>}
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{ev.title}</Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>{dateStr}</Text>
+                    {ev.venue && <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{ev.venue}</Text>}
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                     <View style={{ backgroundColor: `${statusColor}22`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
@@ -236,7 +299,7 @@ export default function AdminEventsScreen() {
                   </View>
                 </View>
                 {ev.capacity && (
-                  <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 10 }}>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 10 }}>
                     {ev.currentAttendees ?? 0}/{ev.capacity} attending
                   </Text>
                 )}
@@ -272,13 +335,13 @@ export default function AdminEventsScreen() {
       {/* Create/Edit Modal */}
       <Modal visible={showCreate || !!editEvent} animationType="slide" presentationStyle="pageSheet">
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', flex: 1 }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
+              <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', flex: 1 }}>
                 {editEvent ? 'Edit Event' : 'Create Event'}
               </Text>
               <TouchableOpacity onPress={() => { setShowCreate(false); setEditEvent(null); }}>
-                <Ionicons name="close" size={24} color={colors.muted} />
+                <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -292,7 +355,7 @@ export default function AdminEventsScreen() {
               <LabeledInput label="Price Single Female ($)" value={form.priceSingleFemale} onChangeText={(v: string) => setForm(f => ({ ...f, priceSingleFemale: v }))} keyboardType="numeric" />
               <LabeledInput label="Price Couple ($)" value={form.priceCouple} onChangeText={(v: string) => setForm(f => ({ ...f, priceCouple: v }))} keyboardType="numeric" />
 
-              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                 {STATUSES.map((s) => (
                   <TouchableOpacity

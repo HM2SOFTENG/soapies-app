@@ -18,6 +18,7 @@ import * as Sharing from 'expo-sharing';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 // ─── Saving-state reducer ────────────────────────────────────────────────────
 type SavingAction = { type: 'start'; key: string } | { type: 'done'; key: string };
@@ -117,6 +118,7 @@ export default function AdminSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
   const [savingKeys, dispatchSaving] = useReducer(savingReducer, new Set<string>());
   const [exporting, setExporting] = useState(false);
   const seededRef = useRef(false);
@@ -203,42 +205,42 @@ export default function AdminSettingsScreen() {
 
   if (!isAdmin) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Ionicons name="lock-closed" size={48} color={colors.muted} />
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>Access Denied</Text>
-        <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>You need admin privileges to access this area.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12, borderColor: colors.border, borderWidth: 1 }}>
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>Access Denied</Text>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>You need admin privileges to access this area.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+          <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
       <LinearGradient
-        colors={['#7C3AED33', '#EC489922', colors.bg]}
+        colors={[theme.alpha(theme.colors.secondary, 0.2), theme.alpha(theme.colors.primary, 0.12), theme.colors.background]}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         style={{ paddingTop: insets.top + 12, paddingBottom: 18, paddingHorizontal: 20 }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800' }}>Admin Settings</Text>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>Platform configuration &amp; feature flags</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '800' }}>Admin Settings</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Platform configuration &amp; feature flags</Text>
           </View>
-          <View style={{ backgroundColor: `${colors.purple}33`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderColor: `${colors.purple}66`, borderWidth: 1 }}>
-            <Text style={{ color: colors.purple, fontWeight: '700', fontSize: 12 }}>⚡ ADMIN</Text>
+          <View style={{ backgroundColor: theme.alpha(theme.colors.secondary, 0.18), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderColor: theme.alpha(theme.colors.secondary, 0.36), borderWidth: 1 }}>
+            <Text style={{ color: theme.colors.secondary, fontWeight: '700', fontSize: 12 }}>⚡ ADMIN</Text>
           </View>
         </View>
       </LinearGradient>
 
       {isLoading || seedMutation.isPending ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color={colors.pink} size="large" />
-          <Text style={{ color: colors.muted, marginTop: 12 }}>{seedMutation.isPending ? 'Seeding defaults…' : 'Loading settings…'}</Text>
+          <ActivityIndicator color={theme.colors.pink} size="large" />
+          <Text style={{ color: theme.colors.textMuted, marginTop: 12 }}>{seedMutation.isPending ? 'Seeding defaults…' : 'Loading settings…'}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
@@ -260,12 +262,12 @@ export default function AdminSettingsScreen() {
             <TextSettingRow icon="logo-venmo" iconColor="#3D95CE" label="Venmo Handle" subtitle="Used in payment instructions sent to members" settingKey="venmo_handle" value={settings['venmo_handle'] ?? ''} placeholder="@venmo-handle" onSave={setSetting} />
             <TextSettingRow icon="ticket-outline" iconColor={colors.pink} label="Single Ticket Price ($)" settingKey="ticket_price_single" value={settings['ticket_price_single'] ?? ''} placeholder="e.g. 25" numeric onSave={setSetting} />
             <TextSettingRow icon="people-outline" iconColor={colors.pink} label="Couple Ticket Price ($)" settingKey="ticket_price_couple" value={settings['ticket_price_couple'] ?? ''} placeholder="e.g. 40" numeric onSave={setSetting} />
-            <TextSettingRow icon="star-outline" iconColor="#F59E0B" label="Angel Ticket Price ($)" settingKey="ticket_price_angel" value={settings['ticket_price_angel'] ?? ''} placeholder="e.g. 50" numeric onSave={setSetting} />
+            <TextSettingRow icon="star-outline" iconColor={theme.colors.warning} label="Angel Ticket Price ($)" settingKey="ticket_price_angel" value={settings['ticket_price_angel'] ?? ''} placeholder="e.g. 50" numeric onSave={setSetting} />
           </View>
 
           <SectionHeader title="Member Management" />
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
-            <ToggleRow icon="checkmark-circle-outline" iconColor="#10B981" label="Auto-Approve Members" subtitle="Skip admin approval queue for new applications" value={isSetting('auto_approve_members')} settingKey="auto_approve_members" onToggle={() => toggleSetting('auto_approve_members')} saving={savingKeys.has('auto_approve_members')} />
+            <ToggleRow icon="checkmark-circle-outline" iconColor={theme.colors.success} label="Auto-Approve Members" subtitle="Skip admin approval queue for new applications" value={isSetting('auto_approve_members')} settingKey="auto_approve_members" onToggle={() => toggleSetting('auto_approve_members')} saving={savingKeys.has('auto_approve_members')} />
             <ToggleRow icon="medical-outline" iconColor={colors.pink} label="Require Test Results" subtitle="Require STI test upload before attending an event" value={isSetting('require_test_results')} settingKey="require_test_results" onToggle={() => toggleSetting('require_test_results')} saving={savingKeys.has('require_test_results')} />
             <TextSettingRow icon="people-circle-outline" iconColor={colors.purple} label="Default Max Capacity" settingKey="max_capacity_default" value={settings['max_capacity_default'] ?? ''} placeholder="e.g. 100" numeric onSave={setSetting} />
           </View>
@@ -273,30 +275,30 @@ export default function AdminSettingsScreen() {
           <SectionHeader title="Communications" />
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
             <TextSettingRow icon="mail-outline" iconColor={colors.purple} label="SendGrid From Name" subtitle="Display name on outgoing emails (e.g. 'Soapies Team')" settingKey="sendgrid_from_name" value={settings['sendgrid_from_name'] ?? ''} placeholder="Soapies Team" onSave={setSetting} />
-            <ToggleRow icon="megaphone-outline" iconColor="#F59E0B" label="Push on New Event" subtitle="Send push notification when a new event is created" value={isSetting('notification_new_event')} settingKey="notification_new_event" onToggle={() => toggleSetting('notification_new_event')} saving={savingKeys.has('notification_new_event')} />
-            <ToggleRow icon="alarm-outline" iconColor="#F59E0B" label="Event Reminders" subtitle="Send 24h reminder push notifications" value={isSetting('notification_reminders')} settingKey="notification_reminders" onToggle={() => toggleSetting('notification_reminders')} saving={savingKeys.has('notification_reminders')} />
+            <ToggleRow icon="megaphone-outline" iconColor={theme.colors.warning} label="Push on New Event" subtitle="Send push notification when a new event is created" value={isSetting('notification_new_event')} settingKey="notification_new_event" onToggle={() => toggleSetting('notification_new_event')} saving={savingKeys.has('notification_new_event')} />
+            <ToggleRow icon="alarm-outline" iconColor={theme.colors.warning} label="Event Reminders" subtitle="Send 24h reminder push notifications" value={isSetting('notification_reminders')} settingKey="notification_reminders" onToggle={() => toggleSetting('notification_reminders')} saving={savingKeys.has('notification_reminders')} />
           </View>
 
           {/* Danger Zone */}
           <View style={{ marginTop: 28, marginBottom: 8, marginHorizontal: 20 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="warning" size={16} color="#EF4444" />
-              <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>Danger Zone</Text>
+              <Ionicons name="warning" size={16} color={theme.colors.danger} />
+              <Text style={{ color: theme.colors.danger, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>Danger Zone</Text>
             </View>
             <Text style={{ color: colors.muted, fontSize: 12, marginTop: 3 }}>These actions are irreversible. Proceed with extreme caution.</Text>
           </View>
-          <View style={{ borderTopWidth: 1, borderTopColor: '#EF444444', borderBottomWidth: 1, borderBottomColor: '#EF444444' }}>
+          <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.dangerBorder, borderBottomWidth: 1, borderBottomColor: theme.colors.dangerBorder }}>
             {/* Maintenance Mode */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444411', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#EF444433' }}>
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#EF444433', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                <Ionicons name="construct-outline" size={16} color="#EF4444" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.dangerSoft, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.alpha(theme.colors.danger, 0.2) }}>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.danger, 0.2), alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <Ionicons name="construct-outline" size={16} color={theme.colors.danger} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#EF4444', fontSize: 15, fontWeight: '600' }}>Maintenance Mode</Text>
+                <Text style={{ color: theme.colors.danger, fontSize: 15, fontWeight: '600' }}>Maintenance Mode</Text>
                 <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Takes the app offline for all users</Text>
               </View>
               {savingKeys.has('maintenance_mode') ? (
-                <ActivityIndicator size="small" color="#EF4444" />
+                <ActivityIndicator size="small" color={theme.colors.danger} />
               ) : (
                 <Switch
                   value={isSetting('maintenance_mode')}
@@ -311,7 +313,7 @@ export default function AdminSettingsScreen() {
                       toggleSetting('maintenance_mode');
                     }
                   }}
-                  trackColor={{ false: colors.border, true: '#EF4444' }}
+                  trackColor={{ false: colors.border, true: theme.colors.danger }}
                   thumbColor={colors.white}
                 />
               )}
@@ -323,33 +325,33 @@ export default function AdminSettingsScreen() {
                 { text: 'Clear All', style: 'destructive', onPress: () => clearSignalsMutation.mutate() },
               ])}
               disabled={clearSignalsMutation.isPending}
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444411', paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#EF444433' }}
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.dangerSoft, paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.alpha(theme.colors.danger, 0.2) }}
             >
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#EF444433', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.danger, 0.2), alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                 {clearSignalsMutation.isPending
-                  ? <ActivityIndicator size="small" color="#EF4444" />
-                  : <Ionicons name="radio-button-off-outline" size={16} color="#EF4444" />}
+                  ? <ActivityIndicator size="small" color={theme.colors.danger} />
+                  : <Ionicons name="radio-button-off-outline" size={16} color={theme.colors.danger} />}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#EF4444', fontSize: 15, fontWeight: '600' }}>Clear All Signals</Text>
+                <Text style={{ color: theme.colors.danger, fontSize: 15, fontWeight: '600' }}>Clear All Signals</Text>
                 <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Delete all member_signals rows permanently</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.danger} />
             </TouchableOpacity>
             {/* Export Members */}
             <TouchableOpacity
               onPress={handleExport}
               disabled={exporting}
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF444411', paddingVertical: 14, paddingHorizontal: 16 }}
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.dangerSoft, paddingVertical: 14, paddingHorizontal: 16 }}
             >
-              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#EF444433', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                {exporting ? <ActivityIndicator size="small" color="#EF4444" /> : <Ionicons name="download-outline" size={16} color="#EF4444" />}
+              <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.danger, 0.2), alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                {exporting ? <ActivityIndicator size="small" color={theme.colors.danger} /> : <Ionicons name="download-outline" size={16} color={theme.colors.danger} />}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#EF4444', fontSize: 15, fontWeight: '600' }}>Export Member Data</Text>
+                <Text style={{ color: theme.colors.danger, fontSize: 15, fontWeight: '600' }}>Export Member Data</Text>
                 <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Download full member roster (CSV) — share via AirDrop, Files, email</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+              <Ionicons name="chevron-forward" size={16} color={theme.colors.danger} />
             </TouchableOpacity>
           </View>
           <View style={{ height: 40 }} />

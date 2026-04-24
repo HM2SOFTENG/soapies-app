@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { colors } from '../lib/colors';
+import { useTheme } from '../lib/theme';
 import { communityColor } from '../lib/utils';
 
 export interface EventCardEvent {
@@ -31,6 +31,7 @@ interface EventCardProps {
 
 const EventCard = React.memo(function EventCard({ event, onPress }: EventCardProps) {
   const router = useRouter();
+  const theme = useTheme();
   const title = event.title ?? event.name ?? 'Untitled Event';
   const imageUrl = event.coverImageUrl ?? event.imageUrl;
   const community = event.communityId ?? event.community?.name;
@@ -70,12 +71,12 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => ({
-        backgroundColor: colors.card,
+        backgroundColor: theme.colors.surface,
         borderRadius: 16,
         overflow: 'hidden',
-        borderColor: colors.border,
+        borderColor: theme.colors.border,
         borderWidth: 1,
-        shadowColor: '#000',
+        shadowColor: theme.colors.shadow,
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 4,
@@ -105,7 +106,7 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
         )}
         {/* Subtle gradient overlay */}
         <LinearGradient
-          colors={['transparent', 'rgba(26,26,46,0.6)']}
+          colors={theme.isDark ? ['transparent', 'rgba(26,26,46,0.6)'] : ['transparent', 'rgba(255,248,252,0.12)']}
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 }}
         />
         {community && (
@@ -131,7 +132,7 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
       <View style={{ padding: 16 }}>
         <Text
           style={{
-            color: '#FFFFFF',
+            color: theme.colors.text,
             fontSize: 17,
             fontWeight: '700',
             marginBottom: 8,
@@ -143,15 +144,15 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-            <Ionicons name="calendar-outline" size={13} color={colors.muted} />
-            <Text style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '400' }}>{dateStr}</Text>
+            <Ionicons name="calendar-outline" size={13} color={theme.colors.textMuted} />
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '400' }}>{dateStr}</Text>
           </View>
 
           {event.venue && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
-              <Ionicons name="location-outline" size={13} color={colors.muted} />
+              <Ionicons name="location-outline" size={13} color={theme.colors.textMuted} />
               <Text
-                style={{ color: '#9CA3AF', fontSize: 12, fontWeight: '400' }}
+                style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '400' }}
                 numberOfLines={1}
               >
                 {event.venue}
@@ -161,13 +162,13 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
 
           <View
             style={{
-              backgroundColor: `${colors.pink}22`,
+              backgroundColor: theme.colors.tintSoft,
               paddingHorizontal: 10,
               paddingVertical: 3,
               borderRadius: 10,
             }}
           >
-            <Text style={{ color: colors.pink, fontSize: 11, fontWeight: '600' }}>
+            <Text style={{ color: theme.colors.pink, fontSize: 11, fontWeight: '600' }}>
               {priceLabel}
             </Text>
           </View>

@@ -70,7 +70,7 @@ function AnimatedChip({
   active: boolean;
   onSelect: (v: string | undefined) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors, alpha } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>
@@ -180,6 +180,8 @@ function MemberCard({
   const community = member.communityId;
   const memberRole = member.memberRole;
   const isAngel = memberRole === 'angel';
+  const signalType = member.signal?.signalType;
+  const canPoke = signalType === 'available';
 
   const preferences = member.preferences as any;
   const lookingForArr: string[] = Array.isArray(preferences?.lookingFor)
@@ -277,6 +279,27 @@ function MemberCard({
             </Text>
           )}
 
+          {canPoke && (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                marginTop: 6,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                backgroundColor: alpha('#22c55e', 0.12),
+                borderColor: alpha('#22c55e', 0.28),
+                borderWidth: 1,
+                borderRadius: 999,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+              }}
+            >
+              <Ionicons name="hand-left-outline" size={12} color="#22c55e" />
+              <Text style={{ color: '#22c55e', fontSize: 11, fontWeight: '700' }}>Available to poke</Text>
+            </View>
+          )}
+
           {/* Looking for tags */}
           {lookingForDisplay.length > 0 && (
             <View
@@ -333,14 +356,18 @@ export default function MembersScreen() {
   };
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; returnTo?: string }>();
   const isComposeMode = params.mode === 'compose' || params.mode === 'message';
+  const composeReturnTo = typeof params.returnTo === 'string' && params.returnTo.length > 0
+    ? params.returnTo
+    : '/(tabs)/messages';
   const { hasToken } = useAuth();
 
   // Search & filter state
   const [query, setQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [filterQuery, setFilterQuery] = useState('');
   const [community, setCommunity] = useState<string | undefined>(undefined);
   const [orientation, setOrientation] = useState<string | undefined>(undefined);
   const [gender, setGender] = useState<string | undefined>(undefined);
@@ -410,7 +437,7 @@ export default function MembersScreen() {
 
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (convId: any) => {
-      router.push(`/chat/${convId}` as any);
+      router.replace({ pathname: '/chat/[id]', params: { id: String(convId), returnTo: composeReturnTo } } as any);
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
@@ -514,7 +541,11 @@ export default function MembersScreen() {
   );
 
   const displayMembers = allMembers.length > 0 ? allMembers : ((data as any[]) ?? []);
-  const totalShown = displayMembers.length;
+  const quickFilterLower = filterQuery.trim().toLowerCase();
+  const filteredDisplayMembers = !quickFilterLower
+    ? displayMembers
+    : displayMembers.filter((member: any) => [member.displayName, member.bio, member.location, member.city].filter(Boolean).join(' ').toLowerCase().includes(quickFilterLower));
+  const totalShown = filteredDisplayMembers.length;
 
   const handleMemberPress = useCallback(
     (member: any) => {
@@ -595,10 +626,16 @@ export default function MembersScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ marginRight: 12, padding: 4 }}
+          onPress={() => {
+            if (isComposeMode) {
+              router.replace(composeReturnTo as any);
+              return;
+            }
+            router.back();
+          }}
+          style={{ marginRight: 12, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: t.elevated, borderWidth: 1, borderColor: t.border }}
         >
-          <Ionicons name="arrow-back" size={24} color="#F1F0FF" />
+          <Ionicons name="arrow-back" size={22} color={t.text} />
         </TouchableOpacity>
 
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -709,6 +746,37 @@ export default function MembersScreen() {
           {query.length > 0 && (
             <TouchableOpacity onPress={() => handleSearchChange('')}>
               <Ionicons name="close-circle" size={18} color="#5A5575" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      <View
+        style={{
+          marginHorizontal: 12,
+          marginBottom: 8,
+          backgroundColor: t.searchSurface,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: t.searchBorder,
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="options-outline" size={18} color={t.subtext} style={{ marginRight: 10 }} />
+          <TextInput
+            value={filterQuery}
+            onChangeText={setFilterQuery}
+            placeholder="Quick filter by name, bio, city"
+            placeholderTextColor={t.muted}
+            style={{ flex: 1, color: t.text, fontSize: 14, paddingVertical: 4 }}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {filterQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setFilterQuery('')}>
+              <Ionicons name="close-circle" size={18} color={t.muted} />
             </TouchableOpacity>
           )}
         </View>

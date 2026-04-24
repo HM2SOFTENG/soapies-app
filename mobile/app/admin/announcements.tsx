@@ -20,10 +20,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 export default function AdminAnnouncementsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
   const utils = trpc.useUtils();
 
   const [showCreate, setShowCreate] = useState(false);
@@ -61,9 +63,9 @@ export default function AdminAnnouncementsScreen() {
   // Guard AFTER all hooks
   if (!isAdmin) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}>
           <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -90,12 +92,12 @@ export default function AdminAnnouncementsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Announcements</Text>
+        <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Announcements</Text>
         <TouchableOpacity
           onPress={() => setShowCreate(true)}
           style={{ backgroundColor: `${colors.pink}22`, borderRadius: 20, padding: 8, borderColor: `${colors.pink}44`, borderWidth: 1 }}
@@ -112,8 +114,8 @@ export default function AdminAnnouncementsScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
           {announcements.length === 0 && (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Ionicons name="megaphone-outline" size={48} color={colors.muted} />
-              <Text style={{ color: colors.muted, marginTop: 12, fontSize: 15 }}>No announcements yet</Text>
+              <Ionicons name="megaphone-outline" size={48} color={theme.colors.textMuted} />
+              <Text style={{ color: theme.colors.textMuted, marginTop: 12, fontSize: 15 }}>No announcements yet</Text>
             </View>
           )}
           {announcements.map((ann: any) => {
@@ -122,7 +124,7 @@ export default function AdminAnnouncementsScreen() {
               <View
                 key={ann.id}
                 style={{
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.colors.surface,
                   borderRadius: 14,
                   padding: 16,
                   marginBottom: 12,
@@ -137,9 +139,9 @@ export default function AdminAnnouncementsScreen() {
                       {ann.isPinned && (
                         <Ionicons name="pin" size={14} color={colors.pink} />
                       )}
-                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{ann.title}</Text>
+                      <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>{ann.title}</Text>
                     </View>
-                    <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>{ann.content}</Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 13, lineHeight: 18 }}>{ann.content}</Text>
                   </View>
                   <View style={{ gap: 4, alignItems: 'flex-end' }}>
                     <View style={{
@@ -161,7 +163,7 @@ export default function AdminAnnouncementsScreen() {
                 </View>
 
                 {ann.publishedAt && (
-                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 12 }}>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginBottom: 12 }}>
                     Published: {new Date(ann.publishedAt).toLocaleDateString()}
                   </Text>
                 )}
@@ -191,31 +193,31 @@ export default function AdminAnnouncementsScreen() {
       {/* Create Modal */}
       <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', flex: 1 }}>New Announcement</Text>
+          <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
+              <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', flex: 1 }}>New Announcement</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
-                <Ionicons name="close" size={24} color={colors.muted} />
+                <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase' }}>Title *</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase' }}>Title *</Text>
               <TextInput
                 value={form.title}
                 onChangeText={(v) => setForm(f => ({ ...f, title: v }))}
                 placeholder="Announcement title"
-                placeholderTextColor={colors.muted}
-                style={{ backgroundColor: colors.card, color: colors.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, borderColor: colors.border, borderWidth: 1, fontSize: 15, marginBottom: 16 }}
+                placeholderTextColor={theme.colors.textMuted}
+                style={{ backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, borderColor: theme.colors.border, borderWidth: 1, fontSize: 15, marginBottom: 16 }}
               />
 
-              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase' }}>Content *</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase' }}>Content *</Text>
               <TextInput
                 value={form.content}
                 onChangeText={(v) => setForm(f => ({ ...f, content: v }))}
                 placeholder="Announcement message"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={theme.colors.textMuted}
                 multiline
-                style={{ backgroundColor: colors.card, color: colors.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, borderColor: colors.border, borderWidth: 1, fontSize: 15, minHeight: 100, textAlignVertical: 'top', marginBottom: 24 }}
+                style={{ backgroundColor: theme.colors.surface, color: theme.colors.text, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, borderColor: theme.colors.border, borderWidth: 1, fontSize: 15, minHeight: 100, textAlignVertical: 'top', marginBottom: 24 }}
               />
 
               {/* Toggles */}

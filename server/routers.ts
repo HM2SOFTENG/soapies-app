@@ -1977,6 +1977,27 @@ export const appRouter = router({
     })).query(async ({ ctx, input }) => {
       return db.getActiveSignals(ctx.user.id, input.latitude, input.longitude);
     }),
+    poke: protectedProcedure.input(z.object({ userId: z.number() })).mutation(async ({ ctx, input }) => {
+      if (ctx.user.id === input.userId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'You cannot poke yourself.' });
+      const targetProfile = await db.getPublicProfile(input.userId);
+      if (!targetProfile) throw new TRPCError({ code: 'NOT_FOUND', message: 'Member not found.' });
+      const targetSignal = await db.getMemberSignal(input.userId);
+      if (!targetSignal || targetSignal.signalType !== 'available') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'This member is not currently available.' });
+      }
+
+      const senderProfile = await db.getProfileByUserId(ctx.user.id);
+      const senderName = senderProfile?.displayName || ctx.user.name || 'Someone';
+      await notif.sendNotification({
+        userId: input.userId,
+        type: 'system',
+        title: '👋 Someone wants to hang out',
+        body: `${senderName} poked you for a casual meetup.`,
+        data: { senderUserId: ctx.user.id, link: `/member/${ctx.user.id}` },
+      }).catch(() => {});
+
+      return { success: true };
+    }),
   }),
   communities: router({
     landing: publicProcedure.input(z.object({ communityId: z.string() })).query(async ({ input }) => {

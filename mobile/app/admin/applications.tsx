@@ -13,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import BrandGradient from '../../components/BrandGradient';
+import PillTabs from '../../components/PillTabs';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,7 @@ function InitialsAvatar({ name, size = 48 }: { name: string; size?: number }) {
 export default function AdminApplicationsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
   const utils = trpc.useUtils();
 
   const [activeTab, setActiveTab] = useState<TabKey>('new');
@@ -152,17 +155,17 @@ export default function AdminApplicationsScreen() {
   if (!isAdmin) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center', padding: 24 }}
+        style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}
       >
-        <Ionicons name="lock-closed" size={48} color={colors.muted} />
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>
+        <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>
           Access Denied
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.card, borderRadius: 12 }}
+          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}
         >
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
+          <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -233,7 +236,7 @@ export default function AdminApplicationsScreen() {
 
   // ─── Render ──────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <View
         style={{
@@ -241,92 +244,33 @@ export default function AdminApplicationsScreen() {
           alignItems: 'center',
           paddingHorizontal: 20,
           paddingVertical: 14,
-          borderBottomColor: colors.border,
+          borderBottomColor: theme.colors.border,
           borderBottomWidth: 1,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.isDark ? theme.alpha(theme.colors.white, 0.06) : theme.colors.surfaceHigh, borderWidth: 1, borderColor: theme.colors.border }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
+        <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
           Applications
         </Text>
       </View>
 
       {/* Phase Tabs */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ borderBottomColor: colors.border, borderBottomWidth: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}
-      >
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setActiveTab(tab.key);
-                setExpandedId(null);
-              }}
-              style={{ borderRadius: 20, overflow: 'hidden' }}
-            >
-              {isActive ? (
-                <BrandGradient
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, gap: 6 }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{tab.label}</Text>
-                  {tabCounts[tab.key] > 0 && (
-                    <View
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.3)',
-                        borderRadius: 10,
-                        paddingHorizontal: 6,
-                        paddingVertical: 1,
-                      }}
-                    >
-                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 11 }}>
-                        {tabCounts[tab.key]}
-                      </Text>
-                    </View>
-                  )}
-                </BrandGradient>
-              ) : (
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    backgroundColor: colors.card,
-                    borderRadius: 20,
-                    borderColor: colors.border,
-                    borderWidth: 1,
-                    gap: 6,
-                  }}
-                >
-                  <Text style={{ color: colors.muted, fontWeight: '600', fontSize: 13 }}>{tab.label}</Text>
-                  {tabCounts[tab.key] > 0 && (
-                    <View
-                      style={{
-                        backgroundColor: `${colors.pink}33`,
-                        borderRadius: 10,
-                        paddingHorizontal: 6,
-                        paddingVertical: 1,
-                      }}
-                    >
-                      <Text style={{ color: colors.pink, fontWeight: '800', fontSize: 11 }}>
-                        {tabCounts[tab.key]}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <PillTabs
+        equalWidth
+        compact
+        items={TABS.map((tab) => ({
+          ...tab,
+          badge: tabCounts[tab.key],
+        }))}
+        value={activeTab}
+        onChange={(next) => {
+          Haptics.selectionAsync();
+          setActiveTab(next);
+          setExpandedId(null);
+        }}
+      />
 
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -336,8 +280,8 @@ export default function AdminApplicationsScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
           {visibleApps.length === 0 && (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Ionicons name="checkmark-circle-outline" size={48} color="#10B981" />
-              <Text style={{ color: colors.muted, marginTop: 12, fontSize: 15 }}>
+              <Ionicons name="checkmark-circle-outline" size={48} color={theme.colors.success} />
+              <Text style={{ color: theme.colors.textMuted, marginTop: 12, fontSize: 15 }}>
                 No applications in this phase
               </Text>
             </View>
@@ -357,10 +301,10 @@ export default function AdminApplicationsScreen() {
               <View
                 key={profileId}
                 style={{
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.colors.card,
                   borderRadius: 16,
                   marginBottom: 14,
-                  borderColor: colors.border,
+                  borderColor: theme.colors.border,
                   borderWidth: 1,
                   overflow: 'hidden',
                 }}
@@ -393,7 +337,7 @@ export default function AdminApplicationsScreen() {
                     {/* Name + badge */}
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>
+                        <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 16 }}>
                           {displayName}
                         </Text>
                         <View
@@ -417,29 +361,29 @@ export default function AdminApplicationsScreen() {
                         {app.gender && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="person-outline" size={12} color={colors.muted} />
-                            <Text style={{ color: colors.muted, fontSize: 11 }}>{app.gender}</Text>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>{app.gender}</Text>
                           </View>
                         )}
                         {app.orientation && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="heart-outline" size={12} color={colors.muted} />
-                            <Text style={{ color: colors.muted, fontSize: 11 }}>{app.orientation}</Text>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>{app.orientation}</Text>
                           </View>
                         )}
                         {app.location && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="location-outline" size={12} color={colors.muted} />
-                            <Text style={{ color: colors.muted, fontSize: 11 }}>{app.location}</Text>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>{app.location}</Text>
                           </View>
                         )}
                         {app.referredByCode && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="sparkles-outline" size={12} color={colors.purple} />
-                            <Text style={{ color: colors.purple, fontSize: 11 }}>{app.referredByCode}</Text>
+                            <Text style={{ color: theme.colors.purple, fontSize: 11 }}>{app.referredByCode}</Text>
                           </View>
                         )}
                         {app.createdAt && (
-                          <Text style={{ color: colors.muted, fontSize: 11 }}>
+                          <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>
                             {formatDate(app.createdAt)}
                           </Text>
                         )}
@@ -459,7 +403,7 @@ export default function AdminApplicationsScreen() {
                   {app.bio ? (
                     <Text
                       numberOfLines={2}
-                      style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}
+                      style={{ color: theme.colors.textMuted, fontSize: 13, lineHeight: 18 }}
                     >
                       {app.bio}
                     </Text>
@@ -482,7 +426,7 @@ export default function AdminApplicationsScreen() {
                         {/* Photos grid */}
                         {(detail.photos?.length ?? 0) > 0 && (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                               Photos
                             </Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -507,7 +451,7 @@ export default function AdminApplicationsScreen() {
 
                         {/* Contact info */}
                         <View style={{ marginBottom: 16 }}>
-                          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                          <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                             Contact
                           </Text>
                           {detail.email ? (
@@ -516,7 +460,7 @@ export default function AdminApplicationsScreen() {
                               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}
                             >
                               <Ionicons name="mail-outline" size={14} color={colors.purple} />
-                              <Text style={{ color: colors.purple, fontSize: 14 }}>{detail.email}</Text>
+                              <Text style={{ color: theme.colors.purple, fontSize: 14 }}>{detail.email}</Text>
                             </TouchableOpacity>
                           ) : null}
                           {detail.phone ? (
@@ -525,35 +469,35 @@ export default function AdminApplicationsScreen() {
                               style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
                             >
                               <Ionicons name="call-outline" size={14} color={colors.purple} />
-                              <Text style={{ color: colors.purple, fontSize: 14 }}>{detail.phone}</Text>
+                              <Text style={{ color: theme.colors.purple, fontSize: 14 }}>{detail.phone}</Text>
                             </TouchableOpacity>
                           ) : null}
                         </View>
 
                         {/* Profile details */}
                         <View style={{ marginBottom: 16 }}>
-                          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                          <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                             Profile
                           </Text>
                           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                             {detail.gender && (
-                              <View style={{ backgroundColor: `${colors.purple}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: colors.purple, fontSize: 12 }}>👤 {detail.gender}</Text>
+                              <View style={{ backgroundColor: theme.alpha(theme.colors.purple, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                                <Text style={{ color: theme.colors.purple, fontSize: 12 }}>👤 {detail.gender}</Text>
                               </View>
                             )}
                             {detail.orientation && (
                               <View style={{ backgroundColor: `${colors.pink}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: colors.pink, fontSize: 12 }}>♥ {detail.orientation}</Text>
+                                <Text style={{ color: theme.colors.pink, fontSize: 12 }}>♥ {detail.orientation}</Text>
                               </View>
                             )}
                             {detail.location && (
-                              <View style={{ backgroundColor: `${colors.card}`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderColor: colors.border, borderWidth: 1 }}>
-                                <Text style={{ color: colors.muted, fontSize: 12 }}>📍 {detail.location}</Text>
+                              <View style={{ backgroundColor: theme.colors.card, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderColor: theme.colors.border, borderWidth: 1 }}>
+                                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>📍 {detail.location}</Text>
                               </View>
                             )}
                             {detail.referredByCode && (
-                              <View style={{ backgroundColor: `${colors.purple}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: colors.purple, fontSize: 12 }}>✨ Ref: {detail.referredByCode}</Text>
+                              <View style={{ backgroundColor: theme.alpha(theme.colors.purple, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                                <Text style={{ color: theme.colors.purple, fontSize: 12 }}>✨ Ref: {detail.referredByCode}</Text>
                               </View>
                             )}
                           </View>
@@ -562,33 +506,33 @@ export default function AdminApplicationsScreen() {
                         {/* Bio */}
                         {detail.bio ? (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
                               Bio
                             </Text>
-                            <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20 }}>{detail.bio}</Text>
+                            <Text style={{ color: theme.colors.text, fontSize: 14, lineHeight: 20 }}>{detail.bio}</Text>
                           </View>
                         ) : null}
 
                         {/* Booked Intro Call */}
                         {detail.introCallSlots?.length > 0 && (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                               Intro Call
                             </Text>
                             {detail.introCallSlots.map((slot: any, idx: number) => (
                               <View
                                 key={idx}
                                 style={{
-                                  backgroundColor: `${colors.purple}22`,
+                                  backgroundColor: theme.alpha(theme.colors.purple, 0.12),
                                   borderRadius: 10,
                                   paddingHorizontal: 12,
                                   paddingVertical: 10,
-                                  borderColor: `${colors.purple}44`,
+                                  borderColor: theme.alpha(theme.colors.purple, 0.24),
                                   borderWidth: 1,
                                   marginBottom: 6,
                                 }}
                               >
-                                <Text style={{ color: colors.purple, fontWeight: '600', fontSize: 14 }}>
+                                <Text style={{ color: theme.colors.purple, fontWeight: '600', fontSize: 14 }}>
                                   📅{' '}
                                   {slot.scheduledAt
                                     ? new Date(slot.scheduledAt).toLocaleString('en-US', {
@@ -610,7 +554,7 @@ export default function AdminApplicationsScreen() {
                         {/* Application Timeline */}
                         {detail.applicationLogs?.length > 0 && (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
                               Timeline
                             </Text>
                             {detail.applicationLogs.map((log: any, idx: number) => (
@@ -630,14 +574,14 @@ export default function AdminApplicationsScreen() {
                                   }}
                                 />
                                 <View style={{ flex: 1 }}>
-                                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600', textTransform: 'capitalize' }}>
+                                  <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', textTransform: 'capitalize' }}>
                                     {(log.action ?? '').replace(/_/g, ' ')}
                                   </Text>
                                   {log.notes ? (
-                                    <Text style={{ color: colors.muted, fontSize: 12 }}>{log.notes}</Text>
+                                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>{log.notes}</Text>
                                   ) : null}
                                   {log.createdAt ? (
-                                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }}>
+                                    <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 1 }}>
                                       {formatDateTime(log.createdAt)}
                                     </Text>
                                   ) : null}
@@ -661,9 +605,9 @@ export default function AdminApplicationsScreen() {
                                 style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
                               >
                                 {isMutating ? (
-                                  <ActivityIndicator color="#fff" size="small" />
+                                  <ActivityIndicator color={theme.colors.white} size="small" />
                                 ) : (
-                                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
                                     ✅ Approve for Interview
                                   </Text>
                                 )}
@@ -676,12 +620,12 @@ export default function AdminApplicationsScreen() {
                                 borderRadius: 12,
                                 paddingVertical: 13,
                                 alignItems: 'center',
-                                borderColor: '#F59E0B88',
+                                borderColor: theme.alpha(theme.colors.warning, 0.5),
                                 borderWidth: 1.5,
-                                backgroundColor: '#F59E0B11',
+                                backgroundColor: theme.colors.warningSoft,
                               }}
                             >
-                              <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>⏳ Waitlist</Text>
+                              <Text style={{ color: theme.colors.warning, fontWeight: '700', fontSize: 15 }}>⏳ Waitlist</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleReject(profileId, displayName)}
@@ -690,12 +634,12 @@ export default function AdminApplicationsScreen() {
                                 borderRadius: 12,
                                 paddingVertical: 13,
                                 alignItems: 'center',
-                                borderColor: '#EF444488',
+                                borderColor: theme.alpha(theme.colors.danger, 0.5),
                                 borderWidth: 1.5,
-                                backgroundColor: '#EF444411',
+                                backgroundColor: theme.colors.dangerSoft,
                               }}
                             >
-                              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
+                              <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -709,15 +653,15 @@ export default function AdminApplicationsScreen() {
                               style={{ borderRadius: 12, overflow: 'hidden' }}
                             >
                               <LinearGradient
-                                colors={[colors.purple, '#6366F1']}
+                                colors={[theme.colors.purple, '#6366F1']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
                               >
                                 {isMutating ? (
-                                  <ActivityIndicator color="#fff" size="small" />
+                                  <ActivityIndicator color={theme.colors.white} size="small" />
                                 ) : (
-                                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
                                     ✅ Mark Interview Complete
                                   </Text>
                                 )}
@@ -730,12 +674,12 @@ export default function AdminApplicationsScreen() {
                                 borderRadius: 12,
                                 paddingVertical: 13,
                                 alignItems: 'center',
-                                borderColor: '#EF444488',
+                                borderColor: theme.alpha(theme.colors.danger, 0.5),
                                 borderWidth: 1.5,
-                                backgroundColor: '#EF444411',
+                                backgroundColor: theme.colors.dangerSoft,
                               }}
                             >
-                              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
+                              <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -744,7 +688,7 @@ export default function AdminApplicationsScreen() {
                         {phase === 'interview_complete' && (
                           <View style={{ gap: 12 }}>
                             {/* Member role selector */}
-                            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>
                               Member Type
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -767,7 +711,7 @@ export default function AdminApplicationsScreen() {
                                     <BrandGradient
                                       style={{ paddingVertical: 10, alignItems: 'center' }}
                                     >
-                                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{r.label}</Text>
+                                      <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 12 }}>{r.label}</Text>
                                     </BrandGradient>
                                   ) : (
                                     <View
@@ -775,12 +719,12 @@ export default function AdminApplicationsScreen() {
                                         paddingVertical: 10,
                                         alignItems: 'center',
                                         backgroundColor: colors.bg,
-                                        borderColor: colors.border,
+                                        borderColor: theme.colors.border,
                                         borderWidth: 1,
                                         borderRadius: 10,
                                       }}
                                     >
-                                      <Text style={{ color: colors.muted, fontWeight: '600', fontSize: 12 }}>{r.label}</Text>
+                                      <Text style={{ color: theme.colors.textMuted, fontWeight: '600', fontSize: 12 }}>{r.label}</Text>
                                     </View>
                                   )}
                                 </TouchableOpacity>
@@ -793,15 +737,15 @@ export default function AdminApplicationsScreen() {
                               style={{ borderRadius: 12, overflow: 'hidden' }}
                             >
                               <LinearGradient
-                                colors={['#10B981', '#059669']}
+                                colors={[theme.colors.success, '#059669']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
                               >
                                 {isMutating ? (
-                                  <ActivityIndicator color="#fff" size="small" />
+                                  <ActivityIndicator color={theme.colors.white} size="small" />
                                 ) : (
-                                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
                                     ✅ Final Approve as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
                                   </Text>
                                 )}
@@ -814,12 +758,12 @@ export default function AdminApplicationsScreen() {
                                 borderRadius: 12,
                                 paddingVertical: 13,
                                 alignItems: 'center',
-                                borderColor: '#EF444488',
+                                borderColor: theme.alpha(theme.colors.danger, 0.5),
                                 borderWidth: 1.5,
-                                backgroundColor: '#EF444411',
+                                backgroundColor: theme.colors.dangerSoft,
                               }}
                             >
-                              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
+                              <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
                             </TouchableOpacity>
                           </View>
                         )}

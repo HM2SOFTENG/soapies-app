@@ -118,7 +118,7 @@ export default function NotificationsScreen() {
       >
         <View style={[styles.headerGlow, { backgroundColor: themed.glow }]} />
         <View style={styles.headerTopline}>
-          <View style={[styles.eyebrowPill, { backgroundColor: themed.eyebrowBg, borderColor: themed.eyebrowBorder }]}>
+          <View style={[styles.eyebrowPill, { backgroundColor: themed.eyebrowBg, borderColor: themed.eyebrowBorder }]}> 
             <Text style={[styles.eyebrowText, { color: themed.eyebrowText }]}>AFTER DARK</Text>
           </View>
           <View style={[styles.headerMiniStat, { backgroundColor: themed.miniStatBg, borderColor: themed.miniStatBorder }]}>
@@ -150,9 +150,9 @@ export default function NotificationsScreen() {
           activeOpacity={0.8}
           style={[styles.markAllBtn, unreadCount === 0 && styles.markAllBtnDisabled]}
         >
-          <LinearGradient colors={themed.buttonGradient} style={styles.markAllInner}>
-            <Ionicons name="checkmark-done" size={16} color="#EC4899" />
-            <Text style={styles.markAllText}>Mark all read</Text>
+          <LinearGradient colors={themed.buttonGradient} style={[styles.markAllInner, { borderColor: themed.bubbleBorder }]}> 
+            <Ionicons name="checkmark-done" size={16} color={theme.colors.primary} />
+            <Text style={[styles.markAllText, { color: theme.colors.primary }]}>Mark all read</Text>
           </LinearGradient>
         </TouchableOpacity>
       </LinearGradient>
@@ -179,7 +179,7 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#EC4899"
+              tintColor={theme.colors.primary}
             />
           }
           ListEmptyComponent={
@@ -200,12 +200,11 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080810' },
+  container: { flex: 1 },
   header: {
     paddingBottom: 18,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
     overflow: 'hidden',
   },
   headerGlow: {
@@ -215,7 +214,6 @@ const styles = StyleSheet.create({
     width: 170,
     height: 170,
     borderRadius: 85,
-    backgroundColor: 'rgba(236,72,153,0.12)',
   },
   headerTopline: {
     flexDirection: 'row',
@@ -227,12 +225,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   eyebrowText: {
-    color: '#F9A8D4',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.1,
@@ -245,42 +240,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 16,
-    backgroundColor: 'rgba(168,85,247,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(168,85,247,0.2)',
   },
   headerMiniValue: {
-    color: '#DDD6FE',
     fontSize: 18,
     fontWeight: '900',
     fontFamily: FONT.displayBold,
   },
-  headerMiniLabel: { color: '#A09CB8', fontSize: 11, fontWeight: '700' },
+  headerMiniLabel: { fontSize: 11, fontWeight: '700' },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   headerTitle: {
-    color: '#F1F0FF',
     fontSize: 31,
     fontWeight: '900',
     letterSpacing: -0.9,
     fontFamily: FONT.displayBold,
   },
-  headerSubtitle: { color: '#A09CB8', fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 280 },
+  headerSubtitle: { fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 280 },
   unreadBubble: {
     minWidth: 40,
     height: 40,
     paddingHorizontal: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(236,72,153,0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(236,72,153,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#EC4899',
     shadowOpacity: 0.25,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  unreadBubbleText: { color: '#F9A8D4', fontSize: 13, fontWeight: '800', fontFamily: FONT.displaySemiBold },
+  unreadBubbleText: { fontSize: 13, fontWeight: '800', fontFamily: FONT.displaySemiBold },
   markAllBtn: { alignSelf: 'flex-start', borderRadius: 16, overflow: 'hidden' },
   markAllBtnDisabled: { opacity: 0.45 },
   markAllInner: {
@@ -290,25 +278,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderWidth: 1,
-    borderColor: 'rgba(236,72,153,0.18)',
     borderRadius: 16,
   },
-  markAllText: { color: '#EC4899', fontSize: 13, fontWeight: '800', fontFamily: FONT.displaySemiBold },
+  markAllText: { fontSize: 13, fontWeight: '800', fontFamily: FONT.displaySemiBold },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomColor: '#1A1A30',
     borderBottomWidth: 1,
-    backgroundColor: '#10101C',
   },
-  skeletonIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1A1A30' },
+  skeletonIcon: { width: 40, height: 40, borderRadius: 20 },
   skeletonBody: { marginLeft: 12, gap: 8, flex: 1 },
-  skeletonLinePrimary: { width: '60%', height: 12, borderRadius: 6, backgroundColor: '#1A1A30' },
-  skeletonLineSecondary: { width: '85%', height: 10, borderRadius: 5, backgroundColor: '#1A1A30' },
+  skeletonLinePrimary: { width: '60%', height: 12, borderRadius: 6 },
+  skeletonLineSecondary: { width: '85%', height: 10, borderRadius: 5 },
   emptyTitle: {
-    color: '#F1F0FF',
     fontSize: 20,
     fontWeight: '800',
     textAlign: 'center',
@@ -316,7 +300,6 @@ const styles = StyleSheet.create({
     fontFamily: FONT.displayBold,
   },
   emptyBody: {
-    color: '#8B84A7',
     fontSize: 15,
     fontWeight: '400',
     textAlign: 'center',

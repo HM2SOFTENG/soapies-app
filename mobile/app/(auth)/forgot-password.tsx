@@ -93,12 +93,12 @@ export default function ForgotPasswordScreen() {
               onPress={() => router.back()}
               style={{
                 width: 40, height: 40, borderRadius: 20,
-                backgroundColor: '#10101C', borderWidth: 1, borderColor: '#1A1A30',
+                backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
                 alignItems: 'center', justifyContent: 'center',
                 marginBottom: 36,
               }}
             >
-              <Ionicons name="arrow-back" size={18} color="#F1F0FF" />
+              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
             </TouchableOpacity>
 
             {/* Heading */}

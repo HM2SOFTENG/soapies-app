@@ -21,6 +21,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
+import PillTabs from '../../components/PillTabs';
 
 const SETUP_DUTIES = [
   { id: 'tables', label: 'Set up tables & furniture', icon: 'grid-outline' as const },
@@ -71,7 +73,7 @@ const WRISTBAND_EMOJI: Record<string, string> = {
   green: '💚',
 };
 
-function DutyCheckbox({ item, completed, onToggle }: { item: { id: string; label: string; icon: any }; completed: boolean; onToggle: () => void }) {
+function DutyCheckbox({ item, completed, onToggle, theme }: { item: { id: string; label: string; icon: any }; completed: boolean; onToggle: () => void; theme: ReturnType<typeof useTheme>; }) {
   return (
     <TouchableOpacity
       onPress={onToggle}
@@ -80,7 +82,7 @@ function DutyCheckbox({ item, completed, onToggle }: { item: { id: string; label
         alignItems: 'center',
         paddingVertical: 12,
         paddingHorizontal: 4,
-        borderBottomColor: colors.border,
+        borderBottomColor: theme.colors.border,
         borderBottomWidth: 1,
       }}
     >
@@ -89,7 +91,7 @@ function DutyCheckbox({ item, completed, onToggle }: { item: { id: string; label
         height: 24,
         borderRadius: 6,
         borderWidth: 2,
-        borderColor: completed ? '#10B981' : colors.border,
+        borderColor: completed ? '#10B981' : theme.colors.border,
         backgroundColor: completed ? '#10B981' : 'transparent',
         marginRight: 12,
         alignItems: 'center',
@@ -97,26 +99,26 @@ function DutyCheckbox({ item, completed, onToggle }: { item: { id: string; label
       }}>
         {completed && <Ionicons name="checkmark" size={14} color="#fff" />}
       </View>
-      <Ionicons name={item.icon} size={18} color={completed ? '#10B981' : colors.muted} style={{ marginRight: 10 }} />
-      <Text style={{ color: completed ? '#10B981' : colors.text, fontSize: 14, flex: 1, textDecorationLine: completed ? 'line-through' : 'none' }}>
+      <Ionicons name={item.icon} size={18} color={completed ? '#10B981' : theme.colors.textMuted} style={{ marginRight: 10 }} />
+      <Text style={{ color: completed ? '#10B981' : theme.colors.text, fontSize: 14, flex: 1, textDecorationLine: completed ? 'line-through' : 'none' }}>
         {item.label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-function AttendeeCard({ reservation, onCheckin }: { reservation: any; onCheckin: () => void }) {
+function AttendeeCard({ reservation, onCheckin, theme }: { reservation: any; onCheckin: () => void; theme: ReturnType<typeof useTheme>; }) {
   const isCheckedIn = reservation.status === 'checked_in';
   const wristband = reservation.wristbandColor ?? 'purple';
   const wColor = WRISTBAND_COLORS[wristband] ?? '#A855F7';
 
   return (
     <View style={{
-      backgroundColor: colors.card,
+      backgroundColor: theme.colors.card,
       borderRadius: 14,
       padding: 14,
       marginBottom: 10,
-      borderColor: isCheckedIn ? '#10B981' : colors.border,
+      borderColor: isCheckedIn ? '#10B981' : theme.colors.border,
       borderWidth: 1,
       flexDirection: 'row',
       alignItems: 'center',
@@ -130,10 +132,10 @@ function AttendeeCard({ reservation, onCheckin }: { reservation: any; onCheckin:
       </View>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
+        <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
           {reservation.displayName ?? reservation.memberName ?? reservation.user?.name ?? 'Guest'}
         </Text>
-        <Text style={{ color: colors.muted, fontSize: 12 }}>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
           {reservation.ticketType?.replace('_', ' ')} · {wristband} wristband
         </Text>
         {reservation.isQueerPlay && (
@@ -148,7 +150,7 @@ function AttendeeCard({ reservation, onCheckin }: { reservation: any; onCheckin:
       ) : (
         <TouchableOpacity
           onPress={onCheckin}
-          style={{ backgroundColor: colors.pink, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}
+          style={{ backgroundColor: theme.colors.pink, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}
         >
           <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Check In</Text>
         </TouchableOpacity>
@@ -161,6 +163,7 @@ export default function EventOpsScreen() {
   const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
 
   const [completedSetup, setCompletedSetup] = useState<Record<string, boolean>>({});
   const [completedTeardown, setCompletedTeardown] = useState<Record<string, boolean>>({});
@@ -318,55 +321,41 @@ export default function EventOpsScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>Event Operations</Text>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Event Operations</Text>
           {eventTitle ? (
-            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{eventTitle}</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{eventTitle}</Text>
           ) : null}
         </View>
         {isLoading && <ActivityIndicator color={colors.pink} size="small" />}
       </View>
 
       {/* Section tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ borderBottomColor: colors.border, borderBottomWidth: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10, gap: 8, flexDirection: 'row' }}>
-        {sections.map(s => (
-          <TouchableOpacity
-            key={s.key}
-            onPress={() => setActiveSection(s.key as any)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 20,
-              backgroundColor: activeSection === s.key ? `${colors.pink}22` : colors.card,
-              borderColor: activeSection === s.key ? colors.pink : colors.border,
-              borderWidth: 1,
-            }}
-          >
-            <Ionicons name={s.icon} size={15} color={activeSection === s.key ? colors.pink : colors.muted} />
-            <Text style={{ color: activeSection === s.key ? colors.pink : colors.muted, fontWeight: '600', fontSize: 13 }}>{s.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <PillTabs
+        equalWidth
+        compact
+        items={sections}
+        value={activeSection}
+        onChange={(next) => setActiveSection(next)}
+        contentContainerStyle={{ paddingHorizontal: 12 }}
+      />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
 
         {/* ── Volunteer Staff Management ── */}
         {activeSection === 'volunteers' && (
           <View>
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>🙌 Volunteer Staff</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>🙌 Volunteer Staff</Text>
             {volunteers.length === 0 ? (
               <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                <Ionicons name="people-outline" size={40} color={colors.muted} />
-                <Text style={{ color: colors.muted, marginTop: 10, fontSize: 14 }}>No volunteers for this event</Text>
+                <Ionicons name="people-outline" size={40} color={theme.colors.textMuted} />
+                <Text style={{ color: theme.colors.textMuted, marginTop: 10, fontSize: 14 }}>No volunteers for this event</Text>
               </View>
             ) : (
               volunteers.map((v: any) => {
@@ -376,20 +365,20 @@ export default function EventOpsScreen() {
                   <View
                     key={v.id}
                     style={{
-                      backgroundColor: colors.card,
+                      backgroundColor: theme.colors.card,
                       borderRadius: 12,
                       padding: 14,
                       marginBottom: 10,
-                      borderColor: colors.border,
+                      borderColor: theme.colors.border,
                       borderWidth: 1,
                     }}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
+                        <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
                           {v.displayName ?? v.memberName ?? v.userName ?? `User #${v.userId}`}
                         </Text>
-                        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                        <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
                           {TICKET_TYPE_LABELS[v.ticketType] ?? v.ticketType ?? 'Volunteer'}
                         </Text>
                       </View>
@@ -439,29 +428,31 @@ export default function EventOpsScreen() {
         {/* ── Setup Duties Checklist ── */}
         {activeSection === 'duties' && (
           <View>
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 4 }}>🛠️ Setup Duties</Text>
-            <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 14 }}>Stored locally per device</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 4 }}>🛠️ Setup Duties</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 14 }}>Stored locally per device</Text>
 
-            <View style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderColor: colors.border, borderWidth: 1 }}>
+            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderColor: theme.colors.border, borderWidth: 1 }}>
               {SETUP_DUTIES.map(item => (
                 <DutyCheckbox
                   key={item.id}
                   item={item}
                   completed={!!completedSetup[item.id]}
                   onToggle={() => toggleSetup(item.id)}
+                  theme={theme}
                 />
               ))}
             </View>
 
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>🧹 Teardown Duties</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>🧹 Teardown Duties</Text>
 
-            <View style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderColor: colors.border, borderWidth: 1 }}>
+            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderColor: theme.colors.border, borderWidth: 1 }}>
               {TEARDOWN_DUTIES.map(item => (
                 <DutyCheckbox
                   key={item.id}
                   item={item}
                   completed={!!completedTeardown[item.id]}
                   onToggle={() => toggleTeardown(item.id)}
+                  theme={theme}
                 />
               ))}
             </View>
@@ -473,7 +464,7 @@ export default function EventOpsScreen() {
               ])}
               style={{ alignItems: 'center', paddingVertical: 12 }}
             >
-              <Text style={{ color: colors.muted, fontSize: 13 }}>Reset All Duties</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Reset All Duties</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -481,47 +472,47 @@ export default function EventOpsScreen() {
         {/* ── Attendee Stats ── */}
         {activeSection === 'stats' && (
           <View>
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>📊 Attendee Stats</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>📊 Attendee Stats</Text>
 
             {/* Totals card */}
-            <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: colors.border, borderWidth: 1 }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Overview</Text>
+            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1 }}>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Overview</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <View style={{ alignItems: 'center', flex: 1 }}>
-                  <Text style={{ color: colors.text, fontSize: 28, fontWeight: '800' }}>{reservations.length}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>Total</Text>
+                  <Text style={{ color: theme.colors.text, fontSize: 28, fontWeight: '800' }}>{reservations.length}</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Total</Text>
                 </View>
                 <View style={{ alignItems: 'center', flex: 1 }}>
                   <Text style={{ color: '#10B981', fontSize: 28, fontWeight: '800' }}>{checkedIn}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>Checked In</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Checked In</Text>
                 </View>
                 <View style={{ alignItems: 'center', flex: 1 }}>
                   <Text style={{ color: '#F59E0B', fontSize: 28, fontWeight: '800' }}>{reservations.length - checkedIn}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>Remaining</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Remaining</Text>
                 </View>
               </View>
             </View>
 
             {/* Ticket type breakdown */}
-            <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: colors.border, borderWidth: 1 }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>By Ticket Type</Text>
+            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1 }}>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>By Ticket Type</Text>
               {Object.entries(ticketBreakdown).map(([type, count]) => (
                 <View key={type} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-                  <Text style={{ color: colors.text, fontSize: 14 }}>{TICKET_TYPE_LABELS[type] ?? type}</Text>
+                  <Text style={{ color: theme.colors.text, fontSize: 14 }}>{TICKET_TYPE_LABELS[type] ?? type}</Text>
                   <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '700' }}>{count as number}</Text>
                 </View>
               ))}
               {Object.keys(ticketBreakdown).length === 0 && (
-                <Text style={{ color: colors.muted, fontSize: 13 }}>No reservations yet</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>No reservations yet</Text>
               )}
             </View>
 
             {/* Payment status breakdown */}
-            <View style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: colors.border, borderWidth: 1 }}>
-              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>By Payment Status</Text>
+            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1 }}>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>By Payment Status</Text>
               {Object.entries(paymentBreakdown).map(([status, count]) => {
                 const statusColors: Record<string, string> = { paid: '#10B981', pending: '#F59E0B', refunded: '#6B7280', failed: '#EF4444', partial: '#F59E0B' };
-                const c = statusColors[status] ?? colors.muted;
+                const c = statusColors[status] ?? theme.colors.textMuted;
                 return (
                   <View key={status} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
                     <Text style={{ color: c, fontSize: 14, textTransform: 'capitalize' }}>{status.replace('_', ' ')}</Text>
@@ -530,7 +521,7 @@ export default function EventOpsScreen() {
                 );
               })}
               {Object.keys(paymentBreakdown).length === 0 && (
-                <Text style={{ color: colors.muted, fontSize: 13 }}>No reservations yet</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>No reservations yet</Text>
               )}
             </View>
           </View>
@@ -539,7 +530,7 @@ export default function EventOpsScreen() {
         {/* ── Quick Actions ── */}
         {activeSection === 'actions' && (
           <View>
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>⚡ Quick Actions</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>⚡ Quick Actions</Text>
 
             {/* Send Reminder */}
             <TouchableOpacity
@@ -552,7 +543,7 @@ export default function EventOpsScreen() {
                 ]
               )}
               disabled={sendRemindersMutation.isPending}
-              style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 12, borderColor: colors.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}
+              style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 12, borderColor: theme.colors.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}
             >
               {sendRemindersMutation.isPending ? (
                 <ActivityIndicator color={colors.pink} size="small" />
@@ -560,25 +551,25 @@ export default function EventOpsScreen() {
                 <Ionicons name="notifications-outline" size={24} color={colors.pink} />
               )}
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>Send Reminder to Unpaid</Text>
-                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>Send Reminder to Unpaid</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
                   Notify {reservations.filter((r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled').length} pending attendees
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
             </TouchableOpacity>
 
             {/* Export Attendee List */}
             <TouchableOpacity
               onPress={() => setShowExportModal(true)}
-              style={{ backgroundColor: colors.card, borderRadius: 12, padding: 16, marginBottom: 12, borderColor: colors.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}
+              style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 12, borderColor: theme.colors.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}
             >
               <Ionicons name="list-outline" size={24} color={colors.purple} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>Export Attendee List</Text>
-                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{reservations.length} attendees</Text>
+                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>Export Attendee List</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{reservations.length} attendees</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
             </TouchableOpacity>
           </View>
         )}
@@ -586,25 +577,22 @@ export default function EventOpsScreen() {
         {/* ── Check-In ── */}
         {activeSection === 'checkin' && (
           <View>
-            <Text style={{ color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>
+            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>
               🎟️ Check-In · {checkedIn}/{reservations.length}
             </Text>
 
             {/* Mode toggle */}
-            <View style={{ flexDirection: 'row', backgroundColor: colors.bg, borderRadius: 12, padding: 4, marginBottom: 16, borderColor: colors.border, borderWidth: 1 }}>
-              <TouchableOpacity
-                onPress={() => setCheckinMode('list')}
-                style={{ flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: checkinMode === 'list' ? colors.pink : 'transparent', alignItems: 'center' }}
-              >
-                <Text style={{ color: checkinMode === 'list' ? '#fff' : colors.muted, fontWeight: '600' }}>📋 Guest List</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setCheckinMode('scanner')}
-                style={{ flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: checkinMode === 'scanner' ? colors.pink : 'transparent', alignItems: 'center' }}
-              >
-                <Text style={{ color: checkinMode === 'scanner' ? '#fff' : colors.muted, fontWeight: '600' }}>📷 QR Scanner</Text>
-              </TouchableOpacity>
-            </View>
+            <PillTabs
+              equalWidth
+              items={[
+                { key: 'list', label: 'Guest List' },
+                { key: 'scanner', label: 'QR Scanner' },
+              ]}
+              value={checkinMode}
+              onChange={setCheckinMode}
+              style={{ borderBottomWidth: 0, marginBottom: 16 }}
+              contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 0 }}
+            />
 
             {/* ── List Mode ── */}
             {checkinMode === 'list' && (
@@ -614,14 +602,14 @@ export default function EventOpsScreen() {
                   value={checkinSearch}
                   onChangeText={setCheckinSearch}
                   placeholder="Search by name…"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={theme.colors.textMuted}
                   style={{
-                    backgroundColor: colors.card,
-                    color: colors.text,
+                    backgroundColor: theme.colors.card,
+                    color: theme.colors.text,
                     borderRadius: 10,
                     paddingHorizontal: 14,
                     paddingVertical: 11,
-                    borderColor: colors.border,
+                    borderColor: theme.colors.border,
                     borderWidth: 1,
                     fontSize: 14,
                     marginBottom: 14,
@@ -630,8 +618,8 @@ export default function EventOpsScreen() {
 
                 {filteredReservations.length === 0 ? (
                   <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                    <Ionicons name="people-outline" size={40} color={colors.muted} />
-                    <Text style={{ color: colors.muted, marginTop: 10, fontSize: 14 }}>
+                    <Ionicons name="people-outline" size={40} color={theme.colors.textMuted} />
+                    <Text style={{ color: theme.colors.textMuted, marginTop: 10, fontSize: 14 }}>
                       {checkinSearch ? 'No matching attendees' : 'No attendees yet'}
                     </Text>
                   </View>
@@ -641,6 +629,7 @@ export default function EventOpsScreen() {
                       key={r.id}
                       reservation={r}
                       onCheckin={() => manualCheckinMutation.mutate({ id: r.id, status: 'checked_in' })}
+                      theme={theme}
                     />
                   ))
                 )}
@@ -656,11 +645,11 @@ export default function EventOpsScreen() {
                   </View>
                 ) : !permission.granted ? (
                   <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                    <Ionicons name="camera-outline" size={48} color={colors.muted} style={{ marginBottom: 16 }} />
-                    <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
+                    <Ionicons name="camera-outline" size={48} color={theme.colors.textMuted} style={{ marginBottom: 16 }} />
+                    <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
                       Camera Permission Required
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
                       We need camera access to scan QR codes at check-in.
                     </Text>
                     <TouchableOpacity
@@ -708,7 +697,7 @@ export default function EventOpsScreen() {
                       </View>
                     </View>
 
-                    <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center' }}>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, textAlign: 'center' }}>
                       Point the camera at a guest's QR code to check them in automatically
                     </Text>
                   </View>
@@ -724,7 +713,7 @@ export default function EventOpsScreen() {
       <Modal visible={!!scanResult} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{
-            backgroundColor: colors.card,
+            backgroundColor: theme.colors.card,
             borderRadius: 24,
             padding: 28,
             width: '100%',
@@ -756,10 +745,10 @@ export default function EventOpsScreen() {
                   )}
                 </View>
 
-                <Text style={{ color: colors.text, fontSize: 24, fontWeight: '900', marginBottom: 4 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '900', marginBottom: 4 }}>
                   {scanResult.guestName ?? 'Guest'}
                 </Text>
-                <Text style={{ color: colors.muted, fontSize: 14, marginBottom: 12 }}>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 14, marginBottom: 12 }}>
                   {scanResult.ticketType?.replace(/_/g, ' ')}
                 </Text>
 
@@ -805,12 +794,12 @@ export default function EventOpsScreen() {
               <>
                 <Text style={{ fontSize: 48, marginBottom: 12 }}>❌</Text>
                 <Text style={{ color: '#EF4444', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Ticket Not Found</Text>
-                <Text style={{ color: colors.muted, textAlign: 'center' }}>{scanResult?.error ?? 'Invalid QR code'}</Text>
+                <Text style={{ color: theme.colors.textMuted, textAlign: 'center' }}>{scanResult?.error ?? 'Invalid QR code'}</Text>
               </>
             )}
 
             <TouchableOpacity onPress={() => setScanResult(null)} style={{ marginTop: 12 }}>
-              <Text style={{ color: colors.muted, fontSize: 15 }}>Close</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 15 }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -819,11 +808,11 @@ export default function EventOpsScreen() {
       {/* Export Modal */}
       <Modal visible={showExportModal} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%', borderColor: colors.border, borderTopWidth: 1 }}>
+          <View style={{ backgroundColor: theme.colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%', borderColor: theme.colors.border, borderTopWidth: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>📋 Attendee List</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>📋 Attendee List</Text>
               <TouchableOpacity onPress={() => setShowExportModal(false)}>
-                <Ionicons name="close" size={24} color={colors.muted} />
+                <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -833,19 +822,19 @@ export default function EventOpsScreen() {
               renderItem={({ item }: { item: any }) => {
                 const wristband = WRISTBAND_CONFIG[item.wristbandColor ?? ''];
                 return (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomColor: colors.border, borderBottomWidth: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomColor: theme.colors.border, borderBottomWidth: 1 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14 }}>
+                      <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 14 }}>
                         {item.displayName ?? item.memberName ?? item.userName ?? `#${item.userId}`}
                       </Text>
-                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
                         {TICKET_TYPE_LABELS[item.ticketType] ?? item.ticketType} · {item.status}
                       </Text>
                     </View>
                     {wristband ? (
                       <Text style={{ fontSize: 20 }}>{wristband.emoji}</Text>
                     ) : (
-                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: `${colors.muted}33` }} />
+                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.textMuted, 0.2) }} />
                     )}
                   </View>
                 );
@@ -853,16 +842,16 @@ export default function EventOpsScreen() {
               style={{ maxHeight: 420 }}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                  <Text style={{ color: colors.muted }}>No attendees yet</Text>
+                  <Text style={{ color: theme.colors.textMuted }}>No attendees yet</Text>
                 </View>
               }
             />
 
             <TouchableOpacity
               onPress={() => setShowExportModal(false)}
-              style={{ marginTop: 16, paddingVertical: 14, alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, borderColor: colors.border, borderWidth: 1 }}
+              style={{ marginTop: 16, paddingVertical: 14, alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}
             >
-              <Text style={{ color: colors.text, fontWeight: '700' }}>Close</Text>
+              <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>

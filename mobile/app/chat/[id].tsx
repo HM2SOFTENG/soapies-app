@@ -28,7 +28,7 @@ import { useTheme, type ThemeColors } from '../../lib/theme';
 const REACTIONS = ['❤️', '😂', '😮', '👍', '🔥', '💀'];
 
 export default function ChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -41,6 +41,7 @@ export default function ChatScreen() {
   const sendScale = useRef(new Animated.Value(0.85)).current;
 
   const conversationId = Number(id);
+  const backTarget = typeof returnTo === 'string' && returnTo.length > 0 ? returnTo : null;
 
   // Spring-animate send button when text becomes non-empty
   useEffect(() => {
@@ -189,23 +190,23 @@ export default function ChatScreen() {
           {/* Bubble */}
           {isMine ? (
             <LinearGradient
-              colors={['#EC4899', '#A855F7']}
+              colors={[colors.pink, colors.purple]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.bubbleSent}
             >
               {item.isDeleted ? (
-                <Text style={styles.deletedText}>Message deleted</Text>
+                <Text style={styles.deletedTextSent}>Message deleted</Text>
               ) : (
-                <Text style={styles.bubbleText}>{item.content}</Text>
+                <Text style={styles.bubbleTextSent}>{item.content}</Text>
               )}
             </LinearGradient>
           ) : (
             <View style={styles.bubbleReceived}>
               {item.isDeleted ? (
-                <Text style={styles.deletedText}>Message deleted</Text>
+                <Text style={styles.deletedTextReceived}>Message deleted</Text>
               ) : (
-                <Text style={styles.bubbleText}>{item.content}</Text>
+                <Text style={styles.bubbleTextReceived}>{item.content}</Text>
               )}
             </View>
           )}
@@ -219,7 +220,7 @@ export default function ChatScreen() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
               {item.reactions.map((r: any, i: number) => (
                 <View key={i} style={styles.reactionChip}>
-                  <Text style={{ fontSize: 12 }}>{r.emoji} {r.count}</Text>
+                  <Text style={styles.reactionText}>{r.emoji} {r.count}</Text>
                 </View>
               ))}
             </View>
@@ -241,7 +242,13 @@ export default function ChatScreen() {
           colors={[colors.pageHeader, colors.background, colors.backgroundDeep]}
           style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => {
+            if (backTarget) {
+              router.replace(backTarget as any);
+              return;
+            }
+            router.back();
+          }} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
 
@@ -281,7 +288,7 @@ export default function ChatScreen() {
         {/* ── Messages ── */}
         {isLoading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator color="#EC4899" size="large" />
+            <ActivityIndicator color={colors.pink} size="large" />
           </View>
         ) : (
           <FlatList
@@ -325,11 +332,11 @@ export default function ChatScreen() {
             >
               {sendMutation.isPending ? (
                 <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={colors.white} size="small" />
                 </View>
               ) : text.trim() ? (
-                <LinearGradient colors={['#EC4899', '#A855F7']} style={styles.sendBtn}>
-                  <Ionicons name="send" size={18} color="#fff" />
+                <LinearGradient colors={[colors.pink, colors.purple]} style={styles.sendBtn}>
+                  <Ionicons name="send" size={18} color={colors.white} />
                 </LinearGradient>
               ) : (
                 <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
@@ -466,16 +473,31 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       paddingVertical: 10,
       borderRadius: 18,
       borderBottomLeftRadius: 4,
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
+      backgroundColor: colors.surfaceHigh,
+      borderColor: alpha(colors.border, 0.92),
       borderWidth: 1,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 1,
     },
-    bubbleText: {
+    bubbleTextSent: {
+      color: colors.white,
+      fontSize: 15,
+      lineHeight: 20,
+    },
+    bubbleTextReceived: {
       color: colors.text,
       fontSize: 15,
       lineHeight: 20,
     },
-    deletedText: {
+    deletedTextSent: {
+      color: alpha(colors.white, 0.78),
+      fontStyle: 'italic',
+      fontSize: 14,
+    },
+    deletedTextReceived: {
       color: alpha(colors.text, 0.5),
       fontStyle: 'italic',
       fontSize: 14,
@@ -487,12 +509,16 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       marginHorizontal: 4,
     },
     reactionChip: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceMuted,
       borderRadius: 10,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderColor: colors.border,
       borderWidth: 1,
+    },
+    reactionText: {
+      color: colors.text,
+      fontSize: 12,
     },
 
     // ── Input bar
@@ -505,11 +531,16 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderTopWidth: 1,
       backgroundColor: colors.floating,
       gap: 8,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: -4 },
+      elevation: 8,
     },
     textInput: {
       flex: 1,
-      backgroundColor: colors.input,
-      borderColor: alpha(colors.primary, 0.22),
+      backgroundColor: colors.surface,
+      borderColor: alpha(colors.primary, 0.18),
       borderWidth: 1,
       borderRadius: 24,
       paddingHorizontal: 16,
@@ -527,7 +558,9 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       overflow: 'hidden',
     },
     sendBtnDisabled: {
-      backgroundColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
 
     // ── Reaction picker
@@ -546,6 +579,11 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderWidth: 1,
       overflow: 'hidden',
       backgroundColor: colors.surface,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.12,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 8,
     },
     reactionBtn: {
       width: 44,
@@ -554,6 +592,8 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.surfaceHigh,
+      borderWidth: 1,
+      borderColor: alpha(colors.border, 0.85),
     },
   });
 }

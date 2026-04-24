@@ -562,6 +562,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
     body: {
       flexGrow: 1,
       paddingBottom: 32,
+      backgroundColor: colors.page,
     },
     footer: {
       paddingHorizontal: 24,
@@ -570,6 +571,11 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderTopWidth: 1,
       borderTopColor: colors.border,
       backgroundColor: colors.page,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: -4 },
+      elevation: 6,
     },
     nextBtn: {
       paddingVertical: 16,
@@ -585,6 +591,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
     stepContainer: {
       paddingHorizontal: 24,
       paddingTop: 32,
+      paddingBottom: 12,
     },
     stepHeading: {
       color: colors.text,
@@ -602,7 +609,13 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderRadius: 60,
       overflow: 'hidden',
       borderWidth: 2,
-      borderColor: colors.pink,
+      borderColor: alpha(colors.pink, 0.36),
+      backgroundColor: colors.surfaceHigh,
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.14,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 4,
     },
     avatarImage: {
       width: 120,
@@ -610,7 +623,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
     },
     avatarPlaceholder: {
       flex: 1,
-      backgroundColor: colors.card,
+      backgroundColor: colors.surfaceHigh,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -656,13 +669,13 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderRadius: 24,
       borderWidth: 1.5,
       borderColor: colors.border,
-      backgroundColor: colors.card,
+      backgroundColor: colors.surfaceMuted,
       minWidth: '30%',
       alignItems: 'center',
     },
     pillSelected: {
-      borderColor: colors.pink,
-      backgroundColor: alpha(colors.pink, 0.15),
+      borderColor: alpha(colors.pink, 0.32),
+      backgroundColor: alpha(colors.pink, 0.12),
     },
     pillText: {
       color: colors.textSecondary,

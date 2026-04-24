@@ -69,7 +69,7 @@ export default function MemberProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
-  const { colors, alpha, isDark } = useTheme();
+  const { colors, alpha, gradients } = useTheme();
 
   const { data: member, isLoading } = trpc.members.byId.useQuery(
     { userId: Number(id) }, { enabled: !!id },
@@ -85,6 +85,11 @@ export default function MemberProfileScreen() {
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (cid: any) => router.push(`/chat/${cid}` as any),
     onError:   (e: any)   => Alert.alert('Error', e.message),
+  });
+
+  const pokeMutation = trpc.members.poke.useMutation({
+    onSuccess: () => Alert.alert("Poke sent", "They have been notified that you are open to meeting up."),
+    onError: (e: any) => Alert.alert('Could not send poke', e.message),
   });
 
   const blockMutation = trpc.blocking.block.useMutation({
@@ -200,6 +205,7 @@ export default function MemberProfileScreen() {
 
   const signal      = m.signal as any;
   const showSignal  = signal && signal.signalType && signal.signalType !== 'offline';
+  const canPoke = signal?.signalType === 'available';
   const signalColor = signal ? (SIGNAL_COLORS[signal.signalType] ?? SIGNAL_COLORS.offline) : SIGNAL_COLORS.offline;
   const orientationColor = m.orientation
     ? (ORIENTATION_COLORS[m.orientation.toLowerCase()] ?? colors.pink) : null;
@@ -251,13 +257,13 @@ export default function MemberProfileScreen() {
 
         {/* ── A. Hero ──────────────────────────────────────────────────── */}
         <LinearGradient
-          colors={isDark ? ['#210C38', '#10071D', '#080810'] : ['#FFF1F8', '#FFF7FB', '#FFF8FC']}
+          colors={gradients.screen}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={{ paddingTop: insets.top + 60, paddingBottom: 26, paddingHorizontal: 16 }}
         >
-          <View style={{ borderRadius: 30, borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.45), overflow: 'hidden', backgroundColor: alpha(colors.surface, isDark ? 0.72 : 0.92) }}>
-            <View style={{ position: 'absolute', top: -48, right: -18, width: 150, height: 150, borderRadius: 75, backgroundColor: alpha(colors.primary, isDark ? 0.12 : 0.08) }} />
-            <View style={{ position: 'absolute', bottom: -70, left: -26, width: 180, height: 180, borderRadius: 90, backgroundColor: alpha(colors.secondary, isDark ? 0.09 : 0.07) }} />
+          <View style={{ borderRadius: 30, borderWidth: 1, borderColor: alpha(colors.white, 0.16), overflow: 'hidden', backgroundColor: alpha(colors.surface, 0.88) }}>
+            <View style={{ position: 'absolute', top: -48, right: -18, width: 150, height: 150, borderRadius: 75, backgroundColor: alpha(colors.primary, 0.1) }} />
+            <View style={{ position: 'absolute', bottom: -70, left: -26, width: 180, height: 180, borderRadius: 90, backgroundColor: alpha(colors.secondary, 0.08) }} />
             <View style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 20, alignItems: 'center' }}>
               <Text style={{ color: colors.textSecondary, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
                 Member spotlight
@@ -266,7 +272,7 @@ export default function MemberProfileScreen() {
               {/* Avatar */}
               <Animated.View style={{ transform: [{ scale: avatarScale }], opacity: avatarOpacity, marginBottom: 14 }}>
                 <View style={{
-                  borderRadius: 64, padding: 4, borderWidth: 1.5, borderColor: alpha(colors.white, isDark ? 0.1 : 0.36), backgroundColor: alpha(colors.white, isDark ? 0.06 : 0.4),
+                  borderRadius: 64, padding: 4, borderWidth: 1.5, borderColor: alpha(colors.white, 0.2), backgroundColor: alpha(colors.white, 0.18),
                   shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 },
                   shadowOpacity: 0.45, shadowRadius: 24, elevation: 12,
                 }}>
@@ -306,16 +312,16 @@ export default function MemberProfileScreen() {
 
               {/* Inline stats under name */}
               <Animated.View style={{ flexDirection: 'row', gap: 12, marginTop: 18, opacity: avatarOpacity }}>
-                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, isDark ? 0.07 : 0.6), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42) }}>
+                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, 0.18), borderWidth: 1, borderColor: alpha(colors.white, 0.22) }}>
                   <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>{m.eventsAttended ?? 0}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Events</Text>
                 </View>
-                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, isDark ? 0.07 : 0.6), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42) }}>
+                <View style={{ alignItems: 'center', minWidth: 86, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, 0.18), borderWidth: 1, borderColor: alpha(colors.white, 0.22) }}>
                   <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>{m.postsCount ?? 0}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Posts</Text>
                 </View>
                 {joinedDate && (
-                  <View style={{ alignItems: 'center', minWidth: 104, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, isDark ? 0.07 : 0.6), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42) }}>
+                  <View style={{ alignItems: 'center', minWidth: 104, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: alpha(colors.white, 0.18), borderWidth: 1, borderColor: alpha(colors.white, 0.22) }}>
                     <Text style={{ color: colors.text, fontSize: 18, fontFamily: FONT.displayBold }}>{joinedDate}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.1 }}>Joined</Text>
                   </View>
@@ -332,8 +338,8 @@ export default function MemberProfileScreen() {
               <View style={{
                 flexDirection: 'row', alignItems: 'center', gap: 5,
                 paddingHorizontal: 12, paddingVertical: 4,
-                backgroundColor: `${signalColor}22`,
-                borderRadius: 20, borderColor: signalColor, borderWidth: 1,
+                backgroundColor: alpha(signalColor, 0.12),
+                borderRadius: 20, borderColor: alpha(signalColor, 0.28), borderWidth: 1,
               }}>
                 <Animated.View style={{
                   width: 7, height: 7, borderRadius: 3.5, backgroundColor: signalColor,
@@ -349,9 +355,9 @@ export default function MemberProfileScreen() {
             {m.gender && (
               <View style={{
                 paddingHorizontal: 12, paddingVertical: 4,
-                backgroundColor: alpha('#67e8f9', 0.12), borderRadius: 20, borderColor: alpha('#67e8f9', 0.26), borderWidth: 1,
+                backgroundColor: colors.infoSoft, borderRadius: 20, borderColor: colors.infoBorder, borderWidth: 1,
               }}>
-                <Text style={{ color: '#67e8f9', fontWeight: '700', fontSize: 12 }}>
+                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 12 }}>
                   {m.gender.charAt(0).toUpperCase() + m.gender.slice(1)}
                 </Text>
               </View>
@@ -407,7 +413,7 @@ export default function MemberProfileScreen() {
               {signal.seekingGender && (
                 <View style={{
                   paddingHorizontal: 10, paddingVertical: 3,
-                  backgroundColor: `${colors.pink}22`, borderRadius: 12, borderColor: `${colors.pink}44`, borderWidth: 1,
+                  backgroundColor: alpha(colors.pink, 0.12), borderRadius: 12, borderColor: alpha(colors.pink, 0.24), borderWidth: 1,
                 }}>
                   <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>
                     Seeking: {signal.seekingGender}
@@ -417,9 +423,9 @@ export default function MemberProfileScreen() {
               {signal.isQueerFriendly && (
                 <View style={{
                   paddingHorizontal: 10, paddingVertical: 3,
-                  backgroundColor: alpha('#67e8f9', 0.14), borderRadius: 12, borderColor: alpha('#67e8f9', 0.28), borderWidth: 1,
+                  backgroundColor: colors.infoSoft, borderRadius: 12, borderColor: colors.infoBorder, borderWidth: 1,
                 }}>
-                  <Text style={{ color: '#67e8f9', fontSize: 12, fontWeight: '600' }}>Queer Friendly</Text>
+                  <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600' }}>Queer Friendly</Text>
                 </View>
               )}
             </View>
@@ -449,7 +455,7 @@ export default function MemberProfileScreen() {
                   borderColor: alpha(colors.primary, 0.24), backgroundColor: colors.card, overflow: 'hidden',
                 }}>
                   <LinearGradient
-                    colors={[alpha(colors.secondary, isDark ? 0.3 : 0.12), alpha(colors.primary, isDark ? 0.18 : 0.08), alpha(colors.card, isDark ? 0.96 : 0.92)]}
+                    colors={[alpha(colors.secondary, 0.18), alpha(colors.primary, 0.1), alpha(colors.card, 0.96)]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                     style={{ padding: 18 }}
                   >
@@ -531,8 +537,8 @@ export default function MemberProfileScreen() {
         {/* ── D. Shared events ─────────────────────────────────────────── */}
         {hasMutualEvents && (
           <Animated.View style={{ marginHorizontal: 16, marginTop: 12, opacity: contentOpacity }}>
-            <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.08 : 0.42), backgroundColor: colors.card }}>
-              <LinearGradient colors={[alpha(colors.secondary, isDark ? 0.22 : 0.12), alpha(colors.primary, isDark ? 0.12 : 0.06), colors.card]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
+            <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: alpha(colors.white, 0.18), backgroundColor: colors.card }}>
+              <LinearGradient colors={[alpha(colors.secondary, 0.16), alpha(colors.primary, 0.08), colors.card]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 18 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <View>
                     <Text style={{ color: colors.textMuted, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 6 }}>
@@ -553,13 +559,13 @@ export default function MemberProfileScreen() {
                       Going together
                     </Text>
                     {upcomingTogether.map((event: any) => (
-                      <View key={`upcoming-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: alpha(colors.white, isDark ? 0.08 : 0.72), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.12 : 0.82), marginBottom: 10 }}>
+                      <View key={`upcoming-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: alpha(colors.white, 0.2), borderWidth: 1, borderColor: alpha(colors.white, 0.26), marginBottom: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Text style={{ color: colors.text, fontSize: 17, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
                             {event.title}
                           </Text>
-                          <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#10B98120', borderWidth: 1, borderColor: '#10B98140' }}>
-                            <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>{event.mutualLabel}</Text>
+                          <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.successSoft, borderWidth: 1, borderColor: colors.successBorder }}>
+                            <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>{event.mutualLabel}</Text>
                           </View>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
@@ -583,7 +589,7 @@ export default function MemberProfileScreen() {
                       Attended together
                     </Text>
                     {pastTogether.map((event: any) => (
-                      <View key={`past-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: alpha(colors.white, isDark ? 0.06 : 0.64), borderWidth: 1, borderColor: alpha(colors.white, isDark ? 0.1 : 0.78), marginBottom: 10 }}>
+                      <View key={`past-${event.id}`} style={{ borderRadius: 18, padding: 14, backgroundColor: alpha(colors.white, 0.16), borderWidth: 1, borderColor: alpha(colors.white, 0.22), marginBottom: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Text style={{ color: colors.text, fontSize: 16, flex: 1, marginRight: 10, fontFamily: FONT.displaySemiBold }} numberOfLines={1}>
                             {event.title}
@@ -743,38 +749,63 @@ export default function MemberProfileScreen() {
         padding: 20, paddingBottom: insets.bottom + 16,
         backgroundColor: colors.page, borderTopColor: colors.border, borderTopWidth: 1,
       }}>
-        <Animated.View style={{ transform: [{ scale: msgScale }] }}>
-          <TouchableOpacity
-            onPress={() => createConversation.mutate({ type: 'dm', participantIds: [Number(id)] })}
-            onPressIn={handleMsgPressIn}
-            onPressOut={handleMsgPressOut}
-            disabled={createConversation.isPending}
-            activeOpacity={1}
-            accessibilityLabel={`Send a message to ${firstName}`}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: createConversation.isPending }}
-          >
-            <LinearGradient
-              colors={['#EC4899', '#A855F7']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {canPoke && (
+            <TouchableOpacity
+              onPress={() => pokeMutation.mutate({ userId: Number(id) })}
+              disabled={pokeMutation.isPending}
               style={{
-                borderRadius: 16, padding: 15,
-                alignItems: 'center', flexDirection: 'row',
-                justifyContent: 'center', gap: 8,
-                opacity: createConversation.isPending ? 0.7 : 1,
+                paddingHorizontal: 14,
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: alpha(signalColor, 0.14),
+                borderWidth: 1,
+                borderColor: alpha(signalColor, 0.3),
+                minHeight: 54,
               }}
             >
-              {createConversation.isPending ? (
-                <ActivityIndicator color="#fff" />
+              {pokeMutation.isPending ? (
+                <ActivityIndicator size="small" color={signalColor} />
               ) : (
-                <>
-                  <Ionicons name="send" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>Message {firstName}</Text>
-                </>
+                <Ionicons name="hand-left-outline" size={18} color={signalColor} />
               )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+            </TouchableOpacity>
+          )}
+
+          <Animated.View style={{ transform: [{ scale: msgScale }], flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => createConversation.mutate({ type: 'dm', participantIds: [Number(id)] })}
+              onPressIn={handleMsgPressIn}
+              onPressOut={handleMsgPressOut}
+              disabled={createConversation.isPending}
+              activeOpacity={1}
+              accessibilityLabel={`Send a message to ${firstName}`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: createConversation.isPending }}
+            >
+              <LinearGradient
+                colors={[colors.pink, colors.purple]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 16, padding: 15,
+                  alignItems: 'center', flexDirection: 'row',
+                  justifyContent: 'center', gap: 8,
+                  opacity: createConversation.isPending ? 0.7 : 1,
+                }}
+              >
+                {createConversation.isPending ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="send" size={18} color={colors.white} />
+                    <Text style={{ color: colors.white, fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>Message {firstName}</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </View>
 
     </View>

@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../lib/colors';
+import { useTheme } from '../lib/theme';
 
 // ── Channel metadata ─────────────────────────────────────────────────────────
 function getChannelMeta(name: string): { emoji: string; gradient: [string, string] } {
@@ -72,6 +72,7 @@ interface Props {
 // ── Component ────────────────────────────────────────────────────────────────
 export default React.memo(function ConversationItem({ conversation, onPress, onLongPress }: Props) {
   const router = useRouter();
+  const theme = useTheme();
   const isChannel  = conversation.type === 'channel';
   const unread     = conversation.unreadCount ?? 0;
   const hasUnread  = unread > 0;
@@ -136,12 +137,12 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
             </LinearGradient>
           ) : dmAvatar ? (
             <View style={{ width: 54, height: 54, borderRadius: 27, overflow: 'hidden',
-              borderWidth: 1.5, borderColor: hasUnread ? colors.pink : 'transparent' }}>
+              borderWidth: 1.5, borderColor: hasUnread ? theme.colors.pink : 'transparent' }}>
               <Image source={{ uri: dmAvatar }} style={{ width: 54, height: 54 }} />
             </View>
           ) : (
             <LinearGradient
-              colors={[colors.purple, colors.pink]}
+              colors={[theme.colors.purple, theme.colors.pink]}
               style={{ width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' }}
             >
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 19 }}>{initials}</Text>
@@ -152,7 +153,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
           {isChannel && hasUnread && (
             <View style={{
               position: 'absolute', inset: -2, borderRadius: 19,
-              borderWidth: 2, borderColor: colors.pink,
+              borderWidth: 2, borderColor: theme.colors.pink,
             }} />
           )}
 
@@ -161,7 +162,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
             <View style={{
               position: 'absolute', bottom: 1, right: 1,
               width: 13, height: 13, borderRadius: 7,
-              backgroundColor: '#10B981', borderWidth: 2, borderColor: colors.bg,
+              backgroundColor: theme.colors.success, borderWidth: 2, borderColor: theme.colors.background,
             }} />
           )}
         </TouchableOpacity>
@@ -172,7 +173,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
             <Text
               style={{
-                color: hasUnread ? '#fff' : colors.text,
+                color: theme.colors.text,
                 fontWeight: hasUnread ? '700' : '500',
                 fontSize: 15.5, flex: 1, letterSpacing: 0.1,
               }}
@@ -181,7 +182,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
               {displayName}
             </Text>
             <Text style={{
-              color: hasUnread ? colors.pink : colors.muted,
+              color: hasUnread ? theme.colors.primary : theme.colors.textMuted,
               fontSize: 12,
               fontWeight: hasUnread ? '600' : '400',
               marginLeft: 8,
@@ -194,7 +195,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text
               style={{
-                color: hasUnread ? '#D1D5DB' : '#6B7280',
+                color: hasUnread ? theme.colors.textSecondary : theme.colors.textMuted,
                 fontSize: 13.5,
                 flex: 1,
                 fontWeight: hasUnread ? '500' : '400',
@@ -207,7 +208,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
 
             {hasUnread ? (
               <View style={{
-                backgroundColor: colors.pink, borderRadius: 11,
+                backgroundColor: theme.colors.pink, borderRadius: 11,
                 minWidth: 22, height: 22, alignItems: 'center',
                 justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8,
               }}>
@@ -218,7 +219,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
             ) : (
               // Delivered checkmark (decorative for now)
               conversation.lastMessage ? (
-                <Ionicons name="checkmark-done" size={15} color="#4B5563" style={{ marginLeft: 6 }} />
+                <Ionicons name="checkmark-done" size={15} color={theme.colors.textMuted} style={{ marginLeft: 6 }} />
               ) : null
             )}
           </View>
@@ -226,7 +227,7 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
       </Animated.View>
 
       {/* Separator */}
-      <View style={{ height: 0.5, backgroundColor: '#1F1F2E', marginLeft: 83 }} />
+      <View style={{ height: 0.5, backgroundColor: theme.colors.border, marginLeft: 83 }} />
     </Pressable>
   );
 });

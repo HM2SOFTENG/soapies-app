@@ -93,10 +93,21 @@ export default function ResetPasswordScreen() {
           {/* Back button */}
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, alignSelf: 'flex-start' }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 24,
+              alignSelf: 'flex-start',
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: 999,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.pink} />
-            <Text style={{ color: colors.pink, marginLeft: 6, fontWeight: '600' }}>Back</Text>
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Text style={{ color: colors.text, marginLeft: 6, fontWeight: '700' }}>Back</Text>
           </TouchableOpacity>
 
           <Text style={{ color: colors.text, fontSize: 26, fontWeight: '700', marginBottom: 10 }}>

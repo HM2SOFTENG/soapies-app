@@ -24,7 +24,7 @@ import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
 import { useAuth } from '../../lib/auth';
 import { FONT } from '../../lib/fonts';
-import { useTheme } from '../../lib/theme';
+import { useTheme, type AppTheme } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HERO_MAX = 320;
@@ -49,12 +49,12 @@ function formatDateShort(date: string | Date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function statusColor(status: string) {
+function statusColor(status: string, theme: AppTheme) {
   switch (status) {
     case 'published': return '#10B981';
-    case 'completed': return colors.muted;
+    case 'completed': return colors.textMuted;
     case 'sold_out': return colors.pink;
-    default: return colors.muted;
+    default: return colors.textMuted;
   }
 }
 function statusLabel(status: string) {
@@ -67,16 +67,15 @@ function statusLabel(status: string) {
 }
 
 // Theme colors for event type thumbnails (fallback when no image)
-const EVENT_GRADIENTS: [string, string][] = [
-  [colors.pink, colors.purple],
-  ['#F59E0B', '#EF4444'],
-  ['#8B5CF6', '#EC4899'],
-  ['#10B981', '#3B82F6'],
-  ['#F97316', '#EC4899'],
-];
-
-function eventGradient(id: number): [string, string] {
-  return EVENT_GRADIENTS[id % EVENT_GRADIENTS.length];
+function eventGradient(id: number, theme: AppTheme): [string, string] {
+  const gradients: [string, string][] = [
+    [colors.pink, colors.purple],
+    ['#F59E0B', '#EF4444'],
+    ['#8B5CF6', '#EC4899'],
+    ['#10B981', '#3B82F6'],
+    ['#F97316', '#EC4899'],
+  ];
+  return gradients[id % gradients.length];
 }
 
 // Emoji thumbnails for event types
@@ -113,8 +112,8 @@ function ShimmerSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
   const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
-    <Animated.View style={[styles.skeletonCard, { opacity, backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-      <View style={[styles.skeletonThumb, { backgroundColor: theme.colors.border }]} />
+    <Animated.View style={[styles.skeletonCard, { opacity, backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.skeletonThumb, { backgroundColor: colors.border }]} />
       <View style={styles.skeletonBody}>
         <View style={[styles.skeletonLine, { width: '75%', height: 16 }]} />
         <View style={[styles.skeletonLine, { width: '50%', height: 11, marginTop: 8 }]} />
@@ -181,6 +180,7 @@ function PriceTags({ event }: { event: any }) {
 
 function AnimatedEventCard({ event, index, isGoing }: { event: any; index: number; isGoing?: boolean }) {
   const router = useRouter();
+  const theme = useTheme();
   const translateY = useRef(new Animated.Value(50)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -233,7 +233,11 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }, { scale }], marginBottom: 12 }}>
       <TouchableOpacity activeOpacity={1} onPressIn={onPressIn} onPressOut={onPressOut} onPress={onPress}>
-        <Animated.View style={[styles.eventCard, { borderColor: event.status === 'published' ? borderGlowColor as any : colors.border }]}>
+        <Animated.View style={[styles.eventCard, {
+          backgroundColor: theme.colors.surface,
+          borderColor: event.status === 'published' ? borderGlowColor as any : colors.border,
+          shadowColor: theme.colors.shadow,
+        }]}>
           {/* Gradient left accent */}
           <LinearGradient
             colors={eventGradient(event.id)}
@@ -262,10 +266,10 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
               {isGoing && (
                 <View style={{
                   paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
-                  backgroundColor: '#10B98122', borderColor: '#10B981', borderWidth: 1,
+                  backgroundColor: theme.colors.successSoft, borderColor: theme.colors.successBorder, borderWidth: 1,
                   flexDirection: 'row', alignItems: 'center', gap: 4,
                 }}>
-                  <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>✅ You're Going</Text>
+                  <Text style={{ color: theme.colors.success, fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>✅ You're Going</Text>
                 </View>
               )}
               {event.status === 'published' && (
@@ -282,13 +286,13 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
 
             {/* Date + location */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-              <Ionicons name="calendar-outline" size={11} color={colors.muted} />
-              <Text style={{ color: colors.muted, fontSize: 11 }}>{formatDate(event.startDate)}</Text>
+              <Ionicons name="calendar-outline" size={11} color={colors.textMuted} />
+              <Text style={{ color: colors.textMuted, fontSize: 11 }}>{formatDate(event.startDate)}</Text>
             </View>
             {event.location && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="location-outline" size={11} color={colors.muted} />
-                <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>{event.location}</Text>
+                <Ionicons name="location-outline" size={11} color={colors.textMuted} />
+                <Text style={{ color: colors.textMuted, fontSize: 11 }} numberOfLines={1}>{event.location}</Text>
               </View>
             )}
 
@@ -305,7 +309,7 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
                     style={{ height: '100%', width: `${Math.min(spotsPercent * 100, 100)}%`, borderRadius: 2 }}
                   />
                 </View>
-                <Text style={{ color: colors.muted, fontSize: 10, marginTop: 3 }}>
+                <Text style={{ color: colors.textMuted, fontSize: 10, marginTop: 3 }}>
                   {event.currentAttendees ?? 0}/{event.capacity} reserved
                 </Text>
               </View>
@@ -325,20 +329,20 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
   const theme = useTheme();
   const themed = useMemo(() => ({
     screen: theme.colors.background,
-    card: theme.colors.card,
-    cardBorder: theme.colors.border,
-    filterBorder: theme.colors.border,
+    card: colors.card,
+    cardBorder: colors.border,
+    filterBorder: colors.border,
     filterWrapBg: theme.colors.background,
-    summaryBg: theme.colors.card,
-    summaryBorder: theme.colors.border,
-    text: theme.colors.text,
-    textMuted: theme.colors.textSecondary,
+    summaryBg: colors.card,
+    summaryBorder: colors.border,
+    text: colors.text,
+    textMuted: colors.textSecondary,
     pillBg: theme.isDark ? '#10101C' : theme.colors.surfaceHigh,
-    pillMuted: theme.isDark ? '#5A5575' : theme.colors.textMuted,
-    pillBorder: theme.isDark ? '#1A1A30' : theme.colors.border,
+    pillMuted: theme.isDark ? '#5A5575' : colors.textMuted,
+    pillBorder: theme.isDark ? '#1A1A30' : colors.border,
     heroOverlay: theme.isDark ? ['transparent', '#08081099', '#080810'] as const : ['transparent', 'rgba(255,248,252,0.5)', theme.colors.background] as const,
     miniBar: theme.isDark ? 'rgba(8,8,16,0.88)' : 'rgba(255,248,252,0.92)',
-    miniBarBorder: theme.isDark ? 'rgba(255,255,255,0.06)' : theme.colors.border,
+    miniBarBorder: theme.isDark ? 'rgba(255,255,255,0.06)' : colors.border,
   }), [theme]);
   const [imgError, setImgError] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -396,7 +400,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
         {hasImage ? (
           <Image source={{ uri: event.coverImageUrl }} style={StyleSheet.absoluteFillObject} contentFit="cover" onError={() => setImgError(true)} />
         ) : (
-          <LinearGradient colors={[`${grad[0]}EE`, `${grad[1]}CC`, `${colors.bg}FF`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />
+          <LinearGradient colors={[`${grad[0]}EE`, `${grad[1]}CC`, `${theme.colors.background}FF`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />
         )}
       </Animated.View>
 
@@ -490,9 +494,9 @@ function MonthDivider({ month }: { month: string }) {
   const theme = useTheme();
   return (
     <View style={styles.monthDivider}>
-      <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
-      <Text style={[styles.monthLabel, { color: theme.colors.textMuted }]}>{month}</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+      <Text style={[styles.monthLabel, { color: colors.textMuted }]}>{month}</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
     </View>
   );
 }
@@ -505,15 +509,15 @@ type FilterTab = typeof FILTER_TABS[number];
 export default function EventsScreen() {
   const theme = useTheme();
   const themed = useMemo(() => ({
-    summaryBg: theme.colors.card,
-    summaryBorder: theme.colors.border,
+    summaryBg: colors.card,
+    summaryBorder: colors.border,
     wrapBg: theme.colors.background,
-    wrapBorder: theme.colors.border,
-    title: theme.colors.text,
-    muted: theme.colors.textSecondary,
+    wrapBorder: colors.border,
+    title: colors.text,
+    muted: colors.textSecondary,
     pillBg: theme.isDark ? '#10101C' : theme.colors.surfaceHigh,
-    pillBorder: theme.isDark ? '#1A1A30' : theme.colors.border,
-    pillText: theme.isDark ? '#5A5575' : theme.colors.textMuted,
+    pillBorder: theme.isDark ? '#1A1A30' : colors.border,
+    pillText: theme.isDark ? '#5A5575' : colors.textMuted,
     activeBg: theme.isDark ? '#EC489920' : 'rgba(236,72,153,0.12)',
   }), [theme]);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('Upcoming');
@@ -616,8 +620,8 @@ export default function EventsScreen() {
             const active = activeFilter === tab;
             return (
               <Animated.View key={tab} style={{ transform: [{ scale: filterScale[idx] }] }}>
-                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, { backgroundColor: themed.pillBg, borderColor: themed.pillBorder }, active && [styles.filterTabActive, { backgroundColor: themed.activeBg, borderColor: theme.colors.primary }]]}>
-                  <Text style={[styles.filterLabel, { color: themed.pillText }, active && [styles.filterLabelActive, { color: theme.colors.primary }]]}>{tab}</Text>
+                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, { backgroundColor: themed.pillBg, borderColor: themed.pillBorder }, active && styles.filterTabActive, active && { backgroundColor: themed.activeBg, borderColor: theme.colors.primary }]}>
+                  <Text style={[styles.filterLabel, { color: themed.pillText }, active && styles.filterLabelActive, active && { color: theme.colors.primary }]}>{tab}</Text>
                 </TouchableOpacity>
               </Animated.View>
             );
@@ -649,7 +653,7 @@ export default function EventsScreen() {
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Text style={{ fontSize: 64, marginBottom: 12 }}>🎉</Text>
               <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 6, fontFamily: FONT.displayBold }}>Nothing here yet</Text>
-              <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 14 }}>
+              <Text style={{ color: colors.textMuted, textAlign: 'center', fontSize: 14 }}>
                 Check back soon — something exciting is always brewing
               </Text>
             </View>
@@ -664,13 +668,11 @@ export default function EventsScreen() {
 
 const styles = StyleSheet.create({
   eventCard: {
-    backgroundColor: '#10101C',
     borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.14,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
   },
@@ -761,9 +763,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 10,
-    borderBottomColor: '#1A1A30',
     borderBottomWidth: 1,
-    backgroundColor: '#080810',
     gap: 12,
   },
   filterSummaryCard: {
@@ -773,19 +773,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 18,
-    backgroundColor: '#10101C',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
   },
   filterSummaryEyebrow: {
-    color: '#8B84A7',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.1,
     fontFamily: FONT.displaySemiBold,
   },
   filterSummaryTitle: {
-    color: '#F1F0FF',
     fontSize: 18,
     fontWeight: '800',
     marginTop: 4,
@@ -800,22 +796,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 7,
     borderRadius: 24,
-    backgroundColor: '#10101C',
-    borderColor: '#1A1A30',
     borderWidth: 1,
   },
   filterTabActive: {
-    backgroundColor: '#EC489920',
-    borderColor: '#EC4899',
+    fontWeight: '800' as const,
   },
   filterLabel: {
-    color: '#5A5575',
     fontWeight: '600',
     fontSize: 13,
     fontFamily: FONT.displaySemiBold,
   },
   filterLabelActive: {
-    color: '#EC4899',
     fontWeight: '800' as const,
     fontFamily: FONT.displaySemiBold,
   },
@@ -837,7 +828,6 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   monthLabel: {
-    color: colors.muted,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
