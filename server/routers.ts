@@ -2060,6 +2060,77 @@ export const appRouter = router({
     profiles: adminProcedure.query(async () => {
       return db.getAllProfiles();
     }),
+    adminMembers: adminProcedure.input(z.object({
+      search: z.string().optional(),
+      role: z.string().optional(),
+      status: z.string().optional(),
+      community: z.string().optional(),
+      signal: z.string().optional(),
+    }).optional()).query(async ({ input }) => {
+      const users = await db.getAllUsers();
+      const profiles = await db.getAllProfiles();
+      const merged = users.map((user: any) => {
+        const profile = profiles.find((p: any) => p.userId === user.id) || null;
+        return {
+          id: user.id,
+          userId: user.id,
+          email: user.email ?? null,
+          name: user.name ?? null,
+          role: user.role ?? 'member',
+          phone: user.phone ?? null,
+          emailVerified: user.emailVerified ?? false,
+          createdAt: user.createdAt ?? null,
+          profileId: profile?.id ?? null,
+          displayName: profile?.displayName ?? user.name ?? 'Member',
+          avatarUrl: profile?.avatarUrl ?? null,
+          communityId: profile?.communityId ?? null,
+          applicationStatus: profile?.applicationStatus ?? null,
+          applicationPhase: profile?.applicationPhase ?? null,
+          memberRole: profile?.memberRole ?? null,
+          location: profile?.location ?? null,
+          hasPhoto: !!profile?.avatarUrl,
+          profileComplete: !!(profile?.displayName && profile?.bio && profile?.gender),
+          isDeactivated: !!user?.deactivatedAt,
+        };
+      });
+
+      const search = input?.search?.trim().toLowerCase();
+      return merged.filter((m: any) => {
+        const matchesSearch = !search || [m.displayName, m.name, m.email, m.phone, String(m.id)].filter(Boolean).join(' ').toLowerCase().includes(search);
+        const matchesRole = !input?.role || input.role === 'all' ? true : (m.memberRole === input.role || m.role === input.role);
+        const matchesStatus = !input?.status || input.status === 'all' ? true : m.applicationStatus === input.status;
+        const matchesCommunity = !input?.community || input.community === 'all' ? true : m.communityId === input.community;
+        return matchesSearch && matchesRole && matchesStatus && matchesCommunity;
+      });
+    }),
+    adminMemberDetail: adminProcedure.input(z.object({ userId: z.number() })).query(async ({ input }) => {
+      const user = await db.getUserById(input.userId);
+      const profile = await db.getProfileByUserId(input.userId);
+      const notifications = await db.getUserNotifications(input.userId, 10);
+      const credits = await db.getMemberCredits(input.userId);
+      const referralCodes = await db.getReferralCodes(input.userId);
+      return { user, profile, notifications, credits, referralCodes };
+    }),
+    updateMemberRole: adminProcedure.input(z.object({ userId: z.number(), role: z.enum(['member', 'angel', 'admin']) })).mutation(async ({ ctx, input }) => {
+      const dbConn = await db.getDb();
+      if (!dbConn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'DB unavailable' });
+      const { users: usersTable, profiles: profilesTable } = await import('../drizzle/schema');
+      const { eq } = await import('drizzle-orm');
+      await dbConn.update(usersTable).set({ role: input.role as any }).where(eq(usersTable.id, input.userId));
+      await dbConn.update(profilesTable).set({ memberRole: input.role as any }).where(eq(profilesTable.userId, input.userId));
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'member_role_updated', targetType: 'user', targetId: input.userId, metadata: { role: input.role } as any });
+      return { success: true };
+    }),
+    clearMemberSignal: adminProcedure.input(z.object({ userId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.upsertMemberSignal(input.userId, { signalType: 'offline' });
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'member_signal_cleared', targetType: 'user', targetId: input.userId });
+      return { success: true };
+    }),
+    sendMemberNudge: adminProcedure.input(z.object({ userId: z.number(), title: z.string(), body: z.string() })).mutation(async ({ ctx, input }) => {
+      await notif.sendNotification({ userId: input.userId, type: 'system', title: input.title, body: input.body }).catch(() => {});
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'member_nudged', targetType: 'user', targetId: input.userId, metadata: { title: input.title } as any });
+      return { success: true };
+    }),
     pendingApplications: adminProcedure.query(async () => {
       return db.getPendingApplications();
     }),

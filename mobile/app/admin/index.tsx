@@ -210,6 +210,7 @@ export default function AdminDashboard() {
 
   const quickActions = [
     { label: 'Events', icon: 'calendar', route: '/admin/events', color: theme.colors.purple },
+    { label: 'Members', icon: 'people', route: '/admin/members', color: theme.colors.primary },
     { label: 'Applications', icon: 'person-add', route: '/admin/applications', color: theme.colors.pink },
     { label: 'Reservations', icon: 'ticket', route: '/admin/reservations', color: theme.colors.success },
     { label: 'Announcements', icon: 'megaphone', route: '/admin/announcements', color: theme.colors.warning },
