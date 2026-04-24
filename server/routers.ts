@@ -2068,9 +2068,20 @@ export const appRouter = router({
       signal: z.string().optional(),
     }).optional()).query(async ({ input }) => {
       const users = await db.getAllUsers();
-      const profiles = await db.getAllProfiles();
+      const pendingApplications = await db.getPendingApplications();
+      const pendingProfileRequests = await db.getPendingProfileChangeRequests();
+      const pendingGroupRequests = await db.getPendingGroupChangeRequests();
+      const pendingVenmoReservations = await db.getPendingVenmoReservations();
+      const pendingTestResults = await db.getPendingTestResults();
+
       const merged = users.map((user: any) => {
-        const profile = profiles.find((p: any) => p.userId === user.id) || null;
+        const profile = user.profile ?? null;
+        const applicationAlerts = profile?.id ? pendingApplications.filter((item: any) => item.id === profile.id).length : 0;
+        const profileAlerts = profile?.id ? pendingProfileRequests.filter((item: any) => item.profileId === profile.id).length : 0;
+        const groupAlerts = pendingGroupRequests.filter((item: any) => item.userId === user.id).length;
+        const paymentAlerts = pendingVenmoReservations.filter((item: any) => item.userId === user.id).length;
+        const testAlerts = pendingTestResults.filter((item: any) => item.user?.id === user.id || item.submission?.userId === user.id).length;
+        const alertCount = applicationAlerts + profileAlerts + groupAlerts + paymentAlerts + testAlerts;
         return {
           id: user.id,
           userId: user.id,
@@ -2090,7 +2101,15 @@ export const appRouter = router({
           location: profile?.location ?? null,
           hasPhoto: !!profile?.avatarUrl,
           profileComplete: !!(profile?.displayName && profile?.bio && profile?.gender),
-          isDeactivated: !!user?.deactivatedAt,
+          isDeactivated: !!user?.isSuspended,
+          alerts: {
+            application: applicationAlerts,
+            profileChanges: profileAlerts,
+            groupChanges: groupAlerts,
+            payments: paymentAlerts,
+            tests: testAlerts,
+            total: alertCount,
+          },
         };
       });
 
@@ -2109,7 +2128,13 @@ export const appRouter = router({
       const notifications = await db.getUserNotifications(input.userId, 10);
       const credits = await db.getMemberCredits(input.userId);
       const referralCodes = await db.getReferralCodes(input.userId);
-      return { user, profile, notifications, credits, referralCodes };
+      const groups = await db.getGroups();
+      const pendingProfileRequests = profile ? (await db.getPendingProfileChangeRequests()).filter((r: any) => r.profileId === profile.id) : [];
+      const pendingGroupRequests = (await db.getPendingGroupChangeRequests()).filter((r: any) => r.userId === input.userId);
+      const pendingApplications = profile ? (await db.getPendingApplications()).filter((r: any) => r.id === profile.id) : [];
+      const pendingReservations = (await db.getPendingVenmoReservations()).filter((r: any) => r.userId === input.userId);
+      const pendingTests = (await db.getPendingTestResults()).filter((r: any) => r.user?.id === input.userId || r.userId === input.userId);
+      return { user, profile, notifications, credits, referralCodes, groups, pendingProfileRequests, pendingGroupRequests, pendingApplications, pendingReservations, pendingTests };
     }),
     updateMemberRole: adminProcedure.input(z.object({ userId: z.number(), role: z.enum(['member', 'angel', 'admin']) })).mutation(async ({ ctx, input }) => {
       const dbConn = await db.getDb();
@@ -2129,6 +2154,65 @@ export const appRouter = router({
     sendMemberNudge: adminProcedure.input(z.object({ userId: z.number(), title: z.string(), body: z.string() })).mutation(async ({ ctx, input }) => {
       await notif.sendNotification({ userId: input.userId, type: 'system', title: input.title, body: input.body }).catch(() => {});
       await db.createAuditLog({ adminId: ctx.user.id, action: 'member_nudged', targetType: 'user', targetId: input.userId, metadata: { title: input.title } as any });
+      return { success: true };
+    }),
+    reviewMemberProfileChange: adminProcedure.input(z.object({ id: z.number(), status: z.enum(['approved', 'denied']) })).mutation(async ({ ctx, input }) => {
+      await db.reviewProfileChangeRequest(input.id, input.status, ctx.user.id);
+      await db.createAuditLog({ adminId: ctx.user.id, action: `member_profile_change_${input.status}`, targetType: 'profile_change_request', targetId: input.id });
+      return { success: true };
+    }),
+    reviewMemberGroupChange: adminProcedure.input(z.object({ id: z.number(), status: z.enum(['approved', 'denied']) })).mutation(async ({ ctx, input }) => {
+      await db.reviewGroupChangeRequest(input.id, input.status, ctx.user.id);
+      await db.createAuditLog({ adminId: ctx.user.id, action: `member_group_change_${input.status}`, targetType: 'group_change_request', targetId: input.id });
+      return { success: true };
+    }),
+    requestMemberPasswordReset: adminProcedure.input(z.object({ userId: z.number() })).mutation(async ({ input }) => {
+      const user = await auth.getUserById(input.userId);
+      if (!user?.email) throw new TRPCError({ code: 'BAD_REQUEST', message: 'User has no email for password reset' });
+      const code = auth.generateOtp();
+      await auth.saveOtp({ userId: user.id, target: user.email, code, type: 'password_reset' });
+      await auth.sendEmailOtp(user.email, code);
+      return { success: true };
+    }),
+    reviewMemberApplication: adminProcedure.input(z.object({ profileId: z.number(), status: z.enum(['approved', 'rejected', 'waitlisted']) })).mutation(async ({ ctx, input }) => {
+      await db.updateProfileStatus(input.profileId, input.status, ctx.user.id);
+      await db.createAuditLog({ adminId: ctx.user.id, action: `member_application_${input.status}`, targetType: 'profile', targetId: input.profileId });
+      return { success: true };
+    }),
+    advanceMemberApplication: adminProcedure.input(z.object({
+      profileId: z.number(),
+      phase: z.enum(['initial_review', 'interview_scheduled', 'interview_complete', 'final_approved', 'rejected']),
+      memberRole: z.enum(['member', 'angel', 'admin']).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const profile = await db.getProfileByProfileId(input.profileId);
+      if (!profile) throw new TRPCError({ code: 'NOT_FOUND', message: 'Profile not found' });
+      const dbConn = await db.getDb();
+      if (input.phase === 'interview_scheduled') {
+        await db.updateProfilePhase(input.profileId, 'interview_scheduled');
+      } else if (input.phase === 'interview_complete') {
+        await db.updateProfilePhase(input.profileId, 'interview_complete');
+      } else if (input.phase === 'final_approved') {
+        await db.updateProfileStatus(input.profileId, 'approved', ctx.user.id);
+        await db.updateProfilePhase(input.profileId, 'final_approved');
+        if (dbConn) {
+          const { profiles: profilesTable } = await import('../drizzle/schema');
+          const { eq } = await import('drizzle-orm');
+          await dbConn.update(profilesTable).set({ memberRole: (input.memberRole || 'member') as any }).where(eq(profilesTable.id, input.profileId));
+        }
+      } else if (input.phase === 'rejected') {
+        await db.updateProfileStatus(input.profileId, 'rejected', ctx.user.id);
+      }
+      await db.createAuditLog({ adminId: ctx.user.id, action: `member_application_phase_${input.phase}`, targetType: 'profile', targetId: input.profileId });
+      return { success: true };
+    }),
+    confirmMemberReservation: adminProcedure.input(z.object({ reservationId: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.updateReservation(input.reservationId, { paymentStatus: 'paid', status: 'confirmed' });
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'member_reservation_confirmed', targetType: 'reservation', targetId: input.reservationId });
+      return { success: true };
+    }),
+    reviewMemberTest: adminProcedure.input(z.object({ id: z.number(), status: z.enum(['approved', 'rejected']), notes: z.string().optional() })).mutation(async ({ ctx, input }) => {
+      await db.reviewTestResult(input.id, input.status, ctx.user.id, input.notes);
+      await db.createAuditLog({ adminId: ctx.user.id, action: `member_test_${input.status}`, targetType: 'test_result_submission', targetId: input.id });
       return { success: true };
     }),
     pendingApplications: adminProcedure.query(async () => {
