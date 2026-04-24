@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { useAuth } from '../../lib/auth';
@@ -58,6 +58,7 @@ function ActionRow({ icon, title, subtitle, color, onPress, danger = false }: an
 
 export default function AdminMembersScreen() {
   const router = useRouter();
+  const { reopenUserId } = useLocalSearchParams<{ reopenUserId?: string }>();
   const { user } = useAuth();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -174,6 +175,14 @@ export default function AdminMembersScreen() {
     const nextIds = groupMemberships.map((membership: any) => membership.groupId);
     setSelectedGroupIds(nextIds);
   }, [selectedUserId, detail]);
+
+  React.useEffect(() => {
+    if (!reopenUserId) return;
+    const parsed = Number(reopenUserId);
+    if (!Number.isFinite(parsed)) return;
+    setSelectedUserId(parsed);
+    router.setParams({ reopenUserId: undefined as any });
+  }, [reopenUserId]);
 
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -387,12 +396,17 @@ export default function AdminMembersScreen() {
 
               <View style={{ backgroundColor: theme.colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 14, gap: 10 }}>
                 <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 }}>Actions</Text>
-                <ActionRow icon="shield-outline" title="Change Role" subtitle="Promote, demote, or grant admin access" color={primaryAction} onPress={() => Alert.alert('Update Role', 'Choose role', [ 'member', 'angel', 'admin' ].map((r) => ({ text: formatLabel(r)!, onPress: () => roleMutation.mutate({ userId: selectedUserId!, memberRole: r as any }) })).concat([{ text: 'Cancel', style: 'cancel' as const }]))} />
+                <ActionRow icon="shield-outline" title="Change Role" subtitle="Promote, demote, or grant admin access" color={primaryAction} onPress={() => Alert.alert('Update Role', 'Choose role', [
+                  { text: formatLabel('member')!, onPress: () => roleMutation.mutate({ userId: selectedUserId!, memberRole: 'member' as any }) },
+                  { text: formatLabel('angel')!, onPress: () => roleMutation.mutate({ userId: selectedUserId!, memberRole: 'angel' as any }) },
+                  { text: formatLabel('admin')!, onPress: () => roleMutation.mutate({ userId: selectedUserId!, memberRole: 'admin' as any }) },
+                  { text: 'Cancel', style: 'cancel' },
+                ])} />
                 <ActionRow icon="sparkles-outline" title="Clear Signal" subtitle="Reset current meetup availability signal" color={warningAction} onPress={() => clearSignalMutation.mutate({ userId: selectedUserId! })} />
                 <ActionRow icon="notifications-outline" title="Send Nudge" subtitle="Send a lightweight admin check-in notification" color={purpleAction} onPress={() => nudgeMutation.mutate({ userId: selectedUserId!, title: 'Admin Check-In', body: 'Hi — the team wanted to check in with you. Reply in app if you need anything.' })} />
                 <ActionRow icon="key-outline" title="Send Password Reset" subtitle="Email a password reset code to this member" color={primaryAction} onPress={() => requestPasswordResetMutation.mutate({ userId: selectedUserId! })} />
                 {!isSuspended ? <ActionRow icon="pause-circle-outline" title="Suspend Member" subtitle="Temporarily disable access without deleting data" color={warningAction} onPress={() => Alert.alert('Suspend member?', 'This will suspend access until restored.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Suspend', style: 'destructive', onPress: () => suspendMutation.mutate({ userId: selectedUserId! }) }])} /> : <ActionRow icon="play-circle-outline" title="Restore Member" subtitle="Re-enable access for this member" color={primaryAction} onPress={() => unsuspendMutation.mutate({ userId: selectedUserId! })} />}
-                {selectedProfile?.userId ? <ActionRow icon="person-outline" title="View Public Profile" subtitle="Open the member-facing profile view" color={neutralAction} onPress={() => router.push(`/member/${selectedProfile.userId}` as any)} /> : null}
+                {selectedProfile?.userId ? <ActionRow icon="person-outline" title="View Public Profile" subtitle="Open the member-facing profile view" color={neutralAction} onPress={() => { const targetUserId = selectedProfile.userId; const returnUserId = selectedUserId; setSelectedUserId(null); setTimeout(() => router.push({ pathname: '/member/[id]' as any, params: { id: String(targetUserId), returnTo: 'admin-members', reopenUserId: String(returnUserId) } } as any), 150); }} /> : null}
               </View>
 
               <View style={{ backgroundColor: theme.colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 14, gap: 10 }}>

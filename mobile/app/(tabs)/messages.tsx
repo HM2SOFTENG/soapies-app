@@ -100,7 +100,7 @@ export default function MessagesScreen() {
     Animated.spring(searchScale, { toValue: 1, useNativeDriver: true, friction: 8 }).start();
   }, []);
 
-  const { data, isLoading, refetch } = trpc.messages.conversations.useQuery(undefined, {
+  const { data, isLoading, isError, error, refetch } = trpc.messages.conversations.useQuery(undefined, {
     enabled: hasToken,
     staleTime: 10_000,
     refetchInterval: 15_000,
@@ -233,6 +233,14 @@ export default function MessagesScreen() {
       {isLoading ? (
         <View style={{ paddingTop: 8 }}>
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} theme={theme} />)}
+        </View>
+      ) : isError ? (
+        <View style={{ padding: 24, alignItems: 'center' }}>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Could not load messages</Text>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 8 }}>{(error as any)?.message ?? 'Please try again.'}</Text>
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}>
+            <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <SectionList

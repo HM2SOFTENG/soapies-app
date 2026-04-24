@@ -69,7 +69,7 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<number>>(new Set());
 
-  const { data, isLoading, refetch } = trpc.notifications.list.useQuery(undefined, {
+  const { data, isLoading, isError, error, refetch } = trpc.notifications.list.useQuery(undefined, {
     staleTime: 10_000,
     refetchInterval: 30_000,
   });
@@ -163,6 +163,15 @@ export default function NotificationsScreen() {
           <NotificationSkeleton theme={theme} />
           <NotificationSkeleton theme={theme} />
           <NotificationSkeleton theme={theme} />
+        </View>
+      ) : isError ? (
+        <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>⚠️</Text>
+          <Text style={[styles.emptyTitle, { color: themed.emptyTitle }]}>Could not load alerts</Text>
+          <Text style={[styles.emptyBody, { color: themed.emptyBody }]}>{(error as any)?.message ?? 'Please try again.'}</Text>
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}>
+            <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

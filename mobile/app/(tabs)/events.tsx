@@ -130,8 +130,9 @@ function ShimmerSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
 // ── Thumbnail ─────────────────────────────────────────────────────────────────
 
 function EventThumbnail({ event, size = 88 }: { event: any; size?: number }) {
+  const theme = useTheme();
   const [imgError, setImgError] = useState(false);
-  const grad = eventGradient(event.id);
+  const grad = eventGradient(event.id, theme);
   const emoji = eventEmoji(event.title ?? '');
   const hasImage = event.coverImageUrl && !imgError;
 
@@ -143,9 +144,10 @@ function EventThumbnail({ event, size = 88 }: { event: any; size?: number }) {
           style={{ width: size, height: size }}
           onError={() => setImgError(true)}
           contentFit="cover"
+          transition={120}
         />
       ) : (
-        <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <LinearGradient colors={grad} locations={[0, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ fontSize: size * 0.38 }}>{emoji}</Text>
         </LinearGradient>
       )}
@@ -214,10 +216,10 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
   }
   function onPress() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/event/[id]', params: { id: String(event.id) } });
+    router.push({ pathname: '/event/[id]', params: { id: String(event.id) } } as any);
   }
 
-  const sc = statusColor(event.status);
+  const sc = statusColor(event.status, theme);
   const sl = statusLabel(event.status);
   const spotsLeft = event.capacity && event.currentAttendees != null
     ? event.capacity - event.currentAttendees
@@ -240,7 +242,8 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
         }]}>
           {/* Gradient left accent */}
           <LinearGradient
-            colors={eventGradient(event.id)}
+            colors={eventGradient(event.id, theme)}
+            locations={[0, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={{ width: 4, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
@@ -336,7 +339,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
     summaryBg: colors.card,
     summaryBorder: colors.border,
     text: colors.text,
-    textMuted: colors.textSecondary,
+    textMuted: colors.textMuted,
     pillBg: theme.isDark ? '#10101C' : theme.colors.surfaceHigh,
     pillMuted: theme.isDark ? '#5A5575' : colors.textMuted,
     pillBorder: theme.isDark ? '#1A1A30' : colors.border,
@@ -388,7 +391,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
     extrapolate: 'clamp',
   });
 
-  const grad = event ? eventGradient(event.id) : [colors.purple, colors.pink] as [string, string];
+  const grad = event ? eventGradient(event.id, theme) : [colors.purple, colors.pink] as [string, string];
   const hasImage = event?.coverImageUrl && !imgError;
   const countdown = event ? daysUntil(event.startDate) : '';
   const emoji = event ? eventEmoji(event.title ?? '') : '🎉';
@@ -407,6 +410,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
       {/* Dark overlay so text is always legible */}
       <LinearGradient
         colors={themed.heroOverlay}
+        locations={[0, 0.45, 1]}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFillObject}
       />
@@ -459,7 +463,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push({ pathname: '/event/[id]', params: { id: String(event.id) } });
+                router.push({ pathname: '/event/[id]', params: { id: String(event.id) } } as any);
               }}
             >
               {isGoing ? (
@@ -514,7 +518,7 @@ export default function EventsScreen() {
     wrapBg: theme.colors.background,
     wrapBorder: colors.border,
     title: colors.text,
-    muted: colors.textSecondary,
+    muted: colors.textMuted,
     pillBg: theme.isDark ? '#10101C' : theme.colors.surfaceHigh,
     pillBorder: theme.isDark ? '#1A1A30' : colors.border,
     pillText: theme.isDark ? '#5A5575' : colors.textMuted,
@@ -526,7 +530,7 @@ export default function EventsScreen() {
   const { user } = useAuth();
   const hasToken = !!user;
 
-  const { data: eventsData, refetch, isLoading } = trpc.events.list.useQuery({}, {
+  const { data: eventsData, refetch, isLoading, isError, error } = trpc.events.list.useQuery({}, {
     staleTime: 60_000,
     enabled: hasToken, // server auto-scopes to user's community
   });
@@ -620,8 +624,8 @@ export default function EventsScreen() {
             const active = activeFilter === tab;
             return (
               <Animated.View key={tab} style={{ transform: [{ scale: filterScale[idx] }] }}>
-                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, { backgroundColor: themed.pillBg, borderColor: themed.pillBorder }, active && styles.filterTabActive, active && { backgroundColor: themed.activeBg, borderColor: theme.colors.primary }]}>
-                  <Text style={[styles.filterLabel, { color: themed.pillText }, active && styles.filterLabelActive, active && { color: theme.colors.primary }]}>{tab}</Text>
+                <TouchableOpacity onPress={() => onFilterPress(tab, idx)} style={[styles.filterTab, { backgroundColor: themed.pillBg, borderColor: themed.pillBorder }, active ? { backgroundColor: themed.activeBg, borderColor: theme.colors.primary } : null]}>
+                  <Text style={[styles.filterLabel, { color: themed.pillText }, active ? styles.filterLabelActive : null, active ? { color: theme.colors.primary } : null]}>{tab}</Text>
                 </TouchableOpacity>
               </Animated.View>
             );
@@ -633,6 +637,15 @@ export default function EventsScreen() {
       {isLoading ? (
         <View style={{ padding: 16 }}>
           {[0, 1, 2].map(i => <ShimmerSkeleton key={i} theme={theme} />)}
+        </View>
+      ) : isError ? (
+        <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 24 }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>🎟️</Text>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Could not load events</Text>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 8, textAlign: 'center' }}>{(error as any)?.message ?? 'Please try again.'}</Text>
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}>
+            <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <Animated.FlatList

@@ -342,7 +342,7 @@ export default function EventOpsScreen() {
         compact
         items={sections}
         value={activeSection}
-        onChange={(next) => setActiveSection(next)}
+        onChange={(next) => setActiveSection(next as typeof activeSection)}
         contentContainerStyle={{ paddingHorizontal: 12 }}
       />
 

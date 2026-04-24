@@ -164,7 +164,7 @@ function MemberCard({
   onPress: () => void;
   isComposeMode: boolean;
 }) {
-  const { colors } = useTheme();
+  const { colors, alpha } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>

@@ -66,7 +66,7 @@ const SIGNAL_LABELS: Record<string, string> = {
 // ── component ─────────────────────────────────────────────────────────────────
 
 export default function MemberProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo, reopenUserId } = useLocalSearchParams<{ id: string; returnTo?: string; reopenUserId?: string }>();
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const { colors, alpha, gradients } = useTheme();
@@ -182,7 +182,7 @@ export default function MemberProfileScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.page, justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: colors.textMuted }}>Member not found</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+        <TouchableOpacity onPress={() => returnTo === 'admin-members' ? router.replace({ pathname: '/admin/members' as any, params: reopenUserId ? { reopenUserId } : {} } as any) : router.back()} style={{ marginTop: 16 }}>
           <Text style={{ color: colors.pink }}>Go back</Text>
         </TouchableOpacity>
       </View>
@@ -225,7 +225,7 @@ export default function MemberProfileScreen() {
 
       {/* Back button */}
       <TouchableOpacity
-        onPress={() => router.back()}
+        onPress={() => returnTo === 'admin-members' ? router.replace({ pathname: '/admin/members' as any, params: reopenUserId ? { reopenUserId } : {} } as any) : router.back()}
         accessibilityLabel="Go back"
         accessibilityRole="button"
         style={{

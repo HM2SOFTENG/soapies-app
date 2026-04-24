@@ -81,9 +81,12 @@ export default function ChatScreen() {
 
   const reactMutation = trpc.messages.addReaction.useMutation({
     onSuccess: () => { setShowReactions(false); setSelectedMessageId(null); refetch(); },
+    onError: (err: any) => Alert.alert('Could not add reaction', err.message),
   });
 
-  const markRead = trpc.messages.markRead.useMutation();
+  const markRead = trpc.messages.markRead.useMutation({
+    onError: (err: any) => { if (__DEV__) console.error('[chat] markRead failed:', err?.message); },
+  });
 
   const blockMutation = trpc.blocking.block.useMutation({
     onSuccess: () => {

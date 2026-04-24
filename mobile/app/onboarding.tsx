@@ -26,6 +26,7 @@ import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../components/Toast';
 import { saveToken, setMemoryToken, SESSION_COOKIE_KEY } from '../lib/trpc';
+import { useTheme } from '../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
@@ -182,6 +183,7 @@ function ChipGrid({
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const theme = useTheme();
   const { setUser, setHasToken } = useAuth();
   const toast = useToast();
 
@@ -1422,7 +1424,7 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   welcomeSubtitle: {
-    color: colors.textSecondary,
+    color: colors.textMuted,
     fontSize: 16,
     textAlign: 'center',
     marginTop: 12,
@@ -1441,7 +1443,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   stepSubheading: {
-    color: colors.textSecondary,
+    color: colors.textMuted,
     fontSize: 15,
     marginBottom: 28,
     lineHeight: 23,

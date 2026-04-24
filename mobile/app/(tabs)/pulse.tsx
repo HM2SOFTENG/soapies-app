@@ -861,6 +861,11 @@ export default function PulseScreen() {
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
+  const pokeMutation = trpc.members.poke.useMutation({
+    onSuccess: () => Alert.alert('Poke sent', 'They have been notified that you are open to meeting up.'),
+    onError: (e: any) => Alert.alert('Could not send poke', e.message),
+  });
+
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (convId: any) => {
       setSelectedMember(null);
