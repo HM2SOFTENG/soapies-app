@@ -66,12 +66,14 @@ export default function AdminMembersScreen() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<(typeof ROLE_OPTIONS)[number]>('all');
   const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>('all');
+  const [groupFilter, setGroupFilter] = useState<string>('all');
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
 
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60000 });
   const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
-  const { data, isLoading } = trpc.admin.adminMembers.useQuery({ search, role, status }, { enabled: isAdmin });
+  const { data, isLoading } = trpc.admin.adminMembers.useQuery({ search, role, status, community: groupFilter }, { enabled: isAdmin });
   const { data: detail, isLoading: detailLoading } = trpc.admin.adminMemberDetail.useQuery({ userId: selectedUserId! }, { enabled: !!selectedUserId && isAdmin });
 
   const roleMutation = trpc.admin.updateUserRole.useMutation({
@@ -126,8 +128,23 @@ export default function AdminMembersScreen() {
     onSuccess: () => { utils.admin.adminMembers.invalidate(); utils.admin.adminMemberDetail.invalidate(); Alert.alert('Updated', 'Test result reviewed.'); },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
+  const setMemberGroupsMutation = trpc.admin.setMemberGroups.useMutation({
+    onSuccess: (result: any) => {
+      utils.admin.adminMemberDetail.invalidate();
+      setSelectedGroupIds((result as any)?.memberships?.map((membership: any) => membership.groupId) ?? []);
+      Alert.alert('Updated', 'Member group assignments saved.');
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
 
   const members = useMemo(() => (data as any[]) ?? [], [data]);
+  const availableFilterGroups = useMemo(() => {
+    const map = new Map<string, string>();
+    members.forEach((member: any) => {
+      if (member.communityId) map.set(String(member.communityId), String(member.communityId));
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [members]);
   const selectedDetail: any = detail as any;
   const selectedProfile = selectedDetail?.profile;
   const selectedUser = selectedDetail?.user;
@@ -135,6 +152,7 @@ export default function AdminMembersScreen() {
   const selectedCredits = selectedDetail?.credits ?? [];
   const selectedReferralCodes = selectedDetail?.referralCodes ?? [];
   const availableGroups = selectedDetail?.groups ?? [];
+  const groupMemberships = selectedDetail?.groupMemberships ?? [];
   const pendingProfileRequests = selectedDetail?.pendingProfileRequests ?? [];
   const pendingGroupRequests = selectedDetail?.pendingGroupRequests ?? [];
   const pendingApplications = selectedDetail?.pendingApplications ?? [];
@@ -151,6 +169,11 @@ export default function AdminMembersScreen() {
   const warningAction = { bg: theme.alpha(theme.colors.warning, 0.14), fg: theme.colors.warning, text: theme.colors.text, subtle: theme.colors.textMuted, chevron: theme.colors.warning };
   const purpleAction = { bg: theme.alpha(theme.colors.purple, 0.14), fg: theme.colors.purple, text: theme.colors.text, subtle: theme.colors.textMuted, chevron: theme.colors.purple };
   const dangerAction = { bg: 'rgba(255,59,48,0.14)', fg: '#ff3b30', text: '#ff3b30', subtle: theme.colors.textMuted, chevron: '#ff3b30' };
+
+  React.useEffect(() => {
+    const nextIds = groupMemberships.map((membership: any) => membership.groupId);
+    setSelectedGroupIds(nextIds);
+  }, [selectedUserId, detail]);
 
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -179,6 +202,14 @@ export default function AdminMembersScreen() {
             {STATUS_OPTIONS.map((option) => {
               const active = status === option;
               return <TouchableOpacity key={option} onPress={() => setStatus(option)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: active ? theme.colors.secondary : theme.colors.border, backgroundColor: active ? theme.alpha(theme.colors.secondary, 0.12) : theme.colors.page }}><Text style={{ color: active ? theme.colors.secondary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{formatLabel(option)}</Text></TouchableOpacity>;
+            })}
+          </View>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>Group</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <TouchableOpacity onPress={() => setGroupFilter('all')} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: groupFilter === 'all' ? theme.colors.primary : theme.colors.border, backgroundColor: groupFilter === 'all' ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.page }}><Text style={{ color: groupFilter === 'all' ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>All</Text></TouchableOpacity>
+            {availableFilterGroups.map((group) => {
+              const active = groupFilter === group.id;
+              return <TouchableOpacity key={group.id} onPress={() => setGroupFilter(group.id)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: active ? theme.colors.primary : theme.colors.border, backgroundColor: active ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.page }}><Text style={{ color: active ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{formatLabel(group.name)}</Text></TouchableOpacity>;
             })}
           </View>
         </View>
@@ -292,6 +323,24 @@ export default function AdminMembersScreen() {
                     </View>
                   );
                 })}
+              </View>
+
+              <View style={{ backgroundColor: theme.colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 14, gap: 10 }}>
+                <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 }}>Group Assignments</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Assign one or more community groups directly for this member.</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {availableGroups.map((group: any) => {
+                    const active = selectedGroupIds.includes(group.id);
+                    return (
+                      <TouchableOpacity key={group.id} onPress={() => setSelectedGroupIds((current) => current.includes(group.id) ? current.filter((id) => id !== group.id) : [...current, group.id])} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: active ? theme.colors.primary : theme.colors.border, backgroundColor: active ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.page }}>
+                        <Text style={{ color: active ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{group.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <TouchableOpacity onPress={() => setMemberGroupsMutation.mutate({ userId: selectedUserId!, groupIds: selectedGroupIds })} style={{ alignSelf: 'flex-start', backgroundColor: theme.alpha(theme.colors.primary, 0.14), borderWidth: 1, borderColor: theme.alpha(theme.colors.primary, 0.3), borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 }}>
+                  <Text style={{ color: theme.colors.primary, fontWeight: '800' }}>Save Group Assignments</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={{ backgroundColor: theme.colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 14, gap: 10 }}>

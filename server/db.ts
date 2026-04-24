@@ -19,6 +19,7 @@ import {
   waitlist as waitlistTable,
   pushSubscriptions,
   memberSignals,
+  userGroups,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1058,6 +1059,27 @@ export async function dismissAnnouncement(userId: number, announcementId: number
 export async function getGroups() {
   const db = await getDb(); if (!db) return [];
   return db.select().from(groups);
+}
+
+export async function getUserGroupMemberships(userId: number) {
+  const db = await getDb(); if (!db) return [];
+  const memberships = await db.select().from(userGroups).where(eq(userGroups.userId, userId));
+  if (!memberships.length) return [];
+  const allGroups = await db.select().from(groups);
+  return memberships.map((membership) => ({
+    ...membership,
+    group: allGroups.find((group) => group.id === membership.groupId) ?? null,
+  }));
+}
+
+export async function setUserGroupMemberships(userId: number, groupIds: number[]) {
+  const db = await getDb(); if (!db) return [];
+  const uniqueGroupIds = Array.from(new Set(groupIds.filter(Boolean)));
+  await db.delete(userGroups).where(eq(userGroups.userId, userId));
+  if (uniqueGroupIds.length) {
+    await db.insert(userGroups).values(uniqueGroupIds.map((groupId) => ({ userId, groupId })));
+  }
+  return getUserGroupMemberships(userId);
 }
 
 export async function getGroupBySlug(slug: string) {

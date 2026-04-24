@@ -2129,12 +2129,13 @@ export const appRouter = router({
       const credits = await db.getMemberCredits(input.userId);
       const referralCodes = await db.getReferralCodes(input.userId);
       const groups = await db.getGroups();
+      const groupMemberships = await db.getUserGroupMemberships(input.userId);
       const pendingProfileRequests = profile ? (await db.getPendingProfileChangeRequests()).filter((r: any) => r.profileId === profile.id) : [];
       const pendingGroupRequests = (await db.getPendingGroupChangeRequests()).filter((r: any) => r.userId === input.userId);
       const pendingApplications = profile ? (await db.getPendingApplications()).filter((r: any) => r.id === profile.id) : [];
       const pendingReservations = (await db.getPendingVenmoReservations()).filter((r: any) => r.userId === input.userId);
       const pendingTests = (await db.getPendingTestResults()).filter((r: any) => r.user?.id === input.userId || r.userId === input.userId);
-      return { user, profile, notifications, credits, referralCodes, groups, pendingProfileRequests, pendingGroupRequests, pendingApplications, pendingReservations, pendingTests };
+      return { user, profile, notifications, credits, referralCodes, groups, groupMemberships, pendingProfileRequests, pendingGroupRequests, pendingApplications, pendingReservations, pendingTests };
     }),
     updateMemberRole: adminProcedure.input(z.object({ userId: z.number(), role: z.enum(['member', 'angel', 'admin']) })).mutation(async ({ ctx, input }) => {
       const dbConn = await db.getDb();
@@ -2214,6 +2215,11 @@ export const appRouter = router({
       await db.reviewTestResult(input.id, input.status, ctx.user.id, input.notes);
       await db.createAuditLog({ adminId: ctx.user.id, action: `member_test_${input.status}`, targetType: 'test_result_submission', targetId: input.id });
       return { success: true };
+    }),
+    setMemberGroups: adminProcedure.input(z.object({ userId: z.number(), groupIds: z.array(z.number()) })).mutation(async ({ ctx, input }) => {
+      const memberships = await db.setUserGroupMemberships(input.userId, input.groupIds);
+      await db.createAuditLog({ adminId: ctx.user.id, action: 'member_groups_updated', targetType: 'user', targetId: input.userId, metadata: { groupIds: input.groupIds } as any });
+      return { success: true, memberships };
     }),
     pendingApplications: adminProcedure.query(async () => {
       return db.getPendingApplications();
