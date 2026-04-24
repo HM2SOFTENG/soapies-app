@@ -99,7 +99,7 @@ export default function InterviewSlotsScreen() {
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  const { data, isLoading, refetch } = trpc.introCalls.all.useQuery(undefined, {
+  const { data, isLoading, isError, error, refetch } = trpc.introCalls.all.useQuery(undefined, {
     enabled: isAdmin,
   });
   const slots = (data as any[]) ?? [];
@@ -585,6 +585,15 @@ export default function InterviewSlotsScreen() {
         {/* ── Slot list ─────────────────────────────────────────────────── */}
         {isLoading ? (
           <ActivityIndicator color={colors.pink} style={{ marginTop: 40 }} />
+        ) : isError ? (
+          <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 24 }}>
+            <Ionicons name="cloud-offline-outline" size={40} color={theme.colors.textMuted} />
+            <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', marginTop: 14, textAlign: 'center' }}>Could not load interview slots</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 21 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
+            <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+              <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         ) : filteredSlots.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="calendar-outline" size={40} color={theme.colors.textMuted} />

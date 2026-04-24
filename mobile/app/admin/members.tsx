@@ -74,8 +74,8 @@ export default function AdminMembersScreen() {
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60000 });
   const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
-  const { data, isLoading } = trpc.admin.adminMembers.useQuery({ search, role, status, community: groupFilter }, { enabled: isAdmin });
-  const { data: detail, isLoading: detailLoading } = trpc.admin.adminMemberDetail.useQuery({ userId: selectedUserId! }, { enabled: !!selectedUserId && isAdmin });
+  const { data, isLoading, isError, error, refetch } = trpc.admin.adminMembers.useQuery({ search, role, status, community: groupFilter }, { enabled: isAdmin });
+  const { data: detail, isLoading: detailLoading, isError: detailIsError, error: detailError, refetch: refetchDetail } = trpc.admin.adminMemberDetail.useQuery({ userId: selectedUserId! }, { enabled: !!selectedUserId && isAdmin });
 
   const roleMutation = trpc.admin.updateUserRole.useMutation({
     onSuccess: () => { utils.admin.adminMembers.invalidate(); utils.admin.adminMemberDetail.invalidate(); Alert.alert('Updated', 'Member role updated.'); },
@@ -163,6 +163,19 @@ export default function AdminMembersScreen() {
 
   if (!isAdmin) {
     return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: theme.colors.text }}>Access denied</Text></SafeAreaView>;
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' }}>Could not load members admin</Text>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+          <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
   }
 
   const neutralAction = { bg: theme.colors.page, fg: theme.colors.textSecondary, text: theme.colors.text, subtle: theme.colors.textMuted, chevron: theme.colors.textMuted };
@@ -268,7 +281,16 @@ export default function AdminMembersScreen() {
             <Text numberOfLines={1} style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', flex: 1 }}>Member Overview</Text>
           </View>
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
-            {detailLoading ? <ActivityIndicator color={theme.colors.pink} style={{ marginTop: 40 }} /> : selectedDetail ? <>
+            {detailLoading ? <ActivityIndicator color={theme.colors.pink} style={{ marginTop: 40 }} /> : detailIsError ? (
+              <View style={{ alignItems: 'center', paddingTop: 48, paddingHorizontal: 24 }}>
+                <Ionicons name="cloud-offline-outline" size={36} color={theme.colors.textMuted} />
+                <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', marginTop: 14, textAlign: 'center' }}>Could not load member details</Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>{(detailError as any)?.message ?? 'Please try again in a moment.'}</Text>
+                <TouchableOpacity onPress={() => refetchDetail()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : selectedDetail ? <>
               <View style={{ backgroundColor: theme.colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 14, gap: 14 }}>
                 <View>
                   <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '900' }}>{selectedProfile?.displayName || selectedUser?.name || 'Member'}</Text>

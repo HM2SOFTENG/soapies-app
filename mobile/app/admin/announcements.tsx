@@ -39,7 +39,7 @@ export default function AdminAnnouncementsScreen() {
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
   const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
-  const { data, isLoading } = trpc.announcements.list.useQuery(
+  const { data, isLoading, isError, error, refetch } = trpc.announcements.list.useQuery(
     {},
     { enabled: isAdmin }
   );
@@ -109,6 +109,15 @@ export default function AdminAnnouncementsScreen() {
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color={colors.pink} size="large" />
+        </View>
+      ) : isError ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+          <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
+          <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load announcements</Text>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
+          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}>
+            <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>

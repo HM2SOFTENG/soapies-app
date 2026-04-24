@@ -52,7 +52,7 @@ export default function PushNotificationsScreen() {
   });
 
   // Fetch all members for the user picker
-  const { data: membersData } = trpc.members.browse.useQuery(
+  const { data: membersData, isLoading: membersLoading, isError: membersIsError, error: membersError, refetch: refetchMembers } = trpc.members.browse.useQuery(
     { community: 'all' },
     { staleTime: 60_000 }
   );
@@ -200,32 +200,47 @@ export default function PushNotificationsScreen() {
               }}
             />
             <View style={{ maxHeight: 200, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 20, overflow: 'hidden' }}>
-              <ScrollView>
-                {members.slice(0, 50).map((m: any) => (
-                  <TouchableOpacity
-                    key={m.userId ?? m.id}
-                    onPress={() => setTargetUserId(String(m.userId ?? m.id))}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', padding: 12,
-                      borderBottomWidth: 1, borderBottomColor: theme.colors.border,
-                      backgroundColor: targetUserId === String(m.userId ?? m.id) ? theme.alpha(theme.colors.primary, 0.08) : 'transparent',
-                    }}
-                  >
-                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.alpha(theme.colors.primary, 0.18), alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                      <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 13 }}>
-                        {(m.displayName ?? m.name ?? '?')[0]?.toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 13 }}>{m.displayName ?? m.name}</Text>
-                      <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>ID: {m.userId ?? m.id} · {m.communityId ?? m.community}</Text>
-                    </View>
-                    {targetUserId === String(m.userId ?? m.id) && (
-                      <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
-                    )}
+              {membersLoading ? (
+                <View style={{ paddingVertical: 28, alignItems: 'center' }}>
+                  <ActivityIndicator color={theme.colors.primary} />
+                </View>
+              ) : membersIsError ? (
+                <View style={{ paddingVertical: 24, paddingHorizontal: 18, alignItems: 'center' }}>
+                  <Ionicons name="cloud-offline-outline" size={24} color={theme.colors.textMuted} />
+                  <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14, marginTop: 10, textAlign: 'center' }}>Could not load member list</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 6, textAlign: 'center' }}>{(membersError as any)?.message ?? 'Please try again in a moment.'}</Text>
+                  <TouchableOpacity onPress={() => refetchMembers()} style={{ marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 12 }}>Retry</Text>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                </View>
+              ) : (
+                <ScrollView>
+                  {members.slice(0, 50).map((m: any) => (
+                    <TouchableOpacity
+                      key={m.userId ?? m.id}
+                      onPress={() => setTargetUserId(String(m.userId ?? m.id))}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', padding: 12,
+                        borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+                        backgroundColor: targetUserId === String(m.userId ?? m.id) ? theme.alpha(theme.colors.primary, 0.08) : 'transparent',
+                      }}
+                    >
+                      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.alpha(theme.colors.primary, 0.18), alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 13 }}>
+                          {(m.displayName ?? m.name ?? '?')[0]?.toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 13 }}>{m.displayName ?? m.name}</Text>
+                        <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>ID: {m.userId ?? m.id} · {m.communityId ?? m.community}</Text>
+                      </View>
+                      {targetUserId === String(m.userId ?? m.id) && (
+                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
             </View>
           </>
         )}

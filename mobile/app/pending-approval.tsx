@@ -212,6 +212,20 @@ export default function PendingApprovalScreen() {
     );
   }
 
+  if (profileQuery.isError) {
+    return (
+      <SafeAreaView style={[styles.container, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }]}> 
+        <Ionicons name="cloud-offline-outline" size={42} color={colors.muted} />
+        <Text style={[styles.title, { color: colors.text, marginTop: 14, textAlign: 'center' }]}>Could not load your application status</Text>
+        <Text style={[styles.statusSubMessage, { textAlign: 'center', marginTop: 8 }]}>{(profileQuery.error as any)?.message ?? 'Please try again in a moment.'}</Text>
+        <TouchableOpacity onPress={() => profileQuery.refetch()} style={[styles.scheduleBtn, { marginTop: 18, borderColor: colors.pink }]}> 
+          <Ionicons name="refresh-outline" size={16} color={colors.pink} />
+          <Text style={[styles.scheduleBtnText, { color: colors.pink }]}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -308,6 +322,20 @@ export default function PendingApprovalScreen() {
             {slotsQuery.isLoading ? (
               <View style={{ paddingVertical: 40, alignItems: 'center' }}>
                 <ActivityIndicator color={colors.pink} />
+              </View>
+            ) : slotsQuery.isError ? (
+              <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                <Ionicons name="cloud-offline-outline" size={28} color={colors.muted} />
+                <Text style={[styles.modalEmpty, { marginTop: 12, marginBottom: 14 }]}>
+                  {(slotsQuery.error as any)?.message ?? 'Could not load interview slots right now.'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => slotsQuery.refetch()}
+                  style={[styles.scheduleBtn, { borderColor: colors.pink }]}
+                >
+                  <Ionicons name="refresh-outline" size={16} color={colors.pink} />
+                  <Text style={[styles.scheduleBtnText, { color: colors.pink }]}>Retry</Text>
+                </TouchableOpacity>
               </View>
             ) : (slotsQuery.data ?? []).length === 0 ? (
               <Text style={styles.modalEmpty}>

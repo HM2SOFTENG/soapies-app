@@ -64,9 +64,9 @@ export default function ConnectionsScreen() {
   const [selectedRelType, setSelectedRelType] = useState('couple');
   const [showRelPicker, setShowRelPicker] = useState(false);
 
-  const { data: myConnections, refetch: refetchConnections } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
-  const { data: pendingForMe, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
-  const { data: myInvitations, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
+  const { data: myConnections, isLoading: connectionsLoading, isError: connectionsIsError, error: connectionsError, refetch: refetchConnections } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
+  const { data: pendingForMe, isLoading: pendingLoading, isError: pendingIsError, error: pendingError, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
+  const { data: myInvitations, isLoading: invitationsLoading, isError: invitationsIsError, error: invitationsError, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
   const trimmedQuery = searchQuery.trim();
   const { data: searchResults, isLoading: searchLoading, error: searchError } = trpc.members.browse.useQuery(
     { search: trimmedQuery, page: 0 },
@@ -107,6 +107,37 @@ export default function ConnectionsScreen() {
   const incoming = (pendingForMe as any[]) ?? [];
   const outgoing = ((myInvitations as any[]) ?? []).filter((i: any) => i.status === 'pending');
   const members = Array.isArray(searchResults) ? searchResults : [];
+  const mainLoadError = connectionsIsError || pendingIsError || invitationsIsError;
+  const mainLoadMessage = (connectionsError as any)?.message ?? (pendingError as any)?.message ?? (invitationsError as any)?.message;
+  const mainLoading = (connectionsLoading || pendingLoading || invitationsLoading) && !myConnections && !pendingForMe && !myInvitations;
+
+  if (mainLoading) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }} edges={['bottom']}>
+        <ActivityIndicator color="#EC4899" size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (mainLoadError && !myConnections && !pendingForMe && !myInvitations) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }} edges={['bottom']}>
+        <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
+        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load connections</Text>
+        <Text style={{ color: t.muted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{mainLoadMessage ?? 'Please try again in a moment.'}</Text>
+        <TouchableOpacity
+          onPress={() => {
+            refetchConnections();
+            refetchPending();
+            refetchInvitations();
+          }}
+          style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+        >
+          <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.page }} edges={['bottom']}>
