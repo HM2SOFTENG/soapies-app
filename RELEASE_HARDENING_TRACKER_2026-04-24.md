@@ -18,7 +18,7 @@
 | ID | Item | Status | Owner | Notes |
 |---|---|---:|---|---|
 | P0-01 | Full route-by-route regression audit | TODO | Engineering + QA | Needs hosted/manual validation |
-| P0-02 | Error-state completeness on major network screens | IN_PROGRESS | Engineering | Hardened messages, notifications, events, tickets, members, profile, edit profile, chat, event ops, event/member detail, pending approval, connections, admin members, interview slots, announcements, push notifications, settings, and key admin list/dashboard routes; hosted/manual QA still required |
+| P0-02 | Error-state completeness on major network screens | IN_PROGRESS | Engineering | Hardened home feed, pulse, messages, notifications, events, tickets, members, profile, edit profile, chat, event ops, event/member detail, pending approval, connections, admin members, interview slots, announcements, push notifications, settings, and key admin list/dashboard routes; hosted/manual QA still required |
 | P0-03 | Theme consistency closure | IN_PROGRESS | Engineering + Design QA | Active migration/stabilization |
 | P0-04 | Hosted deployment parity workflow | TODO | Engineering | Repeated remote mismatch seen |
 | P0-05 | End-to-end validation of transactional flows | TODO | QA + Engineering | Applications / reservations / tickets / messaging |

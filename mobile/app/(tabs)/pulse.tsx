@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   View, Text, TouchableOpacity, Modal, ScrollView, TextInput,
   Animated, Dimensions, Alert, Switch, StyleSheet, PanResponder,
-  KeyboardAvoidingView, Platform, useWindowDimensions,
+  KeyboardAvoidingView, Platform, useWindowDimensions, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -800,7 +800,7 @@ export default function PulseScreen() {
     undefined,
     { enabled: hasToken },
   );
-  const { data: signalsData, refetch: refetchSignals } = trpc.members.activeSignals.useQuery(
+  const { data: signalsData, isLoading: signalsLoading, isError: signalsIsError, error: signalsError, refetch: refetchSignals } = trpc.members.activeSignals.useQuery(
     { latitude: myLocation?.lat, longitude: myLocation?.lon },
     { enabled: hasToken, refetchInterval: 30_000 },
   );
@@ -918,6 +918,8 @@ export default function PulseScreen() {
   );
 
   const myConfig = SIGNAL_CONFIG[mySignalType];
+  const pulseCanvasLoading = signalsLoading && !signalsData;
+  const pulseCanvasError = signalsIsError && !signalsData;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: themed.screen }} edges={['bottom']}>
@@ -994,6 +996,22 @@ export default function PulseScreen() {
 
       {/* ── Bubble canvas ── */}
       <View style={{ flex: 1, position: 'relative', overflow: 'hidden', marginHorizontal: 12, marginBottom: 12, borderRadius: 34, borderWidth: 1, borderColor: themed.canvasBorder }}>
+
+        {pulseCanvasLoading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator color={theme.colors.pink} size="large" />
+          </View>
+        ) : pulseCanvasError ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+            <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
+            <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load Pulse</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{(signalsError as any)?.message ?? 'Please try again in a moment.'}</Text>
+            <TouchableOpacity onPress={() => refetchSignals()} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}>
+              <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+        <>
 
         {/* Depth gradient background */}
         <LinearGradient
@@ -1257,6 +1275,8 @@ export default function PulseScreen() {
               </Text>
             </View>
           </View>
+        )}
+        </>
         )}
       </View>
 

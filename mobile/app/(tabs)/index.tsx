@@ -768,6 +768,8 @@ export default function HomeScreen() {
   const {
     data: postsData,
     isLoading,
+    isError: postsIsError,
+    error: postsError,
     refetch: refetchPosts,
   } = trpc.wall.posts.useQuery(
     { limit: 50 }, // server auto-scopes to user's community
@@ -1011,6 +1013,19 @@ export default function HomeScreen() {
           <PostSkeleton />
           <PostSkeleton />
           <PostSkeleton />
+        </ScrollView>
+      ) : postsIsError ? (
+        <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+          {ListHeader}
+          {FeedBar}
+          <View style={{ alignItems: 'center', paddingTop: 42, paddingHorizontal: 28 }}>
+            <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
+            <Text style={{ color: themed.text, fontSize: 20, fontWeight: '700', textAlign: 'center', marginTop: 14 }}>Could not load the feed</Text>
+            <Text style={{ color: themed.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{(postsError as any)?.message ?? 'Please try again in a moment.'}</Text>
+            <TouchableOpacity onPress={() => refetchPosts()} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: themed.card, borderWidth: 1, borderColor: theme.colors.border }}>
+              <Text style={{ color: themed.text, fontWeight: '800' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       ) : (
         <View style={{ flex: 1 }}>
