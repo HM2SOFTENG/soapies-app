@@ -416,7 +416,7 @@ export default function MembersScreen() {
     [page, query, community, orientation, gender, memberRole, lookingFor, hasPhoto],
   );
 
-  const { data, isLoading, refetch } = trpc.members.browse.useQuery(queryInput, {
+  const { data, isLoading, isError, error, refetch } = trpc.members.browse.useQuery(queryInput, {
     staleTime: 0,
     enabled: hasToken,
     onSuccess: (newData: any) => {
@@ -431,6 +431,9 @@ export default function MembersScreen() {
         });
       }
       setHasMore(rows.length === PAGE_SIZE);
+      setLoadingMore(false);
+    },
+    onError: () => {
       setLoadingMore(false);
     },
   } as any);
@@ -989,6 +992,22 @@ export default function MembersScreen() {
       {isLoading && page === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color="#EC4899" size="large" />
+        </View>
+      ) : isError && displayMembers.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+          <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
+          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+            Could not load members
+          </Text>
+          <Text style={{ color: t.muted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+            {(error as any)?.message ?? 'Please try again in a moment.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+          >
+            <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

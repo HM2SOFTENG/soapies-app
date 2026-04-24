@@ -58,7 +58,7 @@ export default function EventDetailScreen() {
   const [waiverSignature, setWaiverSignature] = useState('');
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const { data: event, isLoading } = trpc.events.byId.useQuery(
+  const { data: event, isLoading, isError, error, refetch } = trpc.events.byId.useQuery(
     { id: Number(id) },
     { enabled: !!id },
   );
@@ -242,6 +242,26 @@ export default function EventDetailScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={theme.colors.pink} size="large" />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          Could not load this event
+        </Text>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          {(error as any)?.message ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}
+        >
+          <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

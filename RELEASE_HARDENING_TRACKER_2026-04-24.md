@@ -18,7 +18,7 @@
 | ID | Item | Status | Owner | Notes |
 |---|---|---:|---|---|
 | P0-01 | Full route-by-route regression audit | TODO | Engineering + QA | Needs hosted/manual validation |
-| P0-02 | Error-state completeness on major network screens | IN_PROGRESS | Engineering | Some screens being closed now |
+| P0-02 | Error-state completeness on major network screens | IN_PROGRESS | Engineering | Hardened messages, notifications, events, tickets, members, profile, event/member detail, and key admin list/dashboard routes; hosted/manual QA still required |
 | P0-03 | Theme consistency closure | IN_PROGRESS | Engineering + Design QA | Active migration/stabilization |
 | P0-04 | Hosted deployment parity workflow | TODO | Engineering | Repeated remote mismatch seen |
 | P0-05 | End-to-end validation of transactional flows | TODO | QA + Engineering | Applications / reservations / tickets / messaging |
@@ -42,7 +42,7 @@
 # 4. Immediate Execution Queue
 
 ## In scope for direct repo work
-1. Add missing error states to high-traffic screens
+1. Continue closing remaining network/error-state gaps on lower-traffic routes
 2. Add missing mutation error handlers in chat
 3. Create route-by-route QA checklist
 4. Document hosted deployment verification workflow

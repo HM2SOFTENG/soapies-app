@@ -71,7 +71,7 @@ export default function MemberProfileScreen() {
   const insets  = useSafeAreaInsets();
   const { colors, alpha, gradients } = useTheme();
 
-  const { data: member, isLoading } = trpc.members.byId.useQuery(
+  const { data: member, isLoading, isError, error, refetch } = trpc.members.byId.useQuery(
     { userId: Number(id) }, { enabled: !!id },
   );
   const { data: wallPosts, isLoading: wallLoading } = trpc.members.wall.useQuery(
@@ -175,6 +175,22 @@ export default function MemberProfileScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
+      </View>
+    );
+  }
+  if (isError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <Ionicons name="cloud-offline-outline" size={42} color={colors.textMuted} />
+        <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          Could not load this member
+        </Text>
+        <Text style={{ color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          {(error as any)?.message ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18 }}>
+          <Text style={{ color: colors.pink, fontWeight: '700' }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }

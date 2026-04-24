@@ -312,7 +312,7 @@ export default function TicketsScreen() {
   const [showPaymentAgreement, setShowPaymentAgreement] = useState(false);
   const [pendingPayTicket, setPendingPayTicket] = useState<any>(null);
 
-  const { data, isLoading, refetch } = trpc.reservations.myTickets.useQuery(undefined, {
+  const { data, isLoading, isError, error, refetch } = trpc.reservations.myTickets.useQuery(undefined, {
     staleTime: 0,
   });
 
@@ -447,6 +447,22 @@ export default function TicketsScreen() {
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color={colors.pink} size="large" />
+        </View>
+      ) : isError ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+          <Ionicons name="cloud-offline-outline" size={42} color={t.textMuted} />
+          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+            Could not load your tickets
+          </Text>
+          <Text style={{ color: t.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+            {(error as any)?.message ?? 'Please check your connection and try again.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+          >
+            <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView

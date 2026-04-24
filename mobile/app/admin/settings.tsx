@@ -126,7 +126,7 @@ export default function AdminSettingsScreen() {
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
   const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
-  const { data: settingsData, refetch, isLoading } = trpc.admin.settings.useQuery(undefined, {
+  const { data: settingsData, refetch, isLoading, isError, error } = trpc.admin.settings.useQuery(undefined, {
     enabled: isAdmin,
     staleTime: 30_000,
   });
@@ -211,6 +211,23 @@ export default function AdminSettingsScreen() {
         <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>You need admin privileges to access this area.</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
           <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }} edges={['bottom']}>
+        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' }}>
+          Could not load admin settings
+        </Text>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
+          {(error as any)?.message ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+          <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );

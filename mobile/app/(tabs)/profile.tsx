@@ -254,8 +254,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { hasToken } = useAuth();
 
-  const { data: me, isLoading } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
-  const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+  const { data: me, isLoading, isError: meIsError, error: meError, refetch: refetchMe } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+  const { data: profileData, isError: profileIsError, error: profileError, refetch: refetchProfile } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const { data: creditsData } = trpc.credits.balance.useQuery(undefined, { enabled: hasToken });
   const { data: referralCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: hasToken });
   const { data: myReferralsData } = trpc.referrals.myReferrals.useQuery(undefined, { enabled: hasToken });
@@ -287,6 +287,8 @@ export default function ProfileScreen() {
   const memberRole: string | undefined = profile?.memberRole ?? profile?.role;
   const roleConfig = memberRole ? (ROLE_CONFIG[memberRole] ?? ROLE_CONFIG.pending) : null;
   const communityLabel = profile?.communityId ? (COMMUNITY_NAMES[profile.communityId] ?? profile.communityId) : null;
+  const profileLoadError = meIsError || profileIsError;
+  const profileLoadErrorMessage = (meError as any)?.message ?? (profileError as any)?.message;
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: async () => {
@@ -332,6 +334,29 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (profileLoadError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <Ionicons name="cloud-offline-outline" size={42} color={t.subtext} />
+        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          Could not load your profile
+        </Text>
+        <Text style={{ color: t.subtext, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          {profileLoadErrorMessage ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            refetchMe();
+            refetchProfile();
+          }}
+          style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+        >
+          <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

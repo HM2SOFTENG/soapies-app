@@ -144,11 +144,11 @@ export default function AdminDashboard() {
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
   const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
-  const { data: stats, isLoading: statsLoading } = trpc.admin.stats.useQuery(
+  const { data: stats, isLoading: statsLoading, isError: statsIsError, error: statsError, refetch: refetchStats } = trpc.admin.stats.useQuery(
     undefined,
     { enabled: isAdmin }
   );
-  const { data: pendingVenmo, isLoading: venmoLoading } = trpc.admin.pendingVenmoReservations.useQuery(
+  const { data: pendingVenmo, isLoading: venmoLoading, isError: venmoIsError, error: venmoError, refetch: refetchVenmo } = trpc.admin.pendingVenmoReservations.useQuery(
     undefined,
     { enabled: isAdmin }
   );
@@ -200,6 +200,29 @@ export default function AdminDashboard() {
           }}
         >
           <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  if (statsIsError || venmoIsError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' }}>
+          Could not load admin dashboard
+        </Text>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
+          {(statsError as any)?.message ?? (venmoError as any)?.message ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            refetchStats();
+            refetchVenmo();
+          }}
+          style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}
+        >
+          <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
