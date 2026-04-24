@@ -18,11 +18,11 @@
 | ID | Item | Status | Owner | Notes |
 |---|---|---:|---|---|
 | P0-01 | Full route-by-route regression audit | TODO | Engineering + QA | Needs hosted/manual validation |
-| P0-02 | Error-state completeness on major network screens | IN_PROGRESS | Engineering | Hardened home feed, pulse, messages, notifications, events, tickets, members, profile, edit profile, chat, event ops, event/member detail, pending approval, connections, admin members, interview slots, announcements, push notifications, settings, and key admin list/dashboard routes; hosted/manual QA still required |
+| P0-02 | Error-state completeness on major network screens | IN_PROGRESS | Engineering | Repo-local sweep now covers app shell, home feed, pulse, messages, notifications, events, tickets, members, profile, edit profile, chat, event ops, event/member detail, pending approval, connections, admin members, interview slots, announcements, push notifications, settings, and key admin list/dashboard routes; hosted/manual QA still required |
 | P0-03 | Theme consistency closure | IN_PROGRESS | Engineering + Design QA | Active migration/stabilization |
 | P0-04 | Hosted deployment parity workflow | IN_PROGRESS | Engineering | Checklist drafted in `DEPLOYMENT_VERIFICATION_CHECKLIST_2026-04-24.md`; hosted execution still required |
 | P0-05 | End-to-end validation of transactional flows | TODO | QA + Engineering | Applications / reservations / tickets / messaging |
-| P0-06 | Auth/session hardening validation | IN_PROGRESS | Engineering + QA | Checklist drafted in `AUTH_SESSION_VALIDATION_CHECKLIST_2026-04-24.md`; hosted/device execution still required |
+| P0-06 | Auth/session hardening validation | IN_PROGRESS | Engineering + QA | Checklist drafted in `AUTH_SESSION_VALIDATION_CHECKLIST_2026-04-24.md`; app shell now preserves sessions on transient `auth.me`/`profile.me` failures instead of clearing tokens, but hosted/device execution is still required |
 | P0-07 | App Store compliance readiness review | TODO | Product + Ops | Privacy / moderation / policy / metadata |
 
 ---

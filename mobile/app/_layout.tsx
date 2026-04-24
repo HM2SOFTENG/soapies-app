@@ -1,13 +1,12 @@
 import '../global.css';
 import React, { useEffect, useRef } from 'react';
 import { Slot, Stack, useRouter, useSegments } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
-import { trpc, createTRPCClient, SESSION_COOKIE_KEY } from '../lib/trpc';
+import { trpc, createTRPCClient } from '../lib/trpc';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
 import { ToastProvider } from '../components/Toast';
@@ -46,6 +45,68 @@ export const queryClient = new QueryClient({
 
 const trpcClient = createTRPCClient();
 
+function getErrorCode(error: any): string | undefined {
+  return error?.data?.code ?? error?.shape?.data?.code ?? error?.shape?.code;
+}
+
+function getErrorStatus(error: any): number | undefined {
+  return error?.data?.httpStatus ?? error?.shape?.data?.httpStatus ?? error?.meta?.response?.status;
+}
+
+function isAuthFailure(error: any): boolean {
+  const code = getErrorCode(error);
+  const status = getErrorStatus(error);
+  const message = String(error?.message ?? '').toLowerCase();
+
+  return (
+    code === 'UNAUTHORIZED' ||
+    code === 'FORBIDDEN' ||
+    status === 401 ||
+    status === 403 ||
+    message.includes('unauthorized') ||
+    message.includes('forbidden') ||
+    message.includes('not logged in') ||
+    message.includes('not authenticated')
+  );
+}
+
+function ShellErrorScreen({
+  title,
+  message,
+  onRetry,
+  onLogout,
+}: {
+  title: string;
+  message: string;
+  onRetry: () => void;
+  onLogout?: () => void;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+      <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>{title}</Text>
+      <Text style={{ color: colors.textMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 10 }}>{message}</Text>
+      <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+        <TouchableOpacity
+          onPress={onRetry}
+          style={{ paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+        >
+          <Text style={{ color: colors.text, fontWeight: '800' }}>Retry</Text>
+        </TouchableOpacity>
+        {onLogout && (
+          <TouchableOpacity
+            onPress={onLogout}
+            style={{ paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.tintSoft, borderWidth: 1, borderColor: colors.focusRing }}
+          >
+            <Text style={{ color: colors.text, fontWeight: '800' }}>Log out</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoading, user, hasToken, setUser, logout, setHasToken } = useAuth();
   const segments = useSegments();
@@ -69,18 +130,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [meQuery.data]);
 
-  // Clear bad token — do NOT call queryClient.clear() here as it resets meQuery
-  // and causes an infinite 401 loop when there's no token at all
+  // Only clear a stored token on real auth failures — not transient network issues.
   const clearedTokenRef = React.useRef(false);
   useEffect(() => {
-    if (meQuery.error && !clearedTokenRef.current) {
-      clearedTokenRef.current = true;
-      ['app_session_cookie','app_session_id','session_token','sessionToken'].forEach(k =>
-        SecureStore.deleteItemAsync(k).catch(() => {})
-      );
-      logout();
-    }
-  }, [meQuery.error]);
+    if (!meQuery.error || clearedTokenRef.current || !isAuthFailure(meQuery.error)) return;
+    clearedTokenRef.current = true;
+    logout();
+  }, [meQuery.error, logout]);
 
   const profileQuery = trpc.profile.me.useQuery(undefined, {
     enabled: !!user,
@@ -89,6 +145,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   });
 
   const savePushToken = trpc.profile.savePushToken.useMutation();
+  const profileAuthFailureRef = React.useRef(false);
+
+  useEffect(() => {
+    if (!profileQuery.error || profileAuthFailureRef.current || !isAuthFailure(profileQuery.error)) return;
+    profileAuthFailureRef.current = true;
+    logout();
+  }, [profileQuery.error, logout]);
 
   // Register for push notifications once user is logged in
   useEffect(() => {
@@ -179,6 +242,28 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   ]);
 
   if (isLoading) return <LoadingScreen />;
+
+  if (!user && hasToken && meQuery.isError && !isAuthFailure(meQuery.error)) {
+    return (
+      <ShellErrorScreen
+        title="Could not restore your session"
+        message={(meQuery.error as any)?.message ?? 'The app could not verify your session right now. Retry before logging out.'}
+        onRetry={() => meQuery.refetch()}
+        onLogout={() => logout()}
+      />
+    );
+  }
+
+  if (user && profileQuery.isError && !isAuthFailure(profileQuery.error)) {
+    return (
+      <ShellErrorScreen
+        title="Could not load your account"
+        message={(profileQuery.error as any)?.message ?? 'The app could not load your profile data right now.'}
+        onRetry={() => profileQuery.refetch()}
+        onLogout={() => logout()}
+      />
+    );
+  }
 
   return <>{children}</>;
 }

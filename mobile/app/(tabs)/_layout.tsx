@@ -131,11 +131,19 @@ export default function TabsLayout() {
   const { user, hasToken } = useAuth();
   const { colors, isDark } = useTheme();
   const isAdmin = user?.role === 'admin';
-  const { data: unreadData } = trpc.messages.unreadCounts.useQuery(undefined, { staleTime: 15_000, refetchInterval: 30_000 });
-  const { data: mySignalData } = trpc.members.mySignal.useQuery(undefined, { enabled: hasToken, staleTime: 60_000, refetchInterval: 5 * 60_000 });
-  const mySignalType: string | null = (mySignalData as any)?.signalType ?? null;
+  const { data: unreadData, isError: unreadIsError } = trpc.messages.unreadCounts.useQuery(undefined, {
+    enabled: hasToken,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+  const { data: mySignalData, isError: mySignalIsError } = trpc.members.mySignal.useQuery(undefined, {
+    enabled: hasToken,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+  const mySignalType: string | null = mySignalIsError ? null : ((mySignalData as any)?.signalType ?? null);
   const totalUnread = (() => {
-    if (!unreadData) return 0;
+    if (unreadIsError || !unreadData) return 0;
     if (typeof unreadData === 'number') return unreadData;
     if (Array.isArray(unreadData)) return (unreadData as any[]).reduce((sum: number, c: any) => sum + (typeof c === 'number' ? c : (c?.unreadCount ?? c?.count ?? 0)), 0);
     if (typeof unreadData === 'object') return Object.values(unreadData as Record<string, number>).reduce((sum: number, v) => sum + (Number(v) || 0), 0);
