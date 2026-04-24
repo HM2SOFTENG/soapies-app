@@ -78,8 +78,8 @@ export default function EditProfileScreen() {
     focus: theme.colors.focusRing,
   };
 
-  const { data: profileData, isLoading } = trpc.profile.me.useQuery();
-  const { data: meData } = trpc.auth.me.useQuery();
+  const { data: profileData, isLoading, isError: profileIsError, error: profileError, refetch: refetchProfile } = trpc.profile.me.useQuery();
+  const { data: meData, isError: meIsError, error: meError, refetch: refetchMe } = trpc.auth.me.useQuery();
 
   const toast = useToast();
 
@@ -100,6 +100,8 @@ export default function EditProfileScreen() {
 
   const profile = profileData as any;
   const me = meData as any;
+  const loadError = profileIsError || meIsError;
+  const loadErrorMessage = (profileError as any)?.message ?? (meError as any)?.message;
 
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
@@ -175,6 +177,19 @@ export default function EditProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={colors.pink} size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
+        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load your profile</Text>
+        <Text style={{ color: t.subtext, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{loadErrorMessage ?? 'Please try again in a moment.'}</Text>
+        <TouchableOpacity onPress={() => { refetchProfile(); refetchMe(); }} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}>
+          <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

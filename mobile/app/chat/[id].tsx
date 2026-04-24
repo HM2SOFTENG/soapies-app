@@ -54,12 +54,12 @@ export default function ChatScreen() {
   }, [text]);
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const { data: messages, isLoading, refetch } = trpc.messages.messages.useQuery(
+  const { data: messages, isLoading, isError: messagesIsError, error: messagesError, refetch } = trpc.messages.messages.useQuery(
     { conversationId, limit: 100 },
     { enabled: !!id, staleTime: 5_000, refetchInterval: 5_000 },
   );
 
-  const { data: conversations } = trpc.messages.conversations.useQuery(undefined, {
+  const { data: conversations, isError: conversationsIsError, error: conversationsError, refetch: refetchConversations } = trpc.messages.conversations.useQuery(undefined, {
     enabled: !!id,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -135,6 +135,8 @@ export default function ChatScreen() {
 
   // Memoize reversed list to prevent new array allocation every render
   const reversedMessages = useMemo(() => [...msgList].reverse(), [msgList]);
+  const chatLoadError = messagesIsError || conversationsIsError;
+  const chatLoadErrorMessage = (messagesError as any)?.message ?? (conversationsError as any)?.message;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSend = useCallback(() => {
@@ -292,6 +294,15 @@ export default function ChatScreen() {
         {isLoading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator color={colors.pink} size="large" />
+          </View>
+        ) : chatLoadError ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+            <Ionicons name="cloud-offline-outline" size={42} color={colors.textMuted} />
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load this chat</Text>
+            <Text style={{ color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{chatLoadErrorMessage ?? 'Please try again in a moment.'}</Text>
+            <TouchableOpacity onPress={() => { refetch(); refetchConversations(); }} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ color: colors.text, fontWeight: '800' }}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList

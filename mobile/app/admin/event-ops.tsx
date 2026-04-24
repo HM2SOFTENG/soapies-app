@@ -211,7 +211,7 @@ export default function EventOpsScreen() {
   }
 
   // Data
-  const { data: reservationsData, isLoading, refetch: refetchReservations } = trpc.admin.eventReservations.useQuery(
+  const { data: reservationsData, isLoading, isError, error, refetch: refetchReservations } = trpc.admin.eventReservations.useQuery(
     { eventId: Number(eventId) },
     { enabled: !!eventId }
   );
@@ -347,6 +347,18 @@ export default function EventOpsScreen() {
       />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
+
+        {isError ? (
+          <View style={{ alignItems: 'center', paddingTop: 48, paddingHorizontal: 24 }}>
+            <Ionicons name="cloud-offline-outline" size={40} color={theme.colors.textMuted} />
+            <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load event operations</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
+            <TouchableOpacity onPress={() => refetchReservations()} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}>
+              <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+        <>
 
         {/* ── Volunteer Staff Management ── */}
         {activeSection === 'volunteers' && (
@@ -707,6 +719,8 @@ export default function EventOpsScreen() {
           </View>
         )}
 
+        </>
+        )}
       </ScrollView>
 
       {/* Scan Result Modal */}

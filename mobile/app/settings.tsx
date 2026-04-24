@@ -266,11 +266,13 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { hasToken } = useAuth();
 
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { enabled: hasToken, staleTime: 60_000 });
+  const { data: meData, isError: meIsError, error: meError, refetch: refetchMe } = trpc.auth.me.useQuery(undefined, { enabled: hasToken, staleTime: 60_000 });
   const me = meData as any;
 
-  const { data: pendingConnections } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
+  const { data: pendingConnections, isError: pendingIsError, error: pendingError, refetch: refetchPendingConnections } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
   const pendingCount = (pendingConnections as any[])?.length ?? 0;
+  const settingsLoadError = meIsError || pendingIsError;
+  const settingsLoadErrorMessage = (meError as any)?.message ?? (pendingError as any)?.message;
   const email = me?.email ?? '';
   const phone = me?.phone ?? '';
 
@@ -409,6 +411,21 @@ export default function SettingsScreen() {
           <Text style={{ color: themeColors.text, fontSize: 24, fontWeight: '900', flex: 1 }}>Settings ⚙️</Text>
         </View>
       </View>
+
+      {settingsLoadError && (
+        <View style={{ marginHorizontal: 16, marginBottom: 12, backgroundColor: alpha(themeColors.danger ?? '#ff3b30', 0.08), borderRadius: 14, borderWidth: 1, borderColor: alpha(themeColors.danger ?? '#ff3b30', 0.18), padding: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+            <Ionicons name="cloud-offline-outline" size={18} color={themeColors.danger ?? '#ff3b30'} style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: themeColors.text, fontWeight: '800', fontSize: 14 }}>Some settings data could not load</Text>
+              <Text style={{ color: themeColors.textSecondary, fontSize: 13, marginTop: 4, lineHeight: 19 }}>{settingsLoadErrorMessage ?? 'Retry to refresh your account details and connection counts.'}</Text>
+            </View>
+            <TouchableOpacity onPress={() => { refetchMe(); refetchPendingConnections(); }} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: themeColors.card, borderWidth: 1, borderColor: themeColors.border }}>
+              <Text style={{ color: themeColors.text, fontWeight: '700', fontSize: 12 }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
         {/* ── CONNECTIONS ── */}
         <SectionHeader title="Connections" />
