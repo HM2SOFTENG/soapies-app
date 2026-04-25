@@ -6,7 +6,9 @@
  * server types and React hooks, we mock the @trpc/* packages to isolate the
  * config logic under test.
  */
+import * as SecureStore from 'expo-secure-store';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createTRPCClient } from '../lib/trpc';
 
 // ── In-memory SecureStore ─────────────────────────────────────────────────────
 // Note: factory is hoisted, so we use a module-level store object and reference
@@ -44,9 +46,6 @@ vi.mock('@trpc/react-query', () => ({
 
 // ── Mock superjson ────────────────────────────────────────────────────────────
 vi.mock('superjson', () => ({ default: { serialize: vi.fn(), deserialize: vi.fn() } }));
-
-import { createTRPCClient } from '../lib/trpc';
-import * as SecureStore from 'expo-secure-store';
 
 // Access the internal store via the mock's exported _store
 const mockModule = SecureStore as any;

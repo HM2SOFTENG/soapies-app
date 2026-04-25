@@ -5,6 +5,7 @@
  * We test the business logic directly rather than rendering React components
  * (no jsdom/RN renderer available in node environment).
  */
+import * as SecureStore from 'expo-secure-store';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mock expo-secure-store ────────────────────────────────────────────────────
@@ -28,8 +29,6 @@ vi.mock('../lib/trpc', () => ({
   trpc: { auth: { me: { useQuery: vi.fn(() => ({ data: null })) } } },
   createTRPCClient: vi.fn(() => ({})),
 }));
-
-import * as SecureStore from 'expo-secure-store';
 
 const SESSION_KEY = 'session_token';
 

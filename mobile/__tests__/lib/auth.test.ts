@@ -5,14 +5,13 @@
  * (3-part format) and length constraints (100–300 chars).
  */
 import { describe, it, expect, vi } from 'vitest';
+import { isValidJWT } from '../../lib/auth';
 
 vi.mock('../../lib/trpc', () => ({
   loadTokenFromStorage: vi.fn(),
   clearToken: vi.fn(),
   SESSION_COOKIE_KEY: 'app_session_cookie',
 }));
-
-import { isValidJWT } from '../../lib/auth';
 
 describe('lib/auth — isValidJWT validation', () => {
   it('returns true for valid 3-part JWT at ~150 chars', () => {
