@@ -274,7 +274,7 @@ export default function PendingApprovalScreen() {
           <Text style={styles.accordionText}>
             Our team reviews each application carefully. We look at your profile, photos, and how you present yourself in the community.
             {'\n\n'}
-            Most reviews are completed within 24-48 hours. You'll receive an email and push notification as soon as there's an update.
+            Most reviews are completed within 24-48 hours. You&apos;ll receive an email and push notification as soon as there&apos;s an update.
             {'\n\n'}
             Approved members get full access to events, messaging, and community features.
           </Text>

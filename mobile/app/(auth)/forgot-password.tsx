@@ -106,7 +106,7 @@ export default function ForgotPasswordScreen() {
               Forgot Password?
             </Text>
             <Text style={{ color: '#5A5575', fontSize: 14, marginBottom: 32, lineHeight: 22 }}>
-              Enter the email address associated with your account and we'll send you a reset code.
+              Enter the email address associated with your account and we&apos;ll send you a reset code.
             </Text>
 
             {/* Email input */}

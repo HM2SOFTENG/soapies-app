@@ -161,23 +161,6 @@ export default function AdminMembersScreen() {
   const pendingTests = selectedDetail?.pendingTests ?? [];
   const isSuspended = !!selectedUser?.isSuspended;
 
-  if (!isAdmin) {
-    return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: theme.colors.text }}>Access denied</Text></SafeAreaView>;
-  }
-
-  if (isError) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
-        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' }}>Could not load members admin</Text>
-        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
-          <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
   const neutralAction = { bg: theme.colors.page, fg: theme.colors.textSecondary, text: theme.colors.text, subtle: theme.colors.textMuted, chevron: theme.colors.textMuted };
   const primaryAction = { bg: theme.alpha(theme.colors.primary, 0.14), fg: theme.colors.primary, text: theme.colors.text, subtle: theme.colors.textMuted, chevron: theme.colors.primary };
   const warningAction = { bg: theme.alpha(theme.colors.warning, 0.14), fg: theme.colors.warning, text: theme.colors.text, subtle: theme.colors.textMuted, chevron: theme.colors.warning };
@@ -196,6 +179,23 @@ export default function AdminMembersScreen() {
     setSelectedUserId(parsed);
     router.setParams({ reopenUserId: undefined as any });
   }, [reopenUserId]);
+
+  if (!isAdmin) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: theme.colors.text }}>Access denied</Text></SafeAreaView>;
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
+        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' }}>Could not load members admin</Text>
+        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+          <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['left', 'right']} style={{ flex: 1, backgroundColor: theme.colors.background }}>

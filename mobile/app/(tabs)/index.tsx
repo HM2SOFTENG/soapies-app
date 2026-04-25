@@ -994,7 +994,7 @@ export default function HomeScreen() {
       >
         <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={34} />
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ color: themed.composerPrompt, fontSize: 14, fontWeight: '500' }}>What's on your mind?</Text>
+          <Text style={{ color: themed.composerPrompt, fontSize: 14, fontWeight: '500' }}>What&apos;s on your mind?</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Ionicons name="image-outline" size={20} color={themed.composerIconPink} />
@@ -1062,7 +1062,7 @@ export default function HomeScreen() {
             <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>💫</Text>
               <Text style={{ color: themed.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
-                It's quiet in here…
+                It&apos;s quiet in here…
               </Text>
               <Text style={{ color: themed.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24 }}>
                 Be the first to share something with the community

@@ -622,7 +622,7 @@ function MemberDetailModal({
                   color: theme.colors.textSecondary, fontSize: 13, fontStyle: 'italic',
                   textAlign: 'center', lineHeight: 20, marginBottom: 10, paddingHorizontal: 16,
                 }}>
-                  "{member.message}"
+                  &quot;{member.message}&quot;
                 </Text>
               ) : null}
 
@@ -1269,9 +1269,9 @@ export default function PulseScreen() {
             }}>
               <Text style={{ fontSize: 38, marginBottom: 12 }}>👀</Text>
               <Text style={{ color: theme.colors.textSecondary, textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
-                No one's active right now.{'\n'}
+                No one&apos;s active right now.{'\n'}
                 Tap your signal above to go <Text style={{ color: '#EC4899', fontWeight: '700' }}>Available</Text> or{' '}
-                <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others' Pulse.
+                <Text style={{ color: '#A855F7', fontWeight: '700' }}>Looking</Text> and appear in others&apos; Pulse.
               </Text>
             </View>
           </View>

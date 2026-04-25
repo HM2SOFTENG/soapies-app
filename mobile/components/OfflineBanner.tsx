@@ -97,7 +97,7 @@ export default function OfflineBanner() {
             lineHeight: 20,
           }}
         >
-          You're offline — some features may not work.
+          You&apos;re offline — some features may not work.
         </Text>
       </View>
     </Animated.View>

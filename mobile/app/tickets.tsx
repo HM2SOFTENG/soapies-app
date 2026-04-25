@@ -513,7 +513,7 @@ export default function TicketsScreen() {
                       <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 14 }}>Payment Pending</Text>
                     </View>
                     <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 19 }}>
-                      Complete payment to confirm your spot. Tap "Pay Now" on any pending reservation.
+                      Complete payment to confirm your spot. Tap &quot;Pay Now&quot; on any pending reservation.
                     </Text>
                   </View>
                   {pendingTickets.map((ticket: any) => (

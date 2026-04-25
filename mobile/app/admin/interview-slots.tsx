@@ -126,6 +126,24 @@ export default function InterviewSlotsScreen() {
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
+  // ─── Derived ─────────────────────────────────────────────────────────────
+  const previewSlots = generateSlots(startDate, endDate, times, duration);
+
+  const filteredSlots = useMemo(() => slots.filter((s: any) => {
+    if (filterTab === 'all') return true;
+    return s.status === filterTab;
+  }), [slots, filterTab]);
+
+  const FILTER_TABS: { key: FilterTab; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'available', label: 'Available' },
+    { key: 'booked', label: 'Booked' },
+    { key: 'completed', label: 'Completed' },
+  ];
+
+  const DURATION_OPTIONS = [15, 20, 30, 45];
+  const QUICK_TIME_PRESETS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'];
+
   // ─── Guard ───────────────────────────────────────────────────────────────
   if (!isAdmin) {
     return (
@@ -145,24 +163,6 @@ export default function InterviewSlotsScreen() {
       </SafeAreaView>
     );
   }
-
-  // ─── Derived ─────────────────────────────────────────────────────────────
-  const previewSlots = generateSlots(startDate, endDate, times, duration);
-
-  const filteredSlots = useMemo(() => slots.filter((s: any) => {
-    if (filterTab === 'all') return true;
-    return s.status === filterTab;
-  }), [slots, filterTab]);
-
-  const FILTER_TABS: { key: FilterTab; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'available', label: 'Available' },
-    { key: 'booked', label: 'Booked' },
-    { key: 'completed', label: 'Completed' },
-  ];
-
-  const DURATION_OPTIONS = [15, 20, 30, 45];
-  const QUICK_TIME_PRESETS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'];
 
   // ─── Handlers ────────────────────────────────────────────────────────────
   function addTime() {

@@ -268,7 +268,7 @@ export default function MessagesScreen() {
                 <>
                   <Text style={styles.emptyEmoji}>🔍</Text>
                   <Text style={[styles.emptyTitle, { color: themed.title }]}>No results</Text>
-                  <Text style={[styles.emptyBody, { color: themed.mutedSoft }]}>No conversations match "{searchQuery}"</Text>
+                  <Text style={[styles.emptyBody, { color: themed.mutedSoft }]}>No conversations match &quot;{searchQuery}&quot;</Text>
                   <TouchableOpacity
                     onPress={() => setSearchQuery('')}
                     style={styles.emptySecondary}

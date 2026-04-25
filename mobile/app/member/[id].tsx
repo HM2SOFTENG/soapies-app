@@ -447,7 +447,7 @@ export default function MemberProfileScreen() {
             </View>
             {signal.message ? (
               <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8, fontStyle: 'italic' }}>
-                "{signal.message}"
+                &quot;{signal.message}&quot;
               </Text>
             ) : null}
           </Animated.View>
@@ -539,7 +539,7 @@ export default function MemberProfileScreen() {
                     {/* Tap hint */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 12 }}>
                       <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-                        View {(conn.partnerDisplayName ?? '').split(' ')[0]}'s profile
+                        View {(conn.partnerDisplayName ?? '').split(' ')[0]}&apos;s profile
                       </Text>
                       <Ionicons name="chevron-forward" size={11} color={colors.textMuted} />
                     </View>
@@ -707,7 +707,7 @@ export default function MemberProfileScreen() {
             }}>
               <Text style={{ fontSize: 32, marginBottom: 10 }}>🌸</Text>
               <Text style={{ color: colors.textMuted, fontSize: 15, fontWeight: '600' }}>No posts yet</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 4 }}>{firstName} hasn't posted anything</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 4 }}>{firstName} hasn&apos;t posted anything</Text>
             </View>
           ) : (
             posts.map((post: any) => (

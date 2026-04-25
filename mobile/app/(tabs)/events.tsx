@@ -272,7 +272,7 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
                   backgroundColor: theme.colors.successSoft, borderColor: theme.colors.successBorder, borderWidth: 1,
                   flexDirection: 'row', alignItems: 'center', gap: 4,
                 }}>
-                  <Text style={{ color: theme.colors.success, fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>✅ You're Going</Text>
+                  <Text style={{ color: theme.colors.success, fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>✅ You&apos;re Going</Text>
                 </View>
               )}
               {event.status === 'published' && (
@@ -469,7 +469,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
               {isGoing ? (
                 <LinearGradient colors={['#10B981', '#059669']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.heroBtn}>
                   <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, fontFamily: FONT.displaySemiBold }}>You're Going! ✅</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, fontFamily: FONT.displaySemiBold }}>You&apos;re Going! ✅</Text>
                 </LinearGradient>
               ) : (
                 <BrandGradient

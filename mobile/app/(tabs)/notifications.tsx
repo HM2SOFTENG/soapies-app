@@ -195,10 +195,10 @@ export default function NotificationsScreen() {
             <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>🔔</Text>
               <Text style={[styles.emptyTitle, { color: themed.emptyTitle }]}>
-                You're all caught up!
+                You&apos;re all caught up!
               </Text>
               <Text style={[styles.emptyBody, { color: themed.emptyBody }]}>
-                We'll let you know when something happens
+                We&apos;ll let you know when something happens
               </Text>
             </View>
           }

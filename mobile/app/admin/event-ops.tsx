@@ -710,7 +710,7 @@ export default function EventOpsScreen() {
                     </View>
 
                     <Text style={{ color: theme.colors.textMuted, fontSize: 12, textAlign: 'center' }}>
-                      Point the camera at a guest's QR code to check them in automatically
+                      Point the camera at a guest&apos;s QR code to check them in automatically
                     </Text>
                   </View>
                 )}

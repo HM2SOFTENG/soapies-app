@@ -676,7 +676,7 @@ export default function OnboardingScreen() {
         >
           <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
             <Text style={styles.stepHeading}>Create Account</Text>
-            <Text style={styles.stepSubheading}>Membership is by approval. We'll review your application.</Text>
+            <Text style={styles.stepSubheading}>Membership is by approval. We&apos;ll review your application.</Text>
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>EMAIL *</Text>
@@ -744,7 +744,7 @@ export default function OnboardingScreen() {
                 </TouchableOpacity>
               </View>
               {confirmPassword.length > 0 && password !== confirmPassword && (
-                <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>Passwords don't match</Text>
+                <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>Passwords don&apos;t match</Text>
               )}
             </View>
 
@@ -1278,7 +1278,7 @@ export default function OnboardingScreen() {
 
           <View style={{ marginTop: 8, marginBottom: 16, padding: 14, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 20, textAlign: 'center' }}>
-              Our team reviews all applications within 24-48 hours. You'll receive an email notification with the decision.
+              Our team reviews all applications within 24-48 hours. You&apos;ll receive an email notification with the decision.
             </Text>
           </View>
 

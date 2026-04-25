@@ -769,7 +769,7 @@ export default function EventDetailScreen() {
                 <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, borderColor: `${theme.colors.purple}44`, borderWidth: 1, marginBottom: 12 }}>
                   <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, marginBottom: 8 }}>🌈 Queer Play Zone</Text>
                   <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 12 }}>
-                    Would you like to opt into the Queer Play Zone? You'll receive a rainbow wristband at check-in, granting access to queer-friendly play spaces.
+                    Would you like to opt into the Queer Play Zone? You&apos;ll receive a rainbow wristband at check-in, granting access to queer-friendly play spaces.
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
@@ -1182,7 +1182,7 @@ export default function EventDetailScreen() {
               <Text style={{ color: theme.colors.text, fontSize: 14, lineHeight: 22 }}>
                 Before reserving, please acknowledge the Soapies community agreement.
                 {'\n\n'}
-                <Text style={{ fontWeight: '700' }}>Consent:</Text> All interaction at community events is based on enthusiastic consent. "No" is always respected. Consent can be withdrawn at any time.
+                <Text style={{ fontWeight: '700' }}>Consent:</Text> All interaction at community events is based on enthusiastic consent. &quot;No&quot; is always respected. Consent can be withdrawn at any time.
                 {'\n\n'}
                 <Text style={{ fontWeight: '700' }}>Confidentiality:</Text> What happens at an event stays at the event. Do not share photos, identities, or stories of other members without their explicit permission.
                 {'\n\n'}
