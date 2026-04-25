@@ -16,7 +16,8 @@
     "app.config.ts",
     "vitest.config.ts",
     "vitest.setup.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
