@@ -4,7 +4,7 @@
  * Tests the uploadPhoto function's auth token handling, header construction,
  * and response processing. Mocks FileSystem and fetch.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mock expo-file-system/legacy ──────────────────────────────────────────────
 vi.mock('expo-file-system/legacy', () => ({

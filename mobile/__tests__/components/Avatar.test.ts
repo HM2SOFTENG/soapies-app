@@ -14,6 +14,8 @@
  *   - Renders an Image when url is provided
  *   - Applies size to both width and height
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 
 // Helper: extract initials from a name string (mirrors expected component logic)
@@ -59,8 +61,6 @@ describe('Avatar — component existence check', () => {
     // This test serves as a reminder for the Dev agent.
     // When Avatar.tsx exists, replace this test with a proper render test
     // using @testing-library/react-native.
-    const fs = require('fs');
-    const path = require('path');
     const componentPath = path.join(__dirname, '../../components/Avatar.tsx');
     const exists = fs.existsSync(componentPath);
 
