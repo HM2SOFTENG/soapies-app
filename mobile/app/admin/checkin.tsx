@@ -8,7 +8,7 @@ import {
   TextInput,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,10 +28,10 @@ interface ScanResult {
 
 const WRISTBAND_CONFIG: Record<string, { color: string; label: string; emoji: string }> = {
   rainbow: { color: '#FF6B6B', label: 'Rainbow Wristband — Queer Play Zone', emoji: '🌈' },
-  pink:    { color: '#EC4899', label: 'Pink Wristband — Soapies Angel', emoji: '💗' },
-  purple:  { color: '#A855F7', label: 'Purple Wristband — Payment Confirmed', emoji: '💜' },
-  blue:    { color: '#3B82F6', label: 'Blue Wristband — Test Results Verified', emoji: '💙' },
-  green:   { color: '#10B981', label: 'Green Wristband — Standard Entry', emoji: '💚' },
+  pink: { color: '#EC4899', label: 'Pink Wristband — Soapies Angel', emoji: '💗' },
+  purple: { color: '#A855F7', label: 'Purple Wristband — Payment Confirmed', emoji: '💜' },
+  blue: { color: '#3B82F6', label: 'Blue Wristband — Test Results Verified', emoji: '💙' },
+  green: { color: '#10B981', label: 'Green Wristband — Standard Entry', emoji: '💚' },
 };
 
 const TICKET_TYPE_LABELS: Record<string, string> = {
@@ -104,7 +104,14 @@ export default function AdminCheckinScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
@@ -112,17 +119,50 @@ export default function AdminCheckinScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-        <Ionicons name="camera-outline" size={64} color={theme.colors.textMuted} style={{ marginBottom: 16 }} />
-        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 32,
+        }}
+      >
+        <Ionicons
+          name="camera-outline"
+          size={64}
+          color={theme.colors.textMuted}
+          style={{ marginBottom: 16 }}
+        />
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 18,
+            fontWeight: '700',
+            textAlign: 'center',
+            marginBottom: 8,
+          }}
+        >
           Camera Permission Required
         </Text>
-        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
+        <Text
+          style={{
+            color: theme.colors.textMuted,
+            fontSize: 14,
+            textAlign: 'center',
+            marginBottom: 24,
+          }}
+        >
           We need camera access to scan QR codes at check-in.
         </Text>
         <TouchableOpacity
           onPress={requestPermission}
-          style={{ backgroundColor: colors.pink, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 }}
+          style={{
+            backgroundColor: colors.pink,
+            paddingHorizontal: 28,
+            paddingVertical: 14,
+            borderRadius: 14,
+          }}
         >
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Grant Permission</Text>
         </TouchableOpacity>
@@ -136,21 +176,30 @@ export default function AdminCheckinScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderBottomColor: theme.colors.border,
-        borderBottomWidth: 1,
-      }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomColor: theme.colors.border,
+          borderBottomWidth: 1,
+        }}
+      >
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Check-In Scanner</Text>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>
+            Check-In Scanner
+          </Text>
           {eventTitle ? (
-            <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 2 }} numberOfLines={1}>{eventTitle}</Text>
+            <Text
+              style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 2 }}
+              numberOfLines={1}
+            >
+              {eventTitle}
+            </Text>
           ) : null}
         </View>
         {isCheckingIn && <ActivityIndicator color={colors.pink} size="small" />}
@@ -188,28 +237,36 @@ export default function AdminCheckinScreen() {
             ))}
           </View>
           <Text style={{ color: 'rgba(255,255,255,0.7)', marginTop: 20, fontSize: 14 }}>
-            {scanned ? (isCheckingIn ? 'Processing…' : 'Hold on…') : 'Align QR code within the frame'}
+            {scanned
+              ? isCheckingIn
+                ? 'Processing…'
+                : 'Hold on…'
+              : 'Align QR code within the frame'}
           </Text>
         </View>
       </View>
 
       {/* Bottom panel */}
-      <View style={{
-        backgroundColor: theme.colors.background,
-        borderTopColor: theme.colors.border,
-        borderTopWidth: 1,
-        padding: 16,
-        gap: 14,
-      }}>
+      <View
+        style={{
+          backgroundColor: theme.colors.background,
+          borderTopColor: theme.colors.border,
+          borderTopWidth: 1,
+          padding: 16,
+          gap: 14,
+        }}
+      >
         {/* Last scan result */}
         {lastResult && (
-          <View style={{
-            borderRadius: 14,
-            padding: 14,
-            backgroundColor: lastResult.success ? '#10B98120' : '#EF444420',
-            borderColor: lastResult.success ? '#10B98144' : '#EF444444',
-            borderWidth: 1,
-          }}>
+          <View
+            style={{
+              borderRadius: 14,
+              padding: 14,
+              backgroundColor: lastResult.success ? '#10B98120' : '#EF444420',
+              borderColor: lastResult.success ? '#10B98144' : '#EF444444',
+              borderWidth: 1,
+            }}
+          >
             {lastResult.success ? (
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -218,7 +275,9 @@ export default function AdminCheckinScreen() {
                     <Text style={{ color: '#10B981', fontWeight: '800', fontSize: 16 }}>
                       ✅ Checked In!
                     </Text>
-                    <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginTop: 2 }}>
+                    <Text
+                      style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginTop: 2 }}
+                    >
                       {lastResult.guestName}
                     </Text>
                     {lastResult.ticketType && (
@@ -229,17 +288,27 @@ export default function AdminCheckinScreen() {
                   </View>
                 </View>
                 {lastResult.wristbandColor && (
-                  <View style={{
-                    marginTop: 12,
-                    padding: 14,
-                    borderRadius: 12,
-                    backgroundColor: `${WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888'}22`,
-                    borderColor: WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888',
-                    borderWidth: 2,
-                    alignItems: 'center',
-                  }}>
-                    <Text style={{ fontSize: 32, marginBottom: 4 }}>{WRISTBAND_CONFIG[lastResult.wristbandColor]?.emoji ?? '⬜'}</Text>
-                    <Text style={{ color: WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888', fontWeight: '800', fontSize: 16 }}>
+                  <View
+                    style={{
+                      marginTop: 12,
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: `${WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888'}22`,
+                      borderColor: WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888',
+                      borderWidth: 2,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 32, marginBottom: 4 }}>
+                      {WRISTBAND_CONFIG[lastResult.wristbandColor]?.emoji ?? '⬜'}
+                    </Text>
+                    <Text
+                      style={{
+                        color: WRISTBAND_CONFIG[lastResult.wristbandColor]?.color ?? '#888',
+                        fontWeight: '800',
+                        fontSize: 16,
+                      }}
+                    >
                       {WRISTBAND_CONFIG[lastResult.wristbandColor]?.label ?? 'Standard Wristband'}
                     </Text>
                   </View>
@@ -249,8 +318,12 @@ export default function AdminCheckinScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Ionicons name="close-circle" size={28} color="#EF4444" />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 15 }}>Check-In Failed</Text>
-                  <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>{lastResult.message}</Text>
+                  <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 15 }}>
+                    Check-In Failed
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
+                    {lastResult.message}
+                  </Text>
                 </View>
               </View>
             )}
@@ -259,7 +332,16 @@ export default function AdminCheckinScreen() {
 
         {/* Manual entry */}
         <View>
-          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 11,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              marginBottom: 8,
+            }}
+          >
             Manual Entry
           </Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
