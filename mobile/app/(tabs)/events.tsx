@@ -3,15 +3,11 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   View,
   Text,
-  FlatList,
-  Pressable,
   ScrollView,
   Animated,
   RefreshControl,
   TouchableOpacity,
-  ActivityIndicator,
   Dimensions,
-  Modal,
   StyleSheet,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -26,7 +22,7 @@ import { useAuth } from '../../lib/auth';
 import { FONT } from '../../lib/fonts';
 import { useTheme, type AppTheme } from '../../lib/theme';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+Dimensions.get('window');
 const HERO_MAX = 320;
 const HERO_MIN = 90;
 
@@ -43,10 +39,6 @@ function formatDate(date: string | Date) {
     weekday: 'short', month: 'short', day: 'numeric',
     hour: 'numeric', minute: '2-digit',
   });
-}
-
-function formatDateShort(date: string | Date) {
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function statusColor(status: string, theme: AppTheme) {
@@ -108,7 +100,7 @@ function ShimmerSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
     );
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [anim]);
   const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
   return (
@@ -205,7 +197,7 @@ function AnimatedEventCard({ event, index, isGoing }: { event: any; index: numbe
       loop.start();
       return () => loop.stop();
     }
-  }, [index, event.status]);
+  }, [glowAnim, index, opacity, translateY, event.status]);
 
   function onPressIn() {
     Haptics.selectionAsync();
@@ -368,7 +360,7 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
     shimmer.start();
 
     return () => { pulse.stop(); shimmer.stop(); };
-  }, []);
+  }, [pulseAnim, shimmerAnim]);
 
   const heroHeight = scrollY.interpolate({
     inputRange: [0, HERO_MAX - HERO_MIN],
@@ -495,7 +487,6 @@ function HeroSection({ event, scrollY, isGoing }: { event: any | null; scrollY: 
 // ── Month Divider ─────────────────────────────────────────────────────────────
 
 function MonthDivider({ month }: { month: string }) {
-  const theme = useTheme();
   return (
     <View style={styles.monthDivider}>
       <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
@@ -539,7 +530,7 @@ export default function EventsScreen() {
     enabled: hasToken,
     staleTime: 30_000,
   });
-  const myReservations = (myReservationsData as any[]) ?? [];
+  const myReservations = useMemo(() => (myReservationsData as any[]) ?? [], [myReservationsData]);
 
   const events = useMemo(() => {
     const raw = (eventsData as any)?.events ?? eventsData ?? [];
@@ -586,7 +577,6 @@ export default function EventsScreen() {
     return <AnimatedEventCard event={item.event} index={index} isGoing={isGoing} />;
   }, [myReservations]);
 
-  const filterAnim = useRef(new Animated.Value(0)).current;
   const filterScale = useRef(
     FILTER_TABS.map(() => new Animated.Value(1))
   ).current;

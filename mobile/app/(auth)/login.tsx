@@ -17,7 +17,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc, saveToken } from '../../lib/trpc';
-import { queryClient } from '../_layout';
 import { useAuth } from '../../lib/auth';
 
 export default function LoginScreen() {
