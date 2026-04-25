@@ -1,0 +1,67 @@
+name: Soapies iOS Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit_to_testflight:
+        description: 'Submit to TestFlight after build'
+        required: true
+        default: 'false'
+      release_profile:
+        description: 'EAS profile to use'
+        required: true
+        default: 'production'
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: mobile-ios-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-ios:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_PROJECT_ID }}
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_WEB_URL: ${{ secrets.EXPO_PUBLIC_WEB_URL }}
+      EXPO_PUBLIC_ENVIRONMENT: production
+      EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER: ${{ secrets.EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: mobile/.nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+          eas-version: latest
+
+      - name: Materialize App Store Connect API key
+        run: |
+          mkdir -p credentials
+          echo "${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}" | base64 --decode > credentials/AuthKey.p8
+
+      - name: Build iOS artifact
+        run: eas build --platform ios --profile ${{ github.event.inputs.release_profile || 'production' }} --non-interactive
+
+      - name: Submit to TestFlight
+        if: github.event_name == 'push' || github.event.inputs.submit_to_testflight == 'true'
+        run: eas submit --platform ios --profile production --non-interactive

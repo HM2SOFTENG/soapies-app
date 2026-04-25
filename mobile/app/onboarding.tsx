@@ -29,7 +29,6 @@ import { saveToken, setMemoryToken, SESSION_COOKIE_KEY } from '../lib/trpc';
 import { useTheme } from '../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -275,7 +274,7 @@ export default function OnboardingScreen() {
 
   const handleRegister = async () => {
     if (__DEV__) {
-      console.log('[onboarding] handleRegister:start', {
+      if (__DEV__) console.log('[onboarding] handleRegister:start', {
         email: email.trim().toLowerCase(),
         hasPassword: !!password,
         hasConfirmPassword: !!confirmPassword,
@@ -312,7 +311,7 @@ export default function OnboardingScreen() {
         : undefined;
 
       if (__DEV__) {
-        console.log('[onboarding] handleRegister:request', {
+        if (__DEV__) console.log('[onboarding] handleRegister:request', {
           email: email.trim().toLowerCase(),
           name: email.split('@')[0],
           dateOfBirth: dobForServer ?? null,
@@ -331,7 +330,7 @@ export default function OnboardingScreen() {
       const result = await registerMutation.mutateAsync(registerPayload) as any;
 
       if (__DEV__) {
-        console.log('[onboarding] handleRegister:success', {
+        if (__DEV__) console.log('[onboarding] handleRegister:success', {
           userId: result?.userId,
           hasSessionToken: !!result?.sessionToken,
           message: result?.message,
@@ -350,7 +349,7 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       const msg = e?.message ?? '';
       if (__DEV__) {
-        console.error('[onboarding] handleRegister:error', {
+        if (__DEV__) console.error('[onboarding] handleRegister:error', {
           message: msg,
           data: e?.data,
           shape: e?.shape,

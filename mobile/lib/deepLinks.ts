@@ -187,7 +187,7 @@ export function useInitialDeepLink(): ParsedDeepLink | null {
           }
         }
       } catch (error) {
-        console.error('Failed to get initial URL', error);
+        if (__DEV__) console.error('Failed to get initial URL', error);
       }
     })();
 

@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasToken(false);
         }
       } catch (e) {
-        console.warn('[Auth] mount check error:', e);
+        if (__DEV__) console.warn('[Auth] mount check error:', e);
       } finally {
         setIsLoading(false);
       }

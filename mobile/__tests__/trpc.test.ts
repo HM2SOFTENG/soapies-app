@@ -74,14 +74,13 @@ describe('tRPC client configuration', () => {
     expect(mockCreateClient.mock.calls.length).toBe(callsBefore + 1);
   });
 
-  it('API URL defaults to http://localhost:3000 when env var is not set', () => {
+  it('API URL defaults to the configured production-safe endpoint when env var is not set', () => {
     createTRPCClient();
     if (capturedLinks.length > 0) {
       const url: string = capturedLinks[0].url;
-      expect(url).toContain('localhost:3000');
+      expect(url).toContain('soapies-app-3uk2q.ondigitalocean.app');
       expect(url).toMatch(/\/api\/trpc$/);
     } else {
-      // httpBatchLink not captured but client was created successfully
       expect(mockCreateClient.mock.calls.length).toBeGreaterThan(0);
     }
   });
@@ -95,31 +94,30 @@ describe('tRPC client configuration', () => {
     }
   });
 
-  it('headers function returns empty object when no token in store', async () => {
+  it('headers function returns empty object when no token is loaded', async () => {
     createTRPCClient();
     if (capturedLinks.length > 0 && typeof capturedLinks[0].headers === 'function') {
       const headers = await capturedLinks[0].headers();
-      // Without a token, headers should be empty (or at least not have Authorization)
-      expect(headers).not.toHaveProperty('Authorization');
+      expect(headers).toEqual({});
     } else {
-      // Verify store is empty as expected
       expect(await SecureStore.getItemAsync('session_token')).toBeNull();
     }
   });
 
-  it('Authorization header contract: Bearer <token> format', () => {
-    // Test the header format logic independently (mirrors lib/trpc.ts headers() logic)
-    const token = 'tok_abc123';
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    expect(headers).toHaveProperty('Authorization', 'Bearer tok_abc123');
-    expect(headers.Authorization).toMatch(/^Bearer /);
+  it('session header contract uses x-session-token plus Cookie', async () => {
+    const { setMemoryToken } = await import('../lib/trpc');
+    setMemoryToken('tok_abc123');
+    createTRPCClient();
+    if (capturedLinks.length > 0 && typeof capturedLinks[0].headers === 'function') {
+      const headers = await capturedLinks[capturedLinks.length - 1].headers();
+      expect(headers).toHaveProperty('x-session-token', 'tok_abc123');
+      expect(headers).toHaveProperty('Cookie', 'app_session_id=tok_abc123');
+    }
   });
 
-  it('no-token contract: returns empty headers object', () => {
-    // Test the no-token branch logic (mirrors lib/trpc.ts headers() logic)
+  it('no-token contract returns empty headers object', () => {
     const token: string | null = null;
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = token ? { 'x-session-token': token, Cookie: `app_session_id=${token}` } : {};
     expect(headers).toEqual({});
-    expect(headers).not.toHaveProperty('Authorization');
   });
 });

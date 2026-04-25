@@ -14,3 +14,7 @@ ios/
 .env
 .env.local
 .env.production
+.env.*.local
+*.keystore
+fastlane/report.xml
+fastlane/Preview.html

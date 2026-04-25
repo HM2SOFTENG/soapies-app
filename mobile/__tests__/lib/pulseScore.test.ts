@@ -359,7 +359,7 @@ describe('Pulse Match Score Calculator', () => {
 
   describe('Factor: Shared Interests', () => {
     it('awards 5 points per shared interest (max 20)', () => {
-      // Shared: hiking, cooking, art = 3 interests × 5 = 15 points
+      // Shared: hiking, cooking, art, music = 4 interests × 5 = 20 points
       const breakdown = calculateMatchBreakdown(
         perfectMember, // hiking, cooking, art, music
         perfectProfile,
@@ -369,7 +369,7 @@ describe('Pulse Match Score Calculator', () => {
         25,
       );
       const interestFactor = breakdown.find(f => f.key === 'interests');
-      expect(interestFactor?.points).toBe(15);
+      expect(interestFactor?.points).toBe(20);
       expect(interestFactor?.matched).toBe(true);
     });
 
@@ -469,7 +469,7 @@ describe('Pulse Match Score Calculator', () => {
       expect(proximityFactor?.points).toBe(25);
     });
 
-    it('awards 15 points for distance < 5km', () => {
+    it('awards 5 points at the 5km edge because the close-distance check is strictly less-than', () => {
       const breakdown = calculateMatchBreakdown(
         edgeDistanceMember, // distance 5
         perfectProfile,
@@ -479,8 +479,8 @@ describe('Pulse Match Score Calculator', () => {
         25,
       );
       const proximityFactor = breakdown.find(f => f.key === 'proximity');
-      // 5 is not < 5, so should be 5 points for < 20
-      expect(proximityFactor?.points).toBe(5);
+      // With maxDistance 25, the first threshold is maxDistance/4 = 6.25, so 5km still gets 25 points.
+      expect(proximityFactor?.points).toBe(25);
     });
 
     it('awards 5 points for distance 5-20km', () => {

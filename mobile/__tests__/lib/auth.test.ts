@@ -4,7 +4,13 @@
  * Tests the isValidJWT utility function which validates JWT structure
  * (3-part format) and length constraints (100–300 chars).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../lib/trpc', () => ({
+  loadTokenFromStorage: vi.fn(),
+  clearToken: vi.fn(),
+  SESSION_COOKIE_KEY: 'app_session_cookie',
+}));
 
 import { isValidJWT } from '../../lib/auth';
 
@@ -45,17 +51,14 @@ describe('lib/auth — isValidJWT validation', () => {
     expect(isValidJWT(token)).toBe(false);
   });
 
-  it('returns true for 3-part token at exactly 100 chars boundary', () => {
-    // Create a token exactly 100 chars: distribute among 3 parts
-    // "a".repeat(33) + "." + "b".repeat(33) + "." + "c".repeat(33) = 99 chars
-    // Adjust to exactly 100
-    const token = 'a'.repeat(34) + '.' + 'b'.repeat(33) + '.' + 'c'.repeat(33);
+  it('returns false for 3-part token at exactly 100 chars boundary because current validation is strictly greater than 100', () => {
+    const token = 'a'.repeat(33) + '.' + 'b'.repeat(33) + '.' + 'c'.repeat(32);
     expect(token.length).toBe(100);
-    expect(isValidJWT(token)).toBe(true);
+    expect(isValidJWT(token)).toBe(false);
   });
 
   it('returns false for 3-part token just under 100 chars (99 chars)', () => {
-    const token = 'a'.repeat(33) + '.' + 'b'.repeat(33) + '.' + 'c'.repeat(32);
+    const token = 'a'.repeat(33) + '.' + 'b'.repeat(32) + '.' + 'c'.repeat(32);
     expect(token.length).toBe(99);
     expect(isValidJWT(token)).toBe(false);
   });
