@@ -9,7 +9,6 @@ import {
   Alert,
   Share,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,16 +25,16 @@ import { useTheme } from '../../lib/theme';
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string; emoji: string }> = {
-  admin:   { label: 'Admin',   color: '#fff',         bg: '#6366F1',            emoji: '🛡️' },
-  angel:   { label: 'Angel',   color: colors.pink,    bg: `${colors.pink}22`,   emoji: '💗' },
-  member:  { label: 'Member',  color: colors.purple,  bg: `${colors.purple}22`, emoji: '✨' },
-  pending: { label: 'Pending', color: colors.muted,   bg: colors.card,          emoji: '⏳' },
+  admin: { label: 'Admin', color: '#fff', bg: '#6366F1', emoji: '🛡️' },
+  angel: { label: 'Angel', color: colors.pink, bg: `${colors.pink}22`, emoji: '💗' },
+  member: { label: 'Member', color: colors.purple, bg: `${colors.purple}22`, emoji: '✨' },
+  pending: { label: 'Pending', color: colors.muted, bg: colors.card, emoji: '⏳' },
 };
 
 const COMMUNITY_NAMES: Record<string, string> = {
-  soapies:  '🎉 Soapies',
+  soapies: '🎉 Soapies',
   groupies: '💑 Groupies',
-  gaypeez:  '🌈 Gaypeez',
+  gaypeez: '🌈 Gaypeez',
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -50,7 +49,9 @@ function StatBox({ label, value }: { label: string; value: number | string }) {
   const theme = useTheme();
   return (
     <View style={{ alignItems: 'center', flex: 1 }}>
-      <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '900' as const }}>{value}</Text>
+      <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '900' as const }}>
+        {value}
+      </Text>
       <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{label}</Text>
     </View>
   );
@@ -60,18 +61,31 @@ function InfoRow({ icon, label, value }: { icon: any; label: string; value: stri
   const theme = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-      <View style={{
-        width: 32, height: 32, borderRadius: 10,
-        backgroundColor: theme.alpha(theme.colors.purple, 0.12),
-        alignItems: 'center', justifyContent: 'center',
-        marginRight: 12,
-        borderWidth: 1,
-        borderColor: theme.alpha(theme.colors.purple, 0.18),
-      }}>
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          backgroundColor: theme.alpha(theme.colors.purple, 0.12),
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 12,
+          borderWidth: 1,
+          borderColor: theme.alpha(theme.colors.purple, 0.18),
+        }}
+      >
         <Ionicons name={icon} size={16} color={theme.colors.purple} />
       </View>
       <View>
-        <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        <Text
+          style={{
+            color: theme.colors.textMuted,
+            fontSize: 11,
+            fontWeight: '600',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+          }}
+        >
           {label}
         </Text>
         <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '500', marginTop: 1 }}>
@@ -101,7 +115,13 @@ function getReferralStep(row: any) {
   if (row?.creditAwarded || row?.referralConverted) return 4;
   if (row?.firstReservationAt) return 3;
   if (row?.applicationStatus === 'approved' || row?.applicationPhase === 'final_approved') return 2;
-  if (row?.applicationStatus === 'submitted' || row?.applicationStatus === 'under_review' || row?.applicationPhase === 'interview_scheduled' || row?.applicationPhase === 'interview_complete') return 1;
+  if (
+    row?.applicationStatus === 'submitted' ||
+    row?.applicationStatus === 'under_review' ||
+    row?.applicationPhase === 'interview_scheduled' ||
+    row?.applicationPhase === 'interview_complete'
+  )
+    return 1;
   if (row?.userCreatedAt) return 0;
   return -1;
 }
@@ -112,15 +132,30 @@ function ReferralPipelineCard({ row }: { row: any }) {
   const earnedDollars = Number(row?.creditAmount ?? 0) / 100;
 
   return (
-    <View style={{
-      marginTop: 12,
-      backgroundColor: row?.creditAwarded || row?.referralConverted ? theme.colors.successSoft : theme.colors.surface,
-      borderRadius: 18,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: row?.creditAwarded || row?.referralConverted ? theme.colors.successBorder : theme.colors.border,
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+    <View
+      style={{
+        marginTop: 12,
+        backgroundColor:
+          row?.creditAwarded || row?.referralConverted
+            ? theme.colors.successSoft
+            : theme.colors.surface,
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor:
+          row?.creditAwarded || row?.referralConverted
+            ? theme.colors.successBorder
+            : theme.colors.border,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
             {row?.referredDisplayName || 'New referral'}
@@ -129,22 +164,34 @@ function ReferralPipelineCard({ row }: { row: any }) {
             Code {row?.referredByCode || '—'}
           </Text>
         </View>
-        <View style={{
-          paddingHorizontal: 10,
-          paddingVertical: 6,
-          borderRadius: 999,
-          backgroundColor: row?.creditAwarded || row?.referralConverted
-            ? 'rgba(16, 185, 129, 0.16)'
-            : currentStep >= 2
-              ? 'rgba(168, 85, 247, 0.16)'
-              : 'rgba(236, 72, 153, 0.16)',
-        }}>
-          <Text style={{
-            color: row?.creditAwarded || row?.referralConverted ? '#34D399' : currentStep >= 2 ? '#C084FC' : '#F472B6',
-            fontSize: 11,
-            fontWeight: '800',
-          }}>
-            {row?.creditAwarded || row?.referralConverted ? `+$${earnedDollars.toFixed(2)}` : REFERRAL_STEPS[Math.max(currentStep, 0)]?.label || 'Pending'}
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            backgroundColor:
+              row?.creditAwarded || row?.referralConverted
+                ? 'rgba(16, 185, 129, 0.16)'
+                : currentStep >= 2
+                  ? 'rgba(168, 85, 247, 0.16)'
+                  : 'rgba(236, 72, 153, 0.16)',
+          }}
+        >
+          <Text
+            style={{
+              color:
+                row?.creditAwarded || row?.referralConverted
+                  ? '#34D399'
+                  : currentStep >= 2
+                    ? '#C084FC'
+                    : '#F472B6',
+              fontSize: 11,
+              fontWeight: '800',
+            }}
+          >
+            {row?.creditAwarded || row?.referralConverted
+              ? `+$${earnedDollars.toFixed(2)}`
+              : REFERRAL_STEPS[Math.max(currentStep, 0)]?.label || 'Pending'}
           </Text>
         </View>
       </View>
@@ -157,20 +204,41 @@ function ReferralPipelineCard({ row }: { row: any }) {
             return (
               <React.Fragment key={`${step.key}-dot`}>
                 <View style={{ width: 40, alignItems: 'center' }}>
-                  <View style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 999,
-                    borderWidth: 2,
-                    borderColor: active ? colors.pink : '#2A2544',
-                    backgroundColor: active ? colors.pink : 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {active ? <Ionicons name="checkmark" size={13} color="#fff" /> : <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#4B5563' }} />}
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 999,
+                      borderWidth: 2,
+                      borderColor: active ? colors.pink : '#2A2544',
+                      backgroundColor: active ? colors.pink : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {active ? (
+                      <Ionicons name="checkmark" size={13} color="#fff" />
+                    ) : (
+                      <View
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 999,
+                          backgroundColor: '#4B5563',
+                        }}
+                      />
+                    )}
                   </View>
                 </View>
-                {!isLast && <View style={{ flex: 1, height: 2, backgroundColor: index < currentStep ? colors.pink : '#2A2544' }} />}
+                {!isLast && (
+                  <View
+                    style={{
+                      flex: 1,
+                      height: 2,
+                      backgroundColor: index < currentStep ? colors.pink : '#2A2544',
+                    }}
+                  />
+                )}
               </React.Fragment>
             );
           })}
@@ -181,13 +249,16 @@ function ReferralPipelineCard({ row }: { row: any }) {
             const active = index <= currentStep;
             return (
               <View key={`${step.key}-label`} style={{ width: 52, alignItems: 'center' }}>
-                <Text style={{
-                  color: active ? colors.text : colors.muted,
-                  fontSize: 10,
-                  fontWeight: active ? '700' : '500',
-                  textAlign: 'center',
-                  lineHeight: 12,
-                }} numberOfLines={2}>
+                <Text
+                  style={{
+                    color: active ? colors.text : colors.muted,
+                    fontSize: 10,
+                    fontWeight: active ? '700' : '500',
+                    textAlign: 'center',
+                    lineHeight: 12,
+                  }}
+                  numberOfLines={2}
+                >
                   {step.label}
                 </Text>
               </View>
@@ -198,29 +269,82 @@ function ReferralPipelineCard({ row }: { row: any }) {
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
         <View style={{ minWidth: '47%' as any }}>
-          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>Joined</Text>
-          <Text style={{ color: colors.text, fontSize: 13, marginTop: 3 }}>{formatShortDate(row?.userCreatedAt)}</Text>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 10,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+            }}
+          >
+            Joined
+          </Text>
+          <Text style={{ color: colors.text, fontSize: 13, marginTop: 3 }}>
+            {formatShortDate(row?.userCreatedAt)}
+          </Text>
         </View>
         <View style={{ minWidth: '47%' as any }}>
-          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>Application</Text>
-          <Text style={{ color: colors.text, fontSize: 13, marginTop: 3, textTransform: 'capitalize' }}>{row?.applicationStatus || 'draft'}</Text>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 10,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+            }}
+          >
+            Application
+          </Text>
+          <Text
+            style={{ color: colors.text, fontSize: 13, marginTop: 3, textTransform: 'capitalize' }}
+          >
+            {row?.applicationStatus || 'draft'}
+          </Text>
         </View>
         <View style={{ minWidth: '47%' as any }}>
-          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>First event</Text>
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 10,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+            }}
+          >
+            First event
+          </Text>
           <Text style={{ color: colors.text, fontSize: 13, marginTop: 3 }} numberOfLines={2}>
             {row?.firstReservationEventTitle || (row?.firstReservationAt ? 'Booked' : '—')}
           </Text>
         </View>
         <View style={{ minWidth: '47%' as any }}>
-          <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>Credit</Text>
-          <Text style={{ color: row?.creditAwarded || row?.referralConverted ? '#34D399' : colors.text, fontSize: 13, marginTop: 3, fontWeight: '700' }}>
-            {row?.creditAwarded || row?.referralConverted ? `Earned $${earnedDollars.toFixed(2)}` : 'Pending'}
+          <Text
+            style={{
+              color: colors.muted,
+              fontSize: 10,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+            }}
+          >
+            Credit
+          </Text>
+          <Text
+            style={{
+              color: row?.creditAwarded || row?.referralConverted ? '#34D399' : colors.text,
+              fontSize: 13,
+              marginTop: 3,
+              fontWeight: '700',
+            }}
+          >
+            {row?.creditAwarded || row?.referralConverted
+              ? `Earned $${earnedDollars.toFixed(2)}`
+              : 'Pending'}
           </Text>
         </View>
       </View>
 
       {(row?.creditAwardedAt || row?.firstReservationAt) && (
-        <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#1A1A30' }}>
+        <View
+          style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#1A1A30' }}
+        >
           <Text style={{ color: colors.muted, fontSize: 11 }}>
             {row?.creditAwardedAt
               ? `Reward posted ${formatShortDate(row.creditAwardedAt)}`
@@ -254,12 +378,27 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { hasToken } = useAuth();
 
-  const { data: me, isLoading, isError: meIsError, error: meError, refetch: refetchMe } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
-  const { data: profileData, isError: profileIsError, error: profileError, refetch: refetchProfile } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+  const {
+    data: me,
+    isLoading,
+    isError: meIsError,
+    error: meError,
+    refetch: refetchMe,
+  } = trpc.auth.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+  const {
+    data: profileData,
+    isError: profileIsError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
   const { data: creditsData } = trpc.credits.balance.useQuery(undefined, { enabled: hasToken });
   const { data: referralCode } = trpc.referrals.myCode.useQuery(undefined, { enabled: hasToken });
-  const { data: myReferralsData } = trpc.referrals.myReferrals.useQuery(undefined, { enabled: hasToken });
-  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { enabled: hasToken });
+  const { data: myReferralsData } = trpc.referrals.myReferrals.useQuery(undefined, {
+    enabled: hasToken,
+  });
+  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, {
+    enabled: hasToken,
+  });
 
   // Merge auth.me + profile.me
   const profile = useMemo(() => ({ ...(me as any), ...(profileData as any) }), [me, profileData]);
@@ -270,7 +409,9 @@ export default function ProfileScreen() {
       const raw = (profileData as any)?.preferences;
       if (!raw) return null;
       return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }, [profileData]);
 
   const creditsRaw = (creditsData as any)?.balance ?? (creditsData as any) ?? 0;
@@ -278,15 +419,23 @@ export default function ProfileScreen() {
   const myCode = (referralCode as any)?.code ?? 'N/A';
   const referralsCount = Math.max(
     (referralCode as any)?.totalReferrals ?? 0,
-    ((myReferralsData as any[]) ?? []).length,
+    ((myReferralsData as any[]) ?? []).length
   );
-  const eventsCount = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
-  const referralRewardsEarned = (((myReferralsData as any[]) ?? []).filter((r: any) => r?.creditAwarded || r?.referralConverted).length);
-  const pendingReferralRewards = (((myReferralsData as any[]) ?? []).filter((r: any) => !(r?.creditAwarded || r?.referralConverted)).length);
+  const eventsCount = ((myReservationsData as any[]) ?? []).filter(
+    (r: any) => r.status !== 'cancelled'
+  ).length;
+  const referralRewardsEarned = ((myReferralsData as any[]) ?? []).filter(
+    (r: any) => r?.creditAwarded || r?.referralConverted
+  ).length;
+  const pendingReferralRewards = ((myReferralsData as any[]) ?? []).filter(
+    (r: any) => !(r?.creditAwarded || r?.referralConverted)
+  ).length;
 
   const memberRole: string | undefined = profile?.memberRole ?? profile?.role;
   const roleConfig = memberRole ? (ROLE_CONFIG[memberRole] ?? ROLE_CONFIG.pending) : null;
-  const communityLabel = profile?.communityId ? (COMMUNITY_NAMES[profile.communityId] ?? profile.communityId) : null;
+  const communityLabel = profile?.communityId
+    ? (COMMUNITY_NAMES[profile.communityId] ?? profile.communityId)
+    : null;
   const profileLoadError = meIsError || profileIsError;
   const profileLoadErrorMessage = (meError as any)?.message ?? (profileError as any)?.message;
 
@@ -332,7 +481,9 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}
+      >
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
@@ -340,12 +491,36 @@ export default function ProfileScreen() {
 
   if (profileLoadError) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: t.page,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 28,
+        }}
+      >
         <Ionicons name="cloud-offline-outline" size={42} color={t.subtext} />
-        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+        <Text
+          style={{
+            color: t.text,
+            fontSize: 20,
+            fontWeight: '800',
+            textAlign: 'center',
+            marginTop: 14,
+          }}
+        >
           Could not load your profile
         </Text>
-        <Text style={{ color: t.subtext, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+        <Text
+          style={{
+            color: t.subtext,
+            fontSize: 14,
+            textAlign: 'center',
+            lineHeight: 21,
+            marginTop: 8,
+          }}
+        >
           {profileLoadErrorMessage ?? 'Please try again in a moment.'}
         </Text>
         <TouchableOpacity
@@ -353,7 +528,15 @@ export default function ProfileScreen() {
             refetchMe();
             refetchProfile();
           }}
-          style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: t.surface,
+            borderWidth: 1,
+            borderColor: t.border,
+          }}
         >
           <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
         </TouchableOpacity>
@@ -364,51 +547,80 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.page }} edges={['bottom']}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-
         {/* ── Gradient Header ── */}
         <LinearGradient
           colors={t.headerGradient as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={{ paddingTop: insets.top + 20, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 20 }}
+          style={{
+            paddingTop: insets.top + 20,
+            paddingBottom: 28,
+            alignItems: 'center',
+            paddingHorizontal: 20,
+          }}
         >
           <Avatar
             name={profile?.displayName ?? profile?.name ?? '?'}
             url={profile?.avatarUrl}
             size={100}
-            style={{ marginBottom: 14, shadowColor: '#EC4899', shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } }}
+            style={{
+              marginBottom: 14,
+              shadowColor: '#EC4899',
+              shadowOpacity: 0.5,
+              shadowRadius: 14,
+              shadowOffset: { width: 0, height: 0 },
+            }}
           />
 
-          <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', fontFamily: FONT.displayBold }}>
+          <Text
+            style={{ color: t.text, fontSize: 26, fontWeight: '800', fontFamily: FONT.displayBold }}
+          >
             {profile?.displayName ?? profile?.name ?? 'Member'}
           </Text>
 
           {/* Role badge */}
           {roleConfig && (
-            <View style={{
-              flexDirection: 'row', alignItems: 'center',
-              paddingHorizontal: 12, paddingVertical: 5,
-              borderRadius: 20,
-              backgroundColor: roleConfig.bg,
-              borderColor: `${roleConfig.color}33`,
-              borderWidth: 1,
-              marginTop: 8, gap: 4,
-            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderRadius: 20,
+                backgroundColor: roleConfig.bg,
+                borderColor: `${roleConfig.color}33`,
+                borderWidth: 1,
+                marginTop: 8,
+                gap: 4,
+              }}
+            >
               <Text style={{ fontSize: 14 }}>{roleConfig.emoji}</Text>
-              <Text style={{ color: roleConfig.color, fontWeight: '700', fontSize: 13, fontFamily: FONT.displaySemiBold }}>{roleConfig.label}</Text>
+              <Text
+                style={{
+                  color: roleConfig.color,
+                  fontWeight: '700',
+                  fontSize: 13,
+                  fontFamily: FONT.displaySemiBold,
+                }}
+              >
+                {roleConfig.label}
+              </Text>
             </View>
           )}
 
           {/* Community badge */}
           {communityLabel && (
-            <View style={{
-              marginTop: 8,
-              paddingHorizontal: 14, paddingVertical: 5,
-              backgroundColor: t.elevated,
-              borderRadius: 20,
-              borderColor: t.border,
-              borderWidth: 1,
-            }}>
+            <View
+              style={{
+                marginTop: 8,
+                paddingHorizontal: 14,
+                paddingVertical: 5,
+                backgroundColor: t.elevated,
+                borderRadius: 20,
+                borderColor: t.border,
+                borderWidth: 1,
+              }}
+            >
               <Text style={{ color: theme.colors.purple, fontWeight: '700', fontSize: 13 }}>
                 {communityLabel}
               </Text>
@@ -417,22 +629,32 @@ export default function ProfileScreen() {
 
           {/* Bio */}
           {profile?.bio && (
-            <Text style={{ color: t.subtext, fontSize: 14, textAlign: 'center', marginTop: 10, lineHeight: 20 }}>
+            <Text
+              style={{
+                color: t.subtext,
+                fontSize: 14,
+                textAlign: 'center',
+                marginTop: 10,
+                lineHeight: 20,
+              }}
+            >
               {profile.bio}
             </Text>
           )}
         </LinearGradient>
 
         {/* ── Stats Row ── */}
-        <View style={{
-          flexDirection: 'row',
-          marginHorizontal: 20,
-          backgroundColor: t.surface,
-          borderRadius: 16,
-          padding: 20,
-          borderColor: t.border,
-          borderWidth: 1,
-        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            marginHorizontal: 20,
+            backgroundColor: t.surface,
+            borderRadius: 16,
+            padding: 20,
+            borderColor: t.border,
+            borderWidth: 1,
+          }}
+        >
           <StatBox label="Events" value={eventsCount} />
           <View style={{ width: 1, backgroundColor: t.divider }} />
           <StatBox label="Posts" value={profile?.postsCount ?? 0} />
@@ -441,14 +663,24 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── About Me ── */}
-        {(profile?.location || profile?.gender || profile?.orientation || prefs?.relationshipStatus) && (
-          <View style={{
-            marginHorizontal: 20, marginTop: 16,
-            backgroundColor: t.surface,
-            borderRadius: 16, padding: 16,
-            borderColor: t.border, borderWidth: 1,
-          }}>
-            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>About Me</Text>
+        {(profile?.location ||
+          profile?.gender ||
+          profile?.orientation ||
+          prefs?.relationshipStatus) && (
+          <View
+            style={{
+              marginHorizontal: 20,
+              marginTop: 16,
+              backgroundColor: t.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderColor: t.border,
+              borderWidth: 1,
+            }}
+          >
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 14 }}>
+              About Me
+            </Text>
             {profile?.location && (
               <InfoRow icon="location-outline" label="Location" value={profile.location} />
             )}
@@ -456,33 +688,54 @@ export default function ProfileScreen() {
               <InfoRow icon="person-outline" label="Gender" value={capitalize(profile.gender)} />
             )}
             {profile?.orientation && (
-              <InfoRow icon="heart-outline" label="Orientation" value={capitalize(profile.orientation)} />
+              <InfoRow
+                icon="heart-outline"
+                label="Orientation"
+                value={capitalize(profile.orientation)}
+              />
             )}
             {prefs?.relationshipStatus && (
-              <InfoRow icon="people-outline" label="Relationship" value={prefs.relationshipStatus} />
+              <InfoRow
+                icon="people-outline"
+                label="Relationship"
+                value={prefs.relationshipStatus}
+              />
             )}
           </View>
         )}
 
         {/* ── Interests ── */}
         {prefs?.interests?.length > 0 && (
-          <View style={{
-            marginHorizontal: 20, marginTop: 12,
-            backgroundColor: t.surface,
-            borderRadius: 16, padding: 16,
-            borderColor: t.border, borderWidth: 1,
-          }}>
-            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Interests</Text>
+          <View
+            style={{
+              marginHorizontal: 20,
+              marginTop: 12,
+              backgroundColor: t.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderColor: t.border,
+              borderWidth: 1,
+            }}
+          >
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>
+              Interests
+            </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {prefs.interests.map((interest: string) => (
-                <View key={interest} style={{
-                  paddingHorizontal: 12, paddingVertical: 6,
-                  borderRadius: 20,
-                  backgroundColor: `${colors.pink}22`,
-                  borderColor: `${colors.pink}44`,
-                  borderWidth: 1,
-                }}>
-                  <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>{interest}</Text>
+                <View
+                  key={interest}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: `${colors.pink}22`,
+                    borderColor: `${colors.pink}44`,
+                    borderWidth: 1,
+                  }}
+                >
+                  <Text style={{ color: colors.pink, fontSize: 13, fontWeight: '600' }}>
+                    {interest}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -491,23 +744,36 @@ export default function ProfileScreen() {
 
         {/* ── Looking For ── */}
         {prefs?.lookingFor?.length > 0 && (
-          <View style={{
-            marginHorizontal: 20, marginTop: 12,
-            backgroundColor: t.surface,
-            borderRadius: 16, padding: 16,
-            borderColor: t.border, borderWidth: 1,
-          }}>
-            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Looking For</Text>
+          <View
+            style={{
+              marginHorizontal: 20,
+              marginTop: 12,
+              backgroundColor: t.surface,
+              borderRadius: 16,
+              padding: 16,
+              borderColor: t.border,
+              borderWidth: 1,
+            }}
+          >
+            <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>
+              Looking For
+            </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {prefs.lookingFor.map((item: string) => (
-                <View key={item} style={{
-                  paddingHorizontal: 12, paddingVertical: 6,
-                  borderRadius: 20,
-                  backgroundColor: `${colors.purple}22`,
-                  borderColor: `${colors.purple}44`,
-                  borderWidth: 1,
-                }}>
-                  <Text style={{ color: colors.purple, fontSize: 13, fontWeight: '600' }}>{item}</Text>
+                <View
+                  key={item}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: `${colors.purple}22`,
+                    borderColor: `${colors.purple}44`,
+                    borderWidth: 1,
+                  }}
+                >
+                  <Text style={{ color: colors.purple, fontSize: 13, fontWeight: '600' }}>
+                    {item}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -515,41 +781,74 @@ export default function ProfileScreen() {
         )}
 
         {/* ── Credits Balance ── */}
-        <View style={{
-          marginHorizontal: 20, marginTop: 16,
-          backgroundColor: t.surface,
-          borderRadius: 16, padding: 16,
-          borderColor: t.border, borderWidth: 1,
-          flexDirection: 'row', alignItems: 'center',
-        }}>
-          <View style={{
-            width: 40, height: 40, borderRadius: 20,
-            backgroundColor: `${colors.pink}22`,
-            justifyContent: 'center', alignItems: 'center',
-            marginRight: 14,
-          }}>
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 16,
+            backgroundColor: t.surface,
+            borderRadius: 16,
+            padding: 16,
+            borderColor: t.border,
+            borderWidth: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: `${colors.pink}22`,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: 14,
+            }}
+          >
             <Ionicons name="star" size={20} color={colors.pink} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600' }}>CREDITS BALANCE</Text>
-            <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginTop: 2, fontFamily: FONT.displayBold }}>
+            <Text
+              style={{
+                color: t.text,
+                fontSize: 20,
+                fontWeight: '800',
+                marginTop: 2,
+                fontFamily: FONT.displayBold,
+              }}
+            >
               {credits}
             </Text>
           </View>
         </View>
 
         {/* ── Referral Code ── */}
-        <View style={{
-          marginHorizontal: 20, marginTop: 12,
-          backgroundColor: t.surface,
-          borderRadius: 16, padding: 16,
-          borderColor: t.border, borderWidth: 1,
-        }}>
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 12,
+            backgroundColor: t.surface,
+            borderRadius: 16,
+            padding: 16,
+            borderColor: t.border,
+            borderWidth: 1,
+          }}
+        >
           <Text style={{ color: t.muted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
             REFERRAL CODE
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ color: colors.pink, fontSize: 18, fontWeight: '800', flex: 1, letterSpacing: 2, fontFamily: FONT.displayBold }}>
+            <Text
+              style={{
+                color: colors.pink,
+                fontSize: 18,
+                fontWeight: '800',
+                flex: 1,
+                letterSpacing: 2,
+                fontFamily: FONT.displayBold,
+              }}
+            >
               {myCode}
             </Text>
             <TouchableOpacity onPress={copyReferral} style={{ marginRight: 12 }}>
@@ -560,50 +859,169 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           <Text style={{ color: t.subtext, fontSize: 12, marginTop: 10, lineHeight: 18 }}>
-            Share your code and track when someone joins, applies, books their first event, and when your reward lands.
+            Share your code and track when someone joins, applies, books their first event, and when
+            your reward lands.
           </Text>
         </View>
 
         {/* ── Referral Tracker ── */}
-        <View style={{
-          marginHorizontal: 20, marginTop: 12,
-          backgroundColor: t.surface,
-          borderRadius: 16, padding: 16,
-          borderColor: t.border, borderWidth: 1,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 12,
+            backgroundColor: t.surface,
+            borderRadius: 16,
+            padding: 16,
+            borderColor: t.border,
+            borderWidth: 1,
+          }}
+        >
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ color: t.text, fontSize: 16, fontWeight: '800', fontFamily: FONT.displayBold }}>Referral Tracker</Text>
+              <Text
+                style={{
+                  color: t.text,
+                  fontSize: 16,
+                  fontWeight: '800',
+                  fontFamily: FONT.displayBold,
+                }}
+              >
+                Referral Tracker
+              </Text>
               <Text style={{ color: t.subtext, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
-                Follow each referral from signup through approval, first event booking, and reward payout.
+                Follow each referral from signup through approval, first event booking, and reward
+                payout.
               </Text>
             </View>
-            <View style={{
-              width: 40, height: 40, borderRadius: 20,
-              backgroundColor: `${colors.purple}22`, alignItems: 'center', justifyContent: 'center',
-            }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: `${colors.purple}22`,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <Ionicons name="git-network-outline" size={20} color={colors.purple} />
             </View>
           </View>
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-            <View style={{ flex: 1, backgroundColor: theme.colors.tintSoft, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: theme.alpha(theme.colors.primary, 0.18) }}>
-              <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Tracked</Text>
-              <Text style={{ color: t.text, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{((myReferralsData as any[]) ?? []).length}</Text>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: theme.colors.tintSoft,
+                borderRadius: 14,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: theme.alpha(theme.colors.primary, 0.18),
+              }}
+            >
+              <Text
+                style={{
+                  color: t.muted,
+                  fontSize: 11,
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Tracked
+              </Text>
+              <Text
+                style={{
+                  color: t.text,
+                  fontSize: 22,
+                  fontWeight: '900',
+                  marginTop: 4,
+                  fontFamily: FONT.displayBold,
+                }}
+              >
+                {((myReferralsData as any[]) ?? []).length}
+              </Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: theme.colors.successSoft, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: theme.colors.successBorder }}>
-              <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>Rewards earned</Text>
-              <Text style={{ color: theme.colors.success, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{referralRewardsEarned}</Text>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: theme.colors.successSoft,
+                borderRadius: 14,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: theme.colors.successBorder,
+              }}
+            >
+              <Text
+                style={{
+                  color: t.muted,
+                  fontSize: 11,
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Rewards earned
+              </Text>
+              <Text
+                style={{
+                  color: theme.colors.success,
+                  fontSize: 22,
+                  fontWeight: '900',
+                  marginTop: 4,
+                  fontFamily: FONT.displayBold,
+                }}
+              >
+                {referralRewardsEarned}
+              </Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: theme.alpha(theme.colors.purple, 0.1), borderRadius: 14, padding: 12, borderWidth: 1, borderColor: theme.alpha(theme.colors.purple, 0.18) }}>
-              <Text style={{ color: t.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>In progress</Text>
-              <Text style={{ color: theme.colors.purple, fontSize: 22, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{pendingReferralRewards}</Text>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: theme.alpha(theme.colors.purple, 0.1),
+                borderRadius: 14,
+                padding: 12,
+                borderWidth: 1,
+                borderColor: theme.alpha(theme.colors.purple, 0.18),
+              }}
+            >
+              <Text
+                style={{
+                  color: t.muted,
+                  fontSize: 11,
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                }}
+              >
+                In progress
+              </Text>
+              <Text
+                style={{
+                  color: theme.colors.purple,
+                  fontSize: 22,
+                  fontWeight: '900',
+                  marginTop: 4,
+                  fontFamily: FONT.displayBold,
+                }}
+              >
+                {pendingReferralRewards}
+              </Text>
             </View>
           </View>
 
           {((myReferralsData as any[]) ?? []).length === 0 ? (
-            <View style={{ marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: t.elevated, borderWidth: 1, borderColor: t.border }}>
-              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>No referrals yet</Text>
+            <View
+              style={{
+                marginTop: 14,
+                padding: 14,
+                borderRadius: 14,
+                backgroundColor: t.elevated,
+                borderWidth: 1,
+                borderColor: t.border,
+              }}
+            >
+              <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>
+                No referrals yet
+              </Text>
               <Text style={{ color: t.subtext, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
                 When someone signs up with your code, their progress will appear here automatically.
               </Text>
@@ -617,7 +1035,6 @@ export default function ProfileScreen() {
 
         {/* ── Actions ── */}
         <View style={{ paddingHorizontal: 20, marginTop: 16, gap: 12 }}>
-
           {/* Admin Dashboard */}
           {isAdmin && (
             <TouchableOpacity
@@ -629,21 +1046,31 @@ export default function ProfileScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
-                  paddingVertical: 14, paddingHorizontal: 20,
-                  flexDirection: 'row', alignItems: 'center',
+                  paddingVertical: 14,
+                  paddingHorizontal: 20,
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   borderRadius: 14,
                   borderColor: `${colors.purple}66`,
                   borderWidth: 1,
                 }}
               >
                 <Ionicons name="shield-checkmark" size={20} color={colors.purple} />
-                <Text style={{ color: t.text, fontWeight: '700', marginLeft: 12, flex: 1 }}>Admin Dashboard</Text>
-                <View style={{
-                  backgroundColor: `${colors.purple}44`,
-                  paddingHorizontal: 10, paddingVertical: 3,
-                  borderRadius: 20, marginRight: 8,
-                }}>
-                  <Text style={{ color: colors.purple, fontWeight: '800', fontSize: 11 }}>ADMIN</Text>
+                <Text style={{ color: t.text, fontWeight: '700', marginLeft: 12, flex: 1 }}>
+                  Admin Dashboard
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: `${colors.purple}44`,
+                    paddingHorizontal: 10,
+                    paddingVertical: 3,
+                    borderRadius: 20,
+                    marginRight: 8,
+                  }}
+                >
+                  <Text style={{ color: colors.purple, fontWeight: '800', fontSize: 11 }}>
+                    ADMIN
+                  </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.muted} />
               </LinearGradient>
@@ -655,14 +1082,23 @@ export default function ProfileScreen() {
             onPress={() => router.push('/edit-profile' as any)}
             style={{
               backgroundColor: t.surface,
-              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
-              flexDirection: 'row', alignItems: 'center',
-              borderColor: t.border, borderWidth: 1,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: t.border,
+              borderWidth: 1,
             }}
           >
             <Ionicons name="create-outline" size={20} color={colors.pink} />
             <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>Edit Profile</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.muted}
+              style={{ marginLeft: 'auto' }}
+            />
           </TouchableOpacity>
 
           {/* Settings */}
@@ -670,14 +1106,23 @@ export default function ProfileScreen() {
             onPress={() => router.push('/settings' as any)}
             style={{
               backgroundColor: t.surface,
-              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
-              flexDirection: 'row', alignItems: 'center',
-              borderColor: t.border, borderWidth: 1,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: t.border,
+              borderWidth: 1,
             }}
           >
             <Ionicons name="settings-outline" size={20} color={colors.muted} />
             <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>Settings</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.muted}
+              style={{ marginLeft: 'auto' }}
+            />
           </TouchableOpacity>
 
           {/* My Tickets */}
@@ -685,14 +1130,23 @@ export default function ProfileScreen() {
             onPress={() => router.push('/tickets' as any)}
             style={{
               backgroundColor: t.surface,
-              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
-              flexDirection: 'row', alignItems: 'center',
-              borderColor: t.border, borderWidth: 1,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: t.border,
+              borderWidth: 1,
             }}
           >
             <Ionicons name="ticket-outline" size={20} color={colors.pink} />
             <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>My Tickets</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.muted}
+              style={{ marginLeft: 'auto' }}
+            />
           </TouchableOpacity>
 
           {/* Member Directory */}
@@ -700,14 +1154,25 @@ export default function ProfileScreen() {
             onPress={() => router.push('/members' as any)}
             style={{
               backgroundColor: t.surface,
-              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
-              flexDirection: 'row', alignItems: 'center',
-              borderColor: t.border, borderWidth: 1,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: t.border,
+              borderWidth: 1,
             }}
           >
             <Ionicons name="people-outline" size={20} color={colors.pink} />
-            <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>Member Directory</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 'auto' }} />
+            <Text style={{ color: t.text, fontWeight: '600', marginLeft: 12 }}>
+              Member Directory
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.muted}
+              style={{ marginLeft: 'auto' }}
+            />
           </TouchableOpacity>
 
           {/* Sign Out */}
@@ -716,9 +1181,13 @@ export default function ProfileScreen() {
             disabled={logoutMutation.isPending}
             style={{
               backgroundColor: t.surface,
-              borderRadius: 14, paddingVertical: 14, paddingHorizontal: 20,
-              flexDirection: 'row', alignItems: 'center',
-              borderColor: t.border, borderWidth: 1,
+              borderRadius: 14,
+              paddingVertical: 14,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderColor: t.border,
+              borderWidth: 1,
             }}
           >
             {logoutMutation.isPending ? (
@@ -729,7 +1198,6 @@ export default function ProfileScreen() {
             <Text style={{ color: '#EF4444', fontWeight: '600', marginLeft: 12 }}>Sign Out</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );

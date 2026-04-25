@@ -25,14 +25,19 @@ function NotificationSkeleton({ theme }: { theme: ReturnType<typeof useTheme> })
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.9, duration: 700, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
-      ]),
+      ])
     );
     pulse.start();
     return () => pulse.stop();
   }, [opacity]);
 
   return (
-    <Animated.View style={[styles.skeletonRow, { opacity, backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+    <Animated.View
+      style={[
+        styles.skeletonRow,
+        { opacity, backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border },
+      ]}
+    >
       <View style={[styles.skeletonIcon, { backgroundColor: theme.colors.border }]} />
       <View style={styles.skeletonBody}>
         <View style={[styles.skeletonLinePrimary, { backgroundColor: theme.colors.border }]} />
@@ -45,27 +50,34 @@ function NotificationSkeleton({ theme }: { theme: ReturnType<typeof useTheme> })
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const themed = useMemo(() => ({
-    screen: theme.colors.background,
-    headerGradient: theme.isDark ? ['#18071F', '#10061A', '#080810'] as const : ['#FFF7FC', '#FBEFFC', '#F7EFFA'] as const,
-    headerBorder: theme.isDark ? 'rgba(255,255,255,0.05)' : theme.colors.border,
-    eyebrowBg: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.72)',
-    eyebrowBorder: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.colors.border,
-    eyebrowText: theme.isDark ? '#F9A8D4' : theme.colors.primary,
-    glow: theme.isDark ? 'rgba(236,72,153,0.12)' : 'rgba(236,72,153,0.08)',
-    miniStatBg: theme.isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.1)',
-    miniStatBorder: theme.isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.18)',
-    miniStatValue: theme.isDark ? '#DDD6FE' : theme.colors.secondary,
-    miniStatLabel: theme.colors.textSecondary,
-    title: theme.colors.text,
-    subtitle: theme.colors.textSecondary,
-    bubbleBg: theme.isDark ? 'rgba(236,72,153,0.16)' : 'rgba(236,72,153,0.1)',
-    bubbleBorder: theme.isDark ? 'rgba(236,72,153,0.22)' : 'rgba(236,72,153,0.16)',
-    bubbleText: theme.isDark ? '#F9A8D4' : theme.colors.primary,
-    buttonGradient: theme.isDark ? ['rgba(236,72,153,0.18)', 'rgba(168,85,247,0.14)'] as const : ['rgba(236,72,153,0.12)', 'rgba(168,85,247,0.1)'] as const,
-    emptyTitle: theme.colors.text,
-    emptyBody: theme.colors.textSecondary,
-  }), [theme]);
+  const themed = useMemo(
+    () => ({
+      screen: theme.colors.background,
+      headerGradient: theme.isDark
+        ? (['#18071F', '#10061A', '#080810'] as const)
+        : (['#FFF7FC', '#FBEFFC', '#F7EFFA'] as const),
+      headerBorder: theme.isDark ? 'rgba(255,255,255,0.05)' : theme.colors.border,
+      eyebrowBg: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.72)',
+      eyebrowBorder: theme.isDark ? 'rgba(255,255,255,0.08)' : theme.colors.border,
+      eyebrowText: theme.isDark ? '#F9A8D4' : theme.colors.primary,
+      glow: theme.isDark ? 'rgba(236,72,153,0.12)' : 'rgba(236,72,153,0.08)',
+      miniStatBg: theme.isDark ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.1)',
+      miniStatBorder: theme.isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.18)',
+      miniStatValue: theme.isDark ? '#DDD6FE' : theme.colors.secondary,
+      miniStatLabel: theme.colors.textSecondary,
+      title: theme.colors.text,
+      subtitle: theme.colors.textSecondary,
+      bubbleBg: theme.isDark ? 'rgba(236,72,153,0.16)' : 'rgba(236,72,153,0.1)',
+      bubbleBorder: theme.isDark ? 'rgba(236,72,153,0.22)' : 'rgba(236,72,153,0.16)',
+      bubbleText: theme.isDark ? '#F9A8D4' : theme.colors.primary,
+      buttonGradient: theme.isDark
+        ? (['rgba(236,72,153,0.18)', 'rgba(168,85,247,0.14)'] as const)
+        : (['rgba(236,72,153,0.12)', 'rgba(168,85,247,0.1)'] as const),
+      emptyTitle: theme.colors.text,
+      emptyBody: theme.colors.textSecondary,
+    }),
+    [theme]
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<number>>(new Set());
 
@@ -74,25 +86,31 @@ export default function NotificationsScreen() {
     refetchInterval: 30_000,
   });
   const markAllRead = trpc.notifications.markAllRead.useMutation({
-    onSuccess: () => { setLocallyReadIds(new Set()); refetch(); },
+    onSuccess: () => {
+      setLocallyReadIds(new Set());
+      refetch();
+    },
   });
   const markRead = trpc.notifications.markRead.useMutation({
     onSuccess: () => refetch(),
   });
 
-  const handleMarkRead = useCallback((id: number) => {
-    setLocallyReadIds((prev) => new Set(prev).add(id));
-    markRead.mutate({ id });
-  }, [markRead]);
+  const handleMarkRead = useCallback(
+    (id: number) => {
+      setLocallyReadIds((prev) => new Set(prev).add(id));
+      markRead.mutate({ id });
+    },
+    [markRead]
+  );
 
-  const notifications = (data as any[]) ?? [];
+  const notifications = useMemo(() => (data as any[]) ?? [], [data]);
   const visibleNotifications = useMemo(
     () => notifications.filter((n: any) => !locallyReadIds.has(n.id)),
-    [notifications, locallyReadIds],
+    [notifications, locallyReadIds]
   );
   const unreadCount = useMemo(
     () => notifications.filter((n: any) => !n.readAt && !locallyReadIds.has(n.id)).length,
-    [notifications, locallyReadIds],
+    [notifications, locallyReadIds]
   );
 
   const renderNotification = useCallback(
@@ -101,7 +119,7 @@ export default function NotificationsScreen() {
         <NotificationItem notification={item} onMarkRead={handleMarkRead} />
       </View>
     ),
-    [handleMarkRead],
+    [handleMarkRead]
   );
 
   const onRefresh = useCallback(async () => {
@@ -111,18 +129,36 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themed.screen }]} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: themed.screen }]}
+      edges={['bottom', 'left', 'right']}
+    >
       <LinearGradient
         colors={themed.headerGradient}
-        style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: themed.headerBorder }]}
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 12, borderBottomColor: themed.headerBorder },
+        ]}
       >
         <View style={[styles.headerGlow, { backgroundColor: themed.glow }]} />
         <View style={styles.headerTopline}>
-          <View style={[styles.eyebrowPill, { backgroundColor: themed.eyebrowBg, borderColor: themed.eyebrowBorder }]}> 
+          <View
+            style={[
+              styles.eyebrowPill,
+              { backgroundColor: themed.eyebrowBg, borderColor: themed.eyebrowBorder },
+            ]}
+          >
             <Text style={[styles.eyebrowText, { color: themed.eyebrowText }]}>AFTER DARK</Text>
           </View>
-          <View style={[styles.headerMiniStat, { backgroundColor: themed.miniStatBg, borderColor: themed.miniStatBorder }]}>
-            <Text style={[styles.headerMiniValue, { color: themed.miniStatValue }]}>{unreadCount}</Text>
+          <View
+            style={[
+              styles.headerMiniStat,
+              { backgroundColor: themed.miniStatBg, borderColor: themed.miniStatBorder },
+            ]}
+          >
+            <Text style={[styles.headerMiniValue, { color: themed.miniStatValue }]}>
+              {unreadCount}
+            </Text>
             <Text style={[styles.headerMiniLabel, { color: themed.miniStatLabel }]}>fresh</Text>
           </View>
         </View>
@@ -135,8 +171,15 @@ export default function NotificationsScreen() {
             </Text>
           </View>
           {unreadCount > 0 && (
-            <View style={[styles.unreadBubble, { backgroundColor: themed.bubbleBg, borderColor: themed.bubbleBorder }]}>
-              <Text style={[styles.unreadBubbleText, { color: themed.bubbleText }]}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            <View
+              style={[
+                styles.unreadBubble,
+                { backgroundColor: themed.bubbleBg, borderColor: themed.bubbleBorder },
+              ]}
+            >
+              <Text style={[styles.unreadBubbleText, { color: themed.bubbleText }]}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
             </View>
           )}
         </View>
@@ -150,7 +193,10 @@ export default function NotificationsScreen() {
           activeOpacity={0.8}
           style={[styles.markAllBtn, unreadCount === 0 && styles.markAllBtnDisabled]}
         >
-          <LinearGradient colors={themed.buttonGradient} style={[styles.markAllInner, { borderColor: themed.bubbleBorder }]}> 
+          <LinearGradient
+            colors={themed.buttonGradient}
+            style={[styles.markAllInner, { borderColor: themed.bubbleBorder }]}
+          >
             <Ionicons name="checkmark-done" size={16} color={theme.colors.primary} />
             <Text style={[styles.markAllText, { color: theme.colors.primary }]}>Mark all read</Text>
           </LinearGradient>
@@ -167,9 +213,24 @@ export default function NotificationsScreen() {
       ) : isError ? (
         <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
           <Text style={{ fontSize: 40, marginBottom: 12 }}>⚠️</Text>
-          <Text style={[styles.emptyTitle, { color: themed.emptyTitle }]}>Could not load alerts</Text>
-          <Text style={[styles.emptyBody, { color: themed.emptyBody }]}>{(error as any)?.message ?? 'Please try again.'}</Text>
-          <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }}>
+          <Text style={[styles.emptyTitle, { color: themed.emptyTitle }]}>
+            Could not load alerts
+          </Text>
+          <Text style={[styles.emptyBody, { color: themed.emptyBody }]}>
+            {(error as any)?.message ?? 'Please try again.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={{
+              marginTop: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              backgroundColor: theme.colors.surface,
+            }}
+          >
             <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
           </TouchableOpacity>
         </View>
