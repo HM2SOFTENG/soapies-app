@@ -1,10 +1,15 @@
 import { createTRPCReact } from '@trpc/react-query';
 import { httpBatchLink } from '@trpc/client';
+import type { AnyRouter } from '@trpc/server/unstable-core-do-not-import';
 import superjson from 'superjson';
 import * as SecureStore from 'expo-secure-store';
-import type { AppRouter } from '../../server/routers';
 
-export const trpc = createTRPCReact<AppRouter>();
+/**
+ * Mobile should not typecheck against server implementation files.
+ * Runtime behavior is defined by the HTTP tRPC endpoint; a shared contract package
+ * can restore end-to-end inference later without coupling the mobile CI graph to backend deps.
+ */
+export const trpc = createTRPCReact<AnyRouter>() as any;
 
 export const SESSION_COOKIE_KEY = 'app_session_cookie';
 

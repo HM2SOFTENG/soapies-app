@@ -151,7 +151,7 @@ export default function AdminSettingsScreen() {
   }, [isAdmin, isLoading, settingsData]);
 
   const updateMutation = trpc.admin.updateSetting.useMutation({
-    onMutate: ({ key }) => dispatchSaving({ type: 'start', key }),
+    onMutate: ({ key }: { key: string }) => dispatchSaving({ type: 'start', key }),
     onSettled: (_data: any, _err: any, { key }: { key: string }) => {
       dispatchSaving({ type: 'done', key });
       refetch();
