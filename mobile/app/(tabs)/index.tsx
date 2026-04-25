@@ -28,7 +28,6 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { trpc } from '../../lib/trpc';
 import { useAuth } from '../../lib/auth';
-import { colors } from '../../lib/colors';
 import { uploadPhoto } from '../../lib/uploadPhoto';
 import PostCard from '../../components/PostCard';
 import Avatar from '../../components/Avatar';
@@ -41,16 +40,17 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // ── Role config ───────────────────────────────────────────────────────────────
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  admin:   { label: 'Admin',   color: '#fff',    bg: '#6366F1' },
-  angel:   { label: 'Angel',   color: '#EC4899', bg: '#EC489922' },
-  member:  { label: 'Member',  color: '#A855F7', bg: '#A855F722' },
+  admin: { label: 'Admin', color: '#fff', bg: '#6366F1' },
+  angel: { label: 'Angel', color: '#EC4899', bg: '#EC489922' },
+  member: { label: 'Member', color: '#A855F7', bg: '#A855F722' },
   pending: { label: 'Pending', color: '#9CA3AF', bg: '#1A1A2E' },
 };
 
 function getGreeting(name: string) {
   const h = new Date().getHours();
   const emoji = h < 12 ? '☀️' : h < 17 ? '👋' : h < 21 ? '🌆' : '🌙';
-  const word  = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
+  const word =
+    h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
   return { greeting: `${word}, ${name?.split(' ')[0] ?? 'there'}`, emoji };
 }
 
@@ -72,25 +72,38 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
     Animated.parallel([
       Animated.timing(headerOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(headerY, { toValue: 0, duration: 700, useNativeDriver: true }),
-      Animated.spring(greetingScale, { toValue: 1, useNativeDriver: true, speed: 18, bounciness: 6 }),
+      Animated.spring(greetingScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 6,
+      }),
     ]).start();
 
-    const glow = Animated.loop(Animated.sequence([
-      Animated.timing(glowAnim, { toValue: 1, duration: 3000, useNativeDriver: true }),
-      Animated.timing(glowAnim, { toValue: 0, duration: 3000, useNativeDriver: true }),
-    ]));
-    const orbs = Animated.loop(Animated.sequence([
-      Animated.timing(orbAnim, { toValue: 1, duration: 5000, useNativeDriver: true }),
-      Animated.timing(orbAnim, { toValue: 0, duration: 5000, useNativeDriver: true }),
-    ]));
-    const statPulse = Animated.loop(Animated.sequence([
-      Animated.timing(statCardPulse, { toValue: 1, duration: 2600, useNativeDriver: true }),
-      Animated.timing(statCardPulse, { toValue: 0, duration: 2600, useNativeDriver: true }),
-    ]));
-    const floatAvatar = Animated.loop(Animated.sequence([
-      Animated.timing(avatarFloat, { toValue: 1, duration: 2200, useNativeDriver: true }),
-      Animated.timing(avatarFloat, { toValue: 0, duration: 2200, useNativeDriver: true }),
-    ]));
+    const glow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 3000, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0, duration: 3000, useNativeDriver: true }),
+      ])
+    );
+    const orbs = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orbAnim, { toValue: 1, duration: 5000, useNativeDriver: true }),
+        Animated.timing(orbAnim, { toValue: 0, duration: 5000, useNativeDriver: true }),
+      ])
+    );
+    const statPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(statCardPulse, { toValue: 1, duration: 2600, useNativeDriver: true }),
+        Animated.timing(statCardPulse, { toValue: 0, duration: 2600, useNativeDriver: true }),
+      ])
+    );
+    const floatAvatar = Animated.loop(
+      Animated.sequence([
+        Animated.timing(avatarFloat, { toValue: 1, duration: 2200, useNativeDriver: true }),
+        Animated.timing(avatarFloat, { toValue: 0, duration: 2200, useNativeDriver: true }),
+      ])
+    );
 
     glow.start();
     orbs.start();
@@ -102,18 +115,25 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
       floatAvatar.stop();
       statPulse.stop();
     };
-  }, []);
+  }, [avatarFloat, glowAnim, greetingScale, headerOpacity, headerY, orbAnim, statCardPulse]);
 
   const displayName = profile?.displayName ?? me?.name ?? 'there';
   const { greeting, emoji } = getGreeting(displayName);
   const role = (me?.role ?? profile?.role ?? 'member') as string;
   const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.member;
   const memberSince = new Date(me?.createdAt ?? profile?.createdAt ?? Date.now()).getFullYear();
-  const { data: creditBalance, isLoading: creditsLoading } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
-  const { data: myReservationsData, isLoading: reservationsLoading } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
-  const creditsRaw = typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
+  const { data: creditBalance, isLoading: creditsLoading } = trpc.credits.balance.useQuery(
+    undefined,
+    { staleTime: 60_000 }
+  );
+  const { data: myReservationsData, isLoading: reservationsLoading } =
+    trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000 });
+  const creditsRaw =
+    typeof creditBalance === 'number' ? creditBalance : ((creditBalance as any)?.balance ?? 0);
   const credits = `$${Number(creditsRaw).toFixed(2)}`;
-  const attended = ((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').length;
+  const attended = ((myReservationsData as any[]) ?? []).filter(
+    (r: any) => r.status !== 'cancelled'
+  ).length;
   const avatarGlowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.34] });
   const avatarTranslateY = avatarFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
   const orbTranslateX = orbAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -18] });
@@ -123,51 +143,234 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
   return (
     <LinearGradient
       colors={isDark ? ['#220537', '#14051F', '#080810'] : ['#FFF4FA', '#FFF8FC', '#FFFDFC']}
-      start={{ x: 0, y: 0 }} end={{ x: 0.65, y: 1 }}
-      style={{ paddingHorizontal: 20, paddingTop: insets.top + 18, paddingBottom: 28, overflow: 'hidden' }}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0.65, y: 1 }}
+      style={{
+        paddingHorizontal: 20,
+        paddingTop: insets.top + 18,
+        paddingBottom: 28,
+        overflow: 'hidden',
+      }}
     >
-      <Animated.View style={{ position: 'absolute', top: insets.top - 4, right: -26, width: 188, height: 188, borderRadius: 94, backgroundColor: themeColors.pink, opacity: avatarGlowOpacity, transform: [{ translateX: orbTranslateX }, { translateY: orbTranslateY }, { scale: orbScale }] }} />
-      <Animated.View style={{ position: 'absolute', top: insets.top + 58, right: 56, width: 18, height: 18, borderRadius: 9, backgroundColor: alpha('#FBBF24', isDark ? 0.85 : 0.5), shadowColor: '#FBBF24', shadowOpacity: isDark ? 0.8 : 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, transform: [{ scale: orbScale }] }} />
-      <Animated.View style={{ position: 'absolute', top: insets.top + 130, left: -18, width: 110, height: 110, borderRadius: 55, backgroundColor: alpha(themeColors.purple, isDark ? 0.08 : 0.06), transform: [{ translateY: orbTranslateY }] }} />
-      <View style={{ position: 'absolute', left: 20, right: 20, bottom: 0, height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.border, 0.7) }} />
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: insets.top - 4,
+          right: -26,
+          width: 188,
+          height: 188,
+          borderRadius: 94,
+          backgroundColor: themeColors.pink,
+          opacity: avatarGlowOpacity,
+          transform: [
+            { translateX: orbTranslateX },
+            { translateY: orbTranslateY },
+            { scale: orbScale },
+          ],
+        }}
+      />
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: insets.top + 58,
+          right: 56,
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: alpha('#FBBF24', isDark ? 0.85 : 0.5),
+          shadowColor: '#FBBF24',
+          shadowOpacity: isDark ? 0.8 : 0.3,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 0 },
+          transform: [{ scale: orbScale }],
+        }}
+      />
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: insets.top + 130,
+          left: -18,
+          width: 110,
+          height: 110,
+          borderRadius: 55,
+          backgroundColor: alpha(themeColors.purple, isDark ? 0.08 : 0.06),
+          transform: [{ translateY: orbTranslateY }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 20,
+          right: 20,
+          bottom: 0,
+          height: 1,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.border, 0.7),
+        }}
+      />
 
       <Animated.View style={{ opacity: headerOpacity, transform: [{ translateY: headerY }] }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            marginBottom: 10,
+          }}
+        >
           <View style={{ flex: 1, paddingRight: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.surface, 0.92), borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : alpha(themeColors.border, 0.9) }}>
-                <Text style={{ color: isDark ? '#C4B5FD' : themeColors.purple, fontSize: 10, fontWeight: '800', letterSpacing: 1 }}>TODAY</Text>
+              <View
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  backgroundColor: isDark
+                    ? 'rgba(255,255,255,0.06)'
+                    : alpha(themeColors.surface, 0.92),
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : alpha(themeColors.border, 0.9),
+                }}
+              >
+                <Text
+                  style={{
+                    color: isDark ? '#C4B5FD' : themeColors.purple,
+                    fontSize: 10,
+                    fontWeight: '800',
+                    letterSpacing: 1,
+                  }}
+                >
+                  TODAY
+                </Text>
               </View>
             </View>
 
-            <Animated.Text style={{ color: themeColors.text, fontSize: 34, fontWeight: '900', lineHeight: 40, letterSpacing: -1.2, transform: [{ scale: greetingScale }], fontFamily: FONT.displayBold }}>
+            <Animated.Text
+              style={{
+                color: themeColors.text,
+                fontSize: 34,
+                fontWeight: '900',
+                lineHeight: 40,
+                letterSpacing: -1.2,
+                transform: [{ scale: greetingScale }],
+                fontFamily: FONT.displayBold,
+              }}
+            >
               {greeting} {emoji}
             </Animated.Text>
 
-            <Text style={{ color: themeColors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 8, maxWidth: 260 }}>
-              Your private playground is waking up. Here’s your vibe, access, and momentum for today.
+            <Text
+              style={{
+                color: themeColors.textSecondary,
+                fontSize: 13,
+                lineHeight: 20,
+                marginTop: 8,
+                maxWidth: 260,
+              }}
+            >
+              Your private playground is waking up. Here’s your vibe, access, and momentum for
+              today.
             </Text>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8, flexWrap: 'wrap' }}>
-              <View style={{ backgroundColor: roleConfig.bg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: `${roleConfig.color}44` }}>
-                <Text style={{ color: roleConfig.color, fontSize: 11, fontWeight: '800', letterSpacing: 0.5, fontFamily: FONT.displaySemiBold }}>{roleConfig.label}</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginTop: 12,
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: roleConfig.bg,
+                  borderRadius: 20,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderWidth: 1,
+                  borderColor: `${roleConfig.color}44`,
+                }}
+              >
+                <Text
+                  style={{
+                    color: roleConfig.color,
+                    fontSize: 11,
+                    fontWeight: '800',
+                    letterSpacing: 0.5,
+                    fontFamily: FONT.displaySemiBold,
+                  }}
+                >
+                  {roleConfig.label}
+                </Text>
               </View>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : alpha(themeColors.surface, 0.92), borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.07)' : alpha(themeColors.border, 0.9) }}>
-                <Text style={{ color: themeColors.textMuted, fontSize: 11, fontWeight: '700' }}>Soapies</Text>
+              <View
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 20,
+                  backgroundColor: isDark
+                    ? 'rgba(255,255,255,0.05)'
+                    : alpha(themeColors.surface, 0.92),
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.07)' : alpha(themeColors.border, 0.9),
+                }}
+              >
+                <Text style={{ color: themeColors.textMuted, fontSize: 11, fontWeight: '700' }}>
+                  Soapies
+                </Text>
               </View>
             </View>
           </View>
 
           <TouchableOpacity
-            onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/profile'); } catch (_) {} }}
+            onPress={() => {
+              Haptics.selectionAsync();
+              try {
+                (router as any).push('/(tabs)/profile');
+              } catch {}
+            }}
             activeOpacity={0.9}
             style={{ padding: 6, marginTop: 4 }}
           >
             <Animated.View style={{ transform: [{ translateY: avatarTranslateY }] }}>
-              <View style={{ width: 68, height: 68, borderRadius: 34, padding: 3, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : alpha(themeColors.surface, 0.96), borderWidth: 1, borderColor: alpha(themeColors.pink, isDark ? 0.18 : 0.22), shadowColor: themeColors.pink, shadowOpacity: isDark ? 0.32 : 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 6 } }}>
-                <LinearGradient colors={[alpha(themeColors.pink, isDark ? 0.8 : 0.65), alpha(themeColors.purple, isDark ? 0.7 : 0.5)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: 31, padding: 2 }}>
-                  <View style={{ flex: 1, borderRadius: 29, overflow: 'hidden', backgroundColor: isDark ? '#14091F' : themeColors.surface }}>
-                    <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={62} />
+              <View
+                style={{
+                  width: 68,
+                  height: 68,
+                  borderRadius: 34,
+                  padding: 3,
+                  backgroundColor: isDark
+                    ? 'rgba(255,255,255,0.06)'
+                    : alpha(themeColors.surface, 0.96),
+                  borderWidth: 1,
+                  borderColor: alpha(themeColors.pink, isDark ? 0.18 : 0.22),
+                  shadowColor: themeColors.pink,
+                  shadowOpacity: isDark ? 0.32 : 0.18,
+                  shadowRadius: 16,
+                  shadowOffset: { width: 0, height: 6 },
+                }}
+              >
+                <LinearGradient
+                  colors={[
+                    alpha(themeColors.pink, isDark ? 0.8 : 0.65),
+                    alpha(themeColors.purple, isDark ? 0.7 : 0.5),
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ flex: 1, borderRadius: 31, padding: 2 }}
+                >
+                  <View
+                    style={{
+                      flex: 1,
+                      borderRadius: 29,
+                      overflow: 'hidden',
+                      backgroundColor: isDark ? '#14091F' : themeColors.surface,
+                    }}
+                  >
+                    <Avatar
+                      name={profile?.displayName ?? 'Me'}
+                      url={profile?.avatarUrl}
+                      size={62}
+                    />
                   </View>
                 </LinearGradient>
               </View>
@@ -176,31 +379,134 @@ function AnimatedHeader({ me, profile }: { me: any; profile: any }) {
         </View>
 
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
-          <StatChip icon="calendar" value={reservationsLoading ? '—' : String(attended)} label="Events" color="#EC4899" detail="Booked this year" pulseValue={statCardPulse} />
-          <TouchableOpacity onPress={() => (router as any).push('/(tabs)/events')} activeOpacity={0.88} style={{ flex: 1 }}>
-            <StatChip icon="gift" value={creditsLoading ? '—' : credits} label="Credits" color="#A855F7" detail="Ready to spend" pulseValue={statCardPulse} />
+          <StatChip
+            icon="calendar"
+            value={reservationsLoading ? '—' : String(attended)}
+            label="Events"
+            color="#EC4899"
+            detail="Booked this year"
+            pulseValue={statCardPulse}
+          />
+          <TouchableOpacity
+            onPress={() => (router as any).push('/(tabs)/events')}
+            activeOpacity={0.88}
+            style={{ flex: 1 }}
+          >
+            <StatChip
+              icon="gift"
+              value={creditsLoading ? '—' : credits}
+              label="Credits"
+              color="#A855F7"
+              detail="Ready to spend"
+              pulseValue={statCardPulse}
+            />
           </TouchableOpacity>
-          <StatChip icon="sparkles" value={String(memberSince)} label="Since" color="#F59E0B" detail="Member era" pulseValue={statCardPulse} />
+          <StatChip
+            icon="sparkles"
+            value={String(memberSince)}
+            label="Since"
+            color="#F59E0B"
+            detail="Member era"
+            pulseValue={statCardPulse}
+          />
         </View>
       </Animated.View>
     </LinearGradient>
   );
 }
 
-function StatChip({ icon, value, label, color = '#EC4899', detail, pulseValue }: { icon: any; value: string; label: string; color?: string; loading?: boolean; detail?: string; pulseValue?: Animated.Value }) {
+function StatChip({
+  icon,
+  value,
+  label,
+  color = '#EC4899',
+  detail,
+  pulseValue,
+}: {
+  icon: any;
+  value: string;
+  label: string;
+  color?: string;
+  loading?: boolean;
+  detail?: string;
+  pulseValue?: Animated.Value;
+}) {
   const { colors: themeColors, alpha, isDark } = useTheme();
-  const scale = pulseValue ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [1, 1.015] }) : 1;
-  const highlightOpacity = pulseValue ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.18] }) : 0.08;
+  const scale = pulseValue
+    ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [1, 1.015] })
+    : 1;
+  const highlightOpacity = pulseValue
+    ? pulseValue.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.18] })
+    : 0.08;
 
   return (
-    <Animated.View style={{ flex: 1, backgroundColor: isDark ? `${color}12` : alpha(themeColors.surface, 0.96), borderRadius: 18, borderColor: isDark ? `${color}34` : alpha(color, 0.22), borderWidth: 1, paddingVertical: 12, paddingHorizontal: 12, alignItems: 'flex-start', overflow: 'hidden', transform: [{ scale }] }}>
-      <Animated.View style={{ position: 'absolute', top: -12, right: -12, width: 48, height: 48, borderRadius: 24, backgroundColor: color, opacity: highlightOpacity as any }} />
-      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: alpha(color, isDark ? 0.13 : 0.11), alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderWidth: 1, borderColor: alpha(color, isDark ? 0.13 : 0.18) }}>
+    <Animated.View
+      style={{
+        flex: 1,
+        backgroundColor: isDark ? `${color}12` : alpha(themeColors.surface, 0.96),
+        borderRadius: 18,
+        borderColor: isDark ? `${color}34` : alpha(color, 0.22),
+        borderWidth: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        alignItems: 'flex-start',
+        overflow: 'hidden',
+        transform: [{ scale }],
+      }}
+    >
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: -12,
+          right: -12,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: color,
+          opacity: highlightOpacity as any,
+        }}
+      />
+      <View
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 10,
+          backgroundColor: alpha(color, isDark ? 0.13 : 0.11),
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 8,
+          borderWidth: 1,
+          borderColor: alpha(color, isDark ? 0.13 : 0.18),
+        }}
+      >
         <Ionicons name={icon} size={17} color={color} />
       </View>
-      <Text style={{ color: themeColors.text, fontSize: 17, fontWeight: '900', lineHeight: 19, fontFamily: FONT.displayBold }}>{value}</Text>
-      <Text style={{ color: themeColors.textSecondary, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, marginTop: 4, textTransform: 'uppercase' }}>{label}</Text>
-      {!!detail && <Text style={{ color: themeColors.textMuted, fontSize: 10, marginTop: 3 }}>{detail}</Text>}
+      <Text
+        style={{
+          color: themeColors.text,
+          fontSize: 17,
+          fontWeight: '900',
+          lineHeight: 19,
+          fontFamily: FONT.displayBold,
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        style={{
+          color: themeColors.textSecondary,
+          fontSize: 10,
+          fontWeight: '700',
+          letterSpacing: 0.5,
+          marginTop: 4,
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </Text>
+      {!!detail && (
+        <Text style={{ color: themeColors.textMuted, fontSize: 10, marginTop: 3 }}>{detail}</Text>
+      )}
     </Animated.View>
   );
 }
@@ -208,10 +514,10 @@ function StatChip({ icon, value, label, color = '#EC4899', detail, pulseValue }:
 // ── Quick Actions (2×2 grid) ──────────────────────────────────────────────────
 
 const ACTIONS = [
-  { icon: 'calendar'        as const, label: 'Events',     color: '#EC4899', route: '/(tabs)/events' },
-  { icon: 'ticket-outline'  as const, label: 'My Tickets', color: '#A855F7', route: '/tickets' },
-  { icon: 'people'          as const, label: 'Members',    color: '#6366F1', route: '/members' },
-  { icon: 'radio-button-on' as const, label: 'Pulse 💗',   color: '#10B981', route: '/(tabs)/pulse' },
+  { icon: 'calendar' as const, label: 'Events', color: '#EC4899', route: '/(tabs)/events' },
+  { icon: 'ticket-outline' as const, label: 'My Tickets', color: '#A855F7', route: '/tickets' },
+  { icon: 'people' as const, label: 'Members', color: '#6366F1', route: '/members' },
+  { icon: 'radio-button-on' as const, label: 'Pulse 💗', color: '#10B981', route: '/(tabs)/pulse' },
 ];
 
 function QuickActionGrid() {
@@ -226,9 +532,11 @@ function QuickActionGrid() {
   function onPressOut(i: number) {
     Animated.spring(scales[i], { toValue: 1, useNativeDriver: true, speed: 20 }).start();
   }
-  function onPress(item: typeof ACTIONS[number]) {
+  function onPress(item: (typeof ACTIONS)[number]) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try { (router as any).push(item.route as any); } catch (_) {}
+    try {
+      (router as any).push(item.route as any);
+    } catch {}
   }
 
   const cardBackground = theme.isDark ? '#10101C' : themeColors.surface;
@@ -241,11 +549,17 @@ function QuickActionGrid() {
   return (
     <View style={{ marginHorizontal: 16, marginBottom: 4 }}>
       {rows.map((row, ri) => (
-        <View key={ri} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+        <View
+          key={ri}
+          style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}
+        >
           {row.map((item, ci) => {
             const idx = ri * 2 + ci;
             return (
-              <Animated.View key={item.label} style={{ transform: [{ scale: scales[idx] }], flex: 1, marginHorizontal: 4 }}>
+              <Animated.View
+                key={item.label}
+                style={{ transform: [{ scale: scales[idx] }], flex: 1, marginHorizontal: 4 }}
+              >
                 <TouchableOpacity
                   activeOpacity={1}
                   onPressIn={() => onPressIn(idx)}
@@ -277,7 +591,15 @@ function QuickActionGrid() {
                   >
                     <Ionicons name={item.icon} size={22} color={item.color} />
                   </View>
-                  <Text style={{ color: themeColors.text, fontSize: 13, fontWeight: '800', textAlign: 'center', fontFamily: FONT.displaySemiBold }}>
+                  <Text
+                    style={{
+                      color: themeColors.text,
+                      fontSize: 13,
+                      fontWeight: '800',
+                      textAlign: 'center',
+                      fontFamily: FONT.displaySemiBold,
+                    }}
+                  >
                     {item.label}
                   </Text>
                 </TouchableOpacity>
@@ -292,7 +614,13 @@ function QuickActionGrid() {
 
 // ── Announcement Banner ───────────────────────────────────────────────────────
 
-function AnnouncementCard({ announcement, onDismiss }: { announcement: any; onDismiss: (id: number) => void }) {
+function AnnouncementCard({
+  announcement,
+  onDismiss,
+}: {
+  announcement: any;
+  onDismiss: (id: number) => void;
+}) {
   const slideIn = useRef(new Animated.Value(-20)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -300,20 +628,49 @@ function AnnouncementCard({ announcement, onDismiss }: { announcement: any; onDi
       Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.timing(slideIn, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [opacity, slideIn]);
   const { colors: themeColors, alpha, isDark } = useTheme();
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY: slideIn }], minWidth: SCREEN_WIDTH * 0.78 }}>
-      <View style={{ backgroundColor: isDark ? '#10101C' : themeColors.surface, borderRadius: 16, borderWidth: 1, borderColor: isDark ? '#EC489930' : alpha(themeColors.pink, 0.14), marginRight: 10, overflow: 'hidden', flexDirection: 'row' }}>
+    <Animated.View
+      style={{ opacity, transform: [{ translateY: slideIn }], minWidth: SCREEN_WIDTH * 0.78 }}
+    >
+      <View
+        style={{
+          backgroundColor: isDark ? '#10101C' : themeColors.surface,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: isDark ? '#EC489930' : alpha(themeColors.pink, 0.14),
+          marginRight: 10,
+          overflow: 'hidden',
+          flexDirection: 'row',
+        }}
+      >
         <LinearGradient colors={[themeColors.pink, themeColors.purple]} style={{ width: 3 }} />
         <View style={{ flex: 1, padding: 14, flexDirection: 'row', alignItems: 'flex-start' }}>
-          <Ionicons name="megaphone" size={16} color={themeColors.pink} style={{ marginTop: 1, marginRight: 10 }} />
+          <Ionicons
+            name="megaphone"
+            size={16}
+            color={themeColors.pink}
+            style={{ marginTop: 1, marginRight: 10 }}
+          />
           <View style={{ flex: 1 }}>
-            <Text style={{ color: themeColors.text, fontWeight: '800', fontSize: 13, marginBottom: 3 }}>{announcement.title}</Text>
-            <Text style={{ color: themeColors.textSecondary, fontSize: 12, lineHeight: 17 }} numberOfLines={3}>{announcement.content}</Text>
+            <Text
+              style={{ color: themeColors.text, fontWeight: '800', fontSize: 13, marginBottom: 3 }}
+            >
+              {announcement.title}
+            </Text>
+            <Text
+              style={{ color: themeColors.textSecondary, fontSize: 12, lineHeight: 17 }}
+              numberOfLines={3}
+            >
+              {announcement.content}
+            </Text>
           </View>
           {announcement.dismissible !== false && (
-            <TouchableOpacity onPress={() => onDismiss(announcement.id)} style={{ marginLeft: 8, padding: 2 }}>
+            <TouchableOpacity
+              onPress={() => onDismiss(announcement.id)}
+              style={{ marginLeft: 8, padding: 2 }}
+            >
               <Ionicons name="close" size={16} color={themeColors.textMuted} />
             </TouchableOpacity>
           )}
@@ -381,22 +738,26 @@ function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean })
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const pulse = Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1.015, duration: 1700, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1, duration: 1700, useNativeDriver: true }),
-    ]));
-    const shimmer = Animated.loop(Animated.sequence([
-      Animated.timing(shimmerAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
-      Animated.timing(shimmerAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
-      Animated.delay(500),
-    ]));
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.015, duration: 1700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1700, useNativeDriver: true }),
+      ])
+    );
+    const shimmer = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
+        Animated.timing(shimmerAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.delay(500),
+      ])
+    );
     pulse.start();
     shimmer.start();
     return () => {
       pulse.stop();
       shimmer.stop();
     };
-  }, []);
+  }, [pulseAnim, shimmerAnim]);
   if (!event) return null;
   const start = new Date(event.startDate);
   const diff = start.getTime() - Date.now();
@@ -411,72 +772,327 @@ function EventTeaser({ event, isReserved }: { event: any; isReserved: boolean })
   const shimmerX = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-220, 320] });
 
   return (
-    <Animated.View style={{ transform: [{ scale: pulseAnim }], marginHorizontal: 16, marginBottom: 16 }}>
-      <TouchableOpacity onPress={() => { Haptics.selectionAsync(); try { (router as any).push('/(tabs)/events'); } catch (_) {} }} activeOpacity={0.94}>
+    <Animated.View
+      style={{ transform: [{ scale: pulseAnim }], marginHorizontal: 16, marginBottom: 16 }}
+    >
+      <TouchableOpacity
+        onPress={() => {
+          Haptics.selectionAsync();
+          try {
+            (router as any).push('/(tabs)/events');
+          } catch {}
+        }}
+        activeOpacity={0.94}
+      >
         <LinearGradient
           colors={isDark ? ['#210635', '#12051E', '#080810'] : ['#FFF8FC', '#FFF0F8', '#F8ECFA']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 26, borderColor: isDark ? 'rgba(236,72,153,0.22)' : themeColors.border, borderWidth: 1, overflow: 'hidden' }}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 26,
+            borderColor: isDark ? 'rgba(236,72,153,0.22)' : themeColors.border,
+            borderWidth: 1,
+            overflow: 'hidden',
+          }}
         >
-          <View style={{ position: 'absolute', top: -40, right: -30, width: 170, height: 170, borderRadius: 85, backgroundColor: isDark ? 'rgba(168,85,247,0.18)' : alpha(themeColors.secondary, 0.12) }} />
-          <View style={{ position: 'absolute', bottom: -26, left: -16, width: 160, height: 100, borderRadius: 50, backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : alpha(themeColors.primary, 0.10) }} />
-          <Animated.View style={{ position: 'absolute', top: -20, bottom: -20, width: 90, opacity: isDark ? 0.2 : 0.12, transform: [{ translateX: shimmerX }, { rotate: '-12deg' }] }}>
-            <LinearGradient colors={['transparent', isDark ? 'rgba(255,255,255,0.25)' : alpha(themeColors.primary, 0.18), 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ flex: 1 }} />
+          <View
+            style={{
+              position: 'absolute',
+              top: -40,
+              right: -30,
+              width: 170,
+              height: 170,
+              borderRadius: 85,
+              backgroundColor: isDark
+                ? 'rgba(168,85,247,0.18)'
+                : alpha(themeColors.secondary, 0.12),
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: -26,
+              left: -16,
+              width: 160,
+              height: 100,
+              borderRadius: 50,
+              backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : alpha(themeColors.primary, 0.1),
+            }}
+          />
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: -20,
+              bottom: -20,
+              width: 90,
+              opacity: isDark ? 0.2 : 0.12,
+              transform: [{ translateX: shimmerX }, { rotate: '-12deg' }],
+            }}
+          >
+            <LinearGradient
+              colors={[
+                'transparent',
+                isDark ? 'rgba(255,255,255,0.25)' : alpha(themeColors.primary, 0.18),
+                'transparent',
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1 }}
+            />
           </Animated.View>
 
           <View style={{ padding: 18 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <LinearGradient colors={['#EC4899', '#A855F7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <LinearGradient
+                colors={['#EC4899', '#A855F7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 999,
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
                 <Text style={{ fontSize: 13, marginRight: 8 }}>{isReserved ? '✅' : '🎟️'}</Text>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>{label}</Text>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: '800',
+                    fontFamily: FONT.displaySemiBold,
+                  }}
+                >
+                  {label}
+                </Text>
               </LinearGradient>
-              <View style={{ paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999, backgroundColor: isReserved ? 'rgba(16,185,129,0.18)' : (isDark ? 'rgba(255,255,255,0.06)' : themeColors.surfaceHigh), borderWidth: 1, borderColor: isReserved ? 'rgba(16,185,129,0.34)' : (isDark ? 'rgba(255,255,255,0.08)' : themeColors.border) }}>
-                <Text style={{ color: isReserved ? '#34D399' : themeColors.text, fontSize: 11, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>
+              <View
+                style={{
+                  paddingHorizontal: 11,
+                  paddingVertical: 7,
+                  borderRadius: 999,
+                  backgroundColor: isReserved
+                    ? 'rgba(16,185,129,0.18)'
+                    : isDark
+                      ? 'rgba(255,255,255,0.06)'
+                      : themeColors.surfaceHigh,
+                  borderWidth: 1,
+                  borderColor: isReserved
+                    ? 'rgba(16,185,129,0.34)'
+                    : isDark
+                      ? 'rgba(255,255,255,0.08)'
+                      : themeColors.border,
+                }}
+              >
+                <Text
+                  style={{
+                    color: isReserved ? '#34D399' : themeColors.text,
+                    fontSize: 11,
+                    fontWeight: '800',
+                    fontFamily: FONT.displaySemiBold,
+                  }}
+                >
                   {isReserved ? 'You’re going' : price}
                 </Text>
               </View>
             </View>
 
             <View style={{ marginTop: 18 }}>
-              <Text style={{ color: isDark ? 'rgba(255,255,255,0.6)' : themeColors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, marginBottom: 8 }}>
+              <Text
+                style={{
+                  color: isDark ? 'rgba(255,255,255,0.6)' : themeColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: '700',
+                  letterSpacing: 1.2,
+                  marginBottom: 8,
+                }}
+              >
                 CURATED NIGHT
               </Text>
-              <Text style={{ color: themeColors.text, fontSize: 32, lineHeight: 36, fontWeight: '900', letterSpacing: -1.1, fontFamily: FONT.displayBold }} numberOfLines={2}>
+              <Text
+                style={{
+                  color: themeColors.text,
+                  fontSize: 32,
+                  lineHeight: 36,
+                  fontWeight: '900',
+                  letterSpacing: -1.1,
+                  fontFamily: FONT.displayBold,
+                }}
+                numberOfLines={2}
+              >
                 {event.title}
               </Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 17,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.surfaceHigh,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 10,
+                }}
+              >
                 <Ionicons name="calendar-outline" size={17} color={themeColors.text} />
               </View>
               <View>
-                <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>{eventDate}</Text>
-                <Text style={{ color: isDark ? '#8B84A7' : themeColors.textMuted, fontSize: 12, marginTop: 2 }}>{event.location || 'Members-only venue'}</Text>
+                <Text
+                  style={{
+                    color: themeColors.text,
+                    fontSize: 16,
+                    fontWeight: '700',
+                    fontFamily: FONT.displaySemiBold,
+                  }}
+                >
+                  {eventDate}
+                </Text>
+                <Text
+                  style={{
+                    color: isDark ? '#8B84A7' : themeColors.textMuted,
+                    fontSize: 12,
+                    marginTop: 2,
+                  }}
+                >
+                  {event.location || 'Members-only venue'}
+                </Text>
               </View>
             </View>
 
-            <Text style={{ color: isDark ? '#C5BEDD' : themeColors.textSecondary, fontSize: 13, lineHeight: 20, marginTop: 14 }}>
+            <Text
+              style={{
+                color: isDark ? '#C5BEDD' : themeColors.textSecondary,
+                fontSize: 13,
+                lineHeight: 20,
+                marginTop: 14,
+              }}
+            >
               {teaserCopy}
             </Text>
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : themeColors.surfaceHigh, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.border }}>
-                <Text style={{ color: isDark ? '#7E7896' : themeColors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>EXPERIENCE</Text>
-                <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{price}</Text>
+              <View
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 16,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : themeColors.surfaceHigh,
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.border,
+                }}
+              >
+                <Text
+                  style={{
+                    color: isDark ? '#7E7896' : themeColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: '700',
+                    letterSpacing: 0.8,
+                  }}
+                >
+                  EXPERIENCE
+                </Text>
+                <Text
+                  style={{
+                    color: themeColors.text,
+                    fontSize: 16,
+                    fontWeight: '900',
+                    marginTop: 5,
+                    fontFamily: FONT.displayBold,
+                  }}
+                >
+                  {price}
+                </Text>
               </View>
-              <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : themeColors.surfaceHigh, borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.border }}>
-                <Text style={{ color: isDark ? '#7E7896' : themeColors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 }}>STATUS</Text>
-                <Text style={{ color: isReserved ? '#34D399' : '#F472B6', fontSize: 16, fontWeight: '900', marginTop: 5, fontFamily: FONT.displayBold }}>{isReserved ? 'Reserved' : 'Open now'}</Text>
+              <View
+                style={{
+                  flex: 1,
+                  padding: 12,
+                  borderRadius: 16,
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : themeColors.surfaceHigh,
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : themeColors.border,
+                }}
+              >
+                <Text
+                  style={{
+                    color: isDark ? '#7E7896' : themeColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: '700',
+                    letterSpacing: 0.8,
+                  }}
+                >
+                  STATUS
+                </Text>
+                <Text
+                  style={{
+                    color: isReserved ? '#34D399' : '#F472B6',
+                    fontSize: 16,
+                    fontWeight: '900',
+                    marginTop: 5,
+                    fontFamily: FONT.displayBold,
+                  }}
+                >
+                  {isReserved ? 'Reserved' : 'Open now'}
+                </Text>
               </View>
             </View>
 
-            <LinearGradient colors={isReserved ? ['#10B981', '#059669'] : ['#EC4899', '#A855F7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ marginTop: 18, borderRadius: 18, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <LinearGradient
+              colors={isReserved ? ['#10B981', '#059669'] : ['#EC4899', '#A855F7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                marginTop: 18,
+                borderRadius: 18,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
               <View>
-                <Text style={{ color: 'rgba(255,255,255,0.72)', fontSize: 10, fontWeight: '700', letterSpacing: 0.9 }}>NEXT MOVE</Text>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', marginTop: 4, fontFamily: FONT.displayBold }}>{cta}</Text>
+                <Text
+                  style={{
+                    color: 'rgba(255,255,255,0.72)',
+                    fontSize: 10,
+                    fontWeight: '700',
+                    letterSpacing: 0.9,
+                  }}
+                >
+                  NEXT MOVE
+                </Text>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 16,
+                    fontWeight: '900',
+                    marginTop: 4,
+                    fontFamily: FONT.displayBold,
+                  }}
+                >
+                  {cta}
+                </Text>
               </View>
-              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: 'rgba(255,255,255,0.16)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Ionicons name="arrow-forward" size={18} color="#fff" />
               </View>
             </LinearGradient>
@@ -497,7 +1113,7 @@ function PostSkeleton() {
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.9, duration: 700, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
-      ]),
+      ])
     );
     pulse.start();
     return () => pulse.stop();
@@ -517,16 +1133,48 @@ function PostSkeleton() {
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.border }} />
+        <View
+          style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.border }}
+        />
         <View style={{ marginLeft: 10, gap: 6 }}>
-          <View style={{ width: 100, height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
-          <View style={{ width: 60, height: 10, borderRadius: 5, backgroundColor: theme.colors.border }} />
+          <View
+            style={{
+              width: 100,
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: theme.colors.border,
+            }}
+          />
+          <View
+            style={{ width: 60, height: 10, borderRadius: 5, backgroundColor: theme.colors.border }}
+          />
         </View>
       </View>
       <View style={{ gap: 8 }}>
-        <View style={{ width: '100%', height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
-        <View style={{ width: '80%', height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
-        <View style={{ width: '60%', height: 12, borderRadius: 6, backgroundColor: theme.colors.border }} />
+        <View
+          style={{
+            width: '100%',
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: theme.colors.border,
+          }}
+        />
+        <View
+          style={{
+            width: '80%',
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: theme.colors.border,
+          }}
+        />
+        <View
+          style={{
+            width: '60%',
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: theme.colors.border,
+          }}
+        />
       </View>
     </Animated.View>
   );
@@ -553,18 +1201,25 @@ function CommentsSheet({
   const { data: meData } = trpc.auth.me.useQuery();
   const me = meData as any;
 
-  const { data: commentsData, isLoading: loadingComments, refetch: refetchComments } = trpc.wall.comments.useQuery(
-    { postId: postId ?? 0 },
-    { enabled: !!postId && visible },
-  );
+  const {
+    data: commentsData,
+    isLoading: loadingComments,
+    refetch: refetchComments,
+  } = trpc.wall.comments.useQuery({ postId: postId ?? 0 }, { enabled: !!postId && visible });
 
   const addComment = trpc.wall.addComment.useMutation({
-    onSuccess: () => { setCommentText(''); refetchComments(); },
+    onSuccess: () => {
+      setCommentText('');
+      refetchComments();
+    },
     onError: (err: any) => Alert.alert('Error', err.message),
   });
 
   const deletePost = trpc.wall.deletePost.useMutation({
-    onSuccess: () => { onClose(); onRefreshFeed(); },
+    onSuccess: () => {
+      onClose();
+      onRefreshFeed();
+    },
     onError: (err: any) => Alert.alert('Error', err.message),
   });
 
@@ -586,7 +1241,10 @@ function CommentsSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
           <View
             style={{
@@ -612,7 +1270,11 @@ function CommentsSheet({
                 Comments {comments.length > 0 ? `(${comments.length})` : ''}
               </Text>
               {isOwn && (
-                <TouchableOpacity onPress={handleDeletePost} style={{ marginRight: 14 }} disabled={deletePost.isPending}>
+                <TouchableOpacity
+                  onPress={handleDeletePost}
+                  style={{ marginRight: 14 }}
+                  disabled={deletePost.isPending}
+                >
                   <Ionicons name="trash-outline" size={20} color={themeColors.danger} />
                 </TouchableOpacity>
               )}
@@ -625,7 +1287,9 @@ function CommentsSheet({
               {loadingComments ? (
                 <ActivityIndicator color={theme.colors.pink} style={{ paddingVertical: 20 }} />
               ) : comments.length === 0 ? (
-                <Text style={{ color: themeColors.textMuted, textAlign: 'center', paddingVertical: 20 }}>
+                <Text
+                  style={{ color: themeColors.textMuted, textAlign: 'center', paddingVertical: 20 }}
+                >
                   No comments yet. Be the first!
                 </Text>
               ) : (
@@ -643,11 +1307,20 @@ function CommentsSheet({
                       }}
                     >
                       <Text style={{ color: themeColors.pink, fontWeight: '700', fontSize: 12 }}>
-                        {(c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? '?').charAt(0).toUpperCase()}
+                        {(c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? '?')
+                          .charAt(0)
+                          .toUpperCase()}
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 6,
+                          marginBottom: 2,
+                        }}
+                      >
                         <Text style={{ color: themeColors.text, fontWeight: '700', fontSize: 13 }}>
                           {c.resolvedAuthorName ?? c.authorName ?? c.author?.name ?? 'Member'}
                         </Text>
@@ -655,7 +1328,11 @@ function CommentsSheet({
                           {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}
                         </Text>
                       </View>
-                      <Text style={{ color: themeColors.textSecondary, fontSize: 14, lineHeight: 19 }}>{c.content}</Text>
+                      <Text
+                        style={{ color: themeColors.textSecondary, fontSize: 14, lineHeight: 19 }}
+                      >
+                        {c.content}
+                      </Text>
                     </View>
                   </View>
                 ))
@@ -706,7 +1383,11 @@ function CommentsSheet({
                 {addComment.isPending ? (
                   <ActivityIndicator color={themeColors.white} size="small" />
                 ) : (
-                  <Ionicons name="send" size={18} color={commentText.trim() ? themeColors.white : themeColors.textMuted} />
+                  <Ionicons
+                    name="send"
+                    size={18}
+                    color={commentText.trim() ? themeColors.white : themeColors.textMuted}
+                  />
                 )}
               </TouchableOpacity>
             </View>
@@ -721,7 +1402,17 @@ function CommentsSheet({
 
 function SectionLabel({ title }: { title: string }) {
   return (
-    <Text style={{ color: '#5A5575', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 10 }}>
+    <Text
+      style={{
+        color: '#5A5575',
+        fontSize: 11,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1.2,
+        paddingHorizontal: 20,
+        marginBottom: 10,
+      }}
+    >
       {title}
     </Text>
   );
@@ -730,30 +1421,44 @@ function SectionLabel({ title }: { title: string }) {
 // ── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
+  useSafeAreaInsets();
   const theme = useTheme();
-  const themed = useMemo(() => ({
-    screen: theme.colors.background,
-    sectionBg: theme.colors.background,
-    card: theme.colors.card,
-    cardBorder: theme.colors.border,
-    text: theme.colors.text,
-    textSecondary: theme.colors.textSecondary,
-    textMuted: theme.colors.textMuted,
-    composerPrompt: theme.isDark ? '#5A5575' : theme.colors.textMuted,
-    composerIconPink: theme.isDark ? '#EC489980' : 'rgba(236,72,153,0.7)',
-    composerIconPurple: theme.isDark ? '#A855F780' : 'rgba(168,85,247,0.7)',
-  }), [theme.scheme]);
+  const themed = useMemo(
+    () => ({
+      screen: theme.colors.background,
+      sectionBg: theme.colors.background,
+      card: theme.colors.card,
+      cardBorder: theme.colors.border,
+      text: theme.colors.text,
+      textSecondary: theme.colors.textSecondary,
+      textMuted: theme.colors.textMuted,
+      composerPrompt: theme.isDark ? '#5A5575' : theme.colors.textMuted,
+      composerIconPink: theme.isDark ? '#EC489980' : 'rgba(236,72,153,0.7)',
+      composerIconPurple: theme.isDark ? '#A855F780' : 'rgba(168,85,247,0.7)',
+    }),
+    [
+      theme.colors.background,
+      theme.colors.border,
+      theme.colors.card,
+      theme.colors.text,
+      theme.colors.textMuted,
+      theme.colors.textSecondary,
+      theme.isDark,
+    ]
+  );
   const toast = useToast();
-  const [refreshing, setRefreshing]         = useState(false);
-  const [showComposer, setShowComposer]     = useState(false);
-  const [composerText, setComposerText]     = useState('');
-  const [composerMedia, setComposerMedia]   = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
-  const [composerLink, setComposerLink]     = useState('');
-  const [showLinkInput, setShowLinkInput]   = useState(false);
-  const [dismissedIds, setDismissedIds]     = useState<number[]>([]);
-  const [isUploading, setIsUploading]       = useState(false);
-  const [commentsPost, setCommentsPost]     = useState<{ id: number; authorId?: number } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
+  const [composerText, setComposerText] = useState('');
+  const [composerMedia, setComposerMedia] = useState<{
+    uri: string;
+    type: 'image' | 'video';
+  } | null>(null);
+  const [composerLink, setComposerLink] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState<number[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [commentsPost, setCommentsPost] = useState<{ id: number; authorId?: number } | null>(null);
 
   // ── Data ────────────────────────────────────────────────────────────────────
   const { hasToken } = useAuth();
@@ -762,7 +1467,10 @@ export default function HomeScreen() {
   const me = meData as any;
   const currentUserId = me?.id as number | undefined;
 
-  const { data: profileData } = trpc.profile.me.useQuery(undefined, { staleTime: 0, enabled: hasToken });
+  const { data: profileData } = trpc.profile.me.useQuery(undefined, {
+    staleTime: 0,
+    enabled: hasToken,
+  });
   const profile = profileData as any;
 
   const {
@@ -773,21 +1481,37 @@ export default function HomeScreen() {
     refetch: refetchPosts,
   } = trpc.wall.posts.useQuery(
     { limit: 50 }, // server auto-scopes to user's community
-    { staleTime: 30_000, refetchOnWindowFocus: false, refetchInterval: 60_000, enabled: hasToken },
+    { staleTime: 30_000, refetchOnWindowFocus: false, refetchInterval: 60_000, enabled: hasToken }
   );
 
-  const { data: announcementsRaw } = trpc.announcements.active.useQuery(undefined, { staleTime: 60_000, enabled: hasToken });
+  const { data: announcementsRaw } = trpc.announcements.active.useQuery(undefined, {
+    staleTime: 60_000,
+    enabled: hasToken,
+  });
   const dismissAnnouncement = trpc.announcements.dismiss.useMutation();
 
-  const { data: eventsRaw } = trpc.events.list.useQuery({}, { staleTime: 120_000, enabled: hasToken }); // server auto-scopes to user's community
-  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, { staleTime: 60_000, enabled: hasToken });
+  const { data: eventsRaw } = trpc.events.list.useQuery(
+    {},
+    { staleTime: 120_000, enabled: hasToken }
+  ); // server auto-scopes to user's community
+  const { data: myReservationsData } = trpc.reservations.myReservations.useQuery(undefined, {
+    staleTime: 60_000,
+    enabled: hasToken,
+  });
 
-  const myLikes = trpc.wall.myLikes.useQuery(undefined, { staleTime: 30_000, refetchOnWindowFocus: false, enabled: hasToken });
+  const myLikes = trpc.wall.myLikes.useQuery(undefined, {
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    enabled: hasToken,
+  });
 
   const utils = trpc.useUtils();
 
   const likeMutation = trpc.wall.like.useMutation({
-    onSuccess: () => { refetchPosts(); myLikes.refetch(); },
+    onSuccess: () => {
+      refetchPosts();
+      myLikes.refetch();
+    },
     onError: (err: any) => Alert.alert('Could not like post', err.message),
   });
 
@@ -815,7 +1539,7 @@ export default function HomeScreen() {
   // ── Derived data ────────────────────────────────────────────────────────────
   const likedPostIds = useMemo(
     () => new Set<number>((myLikes.data as number[] | undefined) ?? []),
-    [myLikes.data],
+    [myLikes.data]
   );
 
   const allEvents = useMemo(() => {
@@ -824,13 +1548,20 @@ export default function HomeScreen() {
   }, [eventsRaw]);
 
   const nextEvent = useMemo(
-    () => allEvents.find((e: any) => e.status === 'published' && new Date(e.startDate) >= new Date()) ?? null,
-    [allEvents],
+    () =>
+      allEvents.find((e: any) => e.status === 'published' && new Date(e.startDate) >= new Date()) ??
+      null,
+    [allEvents]
   );
 
   const reservedEventIds = useMemo(
-    () => new Set((((myReservationsData as any[]) ?? []).filter((r: any) => r.status !== 'cancelled').map((r: any) => Number(r.eventId)))),
-    [myReservationsData],
+    () =>
+      new Set(
+        ((myReservationsData as any[]) ?? [])
+          .filter((r: any) => r.status !== 'cancelled')
+          .map((r: any) => Number(r.eventId))
+      ),
+    [myReservationsData]
   );
 
   const isReservedForNextEvent = !!nextEvent && reservedEventIds.has(Number((nextEvent as any).id));
@@ -844,12 +1575,14 @@ export default function HomeScreen() {
     const rawPosts = (postsData as any[]) ?? [];
     return rawPosts.map((p: any) => ({
       ...p,
-      authorName:           p.resolvedAuthorName ?? p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
-      resolvedAuthorName:   p.resolvedAuthorName ?? p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
-      resolvedAvatarUrl:    p.avatarUrl          ?? p.profile?.avatarUrl   ?? null,
-      likesCount:           p.likesCount         ?? p._count?.likes        ?? 0,
-      commentsCount:        p.commentsCount      ?? p._count?.comments     ?? 0,
-      isLiked:              likedPostIds.has(p.id),
+      authorName:
+        p.resolvedAuthorName ?? p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
+      resolvedAuthorName:
+        p.resolvedAuthorName ?? p.authorName ?? p.profile?.displayName ?? 'Soapies Member',
+      resolvedAvatarUrl: p.avatarUrl ?? p.profile?.avatarUrl ?? null,
+      likesCount: p.likesCount ?? p._count?.likes ?? 0,
+      commentsCount: p.commentsCount ?? p._count?.comments ?? 0,
+      isLiked: likedPostIds.has(p.id),
     }));
   }, [postsData, likedPostIds]);
 
@@ -860,13 +1593,19 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [refetchPosts]);
 
-  const handleLike    = useCallback((postId: number) => likeMutation.mutate({ postId }), [likeMutation]);
-  const handleComment = useCallback((post: any) => setCommentsPost({ id: post.id, authorId: post.authorId }), []);
+  const handleLike = useCallback(
+    (postId: number) => likeMutation.mutate({ postId }),
+    [likeMutation]
+  );
+  const handleComment = useCallback(
+    (post: any) => setCommentsPost({ id: post.id, authorId: post.authorId }),
+    []
+  );
 
-  function handleDismiss(id: number) {
+  const handleDismiss = useCallback((id: number) => {
     setDismissedIds((prev) => [...prev, id]);
     dismissAnnouncement.mutate({ announcementId: id });
-  }
+  }, [dismissAnnouncement]);
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -897,7 +1636,10 @@ export default function HomeScreen() {
       copyToCacheDirectory: true,
     });
     if (!result.canceled && result.assets[0]) {
-      await uploadAndAttach(result.assets[0].uri, result.assets[0].mimeType ?? 'application/octet-stream');
+      await uploadAndAttach(
+        result.assets[0].uri,
+        result.assets[0].mimeType ?? 'application/octet-stream'
+      );
     }
   }
 
@@ -906,7 +1648,7 @@ export default function HomeScreen() {
     try {
       const url = await uploadPhoto(uri);
       setComposerMedia({ uri: url, type: 'image' });
-    } catch (_e: any) {
+    } catch {
       toast.error('Upload failed');
     } finally {
       setIsUploading(false);
@@ -923,9 +1665,9 @@ export default function HomeScreen() {
     if (composerMedia) {
       setIsUploading(true);
       try {
-        mediaUrl  = await uploadPhoto(composerMedia.uri);
+        mediaUrl = await uploadPhoto(composerMedia.uri);
         mediaType = 'image';
-      } catch (_e: any) {
+      } catch {
         setIsUploading(false);
         toast.error('Upload failed');
         return;
@@ -935,12 +1677,12 @@ export default function HomeScreen() {
     }
 
     createPostMutation.mutate({
-      content:    composerText.trim() || ' ',
+      content: composerText.trim() || ' ',
       communityId: 'soapies',
       visibility: 'members',
       mediaUrl,
       mediaType,
-      linkUrl:    composerLink || undefined,
+      linkUrl: composerLink || undefined,
     } as any);
   }
 
@@ -950,51 +1692,78 @@ export default function HomeScreen() {
         message: `${post.content ?? ''}\n\n— Shared from Soapies Community`,
         title: 'Soapies Community Post',
       });
-    } catch (_) {}
+    } catch {}
   }
 
   // ── List header (rendered above posts) ──────────────────────────────────────
-  const ListHeader = useMemo(() => (
-    <View>
-      {/* ── Animated gradient header ── */}
-      <AnimatedHeader me={me} profile={profile} />
+  const ListHeader = useMemo(
+    () => (
+      <View>
+        {/* ── Animated gradient header ── */}
+        <AnimatedHeader me={me} profile={profile} />
 
-      {/* ── Quick Actions ── */}
-      <View style={{ paddingTop: 20, paddingBottom: 6, backgroundColor: themed.sectionBg }}>
-        <SectionLabel title="Quick Actions" />
-        <QuickActionGrid />
+        {/* ── Quick Actions ── */}
+        <View style={{ paddingTop: 20, paddingBottom: 6, backgroundColor: themed.sectionBg }}>
+          <SectionLabel title="Quick Actions" />
+          <QuickActionGrid />
+        </View>
+
+        {/* ── Upcoming Event ── */}
+        {nextEvent && (
+          <View style={{ marginBottom: 4 }}>
+            <SectionLabel title={isReservedForNextEvent ? 'Your Night' : 'Featured Experience'} />
+            <EventTeaser event={nextEvent} isReserved={isReservedForNextEvent} />
+          </View>
+        )}
+
+        {/* ── Announcements ── */}
+        {announcements.length > 0 && (
+          <View style={{ marginBottom: 4 }}>
+            <SectionLabel title="Announcements" />
+            <AnnouncementSection announcements={announcements} onDismiss={handleDismiss} />
+          </View>
+        )}
       </View>
-
-      {/* ── Upcoming Event ── */}
-      {nextEvent && (
-        <View style={{ marginBottom: 4 }}>
-          <SectionLabel title={isReservedForNextEvent ? 'Your Night' : 'Featured Experience'} />
-          <EventTeaser event={nextEvent} isReserved={isReservedForNextEvent} />
-        </View>
-      )}
-
-      {/* ── Announcements ── */}
-      {announcements.length > 0 && (
-        <View style={{ marginBottom: 4 }}>
-          <SectionLabel title="Announcements" />
-          <AnnouncementSection announcements={announcements} onDismiss={handleDismiss} />
-        </View>
-      )}
-
-    </View>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  ), [me, profile, nextEvent, isReservedForNextEvent, announcements]);
+       
+    ),
+    [announcements, handleDismiss, isReservedForNextEvent, me, nextEvent, profile, themed.sectionBg]
+  );
 
   const FeedBar = (
-    <View style={{ backgroundColor: themed.sectionBg, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
+    <View
+      style={{
+        backgroundColor: themed.sectionBg,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 6,
+      }}
+    >
       <SectionLabel title="Community Feed" />
       <TouchableOpacity
-        onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
-        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: themed.card, borderRadius: 16, padding: 14, borderColor: theme.isDark ? '#EC489928' : theme.colors.border, borderWidth: 1, marginBottom: 10, shadowColor: '#EC4899', shadowOpacity: 0.06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
+        onPress={() => {
+          Haptics.selectionAsync();
+          setShowComposer(true);
+        }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: themed.card,
+          borderRadius: 16,
+          padding: 14,
+          borderColor: theme.isDark ? '#EC489928' : theme.colors.border,
+          borderWidth: 1,
+          marginBottom: 10,
+          shadowColor: '#EC4899',
+          shadowOpacity: 0.06,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: 2 },
+        }}
       >
         <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={34} />
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ color: themed.composerPrompt, fontSize: 14, fontWeight: '500' }}>What&apos;s on your mind?</Text>
+          <Text style={{ color: themed.composerPrompt, fontSize: 14, fontWeight: '500' }}>
+            What&apos;s on your mind?
+          </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Ionicons name="image-outline" size={20} color={themed.composerIconPink} />
@@ -1020,9 +1789,40 @@ export default function HomeScreen() {
           {FeedBar}
           <View style={{ alignItems: 'center', paddingTop: 42, paddingHorizontal: 28 }}>
             <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
-            <Text style={{ color: themed.text, fontSize: 20, fontWeight: '700', textAlign: 'center', marginTop: 14 }}>Could not load the feed</Text>
-            <Text style={{ color: themed.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{(postsError as any)?.message ?? 'Please try again in a moment.'}</Text>
-            <TouchableOpacity onPress={() => refetchPosts()} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: themed.card, borderWidth: 1, borderColor: theme.colors.border }}>
+            <Text
+              style={{
+                color: themed.text,
+                fontSize: 20,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginTop: 14,
+              }}
+            >
+              Could not load the feed
+            </Text>
+            <Text
+              style={{
+                color: themed.textSecondary,
+                fontSize: 14,
+                textAlign: 'center',
+                lineHeight: 21,
+                marginTop: 8,
+              }}
+            >
+              {(postsError as any)?.message ?? 'Please try again in a moment.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => refetchPosts()}
+              style={{
+                marginTop: 18,
+                paddingHorizontal: 18,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: themed.card,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+              }}
+            >
               <Text style={{ color: themed.text, fontWeight: '800' }}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -1046,47 +1846,91 @@ export default function HomeScreen() {
                 isLiked={likedPostIds.has(item.id as number)}
               />
             )}
-            ListHeaderComponent={<>{ListHeader}{FeedBar}</>}
+            ListHeaderComponent={
+              <>
+                {ListHeader}
+                {FeedBar}
+              </>
+            }
             ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
             scrollEventThrottle={16}
-          removeClippedSubviews
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          initialNumToRender={8}
-          updateCellsBatchingPeriod={50}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.pink} />
-          }
-          contentContainerStyle={{ paddingBottom: 120 }}
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 }}>
-              <Text style={{ fontSize: 48, marginBottom: 12 }}>💫</Text>
-              <Text style={{ color: themed.text, fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 8 }}>
-                It&apos;s quiet in here…
-              </Text>
-              <Text style={{ color: themed.textSecondary, fontSize: 15, textAlign: 'center', marginBottom: 24 }}>
-                Be the first to share something with the community
-              </Text>
-              <Pressable
-                onPress={() => { Haptics.selectionAsync(); setShowComposer(true); }}
-                style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}
-              >
-                <BrandGradient
-                  style={{ borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            removeClippedSubviews
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={8}
+            updateCellsBatchingPeriod={50}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.pink}
+              />
+            }
+            contentContainerStyle={{ paddingBottom: 120 }}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 32 }}>
+                <Text style={{ fontSize: 48, marginBottom: 12 }}>💫</Text>
+                <Text
+                  style={{
+                    color: themed.text,
+                    fontSize: 18,
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    marginBottom: 8,
+                  }}
                 >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Create Post</Text>
-                </BrandGradient>
-              </Pressable>
-            </View>
-          }
-        />
+                  It&apos;s quiet in here…
+                </Text>
+                <Text
+                  style={{
+                    color: themed.textSecondary,
+                    fontSize: 15,
+                    textAlign: 'center',
+                    marginBottom: 24,
+                  }}
+                >
+                  Be the first to share something with the community
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setShowComposer(true);
+                  }}
+                  style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}
+                >
+                  <BrandGradient
+                    style={{
+                      borderRadius: 14,
+                      paddingHorizontal: 24,
+                      paddingVertical: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <Ionicons name="add" size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>
+                      Create Post
+                    </Text>
+                  </BrandGradient>
+                </Pressable>
+              </View>
+            }
+          />
         </View>
       )}
 
       {/* ── Post Composer Modal ── */}
-      <Modal visible={showComposer} animationType="slide" transparent onRequestClose={() => setShowComposer(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <Modal
+        visible={showComposer}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowComposer(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
             <View
               style={{
@@ -1101,9 +1945,25 @@ export default function HomeScreen() {
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                 <Avatar name={profile?.displayName ?? 'Me'} url={profile?.avatarUrl} size={36} />
-                <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700', flex: 1, marginLeft: 10 }}>New Post</Text>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 16,
+                    fontWeight: '700',
+                    flex: 1,
+                    marginLeft: 10,
+                  }}
+                >
+                  New Post
+                </Text>
                 <TouchableOpacity
-                  onPress={() => { setShowComposer(false); setComposerText(''); setComposerMedia(null); setComposerLink(''); setShowLinkInput(false); }}
+                  onPress={() => {
+                    setShowComposer(false);
+                    setComposerText('');
+                    setComposerMedia(null);
+                    setComposerLink('');
+                    setShowLinkInput(false);
+                  }}
                 >
                   <Ionicons name="close" size={24} color={theme.colors.textMuted} />
                 </TouchableOpacity>
@@ -1141,7 +2001,17 @@ export default function HomeScreen() {
                   />
                   <TouchableOpacity
                     onPress={() => setComposerMedia(null)}
-                    style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      borderRadius: 12,
+                      width: 24,
+                      height: 24,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     <Ionicons name="close" size={16} color="#fff" />
                   </TouchableOpacity>
@@ -1149,7 +2019,19 @@ export default function HomeScreen() {
               )}
 
               {showLinkInput && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 10, borderColor: '#10B981', borderWidth: 1, paddingHorizontal: 12, marginBottom: 10, gap: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 10,
+                    borderColor: '#10B981',
+                    borderWidth: 1,
+                    paddingHorizontal: 12,
+                    marginBottom: 10,
+                    gap: 8,
+                  }}
+                >
                   <Ionicons name="link-outline" size={16} color="#10B981" />
                   <TextInput
                     value={composerLink}
@@ -1168,20 +2050,41 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              <View style={{ flexDirection: 'row', gap: 8, paddingVertical: 10, borderTopColor: theme.colors.border, borderTopWidth: 1, marginBottom: 12 }}>
-                <TouchableOpacity onPress={pickImage} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  paddingVertical: 10,
+                  borderTopColor: theme.colors.border,
+                  borderTopWidth: 1,
+                  marginBottom: 12,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={pickImage}
+                  style={{ flex: 1, alignItems: 'center', gap: 4 }}
+                >
                   <Ionicons name="image-outline" size={22} color={theme.colors.pink} />
                   <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>Photo</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={openCamera} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity
+                  onPress={openCamera}
+                  style={{ flex: 1, alignItems: 'center', gap: 4 }}
+                >
                   <Ionicons name="camera-outline" size={22} color={theme.colors.purple} />
                   <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>Camera</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowLinkInput(!showLinkInput)} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity
+                  onPress={() => setShowLinkInput(!showLinkInput)}
+                  style={{ flex: 1, alignItems: 'center', gap: 4 }}
+                >
                   <Ionicons name="link-outline" size={22} color="#10B981" />
                   <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>Link</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={pickFile} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity
+                  onPress={pickFile}
+                  style={{ flex: 1, alignItems: 'center', gap: 4 }}
+                >
                   <Ionicons name="document-attach-outline" size={22} color="#F59E0B" />
                   <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>File</Text>
                 </TouchableOpacity>
@@ -1189,19 +2092,37 @@ export default function HomeScreen() {
 
               <Pressable
                 onPress={uploadMediaAndPost}
-                disabled={(!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending || isUploading}
+                disabled={
+                  (!composerText.trim() && !composerMedia && !composerLink) ||
+                  createPostMutation.isPending ||
+                  isUploading
+                }
                 style={({ pressed }) => ({
                   transform: [{ scale: pressed ? 0.97 : 1 }],
-                  opacity: ((!composerText.trim() && !composerMedia && !composerLink) || createPostMutation.isPending || isUploading) ? 0.5 : 1,
+                  opacity:
+                    (!composerText.trim() && !composerMedia && !composerLink) ||
+                    createPostMutation.isPending ||
+                    isUploading
+                      ? 0.5
+                      : 1,
                 })}
               >
                 <BrandGradient
-                  style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                  style={{
+                    borderRadius: 14,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
                 >
                   {isUploading ? (
                     <>
                       <ActivityIndicator color="#fff" size="small" />
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Uploading...</Text>
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+                        Uploading...
+                      </Text>
                     </>
                   ) : createPostMutation.isPending ? (
                     <ActivityIndicator color="#fff" />

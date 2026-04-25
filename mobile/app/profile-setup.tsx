@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { uploadPhoto } from '../lib/uploadPhoto';
-import { LinearGradient } from 'expo-linear-gradient';
 import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,13 +24,19 @@ import { useTheme, type ThemeColors } from '../lib/theme';
 const STEPS = ['Photo', 'About', 'Identity', 'Location'];
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-Binary', 'Trans Male', 'Trans Female', 'Other'];
-const ORIENTATION_OPTIONS = ['Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Queer', 'Other'];
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+const ORIENTATION_OPTIONS = [
+  'Straight',
+  'Gay',
+  'Lesbian',
+  'Bisexual',
+  'Pansexual',
+  'Queer',
+  'Other',
+];
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  useAuth();
   const toast = useToast();
   const { colors, alpha } = useTheme();
   const styles = React.useMemo(() => createStyles(colors, alpha), [colors, alpha]);
@@ -84,7 +89,11 @@ export default function ProfileSetupScreen() {
     const result =
       source === 'camera'
         ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 })
-        : await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+        : await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
 
     if (result.canceled) return;
 
@@ -95,7 +104,7 @@ export default function ProfileSetupScreen() {
       const url = await uploadPhoto(asset.uri);
       // console.log('[ProfileSetup] uploaded URL:', url);
       setAvatarUrl(url);
-    } catch (e: any) {
+    } catch {
       toast.error('Photo upload failed. Please try again.');
     } finally {
       setIsUploading(false);
@@ -146,10 +155,22 @@ export default function ProfileSetupScreen() {
   }
 
   function handleFinish() {
-    if (!avatarUrl) { Alert.alert('Photo Required', 'Please add a profile photo.'); return; }
-    if (!displayName.trim()) { Alert.alert('Name Required', 'Please add your display name.'); return; }
-    if (!gender) { Alert.alert('Gender Required', 'Please select your gender.'); return; }
-    if (!orientation) { Alert.alert('Orientation Required', 'Please select your orientation.'); return; }
+    if (!avatarUrl) {
+      Alert.alert('Photo Required', 'Please add a profile photo.');
+      return;
+    }
+    if (!displayName.trim()) {
+      Alert.alert('Name Required', 'Please add your display name.');
+      return;
+    }
+    if (!gender) {
+      Alert.alert('Gender Required', 'Please select your gender.');
+      return;
+    }
+    if (!orientation) {
+      Alert.alert('Orientation Required', 'Please select your orientation.');
+      return;
+    }
 
     const currentAge = calculateAge(dobYear, dobMonth, dobDay);
     if (currentAge !== null && currentAge < 18) {
@@ -157,9 +178,10 @@ export default function ProfileSetupScreen() {
       return;
     }
 
-    const dateOfBirth = dobYear && dobMonth && dobDay
-      ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
-      : undefined;
+    const dateOfBirth =
+      dobYear && dobMonth && dobDay
+        ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+        : undefined;
 
     upsertMutation.mutate({
       displayName: displayName.trim(),
@@ -180,7 +202,7 @@ export default function ProfileSetupScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => step > 0 ? setStep(step - 1) : undefined}
+          onPress={() => (step > 0 ? setStep(step - 1) : undefined)}
           disabled={step === 0}
           style={{ width: 36, alignItems: 'flex-start' }}
         >
@@ -206,14 +228,27 @@ export default function ProfileSetupScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {step === 0 && <StepPhoto avatarUrl={avatarUrl} isUploading={isUploading} onPickPhoto={handlePickPhoto} colors={colors} styles={styles} />}
+        {step === 0 && (
+          <StepPhoto
+            avatarUrl={avatarUrl}
+            isUploading={isUploading}
+            onPickPhoto={handlePickPhoto}
+            colors={colors}
+            styles={styles}
+          />
+        )}
         {step === 1 && (
           <StepAbout
-            displayName={displayName} setDisplayName={setDisplayName}
-            bio={bio} setBio={setBio}
-            dobYear={dobYear} setDobYear={setDobYear}
-            dobMonth={dobMonth} setDobMonth={setDobMonth}
-            dobDay={dobDay} setDobDay={setDobDay}
+            displayName={displayName}
+            setDisplayName={setDisplayName}
+            bio={bio}
+            setBio={setBio}
+            dobYear={dobYear}
+            setDobYear={setDobYear}
+            dobMonth={dobMonth}
+            setDobMonth={setDobMonth}
+            dobDay={dobDay}
+            setDobDay={setDobDay}
             colors={colors}
             styles={styles}
             alpha={alpha}
@@ -221,13 +256,22 @@ export default function ProfileSetupScreen() {
         )}
         {step === 2 && (
           <StepIdentity
-            gender={gender} setGender={setGender}
-            orientation={orientation} setOrientation={setOrientation}
+            gender={gender}
+            setGender={setGender}
+            orientation={orientation}
+            setOrientation={setOrientation}
             colors={colors}
             styles={styles}
           />
         )}
-        {step === 3 && <StepLocation location={location} setLocation={setLocation} colors={colors} styles={styles} />}
+        {step === 3 && (
+          <StepLocation
+            location={location}
+            setLocation={setLocation}
+            colors={colors}
+            styles={styles}
+          />
+        )}
       </ScrollView>
 
       {/* Footer button */}
@@ -239,10 +283,7 @@ export default function ProfileSetupScreen() {
           style={{ borderRadius: 14, overflow: 'hidden' }}
         >
           <BrandGradient
-            style={[
-              styles.nextBtn,
-              (isBusy || (step === 0 && !avatarUrl)) && { opacity: 0.5 },
-            ]}
+            style={[styles.nextBtn, (isBusy || (step === 0 && !avatarUrl)) && { opacity: 0.5 }]}
           >
             {isBusy ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -253,7 +294,10 @@ export default function ProfileSetupScreen() {
         </TouchableOpacity>
 
         {isLastStep && (
-          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: 14, alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => router.replace('/(tabs)')}
+            style={{ marginTop: 14, alignItems: 'center' }}
+          >
             <Text style={{ color: colors.textMuted, fontSize: 14 }}>Skip for now</Text>
           </TouchableOpacity>
         )}
@@ -316,20 +360,30 @@ function StepPhoto({
 }
 
 function StepAbout({
-  displayName, setDisplayName,
-  bio, setBio,
-  dobYear, setDobYear,
-  dobMonth, setDobMonth,
-  dobDay, setDobDay,
+  displayName,
+  setDisplayName,
+  bio,
+  setBio,
+  dobYear,
+  setDobYear,
+  dobMonth,
+  setDobMonth,
+  dobDay,
+  setDobDay,
   colors,
   styles,
   alpha,
 }: {
-  displayName: string; setDisplayName: (v: string) => void;
-  bio: string; setBio: (v: string) => void;
-  dobYear: string; setDobYear: (v: string) => void;
-  dobMonth: string; setDobMonth: (v: string) => void;
-  dobDay: string; setDobDay: (v: string) => void;
+  displayName: string;
+  setDisplayName: (v: string) => void;
+  bio: string;
+  setBio: (v: string) => void;
+  dobYear: string;
+  setDobYear: (v: string) => void;
+  dobMonth: string;
+  setDobMonth: (v: string) => void;
+  dobDay: string;
+  setDobDay: (v: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
   alpha: (color: string, opacity: number) => string;
@@ -364,7 +418,9 @@ function StepAbout({
       </View>
 
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>BIO <Text style={{ color: colors.textMuted }}>{bio.length}/200</Text></Text>
+        <Text style={styles.fieldLabel}>
+          BIO <Text style={{ color: colors.textMuted }}>{bio.length}/200</Text>
+        </Text>
         <TextInput
           value={bio}
           onChangeText={(v) => setBio(v.slice(0, 200))}
@@ -412,14 +468,36 @@ function StepAbout({
         {currentAge !== null && (
           <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
             {isAdult ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: alpha(colors.success, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: alpha(colors.success, 0.12),
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                }}
+              >
                 <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                <Text style={{ color: colors.success, fontWeight: '700', marginLeft: 4 }}>{currentAge} years old ✓</Text>
+                <Text style={{ color: colors.success, fontWeight: '700', marginLeft: 4 }}>
+                  {currentAge} years old ✓
+                </Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: alpha(colors.danger, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: alpha(colors.danger, 0.12),
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                }}
+              >
                 <Ionicons name="close-circle" size={16} color={colors.danger} />
-                <Text style={{ color: colors.danger, fontWeight: '700', marginLeft: 4 }}>Must be 18+ to join</Text>
+                <Text style={{ color: colors.danger, fontWeight: '700', marginLeft: 4 }}>
+                  Must be 18+ to join
+                </Text>
               </View>
             )}
           </View>
@@ -430,13 +508,17 @@ function StepAbout({
 }
 
 function StepIdentity({
-  gender, setGender,
-  orientation, setOrientation,
+  gender,
+  setGender,
+  orientation,
+  setOrientation,
   colors,
   styles,
 }: {
-  gender: string; setGender: (v: string) => void;
-  orientation: string; setOrientation: (v: string) => void;
+  gender: string;
+  setGender: (v: string) => void;
+  orientation: string;
+  setOrientation: (v: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
@@ -446,10 +528,22 @@ function StepIdentity({
       <Text style={styles.stepSubheading}>Help us personalise your experience</Text>
 
       <Text style={[styles.fieldLabel, { marginTop: 24, marginBottom: 10 }]}>GENDER *</Text>
-      <PillGrid options={GENDER_OPTIONS} selected={gender} onSelect={setGender} colors={colors} styles={styles} />
+      <PillGrid
+        options={GENDER_OPTIONS}
+        selected={gender}
+        onSelect={setGender}
+        colors={colors}
+        styles={styles}
+      />
 
       <Text style={[styles.fieldLabel, { marginTop: 24, marginBottom: 10 }]}>ORIENTATION *</Text>
-      <PillGrid options={ORIENTATION_OPTIONS} selected={orientation} onSelect={setOrientation} colors={colors} styles={styles} />
+      <PillGrid
+        options={ORIENTATION_OPTIONS}
+        selected={orientation}
+        onSelect={setOrientation}
+        colors={colors}
+        styles={styles}
+      />
     </View>
   );
 }
@@ -504,14 +598,9 @@ function PillGrid({
           key={opt}
           onPress={() => onSelect(opt)}
           activeOpacity={0.75}
-          style={[
-            styles.pill,
-            selected === opt && styles.pillSelected,
-          ]}
+          style={[styles.pill, selected === opt && styles.pillSelected]}
         >
-          <Text style={[styles.pillText, selected === opt && styles.pillTextSelected]}>
-            {opt}
-          </Text>
+          <Text style={[styles.pillText, selected === opt && styles.pillTextSelected]}>{opt}</Text>
         </TouchableOpacity>
       ))}
     </View>
