@@ -59,11 +59,13 @@ export interface Conversation {
   otherUserAvatarUrl?: string | null;
   otherUserId?: number | null;
   // Legacy participants array (fallback)
-  participants?: {
-    displayName?: string | null;
-    name?: string | null;
-    avatarUrl?: string | null;
-  }[] | null;
+  participants?:
+    | {
+        displayName?: string | null;
+        name?: string | null;
+        avatarUrl?: string | null;
+      }[]
+    | null;
   avatarUrl?: string | null;
 }
 
