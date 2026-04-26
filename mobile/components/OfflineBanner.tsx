@@ -20,8 +20,7 @@ export default function OfflineBanner() {
     NetInfo.fetch()
       .then((state: NetInfoState) => {
         if (cancelled) return;
-        const connected =
-          state.isConnected !== false && state.isInternetReachable !== false;
+        const connected = state.isConnected !== false && state.isInternetReachable !== false;
         setIsConnected(connected);
       })
       .catch(() => {
@@ -30,8 +29,7 @@ export default function OfflineBanner() {
 
     // Subscribe to changes
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      const connected =
-        state.isConnected !== false && state.isInternetReachable !== false;
+      const connected = state.isConnected !== false && state.isInternetReachable !== false;
       setIsConnected(connected);
     });
 

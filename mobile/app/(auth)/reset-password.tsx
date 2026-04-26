@@ -33,7 +33,7 @@ export default function ResetPasswordScreen() {
       Alert.alert(
         'Password Reset!',
         'Your password has been updated. Please sign in with your new password.',
-        [{ text: 'Sign In', onPress: () => router.replace('/(auth)/login') }],
+        [{ text: 'Sign In', onPress: () => router.replace('/(auth)/login') }]
       );
     },
     onError: (err: any) => {
@@ -79,7 +79,12 @@ export default function ResetPasswordScreen() {
           colors={['#7C3AED', '#EC4899']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ paddingHorizontal: 32, paddingTop: insets.top + 40, paddingBottom: 48, alignItems: 'center' }}
+          style={{
+            paddingHorizontal: 32,
+            paddingTop: insets.top + 40,
+            paddingBottom: 48,
+            alignItems: 'center',
+          }}
         >
           <Text style={{ fontSize: 42, fontWeight: '800', color: '#fff', letterSpacing: -1 }}>
             Soapies
@@ -118,7 +123,9 @@ export default function ResetPasswordScreen() {
           </Text>
 
           {/* Email */}
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>EMAIL</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
+            EMAIL
+          </Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -140,7 +147,9 @@ export default function ResetPasswordScreen() {
           />
 
           {/* Code */}
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>RESET CODE</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
+            RESET CODE
+          </Text>
           <TextInput
             value={code}
             onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
@@ -164,7 +173,9 @@ export default function ResetPasswordScreen() {
           />
 
           {/* New password */}
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>NEW PASSWORD</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
+            NEW PASSWORD
+          </Text>
           <TextInput
             value={newPassword}
             onChangeText={setNewPassword}
@@ -185,7 +196,9 @@ export default function ResetPasswordScreen() {
           />
 
           {/* Confirm password */}
-          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>CONFIRM PASSWORD</Text>
+          <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 6, fontWeight: '600' }}>
+            CONFIRM PASSWORD
+          </Text>
           <TextInput
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -224,7 +237,9 @@ export default function ResetPasswordScreen() {
               {resetMutation.isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Reset Password</Text>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                  Reset Password
+                </Text>
               )}
             </LinearGradient>
           </TouchableOpacity>

@@ -39,7 +39,7 @@ export default function ForgotPasswordScreen() {
                 params: { email: email.trim().toLowerCase() },
               } as any),
           },
-        ],
+        ]
       );
     },
     onError: (err: any) => {
@@ -58,11 +58,21 @@ export default function ForgotPasswordScreen() {
   }
 
   function handlePressIn() {
-    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
   }
 
   function handlePressOut() {
-    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
   }
 
   return (
@@ -78,23 +88,50 @@ export default function ForgotPasswordScreen() {
       >
         {/* Ambient orbs */}
         <View
-          style={{ position: 'absolute', top: -40, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: '#EC489912' }}
+          style={{
+            position: 'absolute',
+            top: -40,
+            right: -60,
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            backgroundColor: '#EC489912',
+          }}
           pointerEvents="none"
         />
         <View
-          style={{ position: 'absolute', bottom: 100, left: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: '#A855F710' }}
+          style={{
+            position: 'absolute',
+            bottom: 100,
+            left: -40,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: '#A855F710',
+          }}
           pointerEvents="none"
         />
 
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-          <View style={{ paddingHorizontal: 28, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }}>
+          <View
+            style={{
+              paddingHorizontal: 28,
+              paddingTop: insets.top + 24,
+              paddingBottom: insets.bottom + 32,
+            }}
+          >
             {/* Back button */}
             <TouchableOpacity
               onPress={() => router.back()}
               style={{
-                width: 40, height: 40, borderRadius: 20,
-                backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)',
-                alignItems: 'center', justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.24)',
+                alignItems: 'center',
+                justifyContent: 'center',
                 marginBottom: 36,
               }}
             >
@@ -102,25 +139,36 @@ export default function ForgotPasswordScreen() {
             </TouchableOpacity>
 
             {/* Heading */}
-            <Text style={{ color: '#F1F0FF', fontSize: 28, fontWeight: '900', letterSpacing: -0.5, marginBottom: 8 }}>
+            <Text
+              style={{
+                color: '#F1F0FF',
+                fontSize: 28,
+                fontWeight: '900',
+                letterSpacing: -0.5,
+                marginBottom: 8,
+              }}
+            >
               Forgot Password?
             </Text>
             <Text style={{ color: '#5A5575', fontSize: 14, marginBottom: 32, lineHeight: 22 }}>
-              Enter the email address associated with your account and we&apos;ll send you a reset code.
+              Enter the email address associated with your account and we&apos;ll send you a reset
+              code.
             </Text>
 
             {/* Email input */}
-            <View style={{
-              backgroundColor: '#0C0C1A',
-              borderColor: emailFocused ? '#EC489960' : '#1A1A30',
-              borderWidth: emailFocused ? 1.5 : 1,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 24,
-            }}>
+            <View
+              style={{
+                backgroundColor: '#0C0C1A',
+                borderColor: emailFocused ? '#EC489960' : '#1A1A30',
+                borderWidth: emailFocused ? 1.5 : 1,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 24,
+              }}
+            >
               <Ionicons name="mail" size={18} color="#5A5575" style={{ marginRight: 10 }} />
               <TextInput
                 value={email}
@@ -137,13 +185,15 @@ export default function ForgotPasswordScreen() {
             </View>
 
             {/* Submit button */}
-            <Animated.View style={{
-              transform: [{ scale: scaleAnim }],
-              shadowColor: '#EC4899',
-              shadowOpacity: 0.4,
-              shadowRadius: 14,
-              shadowOffset: { width: 0, height: 4 },
-            }}>
+            <Animated.View
+              style={{
+                transform: [{ scale: scaleAnim }],
+                shadowColor: '#EC4899',
+                shadowOpacity: 0.4,
+                shadowRadius: 14,
+                shadowOffset: { width: 0, height: 4 },
+              }}
+            >
               <TouchableOpacity
                 onPress={handleSubmit}
                 onPressIn={handlePressIn}
@@ -155,12 +205,19 @@ export default function ForgotPasswordScreen() {
                   colors={['#EC4899', '#A855F7']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 18, paddingVertical: 16, width: '100%', alignItems: 'center' }}
+                  style={{
+                    borderRadius: 18,
+                    paddingVertical: 16,
+                    width: '100%',
+                    alignItems: 'center',
+                  }}
                 >
                   {requestReset.isPending ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Send Reset Code</Text>
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                      Send Reset Code
+                    </Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>

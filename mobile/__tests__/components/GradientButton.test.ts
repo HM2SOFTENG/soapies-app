@@ -27,7 +27,7 @@ import { describe, it, expect, vi } from 'vitest';
 // Simulate the GradientButton press-guard logic
 function simulatePress(
   onPress: () => void,
-  opts: { loading?: boolean; disabled?: boolean } = {},
+  opts: { loading?: boolean; disabled?: boolean } = {}
 ): void {
   if (opts.loading || opts.disabled) return;
   onPress();

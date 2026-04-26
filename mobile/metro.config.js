@@ -5,9 +5,7 @@ const path = require('path');
 const config = getDefaultConfig(__dirname);
 
 // Allow importing from parent repo's shared/ directory
-config.watchFolders = [
-  path.resolve(__dirname, '..'),
-];
+config.watchFolders = [path.resolve(__dirname, '..')];
 
 config.resolver.nodeModulesPaths = [
   path.resolve(__dirname, 'node_modules'),

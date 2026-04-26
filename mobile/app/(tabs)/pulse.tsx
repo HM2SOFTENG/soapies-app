@@ -1260,7 +1260,16 @@ export default function PulseScreen() {
         .filter((m) => m.distance == null || m.distance <= maxDistance)
         .filter((m) => m.isPartner || m.matchScore >= minMatchThreshold)
         .sort((a, b) => b.matchScore - a.matchScore),
-    [members, myProfile, myPrefs, mySignalType, primaryPartner, seekingGender, maxDistance, minMatchThreshold]
+    [
+      members,
+      myProfile,
+      myPrefs,
+      mySignalType,
+      primaryPartner,
+      seekingGender,
+      maxDistance,
+      minMatchThreshold,
+    ]
   );
 
   const positions = useMemo(

@@ -15,7 +15,8 @@ vi.mock('../../lib/trpc', () => ({
 
 describe('lib/auth — isValidJWT validation', () => {
   it('returns true for valid 3-part JWT at ~150 chars', () => {
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    const token =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
     expect(token.length).toBeGreaterThanOrEqual(100);
     expect(token.length).toBeLessThan(300);
     expect(isValidJWT(token)).toBe(true);
@@ -88,7 +89,9 @@ describe('lib/auth — isValidJWT validation', () => {
   it('accepts typical JWT structure (header.payload.signature)', () => {
     // Standard JWT structure example
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
-    const payload = Buffer.from(JSON.stringify({ sub: '123', name: 'Test User' })).toString('base64');
+    const payload = Buffer.from(JSON.stringify({ sub: '123', name: 'Test User' })).toString(
+      'base64'
+    );
     const signature = 'test_signature_' + 'x'.repeat(20);
     const token = header + '.' + payload + '.' + signature;
     expect(token.split('.').length).toBe(3);

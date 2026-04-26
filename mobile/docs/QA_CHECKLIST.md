@@ -13,6 +13,7 @@ Run before every release:
 ## Device / manual QA
 
 ### Authentication
+
 - Sign up flow works end-to-end
 - Login succeeds with valid credentials
 - Invalid credentials show safe error state
@@ -21,6 +22,7 @@ Run before every release:
 - Transient API failure does not silently destroy session
 
 ### Core product
+
 - Home feed loads, handles offline/error states
 - Events list and event detail load correctly
 - Ticket reservation and payment instructions display correctly
@@ -30,6 +32,7 @@ Run before every release:
 - Deep links route to supported screens
 
 ### Media / permissions
+
 - Camera prompt copy is accurate
 - Photo picker prompt copy is accurate
 - Location permission copy is accurate
@@ -37,12 +40,14 @@ Run before every release:
 - Upload photo flow works on iOS and Android
 
 ### Security / privacy
+
 - No debug logs with tokens/PII in production builds
 - Privacy Policy link opens correctly
 - SecureStore persists auth tokens
 - AsyncStorage is used only for non-sensitive preferences
 
 ### Release validation
+
 - Preview build installs on iOS simulator/device
 - Android AAB preview build completes
 - TestFlight build uploads successfully

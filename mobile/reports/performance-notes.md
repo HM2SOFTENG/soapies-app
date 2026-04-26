@@ -1,5 +1,6 @@
 # Performance Optimization Notes
-*Applied: 2026-04-13 | Branch: react-native*
+
+_Applied: 2026-04-13 | Branch: react-native_
 
 ---
 
@@ -16,13 +17,13 @@ Applied to: Feed (index.tsx), Events (events.tsx), Messages (messages.tsx), Noti
 
 ### Props added to every FlatList
 
-| Prop | Value | Why |
-|---|---|---|
-| `removeClippedSubviews` | `true` | Unmounts off-screen cells from the JS layer — reduces memory pressure and re-render count on large lists |
-| `maxToRenderPerBatch` | 10–15 | Controls how many items render per JS frame; default 10 is too aggressive on first scroll |
-| `windowSize` | 5–7 | Only keep 5 screen-heights rendered; default 21 wastes memory |
-| `initialNumToRender` | 8–20 | Avoids blank flash on first mount |
-| `updateCellsBatchingPeriod` | 50ms | Groups cell updates into 50ms windows instead of per-frame |
+| Prop                        | Value  | Why                                                                                                      |
+| --------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `removeClippedSubviews`     | `true` | Unmounts off-screen cells from the JS layer — reduces memory pressure and re-render count on large lists |
+| `maxToRenderPerBatch`       | 10–15  | Controls how many items render per JS frame; default 10 is too aggressive on first scroll                |
+| `windowSize`                | 5–7    | Only keep 5 screen-heights rendered; default 21 wastes memory                                            |
+| `initialNumToRender`        | 8–20   | Avoids blank flash on first mount                                                                        |
+| `updateCellsBatchingPeriod` | 50ms   | Groups cell updates into 50ms windows instead of per-frame                                               |
 
 **`getItemLayout` skipped:** All lists have variable-height items (post content, notification body). Incorrect `getItemLayout` causes misaligned scroll — better to omit it.
 
@@ -34,13 +35,13 @@ Applied to: Feed (index.tsx), Events (events.tsx), Messages (messages.tsx), Noti
 
 ### Components wrapped in `React.memo`
 
-| Component | Impact |
-|---|---|
-| `PostCard` | Prevents re-render when sibling posts update likes |
-| `EventCard` | Prevents re-render on filter toggle when card isn't affected |
-| `ConversationItem` | Prevents re-render when unrelated conversation updates |
-| `NotificationItem` | Prevents full list re-render on mark-read mutation |
-| `Avatar` | Used everywhere; memoized to prevent gradient re-render |
+| Component          | Impact                                                       |
+| ------------------ | ------------------------------------------------------------ |
+| `PostCard`         | Prevents re-render when sibling posts update likes           |
+| `EventCard`        | Prevents re-render on filter toggle when card isn't affected |
+| `ConversationItem` | Prevents re-render when unrelated conversation updates       |
+| `NotificationItem` | Prevents full list re-render on mark-read mutation           |
+| `Avatar`           | Used everywhere; memoized to prevent gradient re-render      |
 
 **Estimated impact:** On a list of 20 items, a single item update previously caused 20 re-renders. Now causes 1. Critical for the notifications mark-all-read flow.
 
@@ -69,15 +70,15 @@ Applied to: Feed (index.tsx), Events (events.tsx), Messages (messages.tsx), Noti
 
 ## Phase 4: tRPC Query Tuning
 
-| Screen / Query | staleTime | refetchInterval | Notes |
-|---|---|---|---|
-| Feed `wall.posts` | 30s | 60s | Down from 30s polling |
-| Feed `wall.myLikes` | 30s | — | Was polling on every render |
-| Events `events.list` | 120s | — | Events change rarely; 2min is fine |
-| Messages conversations | 10s | 15s | Inbox needs freshness |
-| Notifications | 10s | 30s | Reduced from default (no staleTime) |
-| Chat messages | 5s | 5s | Needs near-real-time polling |
-| Chat conversations | 30s | — | Used for header name only |
+| Screen / Query         | staleTime | refetchInterval | Notes                               |
+| ---------------------- | --------- | --------------- | ----------------------------------- |
+| Feed `wall.posts`      | 30s       | 60s             | Down from 30s polling               |
+| Feed `wall.myLikes`    | 30s       | —               | Was polling on every render         |
+| Events `events.list`   | 120s      | —               | Events change rarely; 2min is fine  |
+| Messages conversations | 10s       | 15s             | Inbox needs freshness               |
+| Notifications          | 10s       | 30s             | Reduced from default (no staleTime) |
+| Chat messages          | 5s        | 5s              | Needs near-real-time polling        |
+| Chat conversations     | 30s       | —               | Used for header name only           |
 
 **Estimated impact:** Feed was making network requests every 30s and also on every focus change. Now: 60s interval, focus refetch disabled. For a user scrolling the feed, this is ~2× fewer background requests. Notifications: was refetching with no staleTime (every focus = new request). Now has 10s stale window.
 
@@ -86,18 +87,22 @@ Applied to: Feed (index.tsx), Events (events.tsx), Messages (messages.tsx), Noti
 ## Phase 5: Image Optimization
 
 ### PostCard media images
+
 - Added `View` wrapper with `backgroundColor: '#1a1a1a'` as placeholder
 - Image already had fixed `height: 200` and `resizeMode: "cover"` ✓
 - Placeholder prevents layout thrash while image loads (no height collapse/expand)
 
 ### Avatar
+
 - Added `resizeMode="cover"` to the URL image path
 - Previously missing — could cause aspect ratio distortion on non-square avatars
 
 ### EventCard hero images
+
 - Already had `resizeMode="cover"` with parent `height: 160` ✓
 
 ### Event detail hero
+
 - Already had `resizeMode="cover"` with parent `height: 280` ✓
 
 **Estimated impact:** Layout thrashing during image load eliminated in PostCard. Without the placeholder wrapper, the image area would report height=0 until loaded, causing scroll position jumps.
@@ -107,16 +112,19 @@ Applied to: Feed (index.tsx), Events (events.tsx), Messages (messages.tsx), Noti
 ## Phase 6: Keyboard Performance (Chat)
 
 ### `keyboardVerticalOffset` fix
+
 - **Before:** `keyboardVerticalOffset={0}`
 - **After:** `keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}`
 - On iOS with a navigation header (~44px) + status bar (~44px), offset 0 caused the keyboard to overlap the input bar. 88px matches the standard Expo Router stack height.
 
 ### Handler stability
+
 - `handleLongPress`, `handleSend`, `handleReact` converted to `useCallback`
 - Prevents `renderMessage` from getting a new function reference on each keystroke
 - Keystroke → state update → parent re-render → `renderMessage` gets new `handleLongPress` ref → all visible messages re-render. **Eliminated.**
 
 ### Reversed message list
+
 - `[...msgList].reverse()` moved to `useMemo`
 - Was creating a new array on every render — every keystroke caused this allocation
 
@@ -137,6 +145,7 @@ Added `lazy: true` to `<Tabs screenOptions>` in `_layout.tsx`.
 ## Phase 8: State Optimization
 
 Covered by the `useMemo` work in Phase 3. Key findings:
+
 - No components subscribing to large state slices (Redux not used; all state is local + tRPC cache)
 - Object spreading in `posts` map (Feed) was creating new references every render — fixed by `useMemo`
 - Filter/sort operations in `EventCard` price computation and `events.tsx` filter — both memoized
@@ -146,10 +155,12 @@ Covered by the `useMemo` work in Phase 3. Key findings:
 ## Phase 9: Bundle Size
 
 Export failed due to pre-existing incompatibility:
+
 ```
 NativeWind only supports Tailwind CSS v3
 Error loading Metro config
 ```
+
 This is a pre-existing environment issue (Tailwind v4 installed, NativeWind requires v3). Not introduced by this PR.
 
 **Recommendation for next sprint:** Downgrade to `tailwindcss@3.x` or upgrade `nativewind` to a v4-compatible release (currently in beta). Once resolved, run `npx expo export` to measure bundle size.
@@ -162,6 +173,7 @@ This is a pre-existing environment issue (Tailwind v4 installed, NativeWind requ
 npx tsc --noEmit
 EXIT: 0
 ```
+
 All optimizations are type-safe.
 
 ---

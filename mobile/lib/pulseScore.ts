@@ -49,12 +49,12 @@ export function calculateMatchBreakdown(
   myPrefs: any,
   mySignalType: string,
   seekingGender: string[],
-  maxDistance: number,
+  maxDistance: number
 ): MatchFactor[] {
   const factors: MatchFactor[] = [];
 
   // 1. Gender Match — multi-select: 'any' alone means open to all
-  const sgList = seekingGender.map(s => s.toLowerCase());
+  const sgList = seekingGender.map((s) => s.toLowerCase());
   const hasAny = sgList.length === 0 || sgList.includes('any');
   const memberGender = (member.gender ?? '').toLowerCase();
   const genderMatched = hasAny || sgList.includes(memberGender);
@@ -76,11 +76,12 @@ export function calculateMatchBreakdown(
   const myOrientation = (myProfile?.orientation ?? '').toLowerCase();
   const theirOrientation = (member.orientation ?? '').toLowerCase();
   const biPanSet = new Set(['bisexual', 'pansexual']);
-  const orientMatched = !!myOrientation && !!theirOrientation && (
-    myOrientation === theirOrientation ||
-    biPanSet.has(myOrientation) ||
-    biPanSet.has(theirOrientation)
-  );
+  const orientMatched =
+    !!myOrientation &&
+    !!theirOrientation &&
+    (myOrientation === theirOrientation ||
+      biPanSet.has(myOrientation) ||
+      biPanSet.has(theirOrientation));
   let orientDetail: string;
   if (!myOrientation || !theirOrientation) {
     orientDetail = 'Orientation not set';
@@ -115,9 +116,10 @@ export function calculateMatchBreakdown(
   const myInterests: string[] = Array.isArray(myPrefs?.interests) ? myPrefs.interests : [];
   let theirPrefs: any = {};
   try {
-    theirPrefs = typeof member.preferences === 'string'
-      ? JSON.parse(member.preferences || '{}')
-      : (member.preferences ?? {});
+    theirPrefs =
+      typeof member.preferences === 'string'
+        ? JSON.parse(member.preferences || '{}')
+        : (member.preferences ?? {});
   } catch {}
   const theirInterests: string[] = Array.isArray(theirPrefs?.interests) ? theirPrefs.interests : [];
   const sharedInterests = myInterests.filter((i: string) => theirInterests.includes(i));
@@ -129,18 +131,22 @@ export function calculateMatchBreakdown(
     points: interestPoints,
     maxPoints: 20,
     matched: sharedInterests.length > 0,
-    detail: sharedInterests.length > 0
-      ? `${sharedInterests.length} shared: ${sharedInterests.slice(0, 3).join(', ')}`
-      : 'No overlap found',
+    detail:
+      sharedInterests.length > 0
+        ? `${sharedInterests.length} shared: ${sharedInterests.slice(0, 3).join(', ')}`
+        : 'No overlap found',
   });
 
   // 5. Signal Alignment
   const bothLooking = mySignalType === 'looking' && member.signalType === 'looking';
   const signalDetail =
-    mySignalType === 'looking' && member.signalType === 'looking' ? 'Both actively looking' :
-    mySignalType === 'available' && member.signalType === 'looking' ? "You're available · they're looking" :
-    mySignalType === 'looking' && member.signalType === 'available' ? "You're looking · they're available" :
-    `You: ${mySignalType} · Them: ${member.signalType ?? 'unknown'}`;
+    mySignalType === 'looking' && member.signalType === 'looking'
+      ? 'Both actively looking'
+      : mySignalType === 'available' && member.signalType === 'looking'
+        ? "You're available · they're looking"
+        : mySignalType === 'looking' && member.signalType === 'available'
+          ? "You're looking · they're available"
+          : `You: ${mySignalType} · Them: ${member.signalType ?? 'unknown'}`;
   factors.push({
     key: 'signal',
     label: 'Signal Alignment',
@@ -153,7 +159,7 @@ export function calculateMatchBreakdown(
 
   // 6. Queer Friendly — skip if myProfile.orientation === 'straight'
   if (myOrientation !== 'straight') {
-    const queerFriendly = !!(member.isQueerFriendly);
+    const queerFriendly = !!member.isQueerFriendly;
     factors.push({
       key: 'queer',
       label: 'Queer Friendly',
@@ -198,10 +204,10 @@ export function calculateMatchBreakdown(
   const myRelStyle = (myPrefs?.relationshipStatus ?? '').toLowerCase();
   const theirRelStyle = (theirPrefs?.relationshipStatus ?? '').toLowerCase();
   const openEnmSet = new Set(['open relationship', 'ethically non-monogamous', 'enm']);
-  const relMatched = !!myRelStyle && !!theirRelStyle && (
-    myRelStyle === theirRelStyle ||
-    (openEnmSet.has(myRelStyle) && openEnmSet.has(theirRelStyle))
-  );
+  const relMatched =
+    !!myRelStyle &&
+    !!theirRelStyle &&
+    (myRelStyle === theirRelStyle || (openEnmSet.has(myRelStyle) && openEnmSet.has(theirRelStyle)));
   factors.push({
     key: 'relstyle',
     label: 'Relationship Style',
@@ -218,7 +224,9 @@ export function calculateMatchBreakdown(
 
   // 9. Looking For Match
   const myLookingFor: string[] = Array.isArray(myPrefs?.lookingFor) ? myPrefs.lookingFor : [];
-  const theirLookingFor: string[] = Array.isArray(theirPrefs?.lookingFor) ? theirPrefs.lookingFor : [];
+  const theirLookingFor: string[] = Array.isArray(theirPrefs?.lookingFor)
+    ? theirPrefs.lookingFor
+    : [];
   const lookingOverlap = myLookingFor.filter((l: string) => theirLookingFor.includes(l));
   factors.push({
     key: 'lookingfor',
@@ -227,9 +235,10 @@ export function calculateMatchBreakdown(
     points: lookingOverlap.length > 0 ? 10 : 0,
     maxPoints: 10,
     matched: lookingOverlap.length > 0,
-    detail: lookingOverlap.length > 0
-      ? `Both want: ${lookingOverlap.slice(0, 3).join(', ')}`
-      : 'No overlap',
+    detail:
+      lookingOverlap.length > 0
+        ? `Both want: ${lookingOverlap.slice(0, 3).join(', ')}`
+        : 'No overlap',
   });
 
   return factors;
@@ -252,9 +261,16 @@ export function calculateMatchScore(
   myPrefs: any,
   mySignalType: string,
   seekingGender: string[],
-  maxDistance: number,
+  maxDistance: number
 ): number {
-  const factors = calculateMatchBreakdown(member, myProfile, myPrefs, mySignalType, seekingGender, maxDistance);
+  const factors = calculateMatchBreakdown(
+    member,
+    myProfile,
+    myPrefs,
+    mySignalType,
+    seekingGender,
+    maxDistance
+  );
   const raw = factors.reduce((s, f) => s + f.points, 0);
   return Math.min(Math.round((raw / 145) * 100), 100);
 }

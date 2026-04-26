@@ -79,13 +79,17 @@ function TicketCard({
   const title = ticket.event?.title ?? ticket.eventTitle ?? 'Event';
   const dateStr = ticket.event?.startDate
     ? new Date(ticket.event.startDate).toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric',
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
       })
     : ticket.startDate
-    ? new Date(ticket.startDate).toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric',
-      })
-    : 'TBD';
+      ? new Date(ticket.startDate).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        })
+      : 'TBD';
 
   const statusColor = STATUS_COLORS[ticket.status] ?? '#9CA3AF';
   const paymentColor = PAYMENT_COLORS[ticket.paymentStatus] ?? '#9CA3AF';
@@ -152,40 +156,60 @@ function TicketCard({
         {/* Badges row */}
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
           {ticket.ticketType && (
-            <View style={{
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: 20,
-              backgroundColor: `${typeColor}22`,
-              borderWidth: 1,
-              borderColor: `${typeColor}44`,
-            }}>
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 20,
+                backgroundColor: `${typeColor}22`,
+                borderWidth: 1,
+                borderColor: `${typeColor}44`,
+              }}
+            >
               <Text style={{ color: typeColor, fontSize: 12, fontWeight: '700' }}>
                 {ticketTypeLabels[ticket.ticketType] ?? ticket.ticketType}
               </Text>
             </View>
           )}
-          <View style={{
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 20,
-            backgroundColor: `${statusColor}22`,
-            borderWidth: 1,
-            borderColor: `${statusColor}44`,
-          }}>
-            <Text style={{ color: statusColor, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' }}>
+          <View
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 20,
+              backgroundColor: `${statusColor}22`,
+              borderWidth: 1,
+              borderColor: `${statusColor}44`,
+            }}
+          >
+            <Text
+              style={{
+                color: statusColor,
+                fontSize: 12,
+                fontWeight: '700',
+                textTransform: 'capitalize',
+              }}
+            >
               {ticket.status?.replace('_', ' ') ?? 'Unknown'}
             </Text>
           </View>
-          <View style={{
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            borderRadius: 20,
-            backgroundColor: `${paymentColor}22`,
-            borderWidth: 1,
-            borderColor: `${paymentColor}44`,
-          }}>
-            <Text style={{ color: paymentColor, fontSize: 12, fontWeight: '700', textTransform: 'capitalize' }}>
+          <View
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 20,
+              backgroundColor: `${paymentColor}22`,
+              borderWidth: 1,
+              borderColor: `${paymentColor}44`,
+            }}
+          >
+            <Text
+              style={{
+                color: paymentColor,
+                fontSize: 12,
+                fontWeight: '700',
+                textTransform: 'capitalize',
+              }}
+            >
               {ticket.paymentStatus?.replace('_', ' ') ?? 'Pending'}
             </Text>
           </View>
@@ -249,15 +273,17 @@ function TicketCard({
           )}
 
           {!hasQR && !needsPayment && (
-            <View style={{
-              flex: 1,
-              borderRadius: 12,
-              paddingVertical: 11,
-              alignItems: 'center',
-              backgroundColor: t.surfaceMuted,
-              borderWidth: 1,
-              borderColor: t.border,
-            }}>
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 12,
+                paddingVertical: 11,
+                alignItems: 'center',
+                backgroundColor: t.surfaceMuted,
+                borderWidth: 1,
+                borderColor: t.border,
+              }}
+            >
               <Text style={{ color: t.textMuted, fontSize: 13 }}>
                 {ticket.status === 'cancelled' ? 'Cancelled' : 'QR pending confirmation'}
               </Text>
@@ -287,7 +313,9 @@ function TicketCard({
             ) : (
               <>
                 <Ionicons name="document-attach-outline" size={16} color={t.textMuted} />
-                <Text style={{ color: t.textMuted, fontSize: 13, marginLeft: 6 }}>Upload Test Result</Text>
+                <Text style={{ color: t.textMuted, fontSize: 13, marginLeft: 6 }}>
+                  Upload Test Result
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -305,22 +333,31 @@ export default function TicketsScreen() {
   const t = theme.colors;
   const [refreshing, setRefreshing] = useState(false);
   const [qrModal, setQrModal] = useState<{ visible: boolean; code: string; title: string }>({
-    visible: false, code: '', title: '',
+    visible: false,
+    code: '',
+    title: '',
   });
-  const [payingId, setPayingId] = useState<number | null>(null);
+  const [payingId] = useState<number | null>(null);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [showPaymentAgreement, setShowPaymentAgreement] = useState(false);
   const [pendingPayTicket, setPendingPayTicket] = useState<any>(null);
 
-  const { data, isLoading, isError, error, refetch } = trpc.reservations.myTickets.useQuery(undefined, {
-    staleTime: 0,
-  });
+  const { data, isLoading, isError, error, refetch } = trpc.reservations.myTickets.useQuery(
+    undefined,
+    {
+      staleTime: 0,
+    }
+  );
 
   const { mutateAsync: submitTestResult } = trpc.testResults.submit.useMutation();
 
   const tickets = (data as any[]) ?? [];
-  const pendingTickets = tickets.filter((t: any) => t.paymentStatus === 'pending' && t.status !== 'cancelled');
-  const confirmedTickets = tickets.filter((t: any) => !(t.paymentStatus === 'pending' && t.status !== 'cancelled'));
+  const pendingTickets = tickets.filter(
+    (t: any) => t.paymentStatus === 'pending' && t.status !== 'cancelled'
+  );
+  const confirmedTickets = tickets.filter(
+    (t: any) => !(t.paymentStatus === 'pending' && t.status !== 'cancelled')
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -340,7 +377,9 @@ export default function TicketsScreen() {
   async function handlePayNow(ticket: any) {
     const amount = getTicketAmount(ticket);
     const eventTitle = ticket.eventTitle ?? ticket.event?.title ?? 'Soapies Event';
-    const note = encodeURIComponent(`Soapies ticket - ${eventTitle} - ${ticket.ticketType?.replace('_', ' ')}`);
+    const note = encodeURIComponent(
+      `Soapies ticket - ${eventTitle} - ${ticket.ticketType?.replace('_', ' ')}`
+    );
     const venmoUrl = `venmo://paycharge?txn=pay&recipients=KELLEN-BRENNAN&amount=${amount}&note=${note}`;
     const venmoWebUrl = `https://venmo.com/KELLEN-BRENNAN?txn=pay&amount=${amount}&note=${note}`;
     try {
@@ -361,15 +400,11 @@ export default function TicketsScreen() {
   }
 
   async function handleUploadTestResult(ticket: any) {
-    Alert.alert(
-      'Upload Test Result',
-      'Choose how to upload your test result',
-      [
-        { text: 'Photo Library', onPress: () => uploadFromImagePicker(ticket) },
-        { text: 'File / PDF', onPress: () => uploadFromDocumentPicker(ticket) },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    Alert.alert('Upload Test Result', 'Choose how to upload your test result', [
+      { text: 'Photo Library', onPress: () => uploadFromImagePicker(ticket) },
+      { text: 'File / PDF', onPress: () => uploadFromDocumentPicker(ticket) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   }
 
   async function uploadFromImagePicker(ticket: any) {
@@ -390,7 +425,12 @@ export default function TicketsScreen() {
     });
     if (result.canceled) return;
     const asset = result.assets[0];
-    await doUpload(ticket, asset.uri, asset.mimeType ?? 'application/octet-stream', asset.name ?? 'test-result');
+    await doUpload(
+      ticket,
+      asset.uri,
+      asset.mimeType ?? 'application/octet-stream',
+      asset.name ?? 'test-result'
+    );
   }
 
   async function doUpload(ticket: any, uri: string, mimeType: string, fileName: string) {
@@ -398,7 +438,8 @@ export default function TicketsScreen() {
       setUploadingId(ticket.id);
       const formData = new FormData();
       formData.append('photo', { uri, type: mimeType, name: fileName } as any);
-      const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+      const API_URL =
+        process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
       const uploadRes = await fetch(`${API_URL}/api/upload-photo`, {
         method: 'POST',
         body: formData,
@@ -440,7 +481,9 @@ export default function TicketsScreen() {
           >
             <Ionicons name="arrow-back" size={20} color={t.text} />
           </TouchableOpacity>
-          <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', flex: 1 }}>My Tickets 🎟️</Text>
+          <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', flex: 1 }}>
+            My Tickets 🎟️
+          </Text>
         </View>
       </LinearGradient>
 
@@ -449,17 +492,43 @@ export default function TicketsScreen() {
           <ActivityIndicator color={colors.pink} size="large" />
         </View>
       ) : isError ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
+        >
           <Ionicons name="cloud-offline-outline" size={42} color={t.textMuted} />
-          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          <Text
+            style={{
+              color: t.text,
+              fontSize: 20,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginTop: 14,
+            }}
+          >
             Could not load your tickets
           </Text>
-          <Text style={{ color: t.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          <Text
+            style={{
+              color: t.textMuted,
+              fontSize: 14,
+              textAlign: 'center',
+              lineHeight: 21,
+              marginTop: 8,
+            }}
+          >
             {(error as any)?.message ?? 'Please check your connection and try again.'}
           </Text>
           <TouchableOpacity
             onPress={() => refetch()}
-            style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+            style={{
+              marginTop: 18,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: t.surface,
+              borderWidth: 1,
+              borderColor: t.border,
+            }}
           >
             <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
           </TouchableOpacity>
@@ -475,10 +544,26 @@ export default function TicketsScreen() {
             // ── Empty state ──
             <View style={{ alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 56, marginBottom: 16 }}>🎟️</Text>
-              <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 10 }}>
+              <Text
+                style={{
+                  color: t.text,
+                  fontSize: 20,
+                  fontWeight: '800',
+                  textAlign: 'center',
+                  marginBottom: 10,
+                }}
+              >
                 No tickets yet
               </Text>
-              <Text style={{ color: t.textMuted, fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
+              <Text
+                style={{
+                  color: t.textMuted,
+                  fontSize: 15,
+                  textAlign: 'center',
+                  marginBottom: 28,
+                  lineHeight: 22,
+                }}
+              >
                 Reserve a spot at an upcoming event to get your tickets
               </Text>
               <TouchableOpacity
@@ -491,7 +576,9 @@ export default function TicketsScreen() {
                   end={{ x: 1, y: 0 }}
                   style={{ paddingHorizontal: 32, paddingVertical: 14, borderRadius: 16 }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>Browse Events</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>
+                    Browse Events
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -499,21 +586,33 @@ export default function TicketsScreen() {
             <>
               {pendingTickets.length > 0 && (
                 <>
-                  <View style={{
-                    marginHorizontal: 16,
-                    marginBottom: 12,
-                    padding: 14,
-                    backgroundColor: `${colors.pink}15`,
-                    borderRadius: 14,
-                    borderColor: `${colors.pink}33`,
-                    borderWidth: 1,
-                  }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <View
+                    style={{
+                      marginHorizontal: 16,
+                      marginBottom: 12,
+                      padding: 14,
+                      backgroundColor: `${colors.pink}15`,
+                      borderRadius: 14,
+                      borderColor: `${colors.pink}33`,
+                      borderWidth: 1,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 4,
+                      }}
+                    >
                       <Ionicons name="time-outline" size={16} color={colors.pink} />
-                      <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 14 }}>Payment Pending</Text>
+                      <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 14 }}>
+                        Payment Pending
+                      </Text>
                     </View>
                     <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 19 }}>
-                      Complete payment to confirm your spot. Tap &quot;Pay Now&quot; on any pending reservation.
+                      Complete payment to confirm your spot. Tap &quot;Pay Now&quot; on any pending
+                      reservation.
                     </Text>
                   </View>
                   {pendingTickets.map((ticket: any) => (
@@ -532,16 +631,18 @@ export default function TicketsScreen() {
               {confirmedTickets.length > 0 && (
                 <>
                   {pendingTickets.length > 0 && (
-                    <Text style={{
-                      color: t.textMuted,
-                      fontSize: 11,
-                      fontWeight: '800',
-                      marginHorizontal: 16,
-                      marginBottom: 10,
-                      marginTop: 4,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1.2,
-                    }}>
+                    <Text
+                      style={{
+                        color: t.textMuted,
+                        fontSize: 11,
+                        fontWeight: '800',
+                        marginHorizontal: 16,
+                        marginBottom: 10,
+                        marginTop: 4,
+                        textTransform: 'uppercase',
+                        letterSpacing: 1.2,
+                      }}
+                    >
                       Confirmed
                     </Text>
                   )}
@@ -566,17 +667,19 @@ export default function TicketsScreen() {
       {/* ── Community Agreement Modal ── */}
       <Modal visible={showPaymentAgreement} transparent animationType="slide">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
-          <View style={{
-            backgroundColor: t.surface,
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            borderTopWidth: 1,
-            borderLeftWidth: 1,
-            borderRightWidth: 1,
-            borderColor: t.border,
-            padding: 24,
-            maxHeight: '85%',
-          }}>
+          <View
+            style={{
+              backgroundColor: t.surface,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderColor: t.border,
+              padding: 24,
+              maxHeight: '85%',
+            }}
+          >
             <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
               🎉 Community Agreement
             </Text>
@@ -588,8 +691,10 @@ export default function TicketsScreen() {
                 {`\n\n`}🔒 What happens at Soapies stays at Soapies — absolute discretion
                 {`\n\n`}📵 No photography or recording without explicit consent of all parties
                 {`\n\n`}🍷 Drink responsibly — we want everyone to have a safe, fun time
-                {`\n\n`}🧹 This is a COMMUNITY-operated event. Help with setup or teardown is highly welcomed and deeply appreciated — even 15 minutes makes a difference!
-                {`\n\n`}⚕️ Please test before attending. Your safety and the safety of others matters.
+                {`\n\n`}🧹 This is a COMMUNITY-operated event. Help with setup or teardown is highly
+                welcomed and deeply appreciated — even 15 minutes makes a difference!
+                {`\n\n`}⚕️ Please test before attending. Your safety and the safety of others
+                matters.
                 {`\n\n`}❤️ We are a sex-positive, inclusive community. Judgment-free zone.
               </Text>
             </ScrollView>
@@ -606,10 +711,15 @@ export default function TicketsScreen() {
                 end={{ x: 1, y: 0 }}
                 style={{ borderRadius: 16, padding: 16, alignItems: 'center' }}
               >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>I Agree — Proceed to Payment 💸</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                  I Agree — Proceed to Payment 💸
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowPaymentAgreement(false)} style={{ marginTop: 14, alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => setShowPaymentAgreement(false)}
+              style={{ marginTop: 14, alignItems: 'center' }}
+            >
               <Text style={{ color: t.textMuted, fontSize: 15 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -618,17 +728,35 @@ export default function TicketsScreen() {
 
       {/* ── QR Code Modal ── */}
       <Modal visible={qrModal.visible} animationType="fade" transparent>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-          <View style={{
-            backgroundColor: t.surface,
-            borderRadius: 24,
-            padding: 28,
-            width: '100%',
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            justifyContent: 'center',
             alignItems: 'center',
-            borderColor: t.border,
-            borderWidth: 1,
-          }}>
-            <Text style={{ color: t.text, fontSize: 18, fontWeight: '800', marginBottom: 6, textAlign: 'center' }}>
+            padding: 32,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: t.surface,
+              borderRadius: 24,
+              padding: 28,
+              width: '100%',
+              alignItems: 'center',
+              borderColor: t.border,
+              borderWidth: 1,
+            }}
+          >
+            <Text
+              style={{
+                color: t.text,
+                fontSize: 18,
+                fontWeight: '800',
+                marginBottom: 6,
+                textAlign: 'center',
+              }}
+            >
               {qrModal.title}
             </Text>
             <Text style={{ color: t.textMuted, fontSize: 13, marginBottom: 24 }}>
@@ -644,16 +772,19 @@ export default function TicketsScreen() {
                   resizeMode="contain"
                 />
               ) : qrModal.code ? (
-                <QRCode
-                  value={qrModal.code}
-                  size={220}
-                  backgroundColor="white"
-                  color="black"
-                />
+                <QRCode value={qrModal.code} size={220} backgroundColor="white" color="black" />
               ) : null}
             </View>
 
-            <Text style={{ color: t.textMuted, fontSize: 11, marginTop: 16, letterSpacing: 1, textAlign: 'center' }}>
+            <Text
+              style={{
+                color: t.textMuted,
+                fontSize: 11,
+                marginTop: 16,
+                letterSpacing: 1,
+                textAlign: 'center',
+              }}
+            >
               {qrModal.code}
             </Text>
 

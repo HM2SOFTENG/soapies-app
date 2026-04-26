@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { View, Text, Pressable, Animated, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -10,13 +10,18 @@ import { useTheme } from '../lib/theme';
 // ── Channel metadata ─────────────────────────────────────────────────────────
 function getChannelMeta(name: string): { emoji: string; gradient: [string, string] } {
   const n = (name ?? '').toLowerCase();
-  if (n.includes('admin'))   return { emoji: '🛡️', gradient: ['#6366F1', '#8B5CF6'] };
-  if (n.includes('angel'))   return { emoji: '💗', gradient: ['#EC4899', '#F472B6'] };
-  if (n.includes('women') || n.includes('ladies')) return { emoji: '♀️', gradient: ['#EC4899', '#A855F7'] };
-  if (n.includes('men') || n.includes('guys'))     return { emoji: '♂️', gradient: ['#6366F1', '#A855F7'] };
-  if (n.includes('queer') || n.includes('gay') || n.includes('gaypeez')) return { emoji: '🌈', gradient: ['#F59E0B', '#EC4899'] };
-  if (n.includes('community') || n.includes('soapies')) return { emoji: '🎉', gradient: ['#EC4899', '#A855F7'] };
-  if (n.includes('groupus') || n.includes('groupies')) return { emoji: '💑', gradient: ['#A855F7', '#6366F1'] };
+  if (n.includes('admin')) return { emoji: '🛡️', gradient: ['#6366F1', '#8B5CF6'] };
+  if (n.includes('angel')) return { emoji: '💗', gradient: ['#EC4899', '#F472B6'] };
+  if (n.includes('women') || n.includes('ladies'))
+    return { emoji: '♀️', gradient: ['#EC4899', '#A855F7'] };
+  if (n.includes('men') || n.includes('guys'))
+    return { emoji: '♂️', gradient: ['#6366F1', '#A855F7'] };
+  if (n.includes('queer') || n.includes('gay') || n.includes('gaypeez'))
+    return { emoji: '🌈', gradient: ['#F59E0B', '#EC4899'] };
+  if (n.includes('community') || n.includes('soapies'))
+    return { emoji: '🎉', gradient: ['#EC4899', '#A855F7'] };
+  if (n.includes('groupus') || n.includes('groupies'))
+    return { emoji: '💑', gradient: ['#A855F7', '#6366F1'] };
   return { emoji: '💬', gradient: ['#A855F7', '#EC4899'] };
 }
 
@@ -27,15 +32,14 @@ function formatTime(date: string | Date | null | undefined): string {
   if (isNaN(d.getTime())) return '';
   const now = new Date();
   const diff = now.getTime() - d.getTime();
-  const mins = Math.floor(diff / 60_000);
-  const hrs  = Math.floor(diff / 3_600_000);
 
   // Same day → show time
   if (d.toDateString() === now.toDateString()) {
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   }
   // Yesterday
-  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
   // This week → day name
   if (diff < 7 * 86_400_000) return d.toLocaleDateString('en-US', { weekday: 'short' });
@@ -55,11 +59,11 @@ export interface Conversation {
   otherUserAvatarUrl?: string | null;
   otherUserId?: number | null;
   // Legacy participants array (fallback)
-  participants?: Array<{
+  participants?: {
     displayName?: string | null;
     name?: string | null;
     avatarUrl?: string | null;
-  }> | null;
+  }[] | null;
   avatarUrl?: string | null;
 }
 
@@ -73,22 +77,32 @@ interface Props {
 export default React.memo(function ConversationItem({ conversation, onPress, onLongPress }: Props) {
   const router = useRouter();
   const theme = useTheme();
-  const isChannel  = conversation.type === 'channel';
-  const unread     = conversation.unreadCount ?? 0;
-  const hasUnread  = unread > 0;
+  const isChannel = conversation.type === 'channel';
+  const unread = conversation.unreadCount ?? 0;
+  const hasUnread = unread > 0;
 
   const pressAnim = useRef(new Animated.Value(1)).current;
 
   const displayName = isChannel
     ? (conversation.name ?? 'Channel')
-    : (conversation.name || conversation.participants?.map(p => p.displayName ?? p.name ?? '').filter(Boolean).join(', ') || 'Direct Message');
+    : conversation.name ||
+      conversation.participants
+        ?.map((p) => p.displayName ?? p.name ?? '')
+        .filter(Boolean)
+        .join(', ') ||
+      'Direct Message';
 
-  const meta     = getChannelMeta(displayName);
+  const meta = getChannelMeta(displayName);
   // Server enriches DMs with otherUserAvatarUrl; fall back to participants array
   const dmAvatar = !isChannel
     ? (conversation.otherUserAvatarUrl ?? conversation.participants?.[0]?.avatarUrl ?? null)
     : null;
-  const initials = displayName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const initials = displayName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   const preview = conversation.lastMessage?.trim()
     ? conversation.lastMessage
@@ -105,18 +119,26 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
 
   return (
     <Pressable
-      onPress={() => { Haptics.selectionAsync(); onPress(); }}
-      onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onLongPress?.(); }}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
+      onLongPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onLongPress?.();
+      }}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >
-      <Animated.View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 11,
-        transform: [{ scale: pressAnim }],
-      }}>
+      <Animated.View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 11,
+          transform: [{ scale: pressAnim }],
+        }}
+      >
         {/* ── Avatar ── tap to view profile for DMs */}
         <TouchableOpacity
           style={{ marginRight: 13, position: 'relative' }}
@@ -131,19 +153,39 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
           {isChannel ? (
             <LinearGradient
               colors={meta.gradient}
-              style={{ width: 54, height: 54, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 17,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               <Text style={{ fontSize: 24 }}>{meta.emoji}</Text>
             </LinearGradient>
           ) : dmAvatar ? (
-            <View style={{ width: 54, height: 54, borderRadius: 27, overflow: 'hidden',
-              borderWidth: 1.5, borderColor: hasUnread ? theme.colors.pink : 'transparent' }}>
+            <View
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 27,
+                overflow: 'hidden',
+                borderWidth: 1.5,
+                borderColor: hasUnread ? theme.colors.pink : 'transparent',
+              }}
+            >
               <Image source={{ uri: dmAvatar }} style={{ width: 54, height: 54 }} />
             </View>
           ) : (
             <LinearGradient
               colors={[theme.colors.purple, theme.colors.pink]}
-              style={{ width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 27,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               <Text style={{ color: '#fff', fontWeight: '800', fontSize: 19 }}>{initials}</Text>
             </LinearGradient>
@@ -151,19 +193,32 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
 
           {/* Unread ring on channel avatar */}
           {isChannel && hasUnread && (
-            <View style={{
-              position: 'absolute', inset: -2, borderRadius: 19,
-              borderWidth: 2, borderColor: theme.colors.pink,
-            }} />
+            <View
+              style={{
+                position: 'absolute',
+                inset: -2,
+                borderRadius: 19,
+                borderWidth: 2,
+                borderColor: theme.colors.pink,
+              }}
+            />
           )}
 
           {/* Online dot for DMs */}
           {!isChannel && (
-            <View style={{
-              position: 'absolute', bottom: 1, right: 1,
-              width: 13, height: 13, borderRadius: 7,
-              backgroundColor: theme.colors.success, borderWidth: 2, borderColor: theme.colors.background,
-            }} />
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 1,
+                right: 1,
+                width: 13,
+                height: 13,
+                borderRadius: 7,
+                backgroundColor: theme.colors.success,
+                borderWidth: 2,
+                borderColor: theme.colors.background,
+              }}
+            />
           )}
         </TouchableOpacity>
 
@@ -175,18 +230,22 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
               style={{
                 color: theme.colors.text,
                 fontWeight: hasUnread ? '700' : '500',
-                fontSize: 15.5, flex: 1, letterSpacing: 0.1,
+                fontSize: 15.5,
+                flex: 1,
+                letterSpacing: 0.1,
               }}
               numberOfLines={1}
             >
               {displayName}
             </Text>
-            <Text style={{
-              color: hasUnread ? theme.colors.primary : theme.colors.textMuted,
-              fontSize: 12,
-              fontWeight: hasUnread ? '600' : '400',
-              marginLeft: 8,
-            }}>
+            <Text
+              style={{
+                color: hasUnread ? theme.colors.primary : theme.colors.textMuted,
+                fontSize: 12,
+                fontWeight: hasUnread ? '600' : '400',
+                marginLeft: 8,
+              }}
+            >
               {formatTime(conversation.lastMessageAt)}
             </Text>
           </View>
@@ -207,21 +266,31 @@ export default React.memo(function ConversationItem({ conversation, onPress, onL
             </Text>
 
             {hasUnread ? (
-              <View style={{
-                backgroundColor: theme.colors.pink, borderRadius: 11,
-                minWidth: 22, height: 22, alignItems: 'center',
-                justifyContent: 'center', paddingHorizontal: 6, marginLeft: 8,
-              }}>
+              <View
+                style={{
+                  backgroundColor: theme.colors.pink,
+                  borderRadius: 11,
+                  minWidth: 22,
+                  height: 22,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 6,
+                  marginLeft: 8,
+                }}
+              >
                 <Text style={{ color: '#fff', fontSize: 11.5, fontWeight: '800' }}>
                   {unread > 99 ? '99+' : unread}
                 </Text>
               </View>
-            ) : (
-              // Delivered checkmark (decorative for now)
-              conversation.lastMessage ? (
-                <Ionicons name="checkmark-done" size={15} color={theme.colors.textMuted} style={{ marginLeft: 6 }} />
-              ) : null
-            )}
+            ) : // Delivered checkmark (decorative for now)
+            conversation.lastMessage ? (
+              <Ionicons
+                name="checkmark-done"
+                size={15}
+                color={theme.colors.textMuted}
+                style={{ marginLeft: 6 }}
+              />
+            ) : null}
           </View>
         </View>
       </Animated.View>

@@ -1,6 +1,7 @@
 # Soapies Mobile Environment
 
 ## Runtime model
+
 Soapies mobile is an Expo SDK 54 app using EAS Build/Submit. Public runtime variables must be prefixed with `EXPO_PUBLIC_` and are embedded into the build.
 
 ## Required variables

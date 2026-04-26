@@ -24,7 +24,10 @@ interface BrandGradientProps extends Omit<LinearGradientProps, 'start' | 'end' |
   colors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
 }
 
-const directionMap: Record<GradientDirection, { start: LinearGradientProps['start']; end: LinearGradientProps['end'] }> = {
+const directionMap: Record<
+  GradientDirection,
+  { start: LinearGradientProps['start']; end: LinearGradientProps['end'] }
+> = {
   horizontal: { start: { x: 0, y: 0 }, end: { x: 1, y: 0 } },
   vertical: { start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
   diagonal: { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } },
@@ -43,7 +46,13 @@ export default function BrandGradient({
 
   return (
     <LinearGradient
-      colors={(explicitColors || [colors.pink, colors.purple]) as readonly [ColorValue, ColorValue, ...ColorValue[]]}
+      colors={
+        (explicitColors || [colors.pink, colors.purple]) as readonly [
+          ColorValue,
+          ColorValue,
+          ...ColorValue[],
+        ]
+      }
       start={explicitStart || defaultStart}
       end={explicitEnd || defaultEnd}
       style={style}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleProp, ViewStyle } from 'react-native';
+import { Text, StyleProp, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../lib/theme';
@@ -42,11 +42,12 @@ const Avatar = React.memo(function Avatar({ name, url, size = 'md', style }: Ava
       colors={[colors.pink, colors.purple]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[{ width: px, height: px, borderRadius, justifyContent: 'center', alignItems: 'center' }, style as any]}
+      style={[
+        { width: px, height: px, borderRadius, justifyContent: 'center', alignItems: 'center' },
+        style as any,
+      ]}
     >
-      <Text style={{ color: '#fff', fontSize, fontWeight: '700' }}>
-        {getInitials(name)}
-      </Text>
+      <Text style={{ color: '#fff', fontSize, fontWeight: '700' }}>{getInitials(name)}</Text>
     </LinearGradient>
   );
 });

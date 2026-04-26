@@ -1602,10 +1602,13 @@ export default function HomeScreen() {
     []
   );
 
-  const handleDismiss = useCallback((id: number) => {
-    setDismissedIds((prev) => [...prev, id]);
-    dismissAnnouncement.mutate({ announcementId: id });
-  }, [dismissAnnouncement]);
+  const handleDismiss = useCallback(
+    (id: number) => {
+      setDismissedIds((prev) => [...prev, id]);
+      dismissAnnouncement.mutate({ announcementId: id });
+    },
+    [dismissAnnouncement]
+  );
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -1724,7 +1727,6 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-       
     ),
     [announcements, handleDismiss, isReservedForNextEvent, me, nextEvent, profile, themed.sectionBg]
   );

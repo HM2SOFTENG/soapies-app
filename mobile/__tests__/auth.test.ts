@@ -12,8 +12,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const store: Record<string, string> = {};
 vi.mock('expo-secure-store', () => ({
   getItemAsync: vi.fn(async (key: string) => store[key] ?? null),
-  setItemAsync: vi.fn(async (key: string, value: string) => { store[key] = value; }),
-  deleteItemAsync: vi.fn(async (key: string) => { delete store[key]; }),
+  setItemAsync: vi.fn(async (key: string, value: string) => {
+    store[key] = value;
+  }),
+  deleteItemAsync: vi.fn(async (key: string) => {
+    delete store[key];
+  }),
 }));
 
 // ── Mock expo-linear-gradient (pulled in transitively) ───────────────────────

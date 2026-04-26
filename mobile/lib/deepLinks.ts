@@ -11,8 +11,7 @@ export const DEEP_LINK_SCHEME = 'soapies://';
  * Web URL base for generating shareable links (non-app contexts).
  * Falls back to https://soapiesplaygrp.club if EXPO_PUBLIC_WEB_URL is not set.
  */
-export const WEB_URL_BASE =
-  process.env.EXPO_PUBLIC_WEB_URL ?? 'https://soapiesplaygrp.club';
+export const WEB_URL_BASE = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://soapiesplaygrp.club';
 
 /**
  * Type of deep link target that was parsed.

@@ -19,6 +19,7 @@ _Generated: 2026-04-13_
 The mobile app is a standalone Expo/React Native application that communicates with the existing Soapies web backend via tRPC over HTTP. The backend runs as a Docker container on DigitalOcean App Platform.
 
 ### Key Points
+
 - **Monorepo structure**: `mobile/` lives inside the main soapies-app repo, sharing the `shared/` directory for types
 - **State management**: TanStack Query + tRPC client
 - **Styling**: NativeWind (Tailwind CSS for React Native)
@@ -29,6 +30,7 @@ The mobile app is a standalone Expo/React Native application that communicates w
 ## 2. Local Development Setup
 
 ### Prerequisites
+
 - Node.js 20+
 - Expo CLI: `npm install -g expo-cli`
 - EAS CLI: `npm install -g eas-cli`
@@ -80,11 +82,11 @@ eas init   # or eas build:configure
 
 ### Build Profiles
 
-| Profile | Distribution | Platform | API URL |
-|---------|-------------|----------|---------|
-| `development` | Internal | iOS + Android | `localhost:3000` |
-| `preview` | Internal | iOS (Simulator) | `http://164.92.68.30` |
-| `production` | App Store / Play Store | iOS + Android | `https://api.soapies.app` |
+| Profile       | Distribution           | Platform        | API URL                   |
+| ------------- | ---------------------- | --------------- | ------------------------- |
+| `development` | Internal               | iOS + Android   | `localhost:3000`          |
+| `preview`     | Internal               | iOS (Simulator) | `http://164.92.68.30`     |
+| `production`  | App Store / Play Store | iOS + Android   | `https://api.soapies.app` |
 
 ### Running Builds
 
@@ -102,12 +104,13 @@ npm run build:production
 
 ## 4. Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `EXPO_PUBLIC_API_URL` | Backend API base URL | `http://localhost:3000` |
-| `EXPO_PUBLIC_PROJECT_ID` | Expo project ID (from app.json) | _(from eas.json)_ |
+| Variable                 | Description                     | Default                 |
+| ------------------------ | ------------------------------- | ----------------------- |
+| `EXPO_PUBLIC_API_URL`    | Backend API base URL            | `http://localhost:3000` |
+| `EXPO_PUBLIC_PROJECT_ID` | Expo project ID (from app.json) | _(from eas.json)_       |
 
 Environment files:
+
 - `.env.example` — committed template, copy to `.env`
 - `.env` — local dev only, **never commit** (gitignored)
 - `eas.json` — build-time env vars per profile (committed)
@@ -131,12 +134,14 @@ push to react-native
 ```
 
 **Jobs:**
+
 1. **check** — Type-checks TypeScript and runs tests (pass-with-no-tests)
 2. **eas-preview** — Triggers an EAS cloud build for iOS simulator (non-blocking, `continue-on-error: true`)
 
 ### Web App CI (`.github/workflows/deploy.yml`)
 
 Handles the backend/web app on pushes to `main`:
+
 - Lint & type check → tests → Docker build → push to DO Registry → deploy to App Platform → DB migrations → cleanup old images
 
 ---
@@ -145,17 +150,18 @@ Handles the backend/web app on pushes to `main`:
 
 ### Backend (164.92.68.30 / DigitalOcean App Platform)
 
-| Item | Detail |
-|------|--------|
-| Host | `164.92.68.30` |
-| Platform | DigitalOcean App Platform |
-| Runtime | Node.js 22 in Docker |
-| Port | 3000 (internal), 80/443 (external) |
-| Database | MySQL 8.0 |
-| Registry | DigitalOcean Container Registry |
-| Deploy | Automated via GitHub Actions on `main` push |
+| Item     | Detail                                      |
+| -------- | ------------------------------------------- |
+| Host     | `164.92.68.30`                              |
+| Platform | DigitalOcean App Platform                   |
+| Runtime  | Node.js 22 in Docker                        |
+| Port     | 3000 (internal), 80/443 (external)          |
+| Database | MySQL 8.0                                   |
+| Registry | DigitalOcean Container Registry             |
+| Deploy   | Automated via GitHub Actions on `main` push |
 
 **Status (2026-04-13):**
+
 - ✅ HTTP 200 on `http://164.92.68.30/` — web app serving
 - ✅ HTTP 200 on `/api/trpc/auth.me` — API reachable
 - ❌ SSH not available (expected — App Platform manages the container)
@@ -163,6 +169,7 @@ Handles the backend/web app on pushes to `main`:
 ### Docker Setup
 
 The web app runs as a multi-stage Docker build:
+
 - **Stage 1 (builder)**: pnpm install + `pnpm build` → outputs to `dist/`
 - **Stage 2 (production)**: prod deps only, copies `dist/` and `drizzle/`
 - Runs `node dist/index.js` on port 3000
@@ -175,17 +182,17 @@ Local development uses `docker-compose.yml` (MySQL + app container).
 
 ### Existing (web app pipeline)
 
-| Secret | Purpose |
-|--------|---------|
-| `DIGITALOCEAN_ACCESS_TOKEN` | doctl authentication |
-| `DO_REGISTRY_NAME` | DigitalOcean Container Registry name |
-| `DO_APP_ID` | App Platform app ID for deployments |
-| `DATABASE_URL` | Production DB connection string |
+| Secret                      | Purpose                              |
+| --------------------------- | ------------------------------------ |
+| `DIGITALOCEAN_ACCESS_TOKEN` | doctl authentication                 |
+| `DO_REGISTRY_NAME`          | DigitalOcean Container Registry name |
+| `DO_APP_ID`                 | App Platform app ID for deployments  |
+| `DATABASE_URL`              | Production DB connection string      |
 
 ### New (mobile pipeline)
 
-| Secret | Purpose | How to Get |
-|--------|---------|-----------|
+| Secret       | Purpose                  | How to Get                                                                        |
+| ------------ | ------------------------ | --------------------------------------------------------------------------------- |
 | `EXPO_TOKEN` | EAS build authentication | [expo.dev/accounts/\[account\]/settings/access-tokens](https://expo.dev/accounts) |
 
 ### Setting `EXPO_TOKEN`

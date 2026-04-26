@@ -132,7 +132,14 @@ const straightPrefs = {
 describe('Pulse Match Score Calculator', () => {
   describe('calculateMatchScore', () => {
     it('returns a number between 0 and 100', () => {
-      const score = calculateMatchScore(zerMember, zeroProfile, zeroPrefs, 'looking', ['female'], 999);
+      const score = calculateMatchScore(
+        zerMember,
+        zeroProfile,
+        zeroPrefs,
+        'looking',
+        ['female'],
+        999
+      );
       expect(typeof score).toBe('number');
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(100);
@@ -145,7 +152,7 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       expect(score).toBeGreaterThanOrEqual(80);
       expect(score).toBeLessThanOrEqual(100);
@@ -158,7 +165,7 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       expect(score).toBeLessThanOrEqual(20);
     });
@@ -170,7 +177,7 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        999,
+        999
       );
       expect(score).toBeLessThanOrEqual(100);
     });
@@ -184,7 +191,7 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       expect(breakdownNonStraight.length).toBe(9); // All 9 factors
 
@@ -194,7 +201,7 @@ describe('Pulse Match Score Calculator', () => {
         straightPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       expect(breakdownStraight.length).toBe(8); // Queer-friendly skipped
     });
@@ -206,7 +213,7 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       for (const factor of breakdown) {
         expect(factor).toHaveProperty('key');
@@ -231,7 +238,7 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       for (const factor of breakdown) {
         expect(factor.points).toBeGreaterThanOrEqual(0);
@@ -248,9 +255,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const genderFactor = breakdown.find(f => f.key === 'gender');
+      const genderFactor = breakdown.find((f) => f.key === 'gender');
       expect(genderFactor?.points).toBe(25);
       expect(genderFactor?.matched).toBe(true);
     });
@@ -262,9 +269,9 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const genderFactor = breakdown.find(f => f.key === 'gender');
+      const genderFactor = breakdown.find((f) => f.key === 'gender');
       expect(genderFactor?.points).toBe(0);
       expect(genderFactor?.matched).toBe(false);
     });
@@ -276,9 +283,9 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs,
         'looking',
         ['any'], // Open to anyone
-        25,
+        25
       );
-      const genderFactor = breakdown.find(f => f.key === 'gender');
+      const genderFactor = breakdown.find((f) => f.key === 'gender');
       expect(genderFactor?.points).toBe(25);
     });
   });
@@ -291,9 +298,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const orientFactor = breakdown.find(f => f.key === 'orientation');
+      const orientFactor = breakdown.find((f) => f.key === 'orientation');
       expect(orientFactor?.points).toBe(20);
       expect(orientFactor?.matched).toBe(true);
     });
@@ -305,9 +312,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const orientFactor = breakdown.find(f => f.key === 'orientation');
+      const orientFactor = breakdown.find((f) => f.key === 'orientation');
       expect(orientFactor?.points).toBe(20);
       expect(orientFactor?.matched).toBe(true);
     });
@@ -319,9 +326,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const orientFactor = breakdown.find(f => f.key === 'orientation');
+      const orientFactor = breakdown.find((f) => f.key === 'orientation');
       expect(orientFactor?.points).toBe(0);
       expect(orientFactor?.matched).toBe(false);
     });
@@ -335,9 +342,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const communityFactor = breakdown.find(f => f.key === 'community');
+      const communityFactor = breakdown.find((f) => f.key === 'community');
       expect(communityFactor?.points).toBe(15);
       expect(communityFactor?.matched).toBe(true);
     });
@@ -349,9 +356,9 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const communityFactor = breakdown.find(f => f.key === 'community');
+      const communityFactor = breakdown.find((f) => f.key === 'community');
       expect(communityFactor?.points).toBe(0);
       expect(communityFactor?.matched).toBe(false);
     });
@@ -366,9 +373,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs, // hiking, cooking, art, music, sports
         'looking',
         ['female'],
-        25,
+        25
       );
-      const interestFactor = breakdown.find(f => f.key === 'interests');
+      const interestFactor = breakdown.find((f) => f.key === 'interests');
       expect(interestFactor?.points).toBe(20);
       expect(interestFactor?.matched).toBe(true);
     });
@@ -388,9 +395,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const interestFactor = breakdown.find(f => f.key === 'interests');
+      const interestFactor = breakdown.find((f) => f.key === 'interests');
       expect(interestFactor?.points).toBeLessThanOrEqual(20);
     });
 
@@ -401,9 +408,9 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs, // interests: hiking, cooking, art
         'looking',
         ['female'],
-        25,
+        25
       );
-      const interestFactor = breakdown.find(f => f.key === 'interests');
+      const interestFactor = breakdown.find((f) => f.key === 'interests');
       expect(interestFactor?.points).toBe(0);
       expect(interestFactor?.matched).toBe(false);
     });
@@ -417,9 +424,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking', // looking
         ['female'],
-        25,
+        25
       );
-      const signalFactor = breakdown.find(f => f.key === 'signal');
+      const signalFactor = breakdown.find((f) => f.key === 'signal');
       expect(signalFactor?.points).toBe(10);
       expect(signalFactor?.matched).toBe(true);
     });
@@ -431,9 +438,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'available', // available
         ['female'],
-        25,
+        25
       );
-      const signalFactor = breakdown.find(f => f.key === 'signal');
+      const signalFactor = breakdown.find((f) => f.key === 'signal');
       expect(signalFactor?.points).toBe(0);
       expect(signalFactor?.matched).toBe(false);
     });
@@ -446,9 +453,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'busy',
         ['female'],
-        25,
+        25
       );
-      const signalFactor = breakdown.find(f => f.key === 'signal');
+      const signalFactor = breakdown.find((f) => f.key === 'signal');
       expect(signalFactor?.points).toBe(0);
       expect(signalFactor?.matched).toBe(false);
     });
@@ -463,9 +470,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25, // maxDistance 25, so 25/4 = 6.25 threshold
+        25 // maxDistance 25, so 25/4 = 6.25 threshold
       );
-      const proximityFactor = breakdown.find(f => f.key === 'proximity');
+      const proximityFactor = breakdown.find((f) => f.key === 'proximity');
       expect(proximityFactor?.points).toBe(25);
     });
 
@@ -476,9 +483,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const proximityFactor = breakdown.find(f => f.key === 'proximity');
+      const proximityFactor = breakdown.find((f) => f.key === 'proximity');
       // With maxDistance 25, the first threshold is maxDistance/4 = 6.25, so 5km still gets 25 points.
       expect(proximityFactor?.points).toBe(25);
     });
@@ -490,9 +497,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const proximityFactor = breakdown.find(f => f.key === 'proximity');
+      const proximityFactor = breakdown.find((f) => f.key === 'proximity');
       expect(proximityFactor?.points).toBe(5);
     });
 
@@ -503,9 +510,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const proximityFactor = breakdown.find(f => f.key === 'proximity');
+      const proximityFactor = breakdown.find((f) => f.key === 'proximity');
       expect(proximityFactor?.points).toBe(0);
     });
 
@@ -517,9 +524,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const proximityFactor = breakdown.find(f => f.key === 'proximity');
+      const proximityFactor = breakdown.find((f) => f.key === 'proximity');
       expect(proximityFactor?.points).toBe(0);
       expect(proximityFactor?.detail).toBe('Location unavailable');
     });
@@ -533,9 +540,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs, // monogamous
         'looking',
         ['female'],
-        25,
+        25
       );
-      const relFactor = breakdown.find(f => f.key === 'relstyle');
+      const relFactor = breakdown.find((f) => f.key === 'relstyle');
       expect(relFactor?.points).toBe(10);
       expect(relFactor?.matched).toBe(true);
     });
@@ -556,9 +563,9 @@ describe('Pulse Match Score Calculator', () => {
         enmPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const relFactor = breakdown.find(f => f.key === 'relstyle');
+      const relFactor = breakdown.find((f) => f.key === 'relstyle');
       expect(relFactor?.points).toBe(10);
       expect(relFactor?.matched).toBe(true);
     });
@@ -570,9 +577,9 @@ describe('Pulse Match Score Calculator', () => {
         { ...zeroPrefs, relationshipStatus: 'monogamous' },
         'looking',
         ['female'],
-        25,
+        25
       );
-      const relFactor = breakdown.find(f => f.key === 'relstyle');
+      const relFactor = breakdown.find((f) => f.key === 'relstyle');
       expect(relFactor?.points).toBe(0);
       expect(relFactor?.matched).toBe(false);
     });
@@ -586,9 +593,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs, // looking for: relationship, dating
         'looking',
         ['female'],
-        25,
+        25
       );
-      const lookingFactor = breakdown.find(f => f.key === 'lookingfor');
+      const lookingFactor = breakdown.find((f) => f.key === 'lookingfor');
       expect(lookingFactor?.points).toBe(10);
       expect(lookingFactor?.matched).toBe(true);
     });
@@ -608,9 +615,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs, // relationship, dating
         'looking',
         ['female'],
-        25,
+        25
       );
-      const lookingFactor = breakdown.find(f => f.key === 'lookingfor');
+      const lookingFactor = breakdown.find((f) => f.key === 'lookingfor');
       expect(lookingFactor?.points).toBe(10);
       expect(lookingFactor?.matched).toBe(true);
     });
@@ -622,9 +629,9 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs, // looking for: relationship
         'looking',
         ['female'],
-        25,
+        25
       );
-      const lookingFactor = breakdown.find(f => f.key === 'lookingfor');
+      const lookingFactor = breakdown.find((f) => f.key === 'lookingfor');
       expect(lookingFactor?.points).toBe(0);
       expect(lookingFactor?.matched).toBe(false);
     });
@@ -639,9 +646,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const queerFactorLesbian = breakdownLesbian.find(f => f.key === 'queer');
+      const queerFactorLesbian = breakdownLesbian.find((f) => f.key === 'queer');
       expect(queerFactorLesbian).toBeDefined();
 
       // Straight user: should NOT include queer-friendly factor
@@ -651,9 +658,9 @@ describe('Pulse Match Score Calculator', () => {
         straightPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const queerFactorStraight = breakdownStraight.find(f => f.key === 'queer');
+      const queerFactorStraight = breakdownStraight.find((f) => f.key === 'queer');
       expect(queerFactorStraight).toBeUndefined();
     });
 
@@ -664,9 +671,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const queerFactor = breakdown.find(f => f.key === 'queer');
+      const queerFactor = breakdown.find((f) => f.key === 'queer');
       expect(queerFactor?.points).toBe(10);
       expect(queerFactor?.matched).toBe(true);
     });
@@ -679,9 +686,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
-      const queerFactor = breakdown.find(f => f.key === 'queer');
+      const queerFactor = breakdown.find((f) => f.key === 'queer');
       expect(queerFactor?.points).toBe(0);
       expect(queerFactor?.matched).toBe(false);
     });
@@ -694,7 +701,14 @@ describe('Pulse Match Score Calculator', () => {
         preferences: undefined,
       };
       expect(() => {
-        calculateMatchBreakdown(noPrefMember, perfectProfile, perfectPrefs, 'looking', ['female'], 25);
+        calculateMatchBreakdown(
+          noPrefMember,
+          perfectProfile,
+          perfectPrefs,
+          'looking',
+          ['female'],
+          25
+        );
       }).not.toThrow();
     });
 
@@ -704,7 +718,14 @@ describe('Pulse Match Score Calculator', () => {
         preferences: 'not valid json {',
       };
       expect(() => {
-        calculateMatchBreakdown(badJsonMember, perfectProfile, perfectPrefs, 'looking', ['female'], 25);
+        calculateMatchBreakdown(
+          badJsonMember,
+          perfectProfile,
+          perfectPrefs,
+          'looking',
+          ['female'],
+          25
+        );
       }).not.toThrow();
     });
 
@@ -712,7 +733,14 @@ describe('Pulse Match Score Calculator', () => {
       const minimalProfile: any = {};
       const minimalPrefs: any = {};
       expect(() => {
-        calculateMatchBreakdown(perfectMember, minimalProfile, minimalPrefs, 'looking', ['female'], 25);
+        calculateMatchBreakdown(
+          perfectMember,
+          minimalProfile,
+          minimalPrefs,
+          'looking',
+          ['female'],
+          25
+        );
       }).not.toThrow();
     });
 
@@ -723,9 +751,9 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         [], // Empty array defaults to "any"
-        25,
+        25
       );
-      const genderFactor = breakdown.find(f => f.key === 'gender');
+      const genderFactor = breakdown.find((f) => f.key === 'gender');
       expect(genderFactor?.points).toBe(25); // Should still match (open to anyone)
     });
 
@@ -741,10 +769,10 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['Female'], // Mixed case
-        25,
+        25
       );
-      const genderFactor = breakdown.find(f => f.key === 'gender');
-      const orientFactor = breakdown.find(f => f.key === 'orientation');
+      const genderFactor = breakdown.find((f) => f.key === 'gender');
+      const orientFactor = breakdown.find((f) => f.key === 'orientation');
       expect(genderFactor?.points).toBe(25);
       expect(orientFactor?.points).toBe(20);
     });
@@ -758,7 +786,7 @@ describe('Pulse Match Score Calculator', () => {
         perfectPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       // With all 9 factors matched: 25+20+15+15+10+10+25+10+10 = 140
       // 140/145 * 100 = 96.55 → rounds to 97
@@ -773,7 +801,7 @@ describe('Pulse Match Score Calculator', () => {
         zeroPrefs,
         'looking',
         ['female'],
-        25,
+        25
       );
       expect(score).toBeLessThanOrEqual(15);
     });

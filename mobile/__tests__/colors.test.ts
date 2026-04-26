@@ -53,7 +53,19 @@ describe('Brand Colors', () => {
 
   it('has all 11 required color keys', () => {
     const keys = Object.keys(colors);
-    const required = ['pink', 'pinkDark', 'purple', 'purpleDark', 'violet', 'bg', 'card', 'border', 'muted', 'white', 'text'];
+    const required = [
+      'pink',
+      'pinkDark',
+      'purple',
+      'purpleDark',
+      'violet',
+      'bg',
+      'card',
+      'border',
+      'muted',
+      'white',
+      'text',
+    ];
     for (const key of required) {
       expect(keys).toContain(key);
     }

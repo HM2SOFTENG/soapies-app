@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  Alert, Modal, FlatList, ActivityIndicator,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Modal,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,11 +38,15 @@ const RELATIONSHIP_TYPES = [
   { value: 'hotwife_stag', label: '♠️ Hotwife/Stag', desc: 'Stag/vixen or hotwife arrangement' },
   { value: 'bull_couple', label: '🐂 Bull/Couple', desc: 'Bull dynamic' },
   { value: 'ethical_non_mono', label: '🌿 ENM Partners', desc: 'Ethically non-monogamous' },
-  { value: 'anchor_partner', label: '⚓ Anchor Partner', desc: 'Primary partner in a poly network' },
+  {
+    value: 'anchor_partner',
+    label: '⚓ Anchor Partner',
+    desc: 'Primary partner in a poly network',
+  },
 ];
 
 function relLabel(type: string) {
-  return RELATIONSHIP_TYPES.find(r => r.value === type)?.label ?? type.replace(/_/g, ' ');
+  return RELATIONSHIP_TYPES.find((r) => r.value === type)?.label ?? type.replace(/_/g, ' ');
 }
 
 export default function ConnectionsScreen() {
@@ -64,11 +75,33 @@ export default function ConnectionsScreen() {
   const [selectedRelType, setSelectedRelType] = useState('couple');
   const [showRelPicker, setShowRelPicker] = useState(false);
 
-  const { data: myConnections, isLoading: connectionsLoading, isError: connectionsIsError, error: connectionsError, refetch: refetchConnections } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
-  const { data: pendingForMe, isLoading: pendingLoading, isError: pendingIsError, error: pendingError, refetch: refetchPending } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
-  const { data: myInvitations, isLoading: invitationsLoading, isError: invitationsIsError, error: invitationsError, refetch: refetchInvitations } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
+  const {
+    data: myConnections,
+    isLoading: connectionsLoading,
+    isError: connectionsIsError,
+    error: connectionsError,
+    refetch: refetchConnections,
+  } = trpc.partners.myConnections.useQuery(undefined, { enabled: hasToken });
+  const {
+    data: pendingForMe,
+    isLoading: pendingLoading,
+    isError: pendingIsError,
+    error: pendingError,
+    refetch: refetchPending,
+  } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
+  const {
+    data: myInvitations,
+    isLoading: invitationsLoading,
+    isError: invitationsIsError,
+    error: invitationsError,
+    refetch: refetchInvitations,
+  } = trpc.partners.myInvitations.useQuery(undefined, { enabled: hasToken });
   const trimmedQuery = searchQuery.trim();
-  const { data: searchResults, isLoading: searchLoading, error: searchError } = trpc.members.browse.useQuery(
+  const {
+    data: searchResults,
+    isLoading: searchLoading,
+    error: searchError,
+  } = trpc.members.browse.useQuery(
     { search: trimmedQuery, page: 0 },
     { enabled: hasToken && trimmedQuery.length > 0, staleTime: 0, retry: 1 }
   );
@@ -84,7 +117,10 @@ export default function ConnectionsScreen() {
   });
 
   const acceptConn = trpc.partners.acceptConnection.useMutation({
-    onSuccess: () => { refetchConnections(); refetchPending(); },
+    onSuccess: () => {
+      refetchConnections();
+      refetchPending();
+    },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
@@ -108,12 +144,22 @@ export default function ConnectionsScreen() {
   const outgoing = ((myInvitations as any[]) ?? []).filter((i: any) => i.status === 'pending');
   const members = Array.isArray(searchResults) ? searchResults : [];
   const mainLoadError = connectionsIsError || pendingIsError || invitationsIsError;
-  const mainLoadMessage = (connectionsError as any)?.message ?? (pendingError as any)?.message ?? (invitationsError as any)?.message;
-  const mainLoading = (connectionsLoading || pendingLoading || invitationsLoading) && !myConnections && !pendingForMe && !myInvitations;
+  const mainLoadMessage =
+    (connectionsError as any)?.message ??
+    (pendingError as any)?.message ??
+    (invitationsError as any)?.message;
+  const mainLoading =
+    (connectionsLoading || pendingLoading || invitationsLoading) &&
+    !myConnections &&
+    !pendingForMe &&
+    !myInvitations;
 
   if (mainLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }} edges={['bottom']}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}
+        edges={['bottom']}
+      >
         <ActivityIndicator color="#EC4899" size="large" />
       </SafeAreaView>
     );
@@ -121,17 +167,54 @@ export default function ConnectionsScreen() {
 
   if (mainLoadError && !myConnections && !pendingForMe && !myInvitations) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }} edges={['bottom']}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: t.page,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 28,
+        }}
+        edges={['bottom']}
+      >
         <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
-        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load connections</Text>
-        <Text style={{ color: t.muted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{mainLoadMessage ?? 'Please try again in a moment.'}</Text>
+        <Text
+          style={{
+            color: t.text,
+            fontSize: 20,
+            fontWeight: '800',
+            textAlign: 'center',
+            marginTop: 14,
+          }}
+        >
+          Could not load connections
+        </Text>
+        <Text
+          style={{
+            color: t.muted,
+            fontSize: 14,
+            textAlign: 'center',
+            lineHeight: 21,
+            marginTop: 8,
+          }}
+        >
+          {mainLoadMessage ?? 'Please try again in a moment.'}
+        </Text>
         <TouchableOpacity
           onPress={() => {
             refetchConnections();
             refetchPending();
             refetchInvitations();
           }}
-          style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: t.surface,
+            borderWidth: 1,
+            borderColor: t.border,
+          }}
         >
           <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
         </TouchableOpacity>
@@ -146,41 +229,115 @@ export default function ConnectionsScreen() {
         colors={t.headerGradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={{ paddingTop: insets.top + 8, paddingBottom: 16, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}
+        style={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 16,
+          paddingHorizontal: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
       >
         <TouchableOpacity
           onPress={() => router.back()}
           style={{
-            width: 40, height: 40, borderRadius: 20,
-            backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
-            alignItems: 'center', justifyContent: 'center',
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: t.surface,
+            borderWidth: 1,
+            borderColor: t.border,
+            alignItems: 'center',
+            justifyContent: 'center',
             marginRight: 14,
           }}
         >
           <Ionicons name="arrow-back" size={18} color={t.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 28, fontWeight: '900', flex: 1, fontFamily: FONT.displayBold }}>Connections 💗</Text>
-          <Text style={{ color: t.subtext, fontSize: 12, marginTop: 2 }}>Keep your inner circle close</Text>
+          <Text
+            style={{
+              color: t.text,
+              fontSize: 28,
+              fontWeight: '900',
+              flex: 1,
+              fontFamily: FONT.displayBold,
+            }}
+          >
+            Connections 💗
+          </Text>
+          <Text style={{ color: t.subtext, fontSize: 12, marginTop: 2 }}>
+            Keep your inner circle close
+          </Text>
         </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}>
-
         <LinearGradient
           colors={['rgba(236,72,153,0.16)', 'rgba(168,85,247,0.08)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ marginTop: 18, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: 'rgba(236,72,153,0.18)' }}
+          style={{
+            marginTop: 18,
+            borderRadius: 22,
+            padding: 18,
+            borderWidth: 1,
+            borderColor: 'rgba(236,72,153,0.18)',
+          }}
         >
-          <Text style={{ color: t.subtext, fontSize: 11, letterSpacing: 1.1, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>YOUR NETWORK</Text>
+          <Text
+            style={{
+              color: t.subtext,
+              fontSize: 11,
+              letterSpacing: 1.1,
+              fontWeight: '800',
+              fontFamily: FONT.displaySemiBold,
+            }}
+          >
+            YOUR NETWORK
+          </Text>
           <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
-            <View style={{ flex: 1, backgroundColor: t.heroCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: t.heroCardBorder }}>
-              <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{connections.length}</Text>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: t.heroCard,
+                borderRadius: 16,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: t.heroCardBorder,
+              }}
+            >
+              <Text
+                style={{
+                  color: t.text,
+                  fontSize: 24,
+                  fontWeight: '900',
+                  fontFamily: FONT.displayBold,
+                }}
+              >
+                {connections.length}
+              </Text>
               <Text style={{ color: t.subtext, fontSize: 11, marginTop: 4 }}>Active</Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: t.heroCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: t.heroCardBorder }}>
-              <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', fontFamily: FONT.displayBold }}>{incoming.length + outgoing.length}</Text>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: t.heroCard,
+                borderRadius: 16,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: t.heroCardBorder,
+              }}
+            >
+              <Text
+                style={{
+                  color: t.text,
+                  fontSize: 24,
+                  fontWeight: '900',
+                  fontFamily: FONT.displayBold,
+                }}
+              >
+                {incoming.length + outgoing.length}
+              </Text>
               <Text style={{ color: t.subtext, fontSize: 11, marginTop: 4 }}>Pending</Text>
             </View>
           </View>
@@ -189,33 +346,85 @@ export default function ConnectionsScreen() {
         {/* ── Pending incoming ── */}
         {incoming.length > 0 && (
           <View style={{ marginTop: 20, marginBottom: 8 }}>
-            <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+            <Text
+              style={{
+                color: '#EC4899',
+                fontSize: 11,
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                marginBottom: 12,
+              }}
+            >
               Pending Requests ({incoming.length})
             </Text>
             {incoming.map((inv: any) => (
-              <View key={inv.id} style={{
-                backgroundColor: '#10101C', borderRadius: 16, padding: 14,
-                marginBottom: 10, borderWidth: 1, borderColor: '#EC489940',
-              }}>
+              <View
+                key={inv.id}
+                style={{
+                  backgroundColor: '#10101C',
+                  borderRadius: 16,
+                  padding: 14,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: '#EC489940',
+                }}
+              >
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <View style={{ borderRadius: 26, borderWidth: 2, borderColor: '#EC4899', marginRight: 12 }}>
+                  <View
+                    style={{
+                      borderRadius: 26,
+                      borderWidth: 2,
+                      borderColor: '#EC4899',
+                      marginRight: 12,
+                    }}
+                  >
                     <Avatar name={inv.inviterName} url={inv.inviterAvatarUrl} size={44} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{inv.inviterName}</Text>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>
+                      {inv.inviterName}
+                    </Text>
                     <Text style={{ color: t.muted, fontSize: 13 }}>wants to connect as</Text>
-                    <View style={{ alignSelf: 'flex-start', backgroundColor: '#EC489920', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2, marginTop: 3, borderWidth: 1, borderColor: '#EC489944' }}>
-                      <Text style={{ color: '#EC4899', fontWeight: '600', fontSize: 12 }}>{relLabel(inv.relationshipType)}</Text>
+                    <View
+                      style={{
+                        alignSelf: 'flex-start',
+                        backgroundColor: '#EC489920',
+                        borderRadius: 10,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        marginTop: 3,
+                        borderWidth: 1,
+                        borderColor: '#EC489944',
+                      }}
+                    >
+                      <Text style={{ color: '#EC4899', fontWeight: '600', fontSize: 12 }}>
+                        {relLabel(inv.relationshipType)}
+                      </Text>
                     </View>
                   </View>
-                  <View style={{ backgroundColor: '#F59E0B20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: '#F59E0B44' }}>
-                    <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>Pending</Text>
+                  <View
+                    style={{
+                      backgroundColor: '#F59E0B20',
+                      borderRadius: 8,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderWidth: 1,
+                      borderColor: '#F59E0B44',
+                    }}
+                  >
+                    <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>
+                      Pending
+                    </Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   {/* Accept */}
                   <TouchableOpacity
-                    onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); acceptConn.mutate({ invitationId: inv.id }); }}
+                    onPress={() => {
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      acceptConn.mutate({ invitationId: inv.id });
+                    }}
                     style={{ flex: 1, borderRadius: 12, overflow: 'hidden' }}
                   >
                     <LinearGradient
@@ -224,15 +433,31 @@ export default function ConnectionsScreen() {
                       end={{ x: 1, y: 0 }}
                       style={{ paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center' }}
                     >
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>✓ Accept</Text>
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        ✓ Accept
+                      </Text>
                     </LinearGradient>
                   </TouchableOpacity>
                   {/* Decline */}
                   <TouchableOpacity
-                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); declineConn.mutate({ invitationId: inv.id }); }}
-                    style={{ flex: 1, backgroundColor: '#EF444420', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: '#EF444440' }}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      declineConn.mutate({ invitationId: inv.id });
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#EF444420',
+                      borderRadius: 12,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: '#EF444440',
+                    }}
                   >
-                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 14 }}>✕ Decline</Text>
+                    <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 14 }}>
+                      ✕ Decline
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -242,47 +467,133 @@ export default function ConnectionsScreen() {
 
         {/* ── Active connections ── */}
         <View style={{ marginTop: incoming.length > 0 ? 8 : 20, marginBottom: 8 }}>
-          <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+          <Text
+            style={{
+              color: t.muted,
+              fontSize: 11,
+              fontWeight: '800',
+              textTransform: 'uppercase',
+              letterSpacing: 1.2,
+              marginBottom: 12,
+            }}
+          >
             Active Connections
           </Text>
           {connections.length === 0 ? (
-            <View style={{ backgroundColor: t.surface, borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: t.border }}>
+            <View
+              style={{
+                backgroundColor: t.surface,
+                borderRadius: 16,
+                padding: 32,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: t.border,
+              }}
+            >
               <Text style={{ fontSize: 36, marginBottom: 10 }}>💗</Text>
-              <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>No connections yet</Text>
-              <Text style={{ color: t.muted, textAlign: 'center', fontSize: 14 }}>Search for a member below to send your first connection request.</Text>
+              <Text style={{ color: t.text, fontWeight: '700', fontSize: 16, marginBottom: 6 }}>
+                No connections yet
+              </Text>
+              <Text style={{ color: t.muted, textAlign: 'center', fontSize: 14 }}>
+                Search for a member below to send your first connection request.
+              </Text>
             </View>
           ) : (
             connections.map((conn: any) => (
-              <View key={conn.groupId} style={{
-                backgroundColor: t.surface, borderRadius: 16, padding: 14,
-                marginBottom: 10, borderWidth: 1, borderColor: t.border,
-              }}>
+              <View
+                key={conn.groupId}
+                style={{
+                  backgroundColor: t.surface,
+                  borderRadius: 16,
+                  padding: 14,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: t.border,
+                }}
+              >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ borderRadius: 28, borderWidth: 2, borderColor: '#EC4899', marginRight: 14, shadowColor: '#EC4899', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 0 } }}>
+                  <View
+                    style={{
+                      borderRadius: 28,
+                      borderWidth: 2,
+                      borderColor: '#EC4899',
+                      marginRight: 14,
+                      shadowColor: '#EC4899',
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 0 },
+                    }}
+                  >
                     <Avatar name={conn.partnerDisplayName} url={conn.partnerAvatarUrl} size={48} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{conn.partnerDisplayName}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
-                      <View style={{ backgroundColor: '#EC489920', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#EC489944' }}>
-                        <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '600' }}>{relLabel(conn.relationshipType)}</Text>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>
+                      {conn.partnerDisplayName}
+                    </Text>
+                    <View
+                      style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: '#EC489920',
+                          borderRadius: 10,
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderWidth: 1,
+                          borderColor: '#EC489944',
+                        }}
+                      >
+                        <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '600' }}>
+                          {relLabel(conn.relationshipType)}
+                        </Text>
                       </View>
-                      <View style={{ backgroundColor: '#10B98120', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: '#10B98144' }}>
-                        <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '700' }}>Connected</Text>
+                      <View
+                        style={{
+                          backgroundColor: '#10B98120',
+                          borderRadius: 8,
+                          paddingHorizontal: 7,
+                          paddingVertical: 2,
+                          borderWidth: 1,
+                          borderColor: '#10B98144',
+                        }}
+                      >
+                        <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '700' }}>
+                          Connected
+                        </Text>
                       </View>
                     </View>
                     {conn.connectedSince && (
                       <Text style={{ color: t.muted, fontSize: 11, marginTop: 4 }}>
-                        Since {new Date(conn.connectedSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        Since{' '}
+                        {new Date(conn.connectedSince).toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </Text>
                     )}
                   </View>
                   <TouchableOpacity
-                    onPress={() => Alert.alert('Remove Connection', `Remove your connection with ${conn.partnerDisplayName}?`, [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Remove', style: 'destructive', onPress: () => removeConn.mutate({ groupId: conn.groupId }) },
-                    ])}
-                    style={{ backgroundColor: '#EF444420', borderRadius: 12, padding: 8, borderWidth: 1, borderColor: '#EF444440' }}
+                    onPress={() =>
+                      Alert.alert(
+                        'Remove Connection',
+                        `Remove your connection with ${conn.partnerDisplayName}?`,
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Remove',
+                            style: 'destructive',
+                            onPress: () => removeConn.mutate({ groupId: conn.groupId }),
+                          },
+                        ]
+                      )
+                    }
+                    style={{
+                      backgroundColor: '#EF444420',
+                      borderRadius: 12,
+                      padding: 8,
+                      borderWidth: 1,
+                      borderColor: '#EF444440',
+                    }}
                   >
                     <Ionicons name="trash-outline" size={16} color="#EF4444" />
                   </TouchableOpacity>
@@ -295,18 +606,48 @@ export default function ConnectionsScreen() {
         {/* ── Outgoing pending ── */}
         {outgoing.length > 0 && (
           <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+            <Text
+              style={{
+                color: t.muted,
+                fontSize: 11,
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                marginBottom: 12,
+              }}
+            >
               Sent Requests
             </Text>
             {outgoing.map((inv: any) => (
-              <View key={inv.id} style={{
-                backgroundColor: t.surface, borderRadius: 16, padding: 14,
-                marginBottom: 10, borderWidth: 1, borderColor: t.border,
-                flexDirection: 'row', alignItems: 'center',
-              }}>
+              <View
+                key={inv.id}
+                style={{
+                  backgroundColor: t.surface,
+                  borderRadius: 16,
+                  padding: 14,
+                  marginBottom: 10,
+                  borderWidth: 1,
+                  borderColor: t.border,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
                 <View style={{ flex: 1 }}>
-                  <View style={{ backgroundColor: '#F59E0B20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#F59E0B44', marginBottom: 4 }}>
-                    <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>Pending</Text>
+                  <View
+                    style={{
+                      backgroundColor: '#F59E0B20',
+                      borderRadius: 8,
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      alignSelf: 'flex-start',
+                      borderWidth: 1,
+                      borderColor: '#F59E0B44',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '700' }}>
+                      Pending
+                    </Text>
                   </View>
                   <Text style={{ color: t.muted, fontSize: 13 }}>Connection request sent</Text>
                   <Text style={{ color: t.text, fontSize: 12, marginTop: 2 }}>
@@ -315,7 +656,14 @@ export default function ConnectionsScreen() {
                 </View>
                 <TouchableOpacity
                   onPress={() => cancelInvite.mutate({ id: inv.id })}
-                  style={{ backgroundColor: '#EF444420', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#EF444440' }}
+                  style={{
+                    backgroundColor: '#EF444420',
+                    borderRadius: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderWidth: 1,
+                    borderColor: '#EF444440',
+                  }}
                 >
                   <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '600' }}>Cancel</Text>
                 </TouchableOpacity>
@@ -326,17 +674,32 @@ export default function ConnectionsScreen() {
 
         {/* ── Connect with someone ── */}
         <View style={{ marginTop: 4 }}>
-          <Text style={{ color: t.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
+          <Text
+            style={{
+              color: t.muted,
+              fontSize: 11,
+              fontWeight: '800',
+              textTransform: 'uppercase',
+              letterSpacing: 1.2,
+              marginBottom: 12,
+            }}
+          >
             Connect with Someone
           </Text>
           {/* Search bar */}
-          <View style={{
-            backgroundColor: t.surface, borderRadius: 16,
-            flexDirection: 'row', alignItems: 'center',
-            paddingHorizontal: 14, paddingVertical: 12,
-            borderWidth: 1, borderColor: t.searchBorder,
-            marginBottom: 12,
-          }}>
+          <View
+            style={{
+              backgroundColor: t.surface,
+              borderRadius: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              borderWidth: 1,
+              borderColor: t.searchBorder,
+              marginBottom: 12,
+            }}
+          >
             <Ionicons name="search" size={16} color="#5A5575" style={{ marginRight: 8 }} />
             <TextInput
               value={searchQuery}
@@ -352,52 +715,103 @@ export default function ConnectionsScreen() {
             )}
           </View>
 
-          {trimmedQuery.length > 0 && (
-            searchLoading ? (
+          {trimmedQuery.length > 0 &&
+            (searchLoading ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                 <ActivityIndicator color="#EC4899" />
                 <Text style={{ color: t.muted, fontSize: 13, marginTop: 10 }}>Searching...</Text>
               </View>
             ) : members.length === 0 ? (
-              <View style={{ backgroundColor: t.surface, borderRadius: 16, padding: 32, alignItems: 'center', borderWidth: 1, borderColor: t.border }}>
+              <View
+                style={{
+                  backgroundColor: t.surface,
+                  borderRadius: 16,
+                  padding: 32,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: t.border,
+                }}
+              >
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
-                <Text style={{ color: t.text, fontWeight: '700', fontSize: 15, marginBottom: 4 }}>No members found</Text>
+                <Text style={{ color: t.text, fontWeight: '700', fontSize: 15, marginBottom: 4 }}>
+                  No members found
+                </Text>
                 <Text style={{ color: t.muted, fontSize: 13, textAlign: 'center' }}>
-                  {searchError ? `Error: ${(searchError as any)?.message ?? 'Search failed'}` : `No results for "${trimmedQuery}"`}
+                  {searchError
+                    ? `Error: ${(searchError as any)?.message ?? 'Search failed'}`
+                    : `No results for "${trimmedQuery}"`}
                 </Text>
               </View>
             ) : (
               members.map((m: any) => (
                 <TouchableOpacity
                   key={m.id ?? m.userId}
-                  onPress={() => { setSelectedMember(m); setShowRelPicker(true); }}
+                  onPress={() => {
+                    setSelectedMember(m);
+                    setShowRelPicker(true);
+                  }}
                   style={{
-                    backgroundColor: t.surface, borderRadius: 16, padding: 14,
-                    marginBottom: 10, flexDirection: 'row', alignItems: 'center',
-                    borderWidth: 1, borderColor: t.border,
+                    backgroundColor: t.surface,
+                    borderRadius: 16,
+                    padding: 14,
+                    marginBottom: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: t.border,
                   }}
                 >
-                  <View style={{ borderRadius: 24, borderWidth: 1.5, borderColor: '#EC489960', marginRight: 12 }}>
+                  <View
+                    style={{
+                      borderRadius: 24,
+                      borderWidth: 1.5,
+                      borderColor: '#EC489960',
+                      marginRight: 12,
+                    }}
+                  >
                     <Avatar name={m.displayName ?? m.name} url={m.avatarUrl} size={40} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{m.displayName ?? m.name}</Text>
+                    <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>
+                      {m.displayName ?? m.name}
+                    </Text>
                     {m.communityId && (
-                      <Text style={{ color: t.muted, fontSize: 12, textTransform: 'capitalize', marginTop: 2 }}>{m.communityId}</Text>
+                      <Text
+                        style={{
+                          color: t.muted,
+                          fontSize: 12,
+                          textTransform: 'capitalize',
+                          marginTop: 2,
+                        }}
+                      >
+                        {m.communityId}
+                      </Text>
                     )}
                   </View>
-                  <View style={{ backgroundColor: '#EC489920', borderRadius: 20, padding: 6, borderWidth: 1, borderColor: '#EC489944' }}>
+                  <View
+                    style={{
+                      backgroundColor: '#EC489920',
+                      borderRadius: 20,
+                      padding: 6,
+                      borderWidth: 1,
+                      borderColor: '#EC489944',
+                    }}
+                  >
                     <Ionicons name="add" size={18} color="#EC4899" />
                   </View>
                 </TouchableOpacity>
               ))
-            )
-          )}
+            ))}
         </View>
       </ScrollView>
 
       {/* ── Relationship type picker modal ── */}
-      <Modal visible={showRelPicker} transparent animationType="slide" onRequestClose={() => setShowRelPicker(false)}>
+      <Modal
+        visible={showRelPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRelPicker(false)}
+      >
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: t.overlay, justifyContent: 'flex-end' }}
           activeOpacity={1}
@@ -405,20 +819,44 @@ export default function ConnectionsScreen() {
         >
           <View
             onStartShouldSetResponder={() => true}
-            style={{ backgroundColor: t.elevated, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '82%' }}
+            style={{
+              backgroundColor: t.elevated,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              maxHeight: '82%',
+            }}
           >
             <View style={{ padding: 20, paddingBottom: 8 }}>
               {/* Drag handle */}
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: t.modalHandle, alignSelf: 'center', marginBottom: 20 }} />
-              <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', marginBottom: 4, fontFamily: FONT.displayBold }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: t.modalHandle,
+                  alignSelf: 'center',
+                  marginBottom: 20,
+                }}
+              />
+              <Text
+                style={{
+                  color: t.text,
+                  fontSize: 20,
+                  fontWeight: '800',
+                  marginBottom: 4,
+                  fontFamily: FONT.displayBold,
+                }}
+              >
                 Connect with {selectedMember?.displayName ?? selectedMember?.name}
               </Text>
-              <Text style={{ color: t.muted, fontSize: 13, marginBottom: 4 }}>Select your relationship dynamic</Text>
+              <Text style={{ color: t.muted, fontSize: 13, marginBottom: 4 }}>
+                Select your relationship dynamic
+              </Text>
             </View>
 
             <FlatList
               data={RELATIONSHIP_TYPES}
-              keyExtractor={item => item.value}
+              keyExtractor={(item) => item.value}
               contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 16 }}
               removeClippedSubviews
               windowSize={7}
@@ -430,16 +868,23 @@ export default function ConnectionsScreen() {
                   <TouchableOpacity
                     onPress={() => setSelectedRelType(item.value)}
                     style={{
-                      flexDirection: 'row', alignItems: 'center', padding: 14,
-                      borderRadius: 12, marginBottom: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      padding: 14,
+                      borderRadius: 12,
+                      marginBottom: 8,
                       backgroundColor: selected ? '#EC489912' : t.surface,
                       borderWidth: 1,
                       borderColor: selected ? '#EC4899' : t.border,
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>{item.label}</Text>
-                      <Text style={{ color: t.muted, fontSize: 12, marginTop: 2 }}>{item.desc}</Text>
+                      <Text style={{ color: t.text, fontWeight: '700', fontSize: 15 }}>
+                        {item.label}
+                      </Text>
+                      <Text style={{ color: t.muted, fontSize: 12, marginTop: 2 }}>
+                        {item.desc}
+                      </Text>
                     </View>
                     {selected && <Ionicons name="checkmark-circle" size={20} color="#EC4899" />}
                   </TouchableOpacity>
@@ -456,8 +901,10 @@ export default function ConnectionsScreen() {
                 }}
                 disabled={sendRequest.isPending}
                 style={{
-                  shadowColor: '#EC4899', shadowOpacity: 0.4,
-                  shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
+                  shadowColor: '#EC4899',
+                  shadowOpacity: 0.4,
+                  shadowRadius: 14,
+                  shadowOffset: { width: 0, height: 4 },
                 }}
               >
                 <LinearGradient
@@ -465,12 +912,20 @@ export default function ConnectionsScreen() {
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={{
-                    borderRadius: 18, paddingVertical: 16,
+                    borderRadius: 18,
+                    paddingVertical: 16,
                     alignItems: 'center',
                     opacity: sendRequest.isPending ? 0.6 : 1,
                   }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontWeight: '800',
+                      fontSize: 16,
+                      fontFamily: FONT.displaySemiBold,
+                    }}
+                  >
                     {sendRequest.isPending ? 'Sending...' : 'Send Connection Request 💗'}
                   </Text>
                 </LinearGradient>

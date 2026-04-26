@@ -76,7 +76,7 @@ export function createTRPCClient() {
             return {
               'x-session-token': _memoryToken,
               // Also send Cookie for web compatibility
-              'Cookie': `app_session_id=${_memoryToken}`,
+              Cookie: `app_session_id=${_memoryToken}`,
             };
           }
           return {};

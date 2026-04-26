@@ -37,7 +37,9 @@ export default function PillTabs<T extends string>({
     const badgeValue = item.badge ?? 0;
     const showBadge = badgeValue !== 0 && badgeValue !== '0';
     const textColor = isActive ? theme.colors.white : theme.colors.textSecondary;
-    const badgeBg = isActive ? theme.alpha(theme.colors.white, 0.24) : theme.alpha(theme.colors.primary, 0.12);
+    const badgeBg = isActive
+      ? theme.alpha(theme.colors.white, 0.24)
+      : theme.alpha(theme.colors.primary, 0.12);
     const badgeText = isActive ? theme.colors.white : theme.colors.primary;
     const equal = !!options?.equal;
 
@@ -63,7 +65,12 @@ export default function PillTabs<T extends string>({
         ) : null}
         <Text
           numberOfLines={1}
-          style={{ color: textColor, fontWeight: '700', fontSize: compact ? 11 : 13, flexShrink: 1 }}
+          style={{
+            color: textColor,
+            fontWeight: '700',
+            fontSize: compact ? 11 : 13,
+            flexShrink: 1,
+          }}
         >
           {item.label}
         </Text>
@@ -79,9 +86,7 @@ export default function PillTabs<T extends string>({
               backgroundColor: badgeBg,
             }}
           >
-            <Text style={{ color: badgeText, fontWeight: '800', fontSize: 11 }}>
-              {badgeValue}
-            </Text>
+            <Text style={{ color: badgeText, fontWeight: '800', fontSize: 11 }}>{badgeValue}</Text>
           </View>
         ) : null}
       </View>
@@ -125,12 +130,7 @@ export default function PillTabs<T extends string>({
 
   if (equalWidth) {
     return (
-      <View
-        style={[
-          { borderBottomColor: theme.colors.border, borderBottomWidth: 1 },
-          style,
-        ]}
-      >
+      <View style={[{ borderBottomColor: theme.colors.border, borderBottomWidth: 1 }, style]}>
         <View style={[baseRowStyle, { width: '100%' }, contentContainerStyle as any]}>
           {items.map((item) => renderTab(item, { equal: true }))}
         </View>
@@ -142,10 +142,7 @@ export default function PillTabs<T extends string>({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={[
-        { borderBottomColor: theme.colors.border, borderBottomWidth: 1 },
-        style,
-      ]}
+      style={[{ borderBottomColor: theme.colors.border, borderBottomWidth: 1 }, style]}
       contentContainerStyle={[baseRowStyle, contentContainerStyle]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 8 : 10 }}>

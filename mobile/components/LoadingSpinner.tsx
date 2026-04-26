@@ -10,7 +10,14 @@ type Props = {
 export default function LoadingSpinner({ size = 'large', fullScreen = false }: Props) {
   if (fullScreen) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.bg,
+        }}
+      >
         <ActivityIndicator color={colors.pink} size={size} />
       </View>
     );

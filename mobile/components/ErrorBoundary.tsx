@@ -51,9 +51,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       'sessionToken',
       'SESSION_COOKIE',
     ];
-    await Promise.all(
-      keys.map((k) => SecureStore.deleteItemAsync(k).catch(() => {}))
-    );
+    await Promise.all(keys.map((k) => SecureStore.deleteItemAsync(k).catch(() => {})));
     this.reset();
   };
 
@@ -68,10 +66,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
           colors={['#0A0515', '#0D0820', '#050508']}
           style={StyleSheet.absoluteFill}
         />
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.iconWrap}>
             <LinearGradient
               colors={['#EC4899', '#A855F7']}

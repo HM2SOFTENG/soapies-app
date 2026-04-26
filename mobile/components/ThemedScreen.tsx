@@ -40,7 +40,9 @@ export default function ThemedScreen({
           <ScrollView contentContainerStyle={contentContainerStyle} {...scrollProps}>
             {children}
           </ScrollView>
-        ) : children}
+        ) : (
+          children
+        )}
       </LinearGradient>
     </SafeAreaView>
   );

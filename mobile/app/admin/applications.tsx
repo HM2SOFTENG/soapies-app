@@ -119,9 +119,12 @@ export default function AdminApplicationsScreen() {
   const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
   const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
-  const { data, isLoading, isError, error, refetch } = trpc.admin.pendingApplications.useQuery(undefined, {
-    enabled: isAdmin,
-  });
+  const { data, isLoading, isError, error, refetch } = trpc.admin.pendingApplications.useQuery(
+    undefined,
+    {
+      enabled: isAdmin,
+    }
+  );
   const applications = (data as any[]) ?? [];
 
   // Detail query — only enabled when an app is expanded
@@ -155,15 +158,36 @@ export default function AdminApplicationsScreen() {
   if (!isAdmin) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+        }}
       >
         <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
-        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 18,
+            fontWeight: '700',
+            marginTop: 16,
+            marginBottom: 8,
+          }}
+        >
           Access Denied
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 24,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
         >
           <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
@@ -248,7 +272,23 @@ export default function AdminApplicationsScreen() {
           borderBottomWidth: 1,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.isDark ? theme.alpha(theme.colors.white, 0.06) : theme.colors.surfaceHigh, borderWidth: 1, borderColor: theme.colors.border }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            marginRight: 14,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.isDark
+              ? theme.alpha(theme.colors.white, 0.06)
+              : theme.colors.surfaceHigh,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
@@ -277,17 +317,43 @@ export default function AdminApplicationsScreen() {
           <ActivityIndicator color={colors.pink} size="large" />
         </View>
       ) : isError ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
+        >
           <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
-          <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          <Text
+            style={{
+              color: theme.colors.text,
+              fontSize: 20,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginTop: 14,
+            }}
+          >
             Could not load applications
           </Text>
-          <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          <Text
+            style={{
+              color: theme.colors.textMuted,
+              fontSize: 14,
+              textAlign: 'center',
+              lineHeight: 21,
+              marginTop: 8,
+            }}
+          >
             {(error as any)?.message ?? 'Please try again in a moment.'}
           </Text>
           <TouchableOpacity
             onPress={() => refetch()}
-            style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}
+            style={{
+              marginTop: 18,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}
           >
             <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
           </TouchableOpacity>
@@ -326,9 +392,7 @@ export default function AdminApplicationsScreen() {
                 }}
               >
                 {/* Top gradient stripe */}
-                <BrandGradient
-                  style={{ height: 3 }}
-                />
+                <BrandGradient style={{ height: 3 }} />
 
                 {/* Card header — always visible */}
                 <TouchableOpacity
@@ -336,7 +400,9 @@ export default function AdminApplicationsScreen() {
                   activeOpacity={0.8}
                   style={{ padding: 16 }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}
+                  >
                     {/* Avatar */}
                     {firstPhoto ? (
                       <Image
@@ -352,7 +418,15 @@ export default function AdminApplicationsScreen() {
 
                     {/* Name + badge */}
                     <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 8,
+                          marginBottom: 4,
+                        }}
+                      >
                         <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 16 }}>
                           {displayName}
                         </Text>
@@ -373,29 +447,44 @@ export default function AdminApplicationsScreen() {
                       </View>
 
                       {/* Meta row */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 10,
+                        }}
+                      >
                         {app.gender && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="person-outline" size={12} color={colors.muted} />
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>{app.gender}</Text>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>
+                              {app.gender}
+                            </Text>
                           </View>
                         )}
                         {app.orientation && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="heart-outline" size={12} color={colors.muted} />
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>{app.orientation}</Text>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>
+                              {app.orientation}
+                            </Text>
                           </View>
                         )}
                         {app.location && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="location-outline" size={12} color={colors.muted} />
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>{app.location}</Text>
+                            <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>
+                              {app.location}
+                            </Text>
                           </View>
                         )}
                         {app.referredByCode && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                             <Ionicons name="sparkles-outline" size={12} color={colors.purple} />
-                            <Text style={{ color: theme.colors.purple, fontSize: 11 }}>{app.referredByCode}</Text>
+                            <Text style={{ color: theme.colors.purple, fontSize: 11 }}>
+                              {app.referredByCode}
+                            </Text>
                           </View>
                         )}
                         {app.createdAt && (
@@ -442,17 +531,23 @@ export default function AdminApplicationsScreen() {
                         {/* Photos grid */}
                         {(detail.photos?.length ?? 0) > 0 && (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                            <Text
+                              style={{
+                                color: theme.colors.textMuted,
+                                fontSize: 11,
+                                fontWeight: '700',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                marginBottom: 8,
+                              }}
+                            >
                               Photos
                             </Text>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                               {detail.photos.map((photo: any, idx: number) => {
                                 const uri = photo.url ?? photo.photoUrl ?? photo;
                                 return (
-                                  <TouchableOpacity
-                                    key={idx}
-                                    onPress={() => Linking.openURL(uri)}
-                                  >
+                                  <TouchableOpacity key={idx} onPress={() => Linking.openURL(uri)}>
                                     <Image
                                       source={{ uri }}
                                       style={{ width: 90, height: 90, borderRadius: 10 }}
@@ -467,16 +562,32 @@ export default function AdminApplicationsScreen() {
 
                         {/* Contact info */}
                         <View style={{ marginBottom: 16 }}>
-                          <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                          <Text
+                            style={{
+                              color: theme.colors.textMuted,
+                              fontSize: 11,
+                              fontWeight: '700',
+                              textTransform: 'uppercase',
+                              letterSpacing: 1,
+                              marginBottom: 8,
+                            }}
+                          >
                             Contact
                           </Text>
                           {detail.email ? (
                             <TouchableOpacity
                               onPress={() => Linking.openURL(`mailto:${detail.email}`)}
-                              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 6,
+                                marginBottom: 6,
+                              }}
                             >
                               <Ionicons name="mail-outline" size={14} color={colors.purple} />
-                              <Text style={{ color: theme.colors.purple, fontSize: 14 }}>{detail.email}</Text>
+                              <Text style={{ color: theme.colors.purple, fontSize: 14 }}>
+                                {detail.email}
+                              </Text>
                             </TouchableOpacity>
                           ) : null}
                           {detail.phone ? (
@@ -485,35 +596,84 @@ export default function AdminApplicationsScreen() {
                               style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
                             >
                               <Ionicons name="call-outline" size={14} color={colors.purple} />
-                              <Text style={{ color: theme.colors.purple, fontSize: 14 }}>{detail.phone}</Text>
+                              <Text style={{ color: theme.colors.purple, fontSize: 14 }}>
+                                {detail.phone}
+                              </Text>
                             </TouchableOpacity>
                           ) : null}
                         </View>
 
                         {/* Profile details */}
                         <View style={{ marginBottom: 16 }}>
-                          <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                          <Text
+                            style={{
+                              color: theme.colors.textMuted,
+                              fontSize: 11,
+                              fontWeight: '700',
+                              textTransform: 'uppercase',
+                              letterSpacing: 1,
+                              marginBottom: 8,
+                            }}
+                          >
                             Profile
                           </Text>
                           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                             {detail.gender && (
-                              <View style={{ backgroundColor: theme.alpha(theme.colors.purple, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: theme.colors.purple, fontSize: 12 }}>👤 {detail.gender}</Text>
+                              <View
+                                style={{
+                                  backgroundColor: theme.alpha(theme.colors.purple, 0.12),
+                                  borderRadius: 8,
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 5,
+                                }}
+                              >
+                                <Text style={{ color: theme.colors.purple, fontSize: 12 }}>
+                                  👤 {detail.gender}
+                                </Text>
                               </View>
                             )}
                             {detail.orientation && (
-                              <View style={{ backgroundColor: `${colors.pink}22`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: theme.colors.pink, fontSize: 12 }}>♥ {detail.orientation}</Text>
+                              <View
+                                style={{
+                                  backgroundColor: `${colors.pink}22`,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 5,
+                                }}
+                              >
+                                <Text style={{ color: theme.colors.pink, fontSize: 12 }}>
+                                  ♥ {detail.orientation}
+                                </Text>
                               </View>
                             )}
                             {detail.location && (
-                              <View style={{ backgroundColor: theme.colors.card, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderColor: theme.colors.border, borderWidth: 1 }}>
-                                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>📍 {detail.location}</Text>
+                              <View
+                                style={{
+                                  backgroundColor: theme.colors.card,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 5,
+                                  borderColor: theme.colors.border,
+                                  borderWidth: 1,
+                                }}
+                              >
+                                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                                  📍 {detail.location}
+                                </Text>
                               </View>
                             )}
                             {detail.referredByCode && (
-                              <View style={{ backgroundColor: theme.alpha(theme.colors.purple, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                                <Text style={{ color: theme.colors.purple, fontSize: 12 }}>✨ Ref: {detail.referredByCode}</Text>
+                              <View
+                                style={{
+                                  backgroundColor: theme.alpha(theme.colors.purple, 0.12),
+                                  borderRadius: 8,
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 5,
+                                }}
+                              >
+                                <Text style={{ color: theme.colors.purple, fontSize: 12 }}>
+                                  ✨ Ref: {detail.referredByCode}
+                                </Text>
                               </View>
                             )}
                           </View>
@@ -522,17 +682,39 @@ export default function AdminApplicationsScreen() {
                         {/* Bio */}
                         {detail.bio ? (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                            <Text
+                              style={{
+                                color: theme.colors.textMuted,
+                                fontSize: 11,
+                                fontWeight: '700',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                marginBottom: 6,
+                              }}
+                            >
                               Bio
                             </Text>
-                            <Text style={{ color: theme.colors.text, fontSize: 14, lineHeight: 20 }}>{detail.bio}</Text>
+                            <Text
+                              style={{ color: theme.colors.text, fontSize: 14, lineHeight: 20 }}
+                            >
+                              {detail.bio}
+                            </Text>
                           </View>
                         ) : null}
 
                         {/* Booked Intro Call */}
                         {detail.introCallSlots?.length > 0 && (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                            <Text
+                              style={{
+                                color: theme.colors.textMuted,
+                                fontSize: 11,
+                                fontWeight: '700',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                marginBottom: 8,
+                              }}
+                            >
                               Intro Call
                             </Text>
                             {detail.introCallSlots.map((slot: any, idx: number) => (
@@ -548,7 +730,13 @@ export default function AdminApplicationsScreen() {
                                   marginBottom: 6,
                                 }}
                               >
-                                <Text style={{ color: theme.colors.purple, fontWeight: '600', fontSize: 14 }}>
+                                <Text
+                                  style={{
+                                    color: theme.colors.purple,
+                                    fontWeight: '600',
+                                    fontSize: 14,
+                                  }}
+                                >
                                   📅{' '}
                                   {slot.scheduledAt
                                     ? new Date(slot.scheduledAt).toLocaleString('en-US', {
@@ -570,13 +758,26 @@ export default function AdminApplicationsScreen() {
                         {/* Application Timeline */}
                         {detail.applicationLogs?.length > 0 && (
                           <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                            <Text
+                              style={{
+                                color: theme.colors.textMuted,
+                                fontSize: 11,
+                                fontWeight: '700',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                                marginBottom: 10,
+                              }}
+                            >
                               Timeline
                             </Text>
                             {detail.applicationLogs.map((log: any, idx: number) => (
                               <View
                                 key={idx}
-                                style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'flex-start',
+                                  marginBottom: 10,
+                                }}
                               >
                                 <View
                                   style={{
@@ -590,14 +791,29 @@ export default function AdminApplicationsScreen() {
                                   }}
                                 />
                                 <View style={{ flex: 1 }}>
-                                  <Text style={{ color: theme.colors.text, fontSize: 13, fontWeight: '600', textTransform: 'capitalize' }}>
+                                  <Text
+                                    style={{
+                                      color: theme.colors.text,
+                                      fontSize: 13,
+                                      fontWeight: '600',
+                                      textTransform: 'capitalize',
+                                    }}
+                                  >
                                     {(log.action ?? '').replace(/_/g, ' ')}
                                   </Text>
                                   {log.notes ? (
-                                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>{log.notes}</Text>
+                                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                                      {log.notes}
+                                    </Text>
                                   ) : null}
                                   {log.createdAt ? (
-                                    <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 1 }}>
+                                    <Text
+                                      style={{
+                                        color: theme.colors.textMuted,
+                                        fontSize: 11,
+                                        marginTop: 1,
+                                      }}
+                                    >
                                       {formatDateTime(log.createdAt)}
                                     </Text>
                                   ) : null}
@@ -618,12 +834,22 @@ export default function AdminApplicationsScreen() {
                               style={{ borderRadius: 12, overflow: 'hidden' }}
                             >
                               <BrandGradient
-                                style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
+                                style={{
+                                  paddingVertical: 14,
+                                  alignItems: 'center',
+                                  opacity: isMutating ? 0.7 : 1,
+                                }}
                               >
                                 {isMutating ? (
                                   <ActivityIndicator color={theme.colors.white} size="small" />
                                 ) : (
-                                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
+                                  <Text
+                                    style={{
+                                      color: theme.colors.white,
+                                      fontWeight: '700',
+                                      fontSize: 15,
+                                    }}
+                                  >
                                     ✅ Approve for Interview
                                   </Text>
                                 )}
@@ -641,7 +867,15 @@ export default function AdminApplicationsScreen() {
                                 backgroundColor: theme.colors.warningSoft,
                               }}
                             >
-                              <Text style={{ color: theme.colors.warning, fontWeight: '700', fontSize: 15 }}>⏳ Waitlist</Text>
+                              <Text
+                                style={{
+                                  color: theme.colors.warning,
+                                  fontWeight: '700',
+                                  fontSize: 15,
+                                }}
+                              >
+                                ⏳ Waitlist
+                              </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleReject(profileId, displayName)}
@@ -655,7 +889,15 @@ export default function AdminApplicationsScreen() {
                                 backgroundColor: theme.colors.dangerSoft,
                               }}
                             >
-                              <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
+                              <Text
+                                style={{
+                                  color: theme.colors.danger,
+                                  fontWeight: '700',
+                                  fontSize: 15,
+                                }}
+                              >
+                                ❌ Reject
+                              </Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -672,12 +914,22 @@ export default function AdminApplicationsScreen() {
                                 colors={[theme.colors.purple, '#6366F1']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
-                                style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
+                                style={{
+                                  paddingVertical: 14,
+                                  alignItems: 'center',
+                                  opacity: isMutating ? 0.7 : 1,
+                                }}
                               >
                                 {isMutating ? (
                                   <ActivityIndicator color={theme.colors.white} size="small" />
                                 ) : (
-                                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
+                                  <Text
+                                    style={{
+                                      color: theme.colors.white,
+                                      fontWeight: '700',
+                                      fontSize: 15,
+                                    }}
+                                  >
                                     ✅ Mark Interview Complete
                                   </Text>
                                 )}
@@ -695,7 +947,15 @@ export default function AdminApplicationsScreen() {
                                 backgroundColor: theme.colors.dangerSoft,
                               }}
                             >
-                              <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
+                              <Text
+                                style={{
+                                  color: theme.colors.danger,
+                                  fontWeight: '700',
+                                  fontSize: 15,
+                                }}
+                              >
+                                ❌ Reject
+                              </Text>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -704,7 +964,15 @@ export default function AdminApplicationsScreen() {
                         {phase === 'interview_complete' && (
                           <View style={{ gap: 12 }}>
                             {/* Member role selector */}
-                            <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>
+                            <Text
+                              style={{
+                                color: theme.colors.textMuted,
+                                fontSize: 12,
+                                fontWeight: '700',
+                                textTransform: 'uppercase',
+                                letterSpacing: 1,
+                              }}
+                            >
                               Member Type
                             </Text>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -727,7 +995,15 @@ export default function AdminApplicationsScreen() {
                                     <BrandGradient
                                       style={{ paddingVertical: 10, alignItems: 'center' }}
                                     >
-                                      <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 12 }}>{r.label}</Text>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.white,
+                                          fontWeight: '700',
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        {r.label}
+                                      </Text>
                                     </BrandGradient>
                                   ) : (
                                     <View
@@ -740,7 +1016,15 @@ export default function AdminApplicationsScreen() {
                                         borderRadius: 10,
                                       }}
                                     >
-                                      <Text style={{ color: theme.colors.textMuted, fontWeight: '600', fontSize: 12 }}>{r.label}</Text>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textMuted,
+                                          fontWeight: '600',
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        {r.label}
+                                      </Text>
                                     </View>
                                   )}
                                 </TouchableOpacity>
@@ -756,13 +1040,24 @@ export default function AdminApplicationsScreen() {
                                 colors={[theme.colors.success, '#059669']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
-                                style={{ paddingVertical: 14, alignItems: 'center', opacity: isMutating ? 0.7 : 1 }}
+                                style={{
+                                  paddingVertical: 14,
+                                  alignItems: 'center',
+                                  opacity: isMutating ? 0.7 : 1,
+                                }}
                               >
                                 {isMutating ? (
                                   <ActivityIndicator color={theme.colors.white} size="small" />
                                 ) : (
-                                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
-                                    ✅ Final Approve as {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
+                                  <Text
+                                    style={{
+                                      color: theme.colors.white,
+                                      fontWeight: '700',
+                                      fontSize: 15,
+                                    }}
+                                  >
+                                    ✅ Final Approve as{' '}
+                                    {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
                                   </Text>
                                 )}
                               </LinearGradient>
@@ -779,7 +1074,15 @@ export default function AdminApplicationsScreen() {
                                 backgroundColor: theme.colors.dangerSoft,
                               }}
                             >
-                              <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 15 }}>❌ Reject</Text>
+                              <Text
+                                style={{
+                                  color: theme.colors.danger,
+                                  fontWeight: '700',
+                                  fontSize: 15,
+                                }}
+                              >
+                                ❌ Reject
+                              </Text>
                             </TouchableOpacity>
                           </View>
                         )}

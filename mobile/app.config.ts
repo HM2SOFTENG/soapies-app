@@ -6,7 +6,9 @@ const fallbackWebUrl = 'https://soapies.example.com';
 const baseExpo = appJson.expo as any;
 const version = process.env.EXPO_PUBLIC_APP_VERSION ?? baseExpo.version ?? '1.0.0';
 const iosBuildNumber = process.env.IOS_BUILD_NUMBER ?? baseExpo.ios?.buildNumber ?? '1';
-const androidVersionCode = Number(process.env.ANDROID_VERSION_CODE ?? baseExpo.android?.versionCode ?? 1);
+const androidVersionCode = Number(
+  process.env.ANDROID_VERSION_CODE ?? baseExpo.android?.versionCode ?? 1
+);
 
 export default () => ({
   ...appJson,
@@ -27,15 +29,23 @@ export default () => ({
     },
     ios: {
       ...baseExpo.ios,
-      bundleIdentifier: process.env.EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER ?? baseExpo.ios?.bundleIdentifier ?? 'com.yourcompany.soapi​​es',
+      bundleIdentifier:
+        process.env.EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER ??
+        baseExpo.ios?.bundleIdentifier ??
+        'com.yourcompany.soapi​​es',
       buildNumber: iosBuildNumber,
       associatedDomains: process.env.EXPO_PUBLIC_ASSOCIATED_DOMAINS
-        ? process.env.EXPO_PUBLIC_ASSOCIATED_DOMAINS.split(',').map((v: string) => v.trim()).filter(Boolean)
+        ? process.env.EXPO_PUBLIC_ASSOCIATED_DOMAINS.split(',')
+            .map((v: string) => v.trim())
+            .filter(Boolean)
         : baseExpo.ios?.associatedDomains,
     },
     android: {
       ...baseExpo.android,
-      package: process.env.EXPO_PUBLIC_ANDROID_PACKAGE ?? baseExpo.android?.package ?? 'com.yourcompany.soapies',
+      package:
+        process.env.EXPO_PUBLIC_ANDROID_PACKAGE ??
+        baseExpo.android?.package ??
+        'com.yourcompany.soapies',
       versionCode: androidVersionCode,
     },
     updates: {
