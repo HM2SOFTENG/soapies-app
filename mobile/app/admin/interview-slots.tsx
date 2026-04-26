@@ -102,7 +102,6 @@ export default function InterviewSlotsScreen() {
   const { data, isLoading, isError, error, refetch } = trpc.introCalls.all.useQuery(undefined, {
     enabled: isAdmin,
   });
-  const slots = (data as any[]) ?? [];
 
   const bulkCreateMutation = trpc.introCalls.bulkCreate.useMutation({
     onSuccess: () => {
@@ -117,22 +116,31 @@ export default function InterviewSlotsScreen() {
   });
 
   const updateMutation = trpc.introCalls.update.useMutation({
-    onSuccess: () => { utils.introCalls.all.invalidate(); setSelectedIds([]); },
+    onSuccess: () => {
+      utils.introCalls.all.invalidate();
+      setSelectedIds([]);
+    },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const deleteMutation = trpc.introCalls.delete.useMutation({
-    onSuccess: () => { utils.introCalls.all.invalidate(); setSelectedIds([]); },
+    onSuccess: () => {
+      utils.introCalls.all.invalidate();
+      setSelectedIds([]);
+    },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   // ─── Derived ─────────────────────────────────────────────────────────────
   const previewSlots = generateSlots(startDate, endDate, times, duration);
 
-  const filteredSlots = useMemo(() => slots.filter((s: any) => {
-    if (filterTab === 'all') return true;
-    return s.status === filterTab;
-  }), [slots, filterTab]);
+  const filteredSlots = useMemo(() => {
+    const slots = (data as any[]) ?? [];
+    return slots.filter((s: any) => {
+      if (filterTab === 'all') return true;
+      return s.status === filterTab;
+    });
+  }, [data, filterTab]);
 
   const FILTER_TABS: { key: FilterTab; label: string }[] = [
     { key: 'all', label: 'All' },
@@ -148,15 +156,36 @@ export default function InterviewSlotsScreen() {
   if (!isAdmin) {
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+        }}
       >
         <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
-        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 24 }}>
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 18,
+            fontWeight: '700',
+            marginTop: 16,
+            marginBottom: 24,
+          }}
+        >
           Access Denied
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 24,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
         >
           <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
@@ -229,7 +258,23 @@ export default function InterviewSlotsScreen() {
           borderBottomWidth: 1,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.isDark ? theme.alpha(theme.colors.white, 0.06) : theme.colors.surfaceHigh, borderWidth: 1, borderColor: theme.colors.border }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            marginRight: 14,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.isDark
+              ? theme.alpha(theme.colors.white, 0.06)
+              : theme.colors.surfaceHigh,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
@@ -239,19 +284,89 @@ export default function InterviewSlotsScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
         {selectedIds.length > 0 && (
-          <View style={{ backgroundColor: theme.colors.surface, borderRadius: 14, borderColor: theme.colors.border, borderWidth: 1, padding: 14, marginBottom: 16 }}>
-            <Text style={{ color: theme.colors.text, fontWeight: '800', marginBottom: 10 }}>{selectedIds.length} slot{selectedIds.length === 1 ? '' : 's'} selected</Text>
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: 14,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+              padding: 14,
+              marginBottom: 16,
+            }}
+          >
+            <Text style={{ color: theme.colors.text, fontWeight: '800', marginBottom: 10 }}>
+              {selectedIds.length} slot{selectedIds.length === 1 ? '' : 's'} selected
+            </Text>
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <TouchableOpacity onPress={() => selectedIds.forEach((id) => updateMutation.mutate({ id, status: 'available' }))} style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.success, 0.12), borderColor: theme.colors.successBorder, borderWidth: 1 }}>
-                <Text style={{ color: theme.colors.success, fontWeight: '700' }}>Mark Available</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  selectedIds.forEach((id) => updateMutation.mutate({ id, status: 'available' }))
+                }
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  backgroundColor: theme.alpha(theme.colors.success, 0.12),
+                  borderColor: theme.colors.successBorder,
+                  borderWidth: 1,
+                }}
+              >
+                <Text style={{ color: theme.colors.success, fontWeight: '700' }}>
+                  Mark Available
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => selectedIds.forEach((id) => updateMutation.mutate({ id, status: 'completed' }))} style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.purple, 0.12), borderColor: theme.alpha(theme.colors.purple, 0.35), borderWidth: 1 }}>
-                <Text style={{ color: theme.colors.purple, fontWeight: '700' }}>Mark Completed</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  selectedIds.forEach((id) => updateMutation.mutate({ id, status: 'completed' }))
+                }
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  backgroundColor: theme.alpha(theme.colors.purple, 0.12),
+                  borderColor: theme.alpha(theme.colors.purple, 0.35),
+                  borderWidth: 1,
+                }}
+              >
+                <Text style={{ color: theme.colors.purple, fontWeight: '700' }}>
+                  Mark Completed
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Alert.alert('Delete Selected', `Delete ${selectedIds.length} selected slots?`, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => selectedIds.forEach((id) => deleteMutation.mutate({ id })) }])} style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.danger, 0.12), borderColor: theme.colors.dangerBorder, borderWidth: 1 }}>
-                <Text style={{ color: theme.colors.danger, fontWeight: '700' }}>Delete Selected</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert('Delete Selected', `Delete ${selectedIds.length} selected slots?`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete',
+                      style: 'destructive',
+                      onPress: () => selectedIds.forEach((id) => deleteMutation.mutate({ id })),
+                    },
+                  ])
+                }
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  backgroundColor: theme.alpha(theme.colors.danger, 0.12),
+                  borderColor: theme.colors.dangerBorder,
+                  borderWidth: 1,
+                }}
+              >
+                <Text style={{ color: theme.colors.danger, fontWeight: '700' }}>
+                  Delete Selected
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setSelectedIds([])} style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, backgroundColor: theme.colors.page, borderColor: theme.colors.border, borderWidth: 1 }}>
+              <TouchableOpacity
+                onPress={() => setSelectedIds([])}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  backgroundColor: theme.colors.page,
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                }}
+              >
                 <Text style={{ color: theme.colors.textSecondary, fontWeight: '700' }}>Clear</Text>
               </TouchableOpacity>
             </View>
@@ -300,14 +415,25 @@ export default function InterviewSlotsScreen() {
             <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, flex: 1 }}>
               Create Slots
             </Text>
-            <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />
+            <Ionicons
+              name={formOpen ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.muted}
+            />
           </TouchableOpacity>
 
           {formOpen && (
             <View style={{ padding: 16, gap: 14 }}>
               {/* Start Date */}
               <View>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: theme.colors.textMuted,
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 6,
+                  }}
+                >
                   Start Date
                 </Text>
                 <TextInput
@@ -331,9 +457,18 @@ export default function InterviewSlotsScreen() {
 
               {/* End Date */}
               <View>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: theme.colors.textMuted,
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 6,
+                  }}
+                >
                   End Date{' '}
-                  <Text style={{ fontWeight: '400', fontSize: 11 }}>(optional — for date range)</Text>
+                  <Text style={{ fontWeight: '400', fontSize: 11 }}>
+                    (optional — for date range)
+                  </Text>
                 </Text>
                 <TextInput
                   value={endDate}
@@ -356,7 +491,14 @@ export default function InterviewSlotsScreen() {
 
               {/* Time input */}
               <View>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
+                <Text
+                  style={{
+                    color: theme.colors.textMuted,
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 6,
+                  }}
+                >
                   Time Slots (24h HH:MM)
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -385,39 +527,69 @@ export default function InterviewSlotsScreen() {
                     style={{ borderRadius: 10, overflow: 'hidden' }}
                   >
                     <BrandGradient
-                      style={{ paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center', alignItems: 'center' }}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 10,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
                     >
-                      <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 14 }}>Add</Text>
+                      <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 14 }}>
+                        Add
+                      </Text>
                     </BrandGradient>
                   </TouchableOpacity>
                 </View>
 
                 <View>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>Quick Add</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {QUICK_TIME_PRESETS.map((preset) => {
-                    const active = times.includes(preset);
-                    return (
-                      <TouchableOpacity
-                        key={preset}
-                        onPress={() => active ? removeTime(preset) : setTimes((prev) => [...prev, preset].sort())}
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
-                          borderRadius: 999,
-                          backgroundColor: active ? theme.alpha(theme.colors.primary, 0.12) : theme.colors.page,
-                          borderWidth: 1,
-                          borderColor: active ? theme.colors.primary : theme.colors.border,
-                        }}
-                      >
-                        <Text style={{ color: active ? theme.colors.primary : theme.colors.textSecondary, fontWeight: '700', fontSize: 12 }}>{preset}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                  <Text
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: 12,
+                      fontWeight: '600',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Quick Add
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {QUICK_TIME_PRESETS.map((preset) => {
+                      const active = times.includes(preset);
+                      return (
+                        <TouchableOpacity
+                          key={preset}
+                          onPress={() =>
+                            active
+                              ? removeTime(preset)
+                              : setTimes((prev) => [...prev, preset].sort())
+                          }
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                            borderRadius: 999,
+                            backgroundColor: active
+                              ? theme.alpha(theme.colors.primary, 0.12)
+                              : theme.colors.page,
+                            borderWidth: 1,
+                            borderColor: active ? theme.colors.primary : theme.colors.border,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: active ? theme.colors.primary : theme.colors.textSecondary,
+                              fontWeight: '700',
+                              fontSize: 12,
+                            }}
+                          >
+                            {preset}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
 
-              {/* Time chips */}
+                {/* Time chips */}
                 {times.length > 0 && (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                     {times.map((t) => (
@@ -436,7 +608,11 @@ export default function InterviewSlotsScreen() {
                           gap: 5,
                         }}
                       >
-                        <Text style={{ color: theme.colors.purple, fontWeight: '600', fontSize: 13 }}>{t}</Text>
+                        <Text
+                          style={{ color: theme.colors.purple, fontWeight: '600', fontSize: 13 }}
+                        >
+                          {t}
+                        </Text>
                         <Ionicons name="close" size={12} color={colors.purple} />
                       </TouchableOpacity>
                     ))}
@@ -446,7 +622,14 @@ export default function InterviewSlotsScreen() {
 
               {/* Duration pills */}
               <View>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '600', marginBottom: 8 }}>
+                <Text
+                  style={{
+                    color: theme.colors.textMuted,
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 8,
+                  }}
+                >
                   Duration
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -460,10 +643,12 @@ export default function InterviewSlotsScreen() {
                       style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}
                     >
                       {duration === d ? (
-                        <BrandGradient
-                          style={{ paddingVertical: 10, alignItems: 'center' }}
-                        >
-                          <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 13 }}>{d}m</Text>
+                        <BrandGradient style={{ paddingVertical: 10, alignItems: 'center' }}>
+                          <Text
+                            style={{ color: theme.colors.white, fontWeight: '700', fontSize: 13 }}
+                          >
+                            {d}m
+                          </Text>
                         </BrandGradient>
                       ) : (
                         <View
@@ -476,7 +661,15 @@ export default function InterviewSlotsScreen() {
                             borderWidth: 1,
                           }}
                         >
-                          <Text style={{ color: theme.colors.textMuted, fontWeight: '600', fontSize: 13 }}>{d}m</Text>
+                          <Text
+                            style={{
+                              color: theme.colors.textMuted,
+                              fontWeight: '600',
+                              fontSize: 13,
+                            }}
+                          >
+                            {d}m
+                          </Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -494,7 +687,13 @@ export default function InterviewSlotsScreen() {
                   borderWidth: 1,
                 }}
               >
-                <Text style={{ color: previewSlots.length > 0 ? colors.text : colors.muted, fontSize: 14, fontWeight: '600' }}>
+                <Text
+                  style={{
+                    color: previewSlots.length > 0 ? colors.text : colors.muted,
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}
+                >
                   {previewSlots.length > 0
                     ? `Will create ${previewSlots.length} slot${previewSlots.length !== 1 ? 's' : ''}`
                     : 'Enter dates and times to preview'}
@@ -505,7 +704,11 @@ export default function InterviewSlotsScreen() {
               <TouchableOpacity
                 onPress={handleCreateSlots}
                 disabled={bulkCreateMutation.isPending || previewSlots.length === 0}
-                style={{ borderRadius: 12, overflow: 'hidden', opacity: previewSlots.length === 0 ? 0.5 : 1 }}
+                style={{
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  opacity: previewSlots.length === 0 ? 0.5 : 1,
+                }}
               >
                 <BrandGradient
                   style={{
@@ -550,11 +753,28 @@ export default function InterviewSlotsScreen() {
               >
                 {isActive ? (
                   <BrandGradient
-                    style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, gap: 5 }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      gap: 5,
+                    }}
                   >
-                    <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 13 }}>{tab.label}</Text>
-                    <View style={{ backgroundColor: theme.alpha(theme.colors.white, 0.28), borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 }}>
-                      <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 11 }}>{count}</Text>
+                    <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 13 }}>
+                      {tab.label}
+                    </Text>
+                    <View
+                      style={{
+                        backgroundColor: theme.alpha(theme.colors.white, 0.28),
+                        borderRadius: 10,
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 11 }}>
+                        {count}
+                      </Text>
                     </View>
                   </BrandGradient>
                 ) : (
@@ -571,9 +791,22 @@ export default function InterviewSlotsScreen() {
                       gap: 5,
                     }}
                   >
-                    <Text style={{ color: theme.colors.textMuted, fontWeight: '600', fontSize: 13 }}>{tab.label}</Text>
-                    <View style={{ backgroundColor: theme.alpha(theme.colors.pink, 0.12), borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 }}>
-                      <Text style={{ color: theme.colors.pink, fontWeight: '800', fontSize: 11 }}>{count}</Text>
+                    <Text
+                      style={{ color: theme.colors.textMuted, fontWeight: '600', fontSize: 13 }}
+                    >
+                      {tab.label}
+                    </Text>
+                    <View
+                      style={{
+                        backgroundColor: theme.alpha(theme.colors.pink, 0.12),
+                        borderRadius: 10,
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.pink, fontWeight: '800', fontSize: 11 }}>
+                        {count}
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -588,16 +821,49 @@ export default function InterviewSlotsScreen() {
         ) : isError ? (
           <View style={{ alignItems: 'center', paddingTop: 40, paddingHorizontal: 24 }}>
             <Ionicons name="cloud-offline-outline" size={40} color={theme.colors.textMuted} />
-            <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', marginTop: 14, textAlign: 'center' }}>Could not load interview slots</Text>
-            <Text style={{ color: theme.colors.textMuted, fontSize: 14, marginTop: 8, textAlign: 'center', lineHeight: 21 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
-            <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: 18,
+                fontWeight: '800',
+                marginTop: 14,
+                textAlign: 'center',
+              }}
+            >
+              Could not load interview slots
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: 14,
+                marginTop: 8,
+                textAlign: 'center',
+                lineHeight: 21,
+              }}
+            >
+              {(error as any)?.message ?? 'Please try again in a moment.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => refetch()}
+              style={{
+                marginTop: 18,
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                backgroundColor: theme.colors.surface,
+                borderRadius: 12,
+                borderColor: theme.colors.border,
+                borderWidth: 1,
+              }}
+            >
               <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : filteredSlots.length === 0 ? (
           <View style={{ alignItems: 'center', paddingTop: 40 }}>
             <Ionicons name="calendar-outline" size={40} color={theme.colors.textMuted} />
-            <Text style={{ color: theme.colors.textMuted, fontSize: 15, marginTop: 12 }}>No slots found</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 15, marginTop: 12 }}>
+              No slots found
+            </Text>
           </View>
         ) : (
           filteredSlots.map((slot: any) => {
@@ -634,11 +900,20 @@ export default function InterviewSlotsScreen() {
                   </LinearGradient>
 
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14, marginBottom: 2 }}>
+                    <Text
+                      style={{
+                        color: theme.colors.text,
+                        fontWeight: '700',
+                        fontSize: 14,
+                        marginBottom: 2,
+                      }}
+                    >
                       {formatSlotDate(slot.scheduledAt)}
                     </Text>
                     {slot.duration ? (
-                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>{slot.duration} min</Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                        {slot.duration} min
+                      </Text>
                     ) : null}
                     {slot.status === 'booked' && slot.bookedByProfileId ? (
                       <Text style={{ color: '#3B82F6', fontSize: 12, marginTop: 2 }}>
@@ -659,7 +934,14 @@ export default function InterviewSlotsScreen() {
                       marginLeft: 8,
                     }}
                   >
-                    <Text style={{ color: statusColor, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' }}>
+                    <Text
+                      style={{
+                        color: statusColor,
+                        fontSize: 11,
+                        fontWeight: '700',
+                        textTransform: 'capitalize',
+                      }}
+                    >
                       {slot.status}
                     </Text>
                   </View>
@@ -681,7 +963,9 @@ export default function InterviewSlotsScreen() {
                         backgroundColor: theme.alpha('#8B5CF6', 0.08),
                       }}
                     >
-                      <Text style={{ color: '#8B5CF6', fontWeight: '700', fontSize: 13 }}>✓ Done</Text>
+                      <Text style={{ color: '#8B5CF6', fontWeight: '700', fontSize: 13 }}>
+                        ✓ Done
+                      </Text>
                     </TouchableOpacity>
                   )}
                   {slot.status === 'available' && (
@@ -698,7 +982,11 @@ export default function InterviewSlotsScreen() {
                         backgroundColor: theme.colors.page,
                       }}
                     >
-                      <Text style={{ color: theme.colors.textMuted, fontWeight: '700', fontSize: 13 }}>✕ Cancel</Text>
+                      <Text
+                        style={{ color: theme.colors.textMuted, fontWeight: '700', fontSize: 13 }}
+                      >
+                        ✕ Cancel
+                      </Text>
                     </TouchableOpacity>
                   )}
                   {/* Delete */}

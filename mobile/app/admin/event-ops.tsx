@@ -12,7 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,10 +51,10 @@ const TICKET_TYPE_LABELS: Record<string, string> = {
 
 const WRISTBAND_CONFIG: Record<string, { color: string; emoji: string }> = {
   rainbow: { color: '#FF6B6B', emoji: '🌈' },
-  pink:    { color: '#EC4899', emoji: '💗' },
-  purple:  { color: '#A855F7', emoji: '💜' },
-  blue:    { color: '#3B82F6', emoji: '💙' },
-  green:   { color: '#10B981', emoji: '💚' },
+  pink: { color: '#EC4899', emoji: '💗' },
+  purple: { color: '#A855F7', emoji: '💜' },
+  blue: { color: '#3B82F6', emoji: '💙' },
+  green: { color: '#10B981', emoji: '💚' },
 };
 
 const WRISTBAND_COLORS: Record<string, string> = {
@@ -73,7 +73,17 @@ const WRISTBAND_EMOJI: Record<string, string> = {
   green: '💚',
 };
 
-function DutyCheckbox({ item, completed, onToggle, theme }: { item: { id: string; label: string; icon: any }; completed: boolean; onToggle: () => void; theme: ReturnType<typeof useTheme>; }) {
+function DutyCheckbox({
+  item,
+  completed,
+  onToggle,
+  theme,
+}: {
+  item: { id: string; label: string; icon: any };
+  completed: boolean;
+  onToggle: () => void;
+  theme: ReturnType<typeof useTheme>;
+}) {
   return (
     <TouchableOpacity
       onPress={onToggle}
@@ -86,48 +96,90 @@ function DutyCheckbox({ item, completed, onToggle, theme }: { item: { id: string
         borderBottomWidth: 1,
       }}
     >
-      <View style={{
-        width: 24,
-        height: 24,
-        borderRadius: 6,
-        borderWidth: 2,
-        borderColor: completed ? '#10B981' : theme.colors.border,
-        backgroundColor: completed ? '#10B981' : 'transparent',
-        marginRight: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
+      <View
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: completed ? '#10B981' : theme.colors.border,
+          backgroundColor: completed ? '#10B981' : 'transparent',
+          marginRight: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {completed && <Ionicons name="checkmark" size={14} color="#fff" />}
       </View>
-      <Ionicons name={item.icon} size={18} color={completed ? '#10B981' : theme.colors.textMuted} style={{ marginRight: 10 }} />
-      <Text style={{ color: completed ? '#10B981' : theme.colors.text, fontSize: 14, flex: 1, textDecorationLine: completed ? 'line-through' : 'none' }}>
+      <Ionicons
+        name={item.icon}
+        size={18}
+        color={completed ? '#10B981' : theme.colors.textMuted}
+        style={{ marginRight: 10 }}
+      />
+      <Text
+        style={{
+          color: completed ? '#10B981' : theme.colors.text,
+          fontSize: 14,
+          flex: 1,
+          textDecorationLine: completed ? 'line-through' : 'none',
+        }}
+      >
         {item.label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-function AttendeeCard({ reservation, onCheckin, theme }: { reservation: any; onCheckin: () => void; theme: ReturnType<typeof useTheme>; }) {
+function AttendeeCard({
+  reservation,
+  onCheckin,
+  theme,
+}: {
+  reservation: any;
+  onCheckin: () => void;
+  theme: ReturnType<typeof useTheme>;
+}) {
   const isCheckedIn = reservation.status === 'checked_in';
   const wristband = reservation.wristbandColor ?? 'purple';
   const wColor = WRISTBAND_COLORS[wristband] ?? '#A855F7';
 
   return (
-    <View style={{
-      backgroundColor: theme.colors.card,
-      borderRadius: 14,
-      padding: 14,
-      marginBottom: 10,
-      borderColor: isCheckedIn ? '#10B981' : theme.colors.border,
-      borderWidth: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-    }}>
+    <View
+      style={{
+        backgroundColor: theme.colors.card,
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 10,
+        borderColor: isCheckedIn ? '#10B981' : theme.colors.border,
+        borderWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}
+    >
       {/* Wristband color indicator strip on left */}
-      <View style={{ width: 6, borderRadius: 3, backgroundColor: wColor, marginRight: 12, alignSelf: 'stretch' }} />
+      <View
+        style={{
+          width: 6,
+          borderRadius: 3,
+          backgroundColor: wColor,
+          marginRight: 12,
+          alignSelf: 'stretch',
+        }}
+      />
 
       {/* Avatar placeholder with wristband emoji */}
-      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${wColor}33`, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: `${wColor}33`,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 12,
+        }}
+      >
         <Text style={{ fontSize: 18 }}>{WRISTBAND_EMOJI[wristband] ?? '👤'}</Text>
       </View>
 
@@ -139,18 +191,32 @@ function AttendeeCard({ reservation, onCheckin, theme }: { reservation: any; onC
           {reservation.ticketType?.replace('_', ' ')} · {wristband} wristband
         </Text>
         {reservation.isQueerPlay && (
-          <Text style={{ color: '#FF6B6B', fontSize: 11, fontWeight: '600' }}>🌈 Queer Play Zone</Text>
+          <Text style={{ color: '#FF6B6B', fontSize: 11, fontWeight: '600' }}>
+            🌈 Queer Play Zone
+          </Text>
         )}
       </View>
 
       {isCheckedIn ? (
-        <View style={{ backgroundColor: '#10B98133', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+        <View
+          style={{
+            backgroundColor: '#10B98133',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 8,
+          }}
+        >
           <Text style={{ color: '#10B981', fontSize: 12, fontWeight: '700' }}>✓ IN</Text>
         </View>
       ) : (
         <TouchableOpacity
           onPress={onCheckin}
-          style={{ backgroundColor: theme.colors.pink, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}
+          style={{
+            backgroundColor: theme.colors.pink,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 10,
+          }}
         >
           <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Check In</Text>
         </TouchableOpacity>
@@ -162,13 +228,15 @@ function AttendeeCard({ reservation, onCheckin, theme }: { reservation: any; onC
 export default function EventOpsScreen() {
   const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  useAuth();
   const theme = useTheme();
 
   const [completedSetup, setCompletedSetup] = useState<Record<string, boolean>>({});
   const [completedTeardown, setCompletedTeardown] = useState<Record<string, boolean>>({});
   const [showExportModal, setShowExportModal] = useState(false);
-  const [activeSection, setActiveSection] = useState<'volunteers' | 'duties' | 'stats' | 'actions' | 'checkin'>('volunteers');
+  const [activeSection, setActiveSection] = useState<
+    'volunteers' | 'duties' | 'stats' | 'actions' | 'checkin'
+  >('volunteers');
 
   // Check-in tab state
   const [checkinMode, setCheckinMode] = useState<'list' | 'scanner'>('list');
@@ -183,7 +251,7 @@ export default function EventOpsScreen() {
 
   // Load duties state from AsyncStorage
   useEffect(() => {
-    AsyncStorage.getItem(storageKey).then(val => {
+    AsyncStorage.getItem(storageKey).then((val) => {
       if (val) {
         try {
           const parsed = JSON.parse(val);
@@ -194,9 +262,12 @@ export default function EventOpsScreen() {
     });
   }, [storageKey]);
 
-  const saveDuties = useCallback((setup: Record<string, boolean>, teardown: Record<string, boolean>) => {
-    AsyncStorage.setItem(storageKey, JSON.stringify({ setup, teardown })).catch(() => {});
-  }, [storageKey]);
+  const saveDuties = useCallback(
+    (setup: Record<string, boolean>, teardown: Record<string, boolean>) => {
+      AsyncStorage.setItem(storageKey, JSON.stringify({ setup, teardown })).catch(() => {});
+    },
+    [storageKey]
+  );
 
   function toggleSetup(id: string) {
     const updated = { ...completedSetup, [id]: !completedSetup[id] };
@@ -211,25 +282,35 @@ export default function EventOpsScreen() {
   }
 
   // Data
-  const { data: reservationsData, isLoading, isError, error, refetch: refetchReservations } = trpc.admin.eventReservations.useQuery(
-    { eventId: Number(eventId) },
-    { enabled: !!eventId }
-  );
+  const {
+    data: reservationsData,
+    isLoading,
+    isError,
+    error,
+    refetch: refetchReservations,
+  } = trpc.admin.eventReservations.useQuery({ eventId: Number(eventId) }, { enabled: !!eventId });
   const reservations = (reservationsData as any[]) ?? [];
 
   // Mutations
   const creditVolunteerMutation = trpc.admin.creditVolunteer.useMutation({
-    onSuccess: () => { Alert.alert('✅ Credit Issued', 'Volunteer has been credited their ticket amount.'); refetchReservations(); },
+    onSuccess: () => {
+      Alert.alert('✅ Credit Issued', 'Volunteer has been credited their ticket amount.');
+      refetchReservations();
+    },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const markNoShowMutation = trpc.admin.markVolunteerNoShow.useMutation({
-    onSuccess: () => { Alert.alert('⚠️ Marked No-Show', 'Volunteer has been marked as no-show.'); refetchReservations(); },
+    onSuccess: () => {
+      Alert.alert('⚠️ Marked No-Show', 'Volunteer has been marked as no-show.');
+      refetchReservations();
+    },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const sendRemindersMutation = trpc.admin.sendEventReminders.useMutation({
-    onSuccess: (data: any) => Alert.alert('📨 Reminders Sent', `Sent reminders to ${data.count} attendees.`),
+    onSuccess: (data: any) =>
+      Alert.alert('📨 Reminders Sent', `Sent reminders to ${data.count} attendees.`),
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
@@ -241,17 +322,29 @@ export default function EventOpsScreen() {
   const checkInMutation = trpc.reservations.checkInByQR.useMutation();
 
   // Computed stats
-  const volunteers = reservations.filter((r: any) => r.notes === 'volunteer' || r.notes === 'volunteer_completed' || r.notes === 'volunteer_noshow' || r.ticketType === 'volunteer');
-  const ticketBreakdown = reservations.reduce((acc: Record<string, number>, r: any) => {
-    const key = r.ticketType ?? 'unknown';
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  const paymentBreakdown = reservations.reduce((acc: Record<string, number>, r: any) => {
-    const key = r.paymentStatus ?? 'unknown';
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const volunteers = reservations.filter(
+    (r: any) =>
+      r.notes === 'volunteer' ||
+      r.notes === 'volunteer_completed' ||
+      r.notes === 'volunteer_noshow' ||
+      r.ticketType === 'volunteer'
+  );
+  const ticketBreakdown = reservations.reduce(
+    (acc: Record<string, number>, r: any) => {
+      const key = r.ticketType ?? 'unknown';
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+  const paymentBreakdown = reservations.reduce(
+    (acc: Record<string, number>, r: any) => {
+      const key = r.paymentStatus ?? 'unknown';
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
   const checkedIn = reservations.filter((r: any) => r.status === 'checked_in').length;
 
   // Filtered attendees for check-in list
@@ -323,14 +416,31 @@ export default function EventOpsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomColor: theme.colors.border,
+          borderBottomWidth: 1,
+          backgroundColor: theme.colors.pageHeader,
+        }}
+      >
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Event Operations</Text>
+          <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>
+            Event Operations
+          </Text>
           {eventTitle ? (
-            <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>{eventTitle}</Text>
+            <Text
+              style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}
+              numberOfLines={1}
+            >
+              {eventTitle}
+            </Text>
           ) : null}
         </View>
         {isLoading && <ActivityIndicator color={colors.pink} size="small" />}
@@ -347,419 +457,795 @@ export default function EventOpsScreen() {
       />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
-
         {isError ? (
           <View style={{ alignItems: 'center', paddingTop: 48, paddingHorizontal: 24 }}>
             <Ionicons name="cloud-offline-outline" size={40} color={theme.colors.textMuted} />
-            <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load event operations</Text>
-            <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{(error as any)?.message ?? 'Please try again in a moment.'}</Text>
-            <TouchableOpacity onPress={() => refetchReservations()} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: 20,
+                fontWeight: '800',
+                textAlign: 'center',
+                marginTop: 14,
+              }}
+            >
+              Could not load event operations
+            </Text>
+            <Text
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: 14,
+                textAlign: 'center',
+                lineHeight: 21,
+                marginTop: 8,
+              }}
+            >
+              {(error as any)?.message ?? 'Please try again in a moment.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => refetchReservations()}
+              style={{
+                marginTop: 18,
+                paddingHorizontal: 18,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: theme.colors.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+              }}
+            >
               <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
-        <>
-
-        {/* ── Volunteer Staff Management ── */}
-        {activeSection === 'volunteers' && (
-          <View>
-            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>🙌 Volunteer Staff</Text>
-            {volunteers.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                <Ionicons name="people-outline" size={40} color={theme.colors.textMuted} />
-                <Text style={{ color: theme.colors.textMuted, marginTop: 10, fontSize: 14 }}>No volunteers for this event</Text>
-              </View>
-            ) : (
-              volunteers.map((v: any) => {
-                const status = getVolunteerStatus(v);
-                const isPending = status.label === 'Pending';
-                return (
-                  <View
-                    key={v.id}
-                    style={{
-                      backgroundColor: theme.colors.card,
-                      borderRadius: 12,
-                      padding: 14,
-                      marginBottom: 10,
-                      borderColor: theme.colors.border,
-                      borderWidth: 1,
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
-                          {v.displayName ?? v.memberName ?? v.userName ?? `User #${v.userId}`}
-                        </Text>
-                        <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
-                          {TICKET_TYPE_LABELS[v.ticketType] ?? v.ticketType ?? 'Volunteer'}
-                        </Text>
-                      </View>
-                      <View style={{ backgroundColor: `${status.color}22`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
-                        <Text style={{ color: status.color, fontSize: 11, fontWeight: '700' }}>{status.label}</Text>
-                      </View>
-                    </View>
-                    {isPending && (
-                      <View style={{ flexDirection: 'row', gap: 10 }}>
-                        <TouchableOpacity
-                          onPress={() => Alert.alert(
-                            '✅ Mark Complete?',
-                            `Credit ${v.displayName ?? 'this volunteer'} their ticket amount?`,
-                            [
-                              { text: 'Yes, Credit Them', onPress: () => creditVolunteerMutation.mutate({ reservationId: v.id }) },
-                              { text: 'Cancel', style: 'cancel' },
-                            ]
-                          )}
-                          disabled={creditVolunteerMutation.isPending}
-                          style={{ flex: 1, backgroundColor: '#10B98122', borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderColor: '#10B98144', borderWidth: 1 }}
-                        >
-                          <Text style={{ color: '#10B981', fontWeight: '700', fontSize: 13 }}>✅ Mark Complete</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => Alert.alert(
-                            '⚠️ Mark No-Show?',
-                            'This volunteer will not receive a refund.',
-                            [
-                              { text: 'Confirm No-Show', style: 'destructive', onPress: () => markNoShowMutation.mutate({ reservationId: v.id }) },
-                              { text: 'Cancel', style: 'cancel' },
-                            ]
-                          )}
-                          disabled={markNoShowMutation.isPending}
-                          style={{ flex: 1, backgroundColor: '#EF444422', borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderColor: '#EF444444', borderWidth: 1 }}
-                        >
-                          <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 13 }}>❌ No Show</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                );
-              })
-            )}
-          </View>
-        )}
-
-        {/* ── Setup Duties Checklist ── */}
-        {activeSection === 'duties' && (
-          <View>
-            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 4 }}>🛠️ Setup Duties</Text>
-            <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 14 }}>Stored locally per device</Text>
-
-            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderColor: theme.colors.border, borderWidth: 1 }}>
-              {SETUP_DUTIES.map(item => (
-                <DutyCheckbox
-                  key={item.id}
-                  item={item}
-                  completed={!!completedSetup[item.id]}
-                  onToggle={() => toggleSetup(item.id)}
-                  theme={theme}
-                />
-              ))}
-            </View>
-
-            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>🧹 Teardown Duties</Text>
-
-            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, paddingHorizontal: 14, marginBottom: 20, borderColor: theme.colors.border, borderWidth: 1 }}>
-              {TEARDOWN_DUTIES.map(item => (
-                <DutyCheckbox
-                  key={item.id}
-                  item={item}
-                  completed={!!completedTeardown[item.id]}
-                  onToggle={() => toggleTeardown(item.id)}
-                  theme={theme}
-                />
-              ))}
-            </View>
-
-            <TouchableOpacity
-              onPress={() => Alert.alert('Reset Checklist?', 'Clear all completed duties?', [
-                { text: 'Reset', style: 'destructive', onPress: () => { setCompletedSetup({}); setCompletedTeardown({}); saveDuties({}, {}); } },
-                { text: 'Cancel', style: 'cancel' },
-              ])}
-              style={{ alignItems: 'center', paddingVertical: 12 }}
-            >
-              <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Reset All Duties</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ── Attendee Stats ── */}
-        {activeSection === 'stats' && (
-          <View>
-            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>📊 Attendee Stats</Text>
-
-            {/* Totals card */}
-            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1 }}>
-              <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Overview</Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 28, fontWeight: '800' }}>{reservations.length}</Text>
-                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Total</Text>
-                </View>
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <Text style={{ color: '#10B981', fontSize: 28, fontWeight: '800' }}>{checkedIn}</Text>
-                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Checked In</Text>
-                </View>
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <Text style={{ color: '#F59E0B', fontSize: 28, fontWeight: '800' }}>{reservations.length - checkedIn}</Text>
-                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Remaining</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Ticket type breakdown */}
-            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1 }}>
-              <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>By Ticket Type</Text>
-              {Object.entries(ticketBreakdown).map(([type, count]) => (
-                <View key={type} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 14 }}>{TICKET_TYPE_LABELS[type] ?? type}</Text>
-                  <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '700' }}>{count as number}</Text>
-                </View>
-              ))}
-              {Object.keys(ticketBreakdown).length === 0 && (
-                <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>No reservations yet</Text>
-              )}
-            </View>
-
-            {/* Payment status breakdown */}
-            <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 14, borderColor: theme.colors.border, borderWidth: 1 }}>
-              <Text style={{ color: theme.colors.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>By Payment Status</Text>
-              {Object.entries(paymentBreakdown).map(([status, count]) => {
-                const statusColors: Record<string, string> = { paid: '#10B981', pending: '#F59E0B', refunded: '#6B7280', failed: '#EF4444', partial: '#F59E0B' };
-                const c = statusColors[status] ?? theme.colors.textMuted;
-                return (
-                  <View key={status} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
-                    <Text style={{ color: c, fontSize: 14, textTransform: 'capitalize' }}>{status.replace('_', ' ')}</Text>
-                    <Text style={{ color: c, fontSize: 14, fontWeight: '700' }}>{count as number}</Text>
-                  </View>
-                );
-              })}
-              {Object.keys(paymentBreakdown).length === 0 && (
-                <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>No reservations yet</Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* ── Quick Actions ── */}
-        {activeSection === 'actions' && (
-          <View>
-            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>⚡ Quick Actions</Text>
-
-            {/* Send Reminder */}
-            <TouchableOpacity
-              onPress={() => Alert.alert(
-                '📨 Send Reminders?',
-                `Send payment reminders to ${reservations.filter((r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled').length} unpaid attendees?`,
-                [
-                  { text: 'Send', onPress: () => sendRemindersMutation.mutate({ eventId: Number(eventId) }) },
-                  { text: 'Cancel', style: 'cancel' },
-                ]
-              )}
-              disabled={sendRemindersMutation.isPending}
-              style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 12, borderColor: theme.colors.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}
-            >
-              {sendRemindersMutation.isPending ? (
-                <ActivityIndicator color={colors.pink} size="small" />
-              ) : (
-                <Ionicons name="notifications-outline" size={24} color={colors.pink} />
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>Send Reminder to Unpaid</Text>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
-                  Notify {reservations.filter((r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled').length} pending attendees
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-
-            {/* Export Attendee List */}
-            <TouchableOpacity
-              onPress={() => setShowExportModal(true)}
-              style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, marginBottom: 12, borderColor: theme.colors.border, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}
-            >
-              <Ionicons name="list-outline" size={24} color={colors.purple} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>Export Attendee List</Text>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>{reservations.length} attendees</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ── Check-In ── */}
-        {activeSection === 'checkin' && (
-          <View>
-            <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: 14 }}>
-              🎟️ Check-In · {checkedIn}/{reservations.length}
-            </Text>
-
-            {/* Mode toggle */}
-            <PillTabs
-              equalWidth
-              items={[
-                { key: 'list', label: 'Guest List' },
-                { key: 'scanner', label: 'QR Scanner' },
-              ]}
-              value={checkinMode}
-              onChange={setCheckinMode}
-              style={{ borderBottomWidth: 0, marginBottom: 16 }}
-              contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 0 }}
-            />
-
-            {/* ── List Mode ── */}
-            {checkinMode === 'list' && (
+          <>
+            {/* ── Volunteer Staff Management ── */}
+            {activeSection === 'volunteers' && (
               <View>
-                {/* Search bar */}
-                <TextInput
-                  value={checkinSearch}
-                  onChangeText={setCheckinSearch}
-                  placeholder="Search by name…"
-                  placeholderTextColor={theme.colors.textMuted}
+                <Text
                   style={{
-                    backgroundColor: theme.colors.card,
                     color: theme.colors.text,
-                    borderRadius: 10,
-                    paddingHorizontal: 14,
-                    paddingVertical: 11,
-                    borderColor: theme.colors.border,
-                    borderWidth: 1,
-                    fontSize: 14,
+                    fontSize: 17,
+                    fontWeight: '800',
                     marginBottom: 14,
                   }}
-                />
-
-                {filteredReservations.length === 0 ? (
+                >
+                  🙌 Volunteer Staff
+                </Text>
+                {volunteers.length === 0 ? (
                   <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                     <Ionicons name="people-outline" size={40} color={theme.colors.textMuted} />
                     <Text style={{ color: theme.colors.textMuted, marginTop: 10, fontSize: 14 }}>
-                      {checkinSearch ? 'No matching attendees' : 'No attendees yet'}
+                      No volunteers for this event
                     </Text>
                   </View>
                 ) : (
-                  filteredReservations.map((r: any) => (
-                    <AttendeeCard
-                      key={r.id}
-                      reservation={r}
-                      onCheckin={() => manualCheckinMutation.mutate({ id: r.id, status: 'checked_in' })}
+                  volunteers.map((v: any) => {
+                    const status = getVolunteerStatus(v);
+                    const isPending = status.label === 'Pending';
+                    return (
+                      <View
+                        key={v.id}
+                        style={{
+                          backgroundColor: theme.colors.card,
+                          borderRadius: 12,
+                          padding: 14,
+                          marginBottom: 10,
+                          borderColor: theme.colors.border,
+                          borderWidth: 1,
+                        }}
+                      >
+                        <View
+                          style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text
+                              style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}
+                            >
+                              {v.displayName ?? v.memberName ?? v.userName ?? `User #${v.userId}`}
+                            </Text>
+                            <Text
+                              style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}
+                            >
+                              {TICKET_TYPE_LABELS[v.ticketType] ?? v.ticketType ?? 'Volunteer'}
+                            </Text>
+                          </View>
+                          <View
+                            style={{
+                              backgroundColor: `${status.color}22`,
+                              paddingHorizontal: 10,
+                              paddingVertical: 4,
+                              borderRadius: 20,
+                            }}
+                          >
+                            <Text style={{ color: status.color, fontSize: 11, fontWeight: '700' }}>
+                              {status.label}
+                            </Text>
+                          </View>
+                        </View>
+                        {isPending && (
+                          <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <TouchableOpacity
+                              onPress={() =>
+                                Alert.alert(
+                                  '✅ Mark Complete?',
+                                  `Credit ${v.displayName ?? 'this volunteer'} their ticket amount?`,
+                                  [
+                                    {
+                                      text: 'Yes, Credit Them',
+                                      onPress: () =>
+                                        creditVolunteerMutation.mutate({ reservationId: v.id }),
+                                    },
+                                    { text: 'Cancel', style: 'cancel' },
+                                  ]
+                                )
+                              }
+                              disabled={creditVolunteerMutation.isPending}
+                              style={{
+                                flex: 1,
+                                backgroundColor: '#10B98122',
+                                borderRadius: 10,
+                                paddingVertical: 10,
+                                alignItems: 'center',
+                                borderColor: '#10B98144',
+                                borderWidth: 1,
+                              }}
+                            >
+                              <Text style={{ color: '#10B981', fontWeight: '700', fontSize: 13 }}>
+                                ✅ Mark Complete
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() =>
+                                Alert.alert(
+                                  '⚠️ Mark No-Show?',
+                                  'This volunteer will not receive a refund.',
+                                  [
+                                    {
+                                      text: 'Confirm No-Show',
+                                      style: 'destructive',
+                                      onPress: () =>
+                                        markNoShowMutation.mutate({ reservationId: v.id }),
+                                    },
+                                    { text: 'Cancel', style: 'cancel' },
+                                  ]
+                                )
+                              }
+                              disabled={markNoShowMutation.isPending}
+                              style={{
+                                flex: 1,
+                                backgroundColor: '#EF444422',
+                                borderRadius: 10,
+                                paddingVertical: 10,
+                                alignItems: 'center',
+                                borderColor: '#EF444444',
+                                borderWidth: 1,
+                              }}
+                            >
+                              <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 13 }}>
+                                ❌ No Show
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            )}
+
+            {/* ── Setup Duties Checklist ── */}
+            {activeSection === 'duties' && (
+              <View>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 17,
+                    fontWeight: '800',
+                    marginBottom: 4,
+                  }}
+                >
+                  🛠️ Setup Duties
+                </Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 14 }}>
+                  Stored locally per device
+                </Text>
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    marginBottom: 20,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                  }}
+                >
+                  {SETUP_DUTIES.map((item) => (
+                    <DutyCheckbox
+                      key={item.id}
+                      item={item}
+                      completed={!!completedSetup[item.id]}
+                      onToggle={() => toggleSetup(item.id)}
                       theme={theme}
                     />
-                  ))
-                )}
+                  ))}
+                </View>
+
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 17,
+                    fontWeight: '800',
+                    marginBottom: 14,
+                  }}
+                >
+                  🧹 Teardown Duties
+                </Text>
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    marginBottom: 20,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                  }}
+                >
+                  {TEARDOWN_DUTIES.map((item) => (
+                    <DutyCheckbox
+                      key={item.id}
+                      item={item}
+                      completed={!!completedTeardown[item.id]}
+                      onToggle={() => toggleTeardown(item.id)}
+                      theme={theme}
+                    />
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert('Reset Checklist?', 'Clear all completed duties?', [
+                      {
+                        text: 'Reset',
+                        style: 'destructive',
+                        onPress: () => {
+                          setCompletedSetup({});
+                          setCompletedTeardown({});
+                          saveDuties({}, {});
+                        },
+                      },
+                      { text: 'Cancel', style: 'cancel' },
+                    ])
+                  }
+                  style={{ alignItems: 'center', paddingVertical: 12 }}
+                >
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>
+                    Reset All Duties
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 
-            {/* ── Scanner Mode ── */}
-            {checkinMode === 'scanner' && (
+            {/* ── Attendee Stats ── */}
+            {activeSection === 'stats' && (
               <View>
-                {!permission ? (
-                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                    <ActivityIndicator color={colors.pink} size="large" />
-                  </View>
-                ) : !permission.granted ? (
-                  <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                    <Ionicons name="camera-outline" size={48} color={theme.colors.textMuted} style={{ marginBottom: 16 }} />
-                    <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
-                      Camera Permission Required
-                    </Text>
-                    <Text style={{ color: theme.colors.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
-                      We need camera access to scan QR codes at check-in.
-                    </Text>
-                    <TouchableOpacity
-                      onPress={requestPermission}
-                      style={{ backgroundColor: colors.pink, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
-                    >
-                      <Text style={{ color: '#fff', fontWeight: '700' }}>Grant Permission</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View>
-                    {/* Camera viewfinder */}
-                    <View style={{ height: 320, borderRadius: 16, overflow: 'hidden', position: 'relative', marginBottom: 16 }}>
-                      <CameraView
-                        style={StyleSheet.absoluteFillObject}
-                        facing="back"
-                        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-                        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                      />
-                      {/* Scan overlay */}
-                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                        <View style={{ width: 200, height: 200, position: 'relative' }}>
-                          {[
-                            { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
-                            { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
-                            { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3 },
-                            { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3 },
-                          ].map((style, i) => (
-                            <View
-                              key={i}
-                              style={{
-                                position: 'absolute',
-                                width: 32,
-                                height: 32,
-                                borderColor: scanned ? '#10B981' : colors.pink,
-                                ...style,
-                              }}
-                            />
-                          ))}
-                        </View>
-                        <Text style={{ color: 'rgba(255,255,255,0.85)', marginTop: 16, fontSize: 13 }}>
-                          {isCheckingIn ? 'Processing…' : scanned ? 'Hold on…' : 'Align QR code within the frame'}
-                        </Text>
-                        {isCheckingIn && <ActivityIndicator color={colors.pink} style={{ marginTop: 8 }} />}
-                      </View>
-                    </View>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 17,
+                    fontWeight: '800',
+                    marginBottom: 14,
+                  }}
+                >
+                  📊 Attendee Stats
+                </Text>
 
-                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, textAlign: 'center' }}>
-                      Point the camera at a guest&apos;s QR code to check them in automatically
+                {/* Totals card */}
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      marginBottom: 10,
+                    }}
+                  >
+                    Overview
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <View style={{ alignItems: 'center', flex: 1 }}>
+                      <Text style={{ color: theme.colors.text, fontSize: 28, fontWeight: '800' }}>
+                        {reservations.length}
+                      </Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Total</Text>
+                    </View>
+                    <View style={{ alignItems: 'center', flex: 1 }}>
+                      <Text style={{ color: '#10B981', fontSize: 28, fontWeight: '800' }}>
+                        {checkedIn}
+                      </Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                        Checked In
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center', flex: 1 }}>
+                      <Text style={{ color: '#F59E0B', fontSize: 28, fontWeight: '800' }}>
+                        {reservations.length - checkedIn}
+                      </Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Remaining</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Ticket type breakdown */}
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      marginBottom: 10,
+                    }}
+                  >
+                    By Ticket Type
+                  </Text>
+                  {Object.entries(ticketBreakdown).map(([type, count]) => (
+                    <View
+                      key={type}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        paddingVertical: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.text, fontSize: 14 }}>
+                        {TICKET_TYPE_LABELS[type] ?? type}
+                      </Text>
+                      <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '700' }}>
+                        {count as number}
+                      </Text>
+                    </View>
+                  ))}
+                  {Object.keys(ticketBreakdown).length === 0 && (
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>
+                      No reservations yet
                     </Text>
+                  )}
+                </View>
+
+                {/* Payment status breakdown */}
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      marginBottom: 10,
+                    }}
+                  >
+                    By Payment Status
+                  </Text>
+                  {Object.entries(paymentBreakdown).map(([status, count]) => {
+                    const statusColors: Record<string, string> = {
+                      paid: '#10B981',
+                      pending: '#F59E0B',
+                      refunded: '#6B7280',
+                      failed: '#EF4444',
+                      partial: '#F59E0B',
+                    };
+                    const c = statusColors[status] ?? theme.colors.textMuted;
+                    return (
+                      <View
+                        key={status}
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          paddingVertical: 6,
+                        }}
+                      >
+                        <Text style={{ color: c, fontSize: 14, textTransform: 'capitalize' }}>
+                          {status.replace('_', ' ')}
+                        </Text>
+                        <Text style={{ color: c, fontSize: 14, fontWeight: '700' }}>
+                          {count as number}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                  {Object.keys(paymentBreakdown).length === 0 && (
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>
+                      No reservations yet
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* ── Quick Actions ── */}
+            {activeSection === 'actions' && (
+              <View>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 17,
+                    fontWeight: '800',
+                    marginBottom: 14,
+                  }}
+                >
+                  ⚡ Quick Actions
+                </Text>
+
+                {/* Send Reminder */}
+                <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert(
+                      '📨 Send Reminders?',
+                      `Send payment reminders to ${reservations.filter((r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled').length} unpaid attendees?`,
+                      [
+                        {
+                          text: 'Send',
+                          onPress: () => sendRemindersMutation.mutate({ eventId: Number(eventId) }),
+                        },
+                        { text: 'Cancel', style: 'cancel' },
+                      ]
+                    )
+                  }
+                  disabled={sendRemindersMutation.isPending}
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 14,
+                  }}
+                >
+                  {sendRemindersMutation.isPending ? (
+                    <ActivityIndicator color={colors.pink} size="small" />
+                  ) : (
+                    <Ionicons name="notifications-outline" size={24} color={colors.pink} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
+                      Send Reminder to Unpaid
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
+                      Notify{' '}
+                      {
+                        reservations.filter(
+                          (r: any) => r.paymentStatus === 'pending' && r.status !== 'cancelled'
+                        ).length
+                      }{' '}
+                      pending attendees
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                </TouchableOpacity>
+
+                {/* Export Attendee List */}
+                <TouchableOpacity
+                  onPress={() => setShowExportModal(true)}
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 14,
+                  }}
+                >
+                  <Ionicons name="list-outline" size={24} color={colors.purple} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
+                      Export Attendee List
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
+                      {reservations.length} attendees
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ── Check-In ── */}
+            {activeSection === 'checkin' && (
+              <View>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 17,
+                    fontWeight: '800',
+                    marginBottom: 14,
+                  }}
+                >
+                  🎟️ Check-In · {checkedIn}/{reservations.length}
+                </Text>
+
+                {/* Mode toggle */}
+                <PillTabs
+                  equalWidth
+                  items={[
+                    { key: 'list', label: 'Guest List' },
+                    { key: 'scanner', label: 'QR Scanner' },
+                  ]}
+                  value={checkinMode}
+                  onChange={setCheckinMode}
+                  style={{ borderBottomWidth: 0, marginBottom: 16 }}
+                  contentContainerStyle={{ paddingHorizontal: 0, paddingVertical: 0 }}
+                />
+
+                {/* ── List Mode ── */}
+                {checkinMode === 'list' && (
+                  <View>
+                    {/* Search bar */}
+                    <TextInput
+                      value={checkinSearch}
+                      onChangeText={setCheckinSearch}
+                      placeholder="Search by name…"
+                      placeholderTextColor={theme.colors.textMuted}
+                      style={{
+                        backgroundColor: theme.colors.card,
+                        color: theme.colors.text,
+                        borderRadius: 10,
+                        paddingHorizontal: 14,
+                        paddingVertical: 11,
+                        borderColor: theme.colors.border,
+                        borderWidth: 1,
+                        fontSize: 14,
+                        marginBottom: 14,
+                      }}
+                    />
+
+                    {filteredReservations.length === 0 ? (
+                      <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                        <Ionicons name="people-outline" size={40} color={theme.colors.textMuted} />
+                        <Text
+                          style={{ color: theme.colors.textMuted, marginTop: 10, fontSize: 14 }}
+                        >
+                          {checkinSearch ? 'No matching attendees' : 'No attendees yet'}
+                        </Text>
+                      </View>
+                    ) : (
+                      filteredReservations.map((r: any) => (
+                        <AttendeeCard
+                          key={r.id}
+                          reservation={r}
+                          onCheckin={() =>
+                            manualCheckinMutation.mutate({ id: r.id, status: 'checked_in' })
+                          }
+                          theme={theme}
+                        />
+                      ))
+                    )}
+                  </View>
+                )}
+
+                {/* ── Scanner Mode ── */}
+                {checkinMode === 'scanner' && (
+                  <View>
+                    {!permission ? (
+                      <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                        <ActivityIndicator color={colors.pink} size="large" />
+                      </View>
+                    ) : !permission.granted ? (
+                      <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                        <Ionicons
+                          name="camera-outline"
+                          size={48}
+                          color={theme.colors.textMuted}
+                          style={{ marginBottom: 16 }}
+                        />
+                        <Text
+                          style={{
+                            color: theme.colors.text,
+                            fontSize: 16,
+                            fontWeight: '700',
+                            marginBottom: 8,
+                            textAlign: 'center',
+                          }}
+                        >
+                          Camera Permission Required
+                        </Text>
+                        <Text
+                          style={{
+                            color: theme.colors.textMuted,
+                            fontSize: 13,
+                            textAlign: 'center',
+                            marginBottom: 20,
+                          }}
+                        >
+                          We need camera access to scan QR codes at check-in.
+                        </Text>
+                        <TouchableOpacity
+                          onPress={requestPermission}
+                          style={{
+                            backgroundColor: colors.pink,
+                            paddingHorizontal: 24,
+                            paddingVertical: 12,
+                            borderRadius: 12,
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: '700' }}>Grant Permission</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View>
+                        {/* Camera viewfinder */}
+                        <View
+                          style={{
+                            height: 320,
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                            position: 'relative',
+                            marginBottom: 16,
+                          }}
+                        >
+                          <CameraView
+                            style={StyleSheet.absoluteFillObject}
+                            facing="back"
+                            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                          />
+                          {/* Scan overlay */}
+                          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                            <View style={{ width: 200, height: 200, position: 'relative' }}>
+                              {[
+                                { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
+                                { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
+                                { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3 },
+                                { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3 },
+                              ].map((style, i) => (
+                                <View
+                                  key={i}
+                                  style={{
+                                    position: 'absolute',
+                                    width: 32,
+                                    height: 32,
+                                    borderColor: scanned ? '#10B981' : colors.pink,
+                                    ...style,
+                                  }}
+                                />
+                              ))}
+                            </View>
+                            <Text
+                              style={{
+                                color: 'rgba(255,255,255,0.85)',
+                                marginTop: 16,
+                                fontSize: 13,
+                              }}
+                            >
+                              {isCheckingIn
+                                ? 'Processing…'
+                                : scanned
+                                  ? 'Hold on…'
+                                  : 'Align QR code within the frame'}
+                            </Text>
+                            {isCheckingIn && (
+                              <ActivityIndicator color={colors.pink} style={{ marginTop: 8 }} />
+                            )}
+                          </View>
+                        </View>
+
+                        <Text
+                          style={{
+                            color: theme.colors.textMuted,
+                            fontSize: 12,
+                            textAlign: 'center',
+                          }}
+                        >
+                          Point the camera at a guest&apos;s QR code to check them in automatically
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
             )}
-          </View>
-        )}
-
-        </>
+          </>
         )}
       </ScrollView>
 
       {/* Scan Result Modal */}
       <Modal visible={!!scanResult} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <View style={{
-            backgroundColor: theme.colors.card,
-            borderRadius: 24,
-            padding: 28,
-            width: '100%',
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            justifyContent: 'center',
             alignItems: 'center',
-            borderColor: scanResult?.success ? '#10B981' : '#EF4444',
-            borderWidth: 2,
-          }}>
+            padding: 24,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: theme.colors.card,
+              borderRadius: 24,
+              padding: 28,
+              width: '100%',
+              alignItems: 'center',
+              borderColor: scanResult?.success ? '#10B981' : '#EF4444',
+              borderWidth: 2,
+            }}
+          >
             {scanResult?.success ? (
               <>
                 {/* Avatar */}
-                <View style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 40,
-                  backgroundColor: `${WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7'}33`,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 16,
-                  borderWidth: 3,
-                  borderColor: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
-                }}>
+                <View
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: `${WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7'}33`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                    borderWidth: 3,
+                    borderColor:
+                      WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
+                  }}
+                >
                   {scanResult.avatarUrl ? (
                     <Image
                       source={{ uri: scanResult.avatarUrl }}
                       style={{ width: 80, height: 80, borderRadius: 40 }}
                     />
                   ) : (
-                    <Text style={{ fontSize: 36 }}>{WRISTBAND_EMOJI[scanResult.wristbandColor ?? 'purple'] ?? '👤'}</Text>
+                    <Text style={{ fontSize: 36 }}>
+                      {WRISTBAND_EMOJI[scanResult.wristbandColor ?? 'purple'] ?? '👤'}
+                    </Text>
                   )}
                 </View>
 
-                <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: '900', marginBottom: 4 }}>
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 24,
+                    fontWeight: '900',
+                    marginBottom: 4,
+                  }}
+                >
                   {scanResult.guestName ?? 'Guest'}
                 </Text>
                 <Text style={{ color: theme.colors.textMuted, fontSize: 14, marginBottom: 12 }}>
@@ -767,39 +1253,71 @@ export default function EventOpsScreen() {
                 </Text>
 
                 {/* Wristband badge */}
-                <View style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  marginBottom: 20,
-                  backgroundColor: `${WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7'}22`,
-                  borderWidth: 1,
-                  borderColor: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
-                }}>
-                  <Text style={{ color: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7', fontWeight: '700' }}>
-                    {WRISTBAND_EMOJI[scanResult.wristbandColor ?? 'purple']} {scanResult.wristbandColor} wristband
+                <View
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    marginBottom: 20,
+                    backgroundColor: `${WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7'}22`,
+                    borderWidth: 1,
+                    borderColor:
+                      WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: WRISTBAND_COLORS[scanResult.wristbandColor ?? 'purple'] ?? '#A855F7',
+                      fontWeight: '700',
+                    }}
+                  >
+                    {WRISTBAND_EMOJI[scanResult.wristbandColor ?? 'purple']}{' '}
+                    {scanResult.wristbandColor} wristband
                   </Text>
                 </View>
 
                 {scanResult.isQueerPlay && (
-                  <View style={{ backgroundColor: '#FF6B6B22', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginBottom: 16 }}>
+                  <View
+                    style={{
+                      backgroundColor: '#FF6B6B22',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 20,
+                      marginBottom: 16,
+                    }}
+                  >
                     <Text style={{ color: '#FF6B6B', fontWeight: '700' }}>🌈 Queer Play Zone</Text>
                   </View>
                 )}
 
                 {scanResult.alreadyCheckedIn ? (
-                  <View style={{ backgroundColor: '#F59E0B22', padding: 12, borderRadius: 10, marginBottom: 16, width: '100%' }}>
-                    <Text style={{ color: '#F59E0B', fontWeight: '700', textAlign: 'center' }}>⚠️ Already Checked In</Text>
+                  <View
+                    style={{
+                      backgroundColor: '#F59E0B22',
+                      padding: 12,
+                      borderRadius: 10,
+                      marginBottom: 16,
+                      width: '100%',
+                    }}
+                  >
+                    <Text style={{ color: '#F59E0B', fontWeight: '700', textAlign: 'center' }}>
+                      ⚠️ Already Checked In
+                    </Text>
                   </View>
                 ) : (
-                  <TouchableOpacity onPress={handleConfirmCheckin} style={{ width: '100%', marginBottom: 10 }}>
+                  <TouchableOpacity
+                    onPress={handleConfirmCheckin}
+                    style={{ width: '100%', marginBottom: 10 }}
+                  >
                     <LinearGradient
                       colors={['#10B981', '#059669']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={{ borderRadius: 14, padding: 16, alignItems: 'center' }}
                     >
-                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>✅ Checked In!</Text>
+                      <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18 }}>
+                        ✅ Checked In!
+                      </Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
@@ -807,8 +1325,14 @@ export default function EventOpsScreen() {
             ) : (
               <>
                 <Text style={{ fontSize: 48, marginBottom: 12 }}>❌</Text>
-                <Text style={{ color: '#EF4444', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Ticket Not Found</Text>
-                <Text style={{ color: theme.colors.textMuted, textAlign: 'center' }}>{scanResult?.error ?? 'Invalid QR code'}</Text>
+                <Text
+                  style={{ color: '#EF4444', fontSize: 18, fontWeight: '700', marginBottom: 8 }}
+                >
+                  Ticket Not Found
+                </Text>
+                <Text style={{ color: theme.colors.textMuted, textAlign: 'center' }}>
+                  {scanResult?.error ?? 'Invalid QR code'}
+                </Text>
               </>
             )}
 
@@ -822,9 +1346,21 @@ export default function EventOpsScreen() {
       {/* Export Modal */}
       <Modal visible={showExportModal} animationType="slide" transparent>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: theme.colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%', borderColor: theme.colors.border, borderTopWidth: 1 }}>
+          <View
+            style={{
+              backgroundColor: theme.colors.background,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 20,
+              maxHeight: '85%',
+              borderColor: theme.colors.border,
+              borderTopWidth: 1,
+            }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>📋 Attendee List</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>
+                📋 Attendee List
+              </Text>
               <TouchableOpacity onPress={() => setShowExportModal(false)}>
                 <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </TouchableOpacity>
@@ -836,7 +1372,15 @@ export default function EventOpsScreen() {
               renderItem={({ item }: { item: any }) => {
                 const wristband = WRISTBAND_CONFIG[item.wristbandColor ?? ''];
                 return (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomColor: theme.colors.border, borderBottomWidth: 1 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      borderBottomColor: theme.colors.border,
+                      borderBottomWidth: 1,
+                    }}
+                  >
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 14 }}>
                         {item.displayName ?? item.memberName ?? item.userName ?? `#${item.userId}`}
@@ -848,7 +1392,14 @@ export default function EventOpsScreen() {
                     {wristband ? (
                       <Text style={{ fontSize: 20 }}>{wristband.emoji}</Text>
                     ) : (
-                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.alpha(theme.colors.textMuted, 0.2) }} />
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: theme.alpha(theme.colors.textMuted, 0.2),
+                        }}
+                      />
                     )}
                   </View>
                 );
@@ -863,7 +1414,15 @@ export default function EventOpsScreen() {
 
             <TouchableOpacity
               onPress={() => setShowExportModal(false)}
-              style={{ marginTop: 16, paddingVertical: 14, alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}
+              style={{
+                marginTop: 16,
+                paddingVertical: 14,
+                alignItems: 'center',
+                backgroundColor: theme.colors.card,
+                borderRadius: 12,
+                borderColor: theme.colors.border,
+                borderWidth: 1,
+              }}
             >
               <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Close</Text>
             </TouchableOpacity>
