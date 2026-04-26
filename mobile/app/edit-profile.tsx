@@ -25,35 +25,53 @@ import { useToast } from '../components/Toast';
 import { useTheme } from '../lib/theme';
 
 // ── Locked field for sensitive profile data ──────────────────────────────────
-function LockedField({ label, value, onRequestChange }: { label: string; value: string; onRequestChange: () => void }) {
+function LockedField({
+  label,
+  value,
+  onRequestChange,
+}: {
+  label: string;
+  value: string;
+  onRequestChange: () => void;
+}) {
   const theme = useTheme();
-  const t = { muted: theme.colors.textMuted, input: theme.colors.input, border: theme.colors.border };
+  const t = {
+    muted: theme.colors.textMuted,
+    input: theme.colors.input,
+    border: theme.colors.border,
+  };
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={{
-        color: t.muted,
-        fontSize: 11,
-        fontWeight: '800',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginBottom: 6,
-      }}>
+      <Text
+        style={{
+          color: t.muted,
+          fontSize: 11,
+          fontWeight: '800',
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+          marginBottom: 6,
+        }}
+      >
         {label}
       </Text>
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: t.input,
-        borderRadius: 14,
-        borderColor: t.border,
-        borderWidth: 1,
-        paddingHorizontal: 16,
-        paddingVertical: 13,
-      }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: t.input,
+          borderRadius: 14,
+          borderColor: t.border,
+          borderWidth: 1,
+          paddingHorizontal: 16,
+          paddingVertical: 13,
+        }}
+      >
         <Text style={{ flex: 1, color: t.muted, fontSize: 15 }}>{value || 'Not set'}</Text>
         <Ionicons name="lock-closed" size={16} color={t.muted} style={{ marginRight: 10 }} />
         <TouchableOpacity onPress={onRequestChange}>
-          <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>Request Change</Text>
+          <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>
+            Request Change
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -78,8 +96,19 @@ export default function EditProfileScreen() {
     focus: theme.colors.focusRing,
   };
 
-  const { data: profileData, isLoading, isError: profileIsError, error: profileError, refetch: refetchProfile } = trpc.profile.me.useQuery();
-  const { data: meData, isError: meIsError, error: meError, refetch: refetchMe } = trpc.auth.me.useQuery();
+  const {
+    data: profileData,
+    isLoading,
+    isError: profileIsError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = trpc.profile.me.useQuery();
+  const {
+    data: meData,
+    isError: meIsError,
+    error: meError,
+    refetch: refetchMe,
+  } = trpc.auth.me.useQuery();
 
   const toast = useToast();
 
@@ -166,7 +195,7 @@ export default function EditProfileScreen() {
       if (location.trim()) payload.location = location.trim();
       if (dateOfBirth.trim()) payload.dateOfBirth = dateOfBirth.trim();
       await upsertMutation.mutateAsync(payload);
-    } catch (err: any) {
+    } catch {
       // error handled in onError
     } finally {
       setSaving(false);
@@ -175,7 +204,9 @@ export default function EditProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center' }}
+      >
         <ActivityIndicator color={colors.pink} size="large" />
       </SafeAreaView>
     );
@@ -183,11 +214,53 @@ export default function EditProfileScreen() {
 
   if (loadError) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: t.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: t.page,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 28,
+        }}
+      >
         <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
-        <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load your profile</Text>
-        <Text style={{ color: t.subtext, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{loadErrorMessage ?? 'Please try again in a moment.'}</Text>
-        <TouchableOpacity onPress={() => { refetchProfile(); refetchMe(); }} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}>
+        <Text
+          style={{
+            color: t.text,
+            fontSize: 20,
+            fontWeight: '800',
+            textAlign: 'center',
+            marginTop: 14,
+          }}
+        >
+          Could not load your profile
+        </Text>
+        <Text
+          style={{
+            color: t.subtext,
+            fontSize: 14,
+            textAlign: 'center',
+            lineHeight: 21,
+            marginTop: 8,
+          }}
+        >
+          {loadErrorMessage ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            refetchProfile();
+            refetchMe();
+          }}
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: t.surface,
+            borderWidth: 1,
+            borderColor: t.border,
+          }}
+        >
           <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -198,17 +271,35 @@ export default function EditProfileScreen() {
     Alert.alert(
       'Request Change',
       `To change your ${field}, please contact an admin. Changes to sensitive profile fields require admin approval to maintain community integrity.`,
-      [
-        { text: 'OK' },
-        { text: 'Message Admin', onPress: () => router.push('/messages' as any) },
-      ]
+      [{ text: 'OK' }, { text: 'Message Admin', onPress: () => router.push('/messages' as any) }]
     );
   }
 
   const editableFields = [
-    { label: 'DISPLAY NAME', value: displayName, setter: setDisplayName, placeholder: 'Your display name', multiline: false, maxLen: 50 },
-    { label: 'BIO', value: bio, setter: setBio, placeholder: 'Tell the community about yourself...', multiline: true, maxLen: 200 },
-    { label: 'LOCATION', value: location, setter: setLocation, placeholder: 'City, State', multiline: false, maxLen: 80 },
+    {
+      label: 'DISPLAY NAME',
+      value: displayName,
+      setter: setDisplayName,
+      placeholder: 'Your display name',
+      multiline: false,
+      maxLen: 50,
+    },
+    {
+      label: 'BIO',
+      value: bio,
+      setter: setBio,
+      placeholder: 'Tell the community about yourself...',
+      multiline: true,
+      maxLen: 200,
+    },
+    {
+      label: 'LOCATION',
+      value: location,
+      setter: setLocation,
+      placeholder: 'City, State',
+      multiline: false,
+      maxLen: 80,
+    },
   ];
 
   return (
@@ -238,7 +329,9 @@ export default function EditProfileScreen() {
           >
             <Ionicons name="chevron-back" size={22} color={t.text} />
           </Pressable>
-          <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', flex: 1 }}>Edit Profile ✏️</Text>
+          <Text style={{ color: t.text, fontSize: 24, fontWeight: '900', flex: 1 }}>
+            Edit Profile ✏️
+          </Text>
         </View>
       </LinearGradient>
 
@@ -254,19 +347,25 @@ export default function EditProfileScreen() {
           <View style={{ alignItems: 'center', paddingVertical: 28 }}>
             <View style={{ position: 'relative' }}>
               {/* Glow ring */}
-              <View style={{
-                width: 106,
-                height: 106,
-                borderRadius: 53,
-                borderWidth: 3,
-                borderColor: '#EC4899',
-                shadowColor: '#EC4899',
-                shadowOpacity: 0.4,
-                shadowRadius: 12,
-                shadowOffset: { width: 0, height: 0 },
-                overflow: 'hidden',
-              }}>
-                <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.85} style={{ flex: 1 }}>
+              <View
+                style={{
+                  width: 106,
+                  height: 106,
+                  borderRadius: 53,
+                  borderWidth: 3,
+                  borderColor: '#EC4899',
+                  shadowColor: '#EC4899',
+                  shadowOpacity: 0.4,
+                  shadowRadius: 12,
+                  shadowOffset: { width: 0, height: 0 },
+                  overflow: 'hidden',
+                }}
+              >
+                <TouchableOpacity
+                  onPress={handlePickAvatar}
+                  activeOpacity={0.85}
+                  style={{ flex: 1 }}
+                >
                   {avatarUrl ? (
                     <Image
                       source={{ uri: avatarUrl }}
@@ -274,7 +373,14 @@ export default function EditProfileScreen() {
                       onError={() => {}}
                     />
                   ) : (
-                    <View style={{ flex: 1, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center' }}>
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: t.surface,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
                       <Ionicons name="person" size={40} color={t.muted} />
                     </View>
                   )}
@@ -309,25 +415,32 @@ export default function EditProfileScreen() {
           </View>
 
           {/* ── Personal Info Section Card ── */}
-          <View style={{
-            backgroundColor: t.surface,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: t.border,
-            padding: 16,
-            marginHorizontal: 16,
-            marginBottom: 12,
-          }}>
+          <View
+            style={{
+              backgroundColor: t.surface,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: t.border,
+              padding: 16,
+              marginHorizontal: 16,
+              marginBottom: 12,
+            }}
+          >
             {editableFields.map((field, idx) => (
-              <View key={field.label} style={{ marginBottom: idx === editableFields.length - 1 ? 0 : 18 }}>
-                <Text style={{
-                  color: t.muted,
-                  fontSize: 11,
-                  fontWeight: '800',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.8,
-                  marginBottom: 6,
-                }}>
+              <View
+                key={field.label}
+                style={{ marginBottom: idx === editableFields.length - 1 ? 0 : 18 }}
+              >
+                <Text
+                  style={{
+                    color: t.muted,
+                    fontSize: 11,
+                    fontWeight: '800',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.8,
+                    marginBottom: 6,
+                  }}
+                >
                   {field.label}
                 </Text>
                 <TextInput
@@ -362,15 +475,17 @@ export default function EditProfileScreen() {
           </View>
 
           {/* ── Sensitive Fields Section Card ── */}
-          <View style={{
-            backgroundColor: t.surface,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: t.border,
-            padding: 16,
-            marginHorizontal: 16,
-            marginBottom: 20,
-          }}>
+          <View
+            style={{
+              backgroundColor: t.surface,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: t.border,
+              padding: 16,
+              marginHorizontal: 16,
+              marginBottom: 20,
+            }}
+          >
             <LockedField
               label="Date of Birth"
               value={dateOfBirth}
@@ -423,7 +538,9 @@ export default function EditProfileScreen() {
                 ) : (
                   <>
                     <Ionicons name="checkmark" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Save Profile</Text>
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                      Save Profile
+                    </Text>
                   </>
                 )}
               </LinearGradient>
