@@ -8,7 +8,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,9 +59,31 @@ export default function AdminReservationsScreen() {
   // Guard AFTER all hooks
   if (!isAdmin) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}>Access Denied</Text>
-        <TouchableOpacity onPress={() => router.back()} style={{ paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24,
+        }}
+      >
+        <Text
+          style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}
+        >
+          Access Denied
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            paddingVertical: 12,
+            paddingHorizontal: 24,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+        >
           <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -82,21 +104,48 @@ export default function AdminReservationsScreen() {
   }
 
   function handleReject(id: number, name: string) {
-    Alert.alert('Reject Reservation', `Reject reservation from ${name}? This will cancel their spot.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reject', style: 'destructive', onPress: () => rejectMutation.mutate({ id }) },
-    ]);
+    Alert.alert(
+      'Reject Reservation',
+      `Reject reservation from ${name}? This will cancel their spot.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reject', style: 'destructive', onPress: () => rejectMutation.mutate({ id }) },
+      ]
+    );
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomColor: theme.colors.border, borderBottomWidth: 1, backgroundColor: theme.colors.pageHeader }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 20,
+          paddingVertical: 14,
+          borderBottomColor: theme.colors.border,
+          borderBottomWidth: 1,
+          backgroundColor: theme.colors.pageHeader,
+        }}
+      >
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 14 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>Manage Reservations</Text>
-        <View style={{ backgroundColor: theme.colors.warningSoft, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: theme.colors.warningBorder }}>
-          <Text style={{ color: theme.colors.warning, fontWeight: '700', fontSize: 13 }}>{reservations.length} pending</Text>
+        <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', flex: 1 }}>
+          Manage Reservations
+        </Text>
+        <View
+          style={{
+            backgroundColor: theme.colors.warningSoft,
+            borderRadius: 20,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.warningBorder,
+          }}
+        >
+          <Text style={{ color: theme.colors.warning, fontWeight: '700', fontSize: 13 }}>
+            {reservations.length} pending
+          </Text>
         </View>
       </View>
 
@@ -105,17 +154,43 @@ export default function AdminReservationsScreen() {
           <ActivityIndicator color={colors.pink} size="large" />
         </View>
       ) : isError ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
+        >
           <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
-          <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          <Text
+            style={{
+              color: theme.colors.text,
+              fontSize: 20,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginTop: 14,
+            }}
+          >
             Could not load reservations
           </Text>
-          <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          <Text
+            style={{
+              color: theme.colors.textMuted,
+              fontSize: 14,
+              textAlign: 'center',
+              lineHeight: 21,
+              marginTop: 8,
+            }}
+          >
             {(error as any)?.message ?? 'Please try again in a moment.'}
           </Text>
           <TouchableOpacity
             onPress={() => refetch()}
-            style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}
+            style={{
+              marginTop: 18,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}
           >
             <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
           </TouchableOpacity>
@@ -123,12 +198,16 @@ export default function AdminReservationsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
+          }
         >
           {reservations.length === 0 && (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Ionicons name="checkmark-circle-outline" size={48} color={theme.colors.success} />
-              <Text style={{ color: theme.colors.textMuted, marginTop: 12, fontSize: 15 }}>No pending reservations</Text>
+              <Text style={{ color: theme.colors.textMuted, marginTop: 12, fontSize: 15 }}>
+                No pending reservations
+              </Text>
             </View>
           )}
           {reservations.map((res: any) => {
@@ -151,25 +230,64 @@ export default function AdminReservationsScreen() {
                   borderWidth: 1,
                 }}
               >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: 8,
+                  }}
+                >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 16 }}>{name}</Text>
-                    {email ? <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 2 }}>{email}</Text> : null}
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 16 }}>
+                      {name}
+                    </Text>
+                    {email ? (
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 2 }}>
+                        {email}
+                      </Text>
+                    ) : null}
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
                     {amount && (
-                      <Text style={{ color: theme.colors.success, fontWeight: '700', fontSize: 15 }}>
+                      <Text
+                        style={{ color: theme.colors.success, fontWeight: '700', fontSize: 15 }}
+                      >
                         ${parseFloat(amount).toFixed(0)}
                       </Text>
                     )}
-                    <View style={{ backgroundColor: theme.colors.warningSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.warningBorder }}>
-                      <Text style={{ color: theme.colors.warning, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' }}>{paymentMethod}</Text>
+                    <View
+                      style={{
+                        backgroundColor: theme.colors.warningSoft,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: theme.colors.warningBorder,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: theme.colors.warning,
+                          fontSize: 11,
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {paymentMethod}
+                      </Text>
                     </View>
                   </View>
                 </View>
 
-                <Text style={{ color: colors.purple, fontWeight: '600', fontSize: 14, marginBottom: 2 }}>{eventName}</Text>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 14 }}>{ticketLabel}</Text>
+                <Text
+                  style={{ color: colors.purple, fontWeight: '600', fontSize: 14, marginBottom: 2 }}
+                >
+                  {eventName}
+                </Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 14 }}>
+                  {ticketLabel}
+                </Text>
 
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <TouchableOpacity
@@ -181,12 +299,20 @@ export default function AdminReservationsScreen() {
                       colors={[theme.colors.success, '#059669']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
-                      style={{ paddingVertical: 12, alignItems: 'center', opacity: (confirmMutation.isPending || rejectMutation.isPending) ? 0.7 : 1 }}
+                      style={{
+                        paddingVertical: 12,
+                        alignItems: 'center',
+                        opacity: confirmMutation.isPending || rejectMutation.isPending ? 0.7 : 1,
+                      }}
                     >
                       {confirmMutation.isPending ? (
                         <ActivityIndicator color={theme.colors.white} size="small" />
                       ) : (
-                        <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 14 }}>✓ Confirm</Text>
+                        <Text
+                          style={{ color: theme.colors.white, fontWeight: '700', fontSize: 14 }}
+                        >
+                          ✓ Confirm
+                        </Text>
                       )}
                     </LinearGradient>
                   </TouchableOpacity>
@@ -203,7 +329,9 @@ export default function AdminReservationsScreen() {
                       borderWidth: 1,
                     }}
                   >
-                    <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 14 }}>✕ Reject</Text>
+                    <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 14 }}>
+                      ✕ Reject
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>

@@ -15,8 +15,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { trpc } from '../../lib/trpc';
 import { FONT } from '../../lib/fonts';
@@ -51,15 +50,26 @@ export default function ChatScreen() {
       friction: 6,
       tension: 80,
     }).start();
-  }, [text]);
+  }, [sendScale, text]);
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const { data: messages, isLoading, isError: messagesIsError, error: messagesError, refetch } = trpc.messages.messages.useQuery(
+  const {
+    data: messages,
+    isLoading,
+    isError: messagesIsError,
+    error: messagesError,
+    refetch,
+  } = trpc.messages.messages.useQuery(
     { conversationId, limit: 100 },
-    { enabled: !!id, staleTime: 5_000, refetchInterval: 5_000 },
+    { enabled: !!id, staleTime: 5_000, refetchInterval: 5_000 }
   );
 
-  const { data: conversations, isError: conversationsIsError, error: conversationsError, refetch: refetchConversations } = trpc.messages.conversations.useQuery(undefined, {
+  const {
+    data: conversations,
+    isError: conversationsIsError,
+    error: conversationsError,
+    refetch: refetchConversations,
+  } = trpc.messages.conversations.useQuery(undefined, {
     enabled: !!id,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
@@ -75,17 +85,26 @@ export default function ChatScreen() {
     'Chat';
 
   const sendMutation = trpc.messages.send.useMutation({
-    onSuccess: () => { setText(''); refetch(); },
+    onSuccess: () => {
+      setText('');
+      refetch();
+    },
     onError: (err: any) => Alert.alert('Could not send message', err.message),
   });
 
   const reactMutation = trpc.messages.addReaction.useMutation({
-    onSuccess: () => { setShowReactions(false); setSelectedMessageId(null); refetch(); },
+    onSuccess: () => {
+      setShowReactions(false);
+      setSelectedMessageId(null);
+      refetch();
+    },
     onError: (err: any) => Alert.alert('Could not add reaction', err.message),
   });
 
   const markRead = trpc.messages.markRead.useMutation({
-    onError: (err: any) => { if (__DEV__) console.error('[chat] markRead failed:', err?.message); },
+    onError: (err: any) => {
+      if (__DEV__) console.error('[chat] markRead failed:', err?.message);
+    },
   });
 
   const blockMutation = trpc.blocking.block.useMutation({
@@ -97,7 +116,8 @@ export default function ChatScreen() {
   });
 
   const reportMutation = trpc.blocking.report.useMutation({
-    onSuccess: () => Alert.alert('Report Submitted', 'Thank you. Our team will review this report.'),
+    onSuccess: () =>
+      Alert.alert('Report Submitted', 'Thank you. Our team will review this report.'),
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
@@ -107,21 +127,41 @@ export default function ChatScreen() {
     Alert.alert('Options', undefined, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Block Member', style: 'destructive',
-        onPress: () => Alert.alert('Block Member', 'They will not be able to see your profile or message you.', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Block', style: 'destructive', onPress: () => blockMutation.mutate({ userId: otherId }) },
-        ]),
+        text: 'Block Member',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Block Member', 'They will not be able to see your profile or message you.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Block',
+              style: 'destructive',
+              onPress: () => blockMutation.mutate({ userId: otherId }),
+            },
+          ]),
       },
       {
         text: 'Report Member',
-        onPress: () => Alert.alert('Report', 'Select a reason:', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Harassment', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'harassment' }) },
-          { text: 'Spam', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'spam' }) },
-          { text: 'Fake Profile', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'fake_profile' }) },
-          { text: 'Inappropriate Content', onPress: () => reportMutation.mutate({ userId: otherId, reason: 'inappropriate_content' }) },
-        ]),
+        onPress: () =>
+          Alert.alert('Report', 'Select a reason:', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Harassment',
+              onPress: () => reportMutation.mutate({ userId: otherId, reason: 'harassment' }),
+            },
+            {
+              text: 'Spam',
+              onPress: () => reportMutation.mutate({ userId: otherId, reason: 'spam' }),
+            },
+            {
+              text: 'Fake Profile',
+              onPress: () => reportMutation.mutate({ userId: otherId, reason: 'fake_profile' }),
+            },
+            {
+              text: 'Inappropriate Content',
+              onPress: () =>
+                reportMutation.mutate({ userId: otherId, reason: 'inappropriate_content' }),
+            },
+          ]),
       },
     ]);
   }
@@ -129,14 +169,15 @@ export default function ChatScreen() {
   // Mark conversation as read on mount
   React.useEffect(() => {
     if (conversationId) markRead.mutate({ conversationId });
-  }, [conversationId]);
+  }, [conversationId, markRead]);
 
-  const msgList = (messages as any[]) ?? [];
+  const msgList = useMemo(() => (messages as any[]) ?? [], [messages]);
 
   // Memoize reversed list to prevent new array allocation every render
   const reversedMessages = useMemo(() => [...msgList].reverse(), [msgList]);
   const chatLoadError = messagesIsError || conversationsIsError;
-  const chatLoadErrorMessage = (messagesError as any)?.message ?? (conversationsError as any)?.message;
+  const chatLoadErrorMessage =
+    (messagesError as any)?.message ?? (conversationsError as any)?.message;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSend = useCallback(() => {
@@ -150,90 +191,98 @@ export default function ChatScreen() {
     setShowReactions(true);
   }, []);
 
-  const handleReact = useCallback((emoji: string) => {
-    if (!selectedMessageId) return;
-    reactMutation.mutate({ messageId: selectedMessageId, emoji });
-  }, [selectedMessageId, reactMutation]);
+  const handleReact = useCallback(
+    (emoji: string) => {
+      if (!selectedMessageId) return;
+      reactMutation.mutate({ messageId: selectedMessageId, emoji });
+    },
+    [selectedMessageId, reactMutation]
+  );
 
-  const renderMessage = useCallback(({ item }: { item: any }) => {
-    const isMine = item.senderId === user?.id;
-    const timeAgo = item.createdAt ? formatDistanceToNow(new Date(item.createdAt)) : '';
+  const renderMessage = useCallback(
+    ({ item }: { item: any }) => {
+      const isMine = item.senderId === user?.id;
+      const timeAgo = item.createdAt ? formatDistanceToNow(new Date(item.createdAt)) : '';
 
-    return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onLongPress={() => handleLongPress(item.id)}
-        style={{
-          flexDirection: isMine ? 'row-reverse' : 'row',
-          alignItems: 'flex-end',
-          marginHorizontal: 12,
-          marginBottom: 10,
-          gap: 8,
-        }}
-      >
-        {!isMine && (
-          <TouchableOpacity
-            onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <View style={styles.avatarGlow}>
-              <Avatar name={item.senderName} size="sm" />
-            </View>
-          </TouchableOpacity>
-        )}
-        <View style={{ maxWidth: '75%' }}>
-          {!isMine && item.senderName && (
+      return (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onLongPress={() => handleLongPress(item.id)}
+          style={{
+            flexDirection: isMine ? 'row-reverse' : 'row',
+            alignItems: 'flex-end',
+            marginHorizontal: 12,
+            marginBottom: 10,
+            gap: 8,
+          }}
+        >
+          {!isMine && (
             <TouchableOpacity
               onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.senderName}>{item.senderName}</Text>
+              <View style={styles.avatarGlow}>
+                <Avatar name={item.senderName} size="sm" />
+              </View>
             </TouchableOpacity>
           )}
+          <View style={{ maxWidth: '75%' }}>
+            {!isMine && item.senderName && (
+              <TouchableOpacity
+                onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.senderName}>{item.senderName}</Text>
+              </TouchableOpacity>
+            )}
 
-          {/* Bubble */}
-          {isMine ? (
-            <LinearGradient
-              colors={[colors.pink, colors.purple]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.bubbleSent}
-            >
-              {item.isDeleted ? (
-                <Text style={styles.deletedTextSent}>Message deleted</Text>
-              ) : (
-                <Text style={styles.bubbleTextSent}>{item.content}</Text>
-              )}
-            </LinearGradient>
-          ) : (
-            <View style={styles.bubbleReceived}>
-              {item.isDeleted ? (
-                <Text style={styles.deletedTextReceived}>Message deleted</Text>
-              ) : (
-                <Text style={styles.bubbleTextReceived}>{item.content}</Text>
-              )}
-            </View>
-          )}
+            {/* Bubble */}
+            {isMine ? (
+              <LinearGradient
+                colors={[colors.pink, colors.purple]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.bubbleSent}
+              >
+                {item.isDeleted ? (
+                  <Text style={styles.deletedTextSent}>Message deleted</Text>
+                ) : (
+                  <Text style={styles.bubbleTextSent}>{item.content}</Text>
+                )}
+              </LinearGradient>
+            ) : (
+              <View style={styles.bubbleReceived}>
+                {item.isDeleted ? (
+                  <Text style={styles.deletedTextReceived}>Message deleted</Text>
+                ) : (
+                  <Text style={styles.bubbleTextReceived}>{item.content}</Text>
+                )}
+              </View>
+            )}
 
-          <Text style={[styles.timestamp, { textAlign: isMine ? 'right' : 'left' }]}>
-            {timeAgo}
-          </Text>
+            <Text style={[styles.timestamp, { textAlign: isMine ? 'right' : 'left' }]}>
+              {timeAgo}
+            </Text>
 
-          {/* Reactions */}
-          {item.reactions && item.reactions.length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-              {item.reactions.map((r: any, i: number) => (
-                <View key={i} style={styles.reactionChip}>
-                  <Text style={styles.reactionText}>{r.emoji} {r.count}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  }, [user?.id]);
+            {/* Reactions */}
+            {item.reactions && item.reactions.length > 0 && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                {item.reactions.map((r: any, i: number) => (
+                  <View key={i} style={styles.reactionChip}>
+                    <Text style={styles.reactionText}>
+                      {r.emoji} {r.count}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [colors.pink, colors.purple, handleLongPress, router, styles, user?.id]
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -247,13 +296,16 @@ export default function ChatScreen() {
           colors={[colors.pageHeader, colors.background, colors.backgroundDeep]}
           style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
-          <TouchableOpacity onPress={() => {
-            if (backTarget) {
-              router.replace(backTarget as any);
-              return;
-            }
-            router.back();
-          }} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => {
+              if (backTarget) {
+                router.replace(backTarget as any);
+                return;
+              }
+              router.back();
+            }}
+            style={styles.backBtn}
+          >
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
 
@@ -269,9 +321,13 @@ export default function ChatScreen() {
               <Avatar name={headerName} size="sm" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.headerName} numberOfLines={1}>{headerName}</Text>
+              <Text style={styles.headerName} numberOfLines={1}>
+                {headerName}
+              </Text>
               <Text style={styles.headerMeta} numberOfLines={1}>
-                {conversation?.type === 'dm' ? 'Private conversation' : `${msgList.length} messages in the room`}
+                {conversation?.type === 'dm'
+                  ? 'Private conversation'
+                  : `${msgList.length} messages in the room`}
               </Text>
             </View>
             {conversation?.type === 'dm' && conversation?.otherUserId && (
@@ -296,11 +352,52 @@ export default function ChatScreen() {
             <ActivityIndicator color={colors.pink} size="large" />
           </View>
         ) : chatLoadError ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingHorizontal: 28,
+            }}
+          >
             <Ionicons name="cloud-offline-outline" size={42} color={colors.textMuted} />
-            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>Could not load this chat</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>{chatLoadErrorMessage ?? 'Please try again in a moment.'}</Text>
-            <TouchableOpacity onPress={() => { refetch(); refetchConversations(); }} style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+            <Text
+              style={{
+                color: colors.text,
+                fontSize: 20,
+                fontWeight: '800',
+                textAlign: 'center',
+                marginTop: 14,
+              }}
+            >
+              Could not load this chat
+            </Text>
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 14,
+                textAlign: 'center',
+                lineHeight: 21,
+                marginTop: 8,
+              }}
+            >
+              {chatLoadErrorMessage ?? 'Please try again in a moment.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                refetch();
+                refetchConversations();
+              }}
+              style={{
+                marginTop: 18,
+                paddingHorizontal: 18,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
               <Text style={{ color: colors.text, fontWeight: '800' }}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -320,8 +417,19 @@ export default function ChatScreen() {
             ListEmptyComponent={
               <View style={{ flex: 1, alignItems: 'center', paddingTop: 60 }}>
                 <Text style={{ fontSize: 40, marginBottom: 12 }}>🌙</Text>
-                <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800', fontFamily: FONT.displayBold }}>No messages yet</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 6 }}>Say hello! 👋</Text>
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontSize: 18,
+                    fontWeight: '800',
+                    fontFamily: FONT.displayBold,
+                  }}
+                >
+                  No messages yet
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 6 }}>
+                  Say hello! 👋
+                </Text>
               </View>
             }
           />
@@ -367,7 +475,10 @@ export default function ChatScreen() {
         <TouchableOpacity
           style={styles.reactionOverlay}
           activeOpacity={1}
-          onPress={() => { setShowReactions(false); setSelectedMessageId(null); }}
+          onPress={() => {
+            setShowReactions(false);
+            setSelectedMessageId(null);
+          }}
         >
           <View style={styles.reactionPicker}>
             {/* Blur-like gradient overlay */}
@@ -377,7 +488,7 @@ export default function ChatScreen() {
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            {REACTIONS.map(emoji => (
+            {REACTIONS.map((emoji) => (
               <TouchableOpacity
                 key={emoji}
                 onPress={() => handleReact(emoji)}
