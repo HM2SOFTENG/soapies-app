@@ -1,8 +1,16 @@
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, TextInput,
-  ActivityIndicator, RefreshControl, ScrollView, Switch, Alert,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  Switch,
+  Alert,
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,11 +78,16 @@ function AnimatedChip({
   active: boolean;
   onSelect: (v: string | undefined) => void;
 }) {
-  const { colors, alpha } = useTheme();
+  const { colors } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>
-    Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    Animated.spring(scale, {
+      toValue: 0.92,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
   const onPressOut = () =>
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
 
@@ -168,7 +181,12 @@ function MemberCard({
   const scale = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () =>
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+    Animated.spring(scale, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
   const onPressOut = () =>
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
 
@@ -267,7 +285,16 @@ function MemberCard({
                   paddingVertical: 2,
                 }}
               >
-                <Text style={{ color: '#EC4899', fontSize: 10, fontWeight: '700', fontFamily: FONT.displaySemiBold }}>💗 Angel</Text>
+                <Text
+                  style={{
+                    color: '#EC4899',
+                    fontSize: 10,
+                    fontWeight: '700',
+                    fontFamily: FONT.displaySemiBold,
+                  }}
+                >
+                  💗 Angel
+                </Text>
               </View>
             )}
           </View>
@@ -296,15 +323,15 @@ function MemberCard({
               }}
             >
               <Ionicons name="hand-left-outline" size={12} color="#22c55e" />
-              <Text style={{ color: '#22c55e', fontSize: 11, fontWeight: '700' }}>Available to poke</Text>
+              <Text style={{ color: '#22c55e', fontSize: 11, fontWeight: '700' }}>
+                Available to poke
+              </Text>
             </View>
           )}
 
           {/* Looking for tags */}
           {lookingForDisplay.length > 0 && (
-            <View
-              style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 2 }}
-            >
+            <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginBottom: 2 }}>
               {lookingForDisplay.map((tag, i) => (
                 <View
                   key={i}
@@ -322,9 +349,7 @@ function MemberCard({
           )}
 
           {/* Location */}
-          {location && (
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>{location}</Text>
-          )}
+          {location && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{location}</Text>}
         </View>
 
         {isComposeMode ? (
@@ -358,9 +383,10 @@ export default function MembersScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string; returnTo?: string }>();
   const isComposeMode = params.mode === 'compose' || params.mode === 'message';
-  const composeReturnTo = typeof params.returnTo === 'string' && params.returnTo.length > 0
-    ? params.returnTo
-    : '/(tabs)/messages';
+  const composeReturnTo =
+    typeof params.returnTo === 'string' && params.returnTo.length > 0
+      ? params.returnTo
+      : '/(tabs)/messages';
   const { hasToken } = useAuth();
 
   // Search & filter state
@@ -390,8 +416,14 @@ export default function MembersScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const activeFilterCount = [community, orientation, gender, memberRole, lookingFor, hasPhoto || undefined]
-    .filter(Boolean).length;
+  const activeFilterCount = [
+    community,
+    orientation,
+    gender,
+    memberRole,
+    lookingFor,
+    hasPhoto || undefined,
+  ].filter(Boolean).length;
 
   const pendingFilterCount = [
     pendingCommunity,
@@ -413,7 +445,7 @@ export default function MembersScreen() {
       lookingFor,
       hasPhoto: hasPhoto || undefined,
     }),
-    [page, query, community, orientation, gender, memberRole, lookingFor, hasPhoto],
+    [page, query, community, orientation, gender, memberRole, lookingFor, hasPhoto]
   );
 
   const { data, isLoading, isError, error, refetch } = trpc.members.browse.useQuery(queryInput, {
@@ -440,7 +472,10 @@ export default function MembersScreen() {
 
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (convId: any) => {
-      router.replace({ pathname: '/chat/[id]', params: { id: String(convId), returnTo: composeReturnTo } } as any);
+      router.replace({
+        pathname: '/chat/[id]',
+        params: { id: String(convId), returnTo: composeReturnTo },
+      } as any);
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
@@ -487,15 +522,7 @@ export default function MembersScreen() {
   }, [resetPagination]);
 
   const removeFilter = useCallback(
-    (
-      type:
-        | 'community'
-        | 'orientation'
-        | 'gender'
-        | 'memberRole'
-        | 'lookingFor'
-        | 'hasPhoto',
-    ) => {
+    (type: 'community' | 'orientation' | 'gender' | 'memberRole' | 'lookingFor' | 'hasPhoto') => {
       resetPagination();
       if (type === 'community') {
         setCommunity(undefined);
@@ -517,7 +544,7 @@ export default function MembersScreen() {
         setPendingHasPhoto(false);
       }
     },
-    [resetPagination],
+    [resetPagination]
   );
 
   const onRefresh = useCallback(async () => {
@@ -540,14 +567,20 @@ export default function MembersScreen() {
       setQuery(v);
       resetPagination();
     },
-    [resetPagination],
+    [resetPagination]
   );
 
   const displayMembers = allMembers.length > 0 ? allMembers : ((data as any[]) ?? []);
   const quickFilterLower = filterQuery.trim().toLowerCase();
   const filteredDisplayMembers = !quickFilterLower
     ? displayMembers
-    : displayMembers.filter((member: any) => [member.displayName, member.bio, member.location, member.city].filter(Boolean).join(' ').toLowerCase().includes(quickFilterLower));
+    : displayMembers.filter((member: any) =>
+        [member.displayName, member.bio, member.location, member.city]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(quickFilterLower)
+      );
   const totalShown = filteredDisplayMembers.length;
 
   const handleMemberPress = useCallback(
@@ -559,7 +592,7 @@ export default function MembersScreen() {
         if (userId) router.push(`/member/${userId}` as any);
       }
     },
-    [isComposeMode, router, createConversation],
+    [isComposeMode, router, createConversation]
   );
 
   const renderItem = useCallback(
@@ -570,7 +603,7 @@ export default function MembersScreen() {
         isComposeMode={isComposeMode}
       />
     ),
-    [handleMemberPress, isComposeMode],
+    [handleMemberPress, isComposeMode]
   );
 
   const renderFooter = () => {
@@ -636,7 +669,17 @@ export default function MembersScreen() {
             }
             router.back();
           }}
-          style={{ marginRight: 12, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: t.elevated, borderWidth: 1, borderColor: t.border }}
+          style={{
+            marginRight: 12,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: t.elevated,
+            borderWidth: 1,
+            borderColor: t.border,
+          }}
         >
           <Ionicons name="arrow-back" size={22} color={t.text} />
         </TouchableOpacity>
@@ -665,7 +708,8 @@ export default function MembersScreen() {
               }}
             >
               <Text style={{ color: '#EC4899', fontSize: 11, fontWeight: '800' }}>
-                {totalShown}{hasMore ? '+' : ''}
+                {totalShown}
+                {hasMore ? '+' : ''}
               </Text>
             </View>
           )}
@@ -730,7 +774,16 @@ export default function MembersScreen() {
           paddingVertical: 14,
         }}
       >
-        <Text style={{ color: '#8B84A7', fontSize: 11, fontWeight: '800', letterSpacing: 1.1, marginBottom: 10, fontFamily: FONT.displaySemiBold }}>
+        <Text
+          style={{
+            color: '#8B84A7',
+            fontSize: 11,
+            fontWeight: '800',
+            letterSpacing: 1.1,
+            marginBottom: 10,
+            fontFamily: FONT.displaySemiBold,
+          }}
+        >
           DISCOVER
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -767,7 +820,12 @@ export default function MembersScreen() {
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="options-outline" size={18} color={t.subtext} style={{ marginRight: 10 }} />
+          <Ionicons
+            name="options-outline"
+            size={18}
+            color={t.subtext}
+            style={{ marginRight: 10 }}
+          />
           <TextInput
             value={filterQuery}
             onChangeText={setFilterQuery}
@@ -811,9 +869,7 @@ export default function MembersScreen() {
                 {chip.label}
               </Text>
               <TouchableOpacity onPress={chip.onRemove}>
-                <Text
-                  style={{ color: '#EC4899', fontSize: 14, fontWeight: '800', lineHeight: 16 }}
-                >
+                <Text style={{ color: '#EC4899', fontSize: 14, fontWeight: '800', lineHeight: 16 }}>
                   ✕
                 </Text>
               </TouchableOpacity>
@@ -946,7 +1002,7 @@ export default function MembersScreen() {
               marginTop: 12,
             }}
           >
-            <Text style={{ color: t.text, fontSize: 14 }}>📷  Has Profile Photo</Text>
+            <Text style={{ color: t.text, fontSize: 14 }}>📷 Has Profile Photo</Text>
             <Switch
               value={pendingHasPhoto}
               onValueChange={setPendingHasPhoto}
@@ -994,17 +1050,43 @@ export default function MembersScreen() {
           <ActivityIndicator color="#EC4899" size="large" />
         </View>
       ) : isError && displayMembers.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
+        >
           <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
-          <Text style={{ color: t.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+          <Text
+            style={{
+              color: t.text,
+              fontSize: 20,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginTop: 14,
+            }}
+          >
             Could not load members
           </Text>
-          <Text style={{ color: t.muted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+          <Text
+            style={{
+              color: t.muted,
+              fontSize: 14,
+              textAlign: 'center',
+              lineHeight: 21,
+              marginTop: 8,
+            }}
+          >
             {(error as any)?.message ?? 'Please try again in a moment.'}
           </Text>
           <TouchableOpacity
             onPress={() => refetch()}
-            style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}
+            style={{
+              marginTop: 18,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: t.surface,
+              borderWidth: 1,
+              borderColor: t.border,
+            }}
           >
             <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
           </TouchableOpacity>
@@ -1023,11 +1105,7 @@ export default function MembersScreen() {
           ListFooterComponent={renderFooter}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#EC4899"
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#EC4899" />
           }
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 }}>
@@ -1047,8 +1125,8 @@ export default function MembersScreen() {
                 {query
                   ? 'Try a different search term'
                   : activeFilterCount > 0
-                  ? 'Try clearing some filters'
-                  : 'Check back soon!'}
+                    ? 'Try clearing some filters'
+                    : 'Check back soon!'}
               </Text>
             </View>
           }

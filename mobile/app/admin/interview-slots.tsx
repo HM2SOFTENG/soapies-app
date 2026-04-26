@@ -102,6 +102,7 @@ export default function InterviewSlotsScreen() {
   const { data, isLoading, isError, error, refetch } = trpc.introCalls.all.useQuery(undefined, {
     enabled: isAdmin,
   });
+  const slots = useMemo(() => (data as any[]) ?? [], [data]);
 
   const bulkCreateMutation = trpc.introCalls.bulkCreate.useMutation({
     onSuccess: () => {
@@ -135,12 +136,11 @@ export default function InterviewSlotsScreen() {
   const previewSlots = generateSlots(startDate, endDate, times, duration);
 
   const filteredSlots = useMemo(() => {
-    const slots = (data as any[]) ?? [];
     return slots.filter((s: any) => {
       if (filterTab === 'all') return true;
       return s.status === filterTab;
     });
-  }, [data, filterTab]);
+  }, [filterTab, slots]);
 
   const FILTER_TABS: { key: FilterTab; label: string }[] = [
     { key: 'all', label: 'All' },
