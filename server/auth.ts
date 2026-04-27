@@ -185,7 +185,7 @@ export async function sendEmailOtp(email: string, code: string) {
 
 // Send SMS OTP via Twilio
 export async function sendSmsOtp(phone: string, code: string) {
-  if (!ENV.twilioAccountSid || !ENV.twilioAuthToken) {
+  if (!ENV.twilioAccountSid || !ENV.twilioAuthToken || !ENV.twilioFromNumber) {
     console.warn("[Auth] Twilio not configured, OTP:", code);
     return;
   }

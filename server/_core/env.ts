@@ -24,7 +24,8 @@ export const ENV = {
     process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapiesplaygrp.club",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
-  twilioFromNumber: process.env.TWILIO_FROM_NUMBER ?? "",
+  twilioFromNumber:
+    process.env.TWILIO_FROM_NUMBER ?? process.env.TWILIO_PHONE_NUMBER ?? "",
   // Admin seed account (auto-created on first startup)
   adminEmail: process.env.ADMIN_EMAIL ?? "admin@soapiesplaygrp.club",
   adminPassword: process.env.ADMIN_PASSWORD ?? "",

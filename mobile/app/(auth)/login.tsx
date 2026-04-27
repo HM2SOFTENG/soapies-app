@@ -23,37 +23,64 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setUser, setHasToken } = useAuth();
+  const [mode, setMode] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [phoneFocused, setPhoneFocused] = useState(false);
+  const [otpFocused, setOtpFocused] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const utils = trpc.useUtils();
 
+  async function finishAuth(data: any) {
+    if (!data?.sessionToken) {
+      Alert.alert('Sign In Failed', 'No session token returned. Please try again.');
+      return;
+    }
+    await saveToken(data.sessionToken);
+    if (data?.user) setUser(data.user);
+    setHasToken(true);
+    utils.auth.me.reset();
+    router.replace('/(tabs)');
+  }
+
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async (data: any) => {
-      if (!data?.sessionToken) {
-        Alert.alert('Sign In Failed', 'No session token returned. Please try again.');
-        return;
-      }
-      // 1. Persist token first — must complete before anything else reads it
-      await saveToken(data.sessionToken);
-      // 2. Hydrate user in context so AuthGuard sees an authenticated user immediately
-      if (data?.user) setUser(data.user);
-      // 3. Mark token available — triggers re-enables of guarded queries
-      setHasToken(true);
-      // 4. Clear any stale auth.me query so it re-fetches with new token
-      utils.auth.me.reset();
-      // 5. Navigate — AuthGuard will now see user !== null and stay put
-      router.replace('/(tabs)');
-    },
+    onSuccess: finishAuth,
     onError: (err: any) => {
       if (__DEV__) console.error('[Login] onError:', JSON.stringify(err));
       const msg =
         err?.message || err?.data?.message || 'Please check your credentials and try again.';
       Alert.alert('Sign In Failed', msg);
+    },
+  });
+
+  const sendPhoneOtpMutation = trpc.auth.sendPhoneOtp.useMutation({
+    onSuccess: (data: any) => {
+      setIsNewUser(!!data?.isNewUser);
+      setShowOtpInput(true);
+      Alert.alert('Code Sent', 'We sent a verification code to your phone.');
+    },
+    onError: (err: any) => {
+      const msg = err?.message || err?.data?.message || 'Could not send a verification code.';
+      Alert.alert('SMS Failed', msg);
+    },
+  });
+
+  const verifyPhoneOtpMutation = trpc.auth.verifyPhoneOtp.useMutation({
+    onSuccess: finishAuth,
+    onError: (err: any) => {
+      const msg =
+        err?.message || err?.data?.message || 'The verification code is invalid or expired.';
+      Alert.alert('Verification Failed', msg);
     },
   });
 
@@ -64,6 +91,34 @@ export default function LoginScreen() {
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     loginMutation.mutate({ email: email.trim().toLowerCase(), password });
+  }
+
+  function handleSendPhoneOtp() {
+    const normalizedPhone = phone.trim();
+    if (normalizedPhone.length < 10) {
+      Alert.alert('Missing phone', 'Please enter a valid phone number.');
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    sendPhoneOtpMutation.mutate({ phone: normalizedPhone });
+  }
+
+  function handleVerifyPhoneOtp() {
+    const normalizedPhone = phone.trim();
+    if (otpCode.trim().length !== 6) {
+      Alert.alert('Invalid code', 'Please enter the 6-digit verification code.');
+      return;
+    }
+    if (isNewUser && !newUserName.trim()) {
+      Alert.alert('Name required', 'Please enter your name to finish creating your account.');
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    verifyPhoneOtpMutation.mutate({
+      phone: normalizedPhone,
+      code: otpCode.trim(),
+      name: isNewUser ? newUserName.trim() : undefined,
+    });
   }
 
   function handlePressIn() {
@@ -171,117 +226,317 @@ export default function LoginScreen() {
               </Text>
             </View>
 
-            {/* Email input */}
             <View
               style={{
-                backgroundColor: '#0C0C1A',
-                borderColor: emailFocused ? '#EC489960' : '#1A1A30',
-                borderWidth: emailFocused ? 1.5 : 1,
-                borderRadius: 16,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
                 flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 12,
+                backgroundColor: '#0C0C1A',
+                borderRadius: 18,
+                borderWidth: 1,
+                borderColor: '#1A1A30',
+                padding: 4,
+                marginBottom: 18,
               }}
             >
-              <Ionicons name="mail" size={18} color="#5A5575" style={{ marginRight: 10 }} />
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor="#5A5575"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                onFocus={() => setEmailFocused(true)}
-                onBlur={() => setEmailFocused(false)}
-                style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
-              />
+              {[
+                { key: 'email', label: 'Email' },
+                { key: 'phone', label: 'Phone OTP' },
+              ].map((option) => {
+                const active = mode === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    onPress={() => {
+                      setMode(option.key as 'email' | 'phone');
+                      setShowOtpInput(false);
+                      setOtpCode('');
+                      setNewUserName('');
+                    }}
+                    style={{
+                      flex: 1,
+                      borderRadius: 14,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      backgroundColor: active ? '#1A1A30' : 'transparent',
+                    }}
+                  >
+                    <Text style={{ color: active ? '#F1F0FF' : '#817B99', fontWeight: '700' }}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            {/* Password input */}
-            <View
-              style={{
-                backgroundColor: '#0C0C1A',
-                borderColor: passwordFocused ? '#EC489960' : '#1A1A30',
-                borderWidth: passwordFocused ? 1.5 : 1,
-                borderRadius: 16,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <Ionicons name="lock-closed" size={18} color="#5A5575" style={{ marginRight: 10 }} />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor="#5A5575"
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword((v) => !v)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#5A5575" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Forgot password */}
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/forgot-password' as any)}
-              style={{ alignSelf: 'flex-end', marginBottom: 20 }}
-            >
-              <Text
-                style={{ color: '#A855F7', fontWeight: '600', fontSize: 14, textAlign: 'right' }}
-              >
-                Forgot password?
-              </Text>
-            </TouchableOpacity>
-
-            {/* Sign In button */}
-            <Animated.View
-              style={{
-                transform: [{ scale: scaleAnim }],
-                shadowColor: '#EC4899',
-                shadowOpacity: 0.4,
-                shadowRadius: 14,
-                shadowOffset: { width: 0, height: 4 },
-              }}
-            >
-              <TouchableOpacity
-                onPress={handleLogin}
-                onPressIn={handlePressIn}
-                onPressOut={handlePressOut}
-                disabled={loginMutation.isPending}
-                activeOpacity={1}
-              >
-                <LinearGradient
-                  colors={['#EC4899', '#A855F7']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+            {mode === 'email' ? (
+              <>
+                <View
                   style={{
-                    borderRadius: 18,
-                    paddingVertical: 16,
-                    width: '100%',
+                    backgroundColor: '#0C0C1A',
+                    borderColor: emailFocused ? '#EC489960' : '#1A1A30',
+                    borderWidth: emailFocused ? 1.5 : 1,
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    flexDirection: 'row',
                     alignItems: 'center',
+                    marginBottom: 12,
                   }}
                 >
-                  {loginMutation.isPending ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Sign In</Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
+                  <Ionicons name="mail" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="you@example.com"
+                    placeholderTextColor="#5A5575"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+                  />
+                </View>
+
+                <View
+                  style={{
+                    backgroundColor: '#0C0C1A',
+                    borderColor: passwordFocused ? '#EC489960' : '#1A1A30',
+                    borderWidth: passwordFocused ? 1.5 : 1,
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <Ionicons
+                    name="lock-closed"
+                    size={18}
+                    color="#5A5575"
+                    style={{ marginRight: 10 }}
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor="#5A5575"
+                    secureTextEntry={!showPassword}
+                    autoComplete="password"
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword((v) => !v)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#5A5575" />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => router.push('/(auth)/forgot-password' as any)}
+                  style={{ alignSelf: 'flex-end', marginBottom: 20 }}
+                >
+                  <Text
+                    style={{
+                      color: '#A855F7',
+                      fontWeight: '600',
+                      fontSize: 14,
+                      textAlign: 'right',
+                    }}
+                  >
+                    Forgot password?
+                  </Text>
+                </TouchableOpacity>
+
+                <Animated.View
+                  style={{
+                    transform: [{ scale: scaleAnim }],
+                    shadowColor: '#EC4899',
+                    shadowOpacity: 0.4,
+                    shadowRadius: 14,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={handleLogin}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                    disabled={loginMutation.isPending}
+                    activeOpacity={1}
+                  >
+                    <LinearGradient
+                      colors={['#EC4899', '#A855F7']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        borderRadius: 18,
+                        paddingVertical: 16,
+                        width: '100%',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {loginMutation.isPending ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                          Sign In
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              </>
+            ) : (
+              <>
+                <View
+                  style={{
+                    backgroundColor: '#0C0C1A',
+                    borderColor: phoneFocused ? '#EC489960' : '#1A1A30',
+                    borderWidth: phoneFocused ? 1.5 : 1,
+                    borderRadius: 16,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <Ionicons name="call" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+                  <TextInput
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="Phone number"
+                    placeholderTextColor="#5A5575"
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    onFocus={() => setPhoneFocused(true)}
+                    onBlur={() => setPhoneFocused(false)}
+                    editable={!showOtpInput}
+                    style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+                  />
+                </View>
+
+                {showOtpInput && isNewUser ? (
+                  <View
+                    style={{
+                      backgroundColor: '#0C0C1A',
+                      borderColor: nameFocused ? '#EC489960' : '#1A1A30',
+                      borderWidth: nameFocused ? 1.5 : 1,
+                      borderRadius: 16,
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Ionicons name="person" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+                    <TextInput
+                      value={newUserName}
+                      onChangeText={setNewUserName}
+                      placeholder="Your name"
+                      placeholderTextColor="#5A5575"
+                      onFocus={() => setNameFocused(true)}
+                      onBlur={() => setNameFocused(false)}
+                      style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
+                    />
+                  </View>
+                ) : null}
+
+                {showOtpInput ? (
+                  <View
+                    style={{
+                      backgroundColor: '#0C0C1A',
+                      borderColor: otpFocused ? '#EC489960' : '#1A1A30',
+                      borderWidth: otpFocused ? 1.5 : 1,
+                      borderRadius: 16,
+                      paddingHorizontal: 16,
+                      paddingVertical: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Ionicons name="keypad" size={18} color="#5A5575" style={{ marginRight: 10 }} />
+                    <TextInput
+                      value={otpCode}
+                      onChangeText={setOtpCode}
+                      placeholder="6-digit code"
+                      placeholderTextColor="#5A5575"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      onFocus={() => setOtpFocused(true)}
+                      onBlur={() => setOtpFocused(false)}
+                      style={{ flex: 1, color: '#F1F0FF', fontSize: 15, letterSpacing: 4 }}
+                    />
+                  </View>
+                ) : null}
+
+                <Text style={{ color: '#817B99', fontSize: 13, lineHeight: 20, marginBottom: 20 }}>
+                  {showOtpInput
+                    ? isNewUser
+                      ? 'Enter the SMS code and your name to create your account.'
+                      : 'Enter the SMS code we just sent to your phone.'
+                    : 'Use a one-time SMS code to sign in, or create a new account if your number is new.'}
+                </Text>
+
+                <Animated.View
+                  style={{
+                    transform: [{ scale: scaleAnim }],
+                    shadowColor: '#EC4899',
+                    shadowOpacity: 0.4,
+                    shadowRadius: 14,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={showOtpInput ? handleVerifyPhoneOtp : handleSendPhoneOtp}
+                    onPressIn={handlePressIn}
+                    onPressOut={handlePressOut}
+                    disabled={sendPhoneOtpMutation.isPending || verifyPhoneOtpMutation.isPending}
+                    activeOpacity={1}
+                  >
+                    <LinearGradient
+                      colors={['#EC4899', '#A855F7']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{
+                        borderRadius: 18,
+                        paddingVertical: 16,
+                        width: '100%',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {sendPhoneOtpMutation.isPending || verifyPhoneOtpMutation.isPending ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>
+                          {showOtpInput ? 'Verify Code' : 'Send Code'}
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+
+                {showOtpInput ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowOtpInput(false);
+                      setOtpCode('');
+                      setNewUserName('');
+                    }}
+                    style={{ alignSelf: 'center', marginTop: 14 }}
+                  >
+                    <Text style={{ color: '#A855F7', fontWeight: '600', fontSize: 14 }}>
+                      Use a different number
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            )}
 
             {/* Sign up link */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>

@@ -29,6 +29,11 @@ export default function UserSettings() {
     retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
 
+  const { data: channelInfo } = trpc.notifications.channels.useQuery(undefined, {
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  });
+
   const { data: profile, isLoading: profileLoading } = trpc.profile.me.useQuery(undefined, {
     retry: false, staleTime: 15_000, refetchOnWindowFocus: false,
   });
@@ -303,26 +308,36 @@ export default function UserSettings() {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 pl-11">
-                        {(["inApp", "email", "push"] as const).map(channel => {
-                          const enabled = getPref(cat.key, channel);
-                          const labels: Record<string, string> = { inApp: "In-app", email: "Email", push: "Push" };
+                        {([
+                          { key: "inApp", label: "In-app", available: true },
+                          { key: "email", label: "Email", available: channelInfo?.emailEnabled ?? true },
+                          { key: "sms", label: "SMS", available: channelInfo?.smsEnabled ?? false },
+                          { key: "push", label: "Push", available: true },
+                        ] as const).map(channel => {
+                          const enabled = getPref(cat.key, channel.key);
                           return (
                             <button
-                              key={channel}
-                              onClick={() => togglePref(cat.key, channel)}
-                              disabled={upsertPref.isPending}
+                              key={channel.key}
+                              onClick={() => channel.available && togglePref(cat.key, channel.key)}
+                              disabled={upsertPref.isPending || !channel.available}
                               className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                                enabled
-                                  ? "bg-pink-100 text-pink-700 border border-pink-200"
-                                  : "bg-gray-50 text-gray-400 border border-gray-100"
+                                channel.available
+                                  ? enabled
+                                    ? "bg-pink-100 text-pink-700 border border-pink-200"
+                                    : "bg-gray-50 text-gray-400 border border-gray-100"
+                                  : "bg-gray-50/80 text-gray-300 border border-gray-100 cursor-not-allowed"
                               }`}
                             >
-                              {labels[channel]}
-                              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center ${
-                                enabled ? "bg-pink-500" : "bg-gray-200"
-                              }`}>
-                                {enabled && <Check className="h-2 w-2 text-white" />}
-                              </div>
+                              <span>{channel.label}</span>
+                              {!channel.available ? (
+                                <span className="text-[10px] uppercase tracking-wide">N/A</span>
+                              ) : (
+                                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center ${
+                                  enabled ? "bg-pink-500" : "bg-gray-200"
+                                }`}>
+                                  {enabled && <Check className="h-2 w-2 text-white" />}
+                                </div>
+                              )}
                             </button>
                           );
                         })}

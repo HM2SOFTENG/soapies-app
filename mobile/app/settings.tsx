@@ -309,18 +309,25 @@ export default function SettingsScreen() {
     error: pendingError,
     refetch: refetchPendingConnections,
   } = trpc.partners.pendingForMe.useQuery(undefined, { enabled: hasToken });
+  const { data: notificationChannels } = trpc.notifications.channels.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const { data: notificationPrefs, refetch: refetchNotificationPrefs } =
+    trpc.notifications.preferences.useQuery(undefined, {
+      enabled: hasToken,
+      staleTime: 60_000,
+    });
+  const upsertNotificationPref = trpc.notifications.upsertPreference.useMutation({
+    onError: (e: any) => Alert.alert('Preference update failed', e?.message ?? 'Please try again.'),
+  });
   const pendingCount = (pendingConnections as any[])?.length ?? 0;
   const settingsLoadError = meIsError || pendingIsError;
   const settingsLoadErrorMessage = (meError as any)?.message ?? (pendingError as any)?.message;
   const email = me?.email ?? '';
   const phone = me?.phone ?? '';
 
-  // ── Notification prefs (AsyncStorage) ──
+  // ── Notification prefs ──
   const [notifPush, setNotifPush] = useState(true);
-  const [notifMessages, setNotifMessages] = useState(true);
-  const [notifEvents, setNotifEvents] = useState(true);
-  const [notifCommunity, setNotifCommunity] = useState(true);
-  const [notifAdmin, setNotifAdmin] = useState(true);
 
   // ── Privacy prefs (AsyncStorage) ──
   const [showInDirectory, setShowInDirectory] = useState(false);
@@ -332,10 +339,6 @@ export default function SettingsScreen() {
     (async () => {
       const keys = [
         NOTIF_PUSH_KEY,
-        NOTIF_MESSAGES_KEY,
-        NOTIF_EVENTS_KEY,
-        NOTIF_COMMUNITY_KEY,
-        NOTIF_ADMIN_KEY,
         PRIVACY_PULSE_LOC_KEY,
         PRIVACY_MESSAGING_KEY,
         'privacy_show_in_directory',
@@ -344,10 +347,6 @@ export default function SettingsScreen() {
       const map = Object.fromEntries(pairs.map(([k, v]) => [k, v]));
 
       if (map[NOTIF_PUSH_KEY] !== null) setNotifPush(map[NOTIF_PUSH_KEY] !== '0');
-      if (map[NOTIF_MESSAGES_KEY] !== null) setNotifMessages(map[NOTIF_MESSAGES_KEY] !== '0');
-      if (map[NOTIF_EVENTS_KEY] !== null) setNotifEvents(map[NOTIF_EVENTS_KEY] !== '0');
-      if (map[NOTIF_COMMUNITY_KEY] !== null) setNotifCommunity(map[NOTIF_COMMUNITY_KEY] !== '0');
-      if (map[NOTIF_ADMIN_KEY] !== null) setNotifAdmin(map[NOTIF_ADMIN_KEY] !== '0');
       if (map[PRIVACY_PULSE_LOC_KEY] !== null) setShowPulseLoc(map[PRIVACY_PULSE_LOC_KEY] === '1');
       if (map['privacy_show_in_directory'] !== null)
         setShowInDirectory(map['privacy_show_in_directory'] === '1');
@@ -360,10 +359,18 @@ export default function SettingsScreen() {
     await AsyncStorage.setItem(key, value ? '1' : '0');
   }
 
-  function toggleNotif(key: string, current: boolean, setter: (v: boolean) => void) {
-    const next = !current;
-    setter(next);
-    saveBool(key, next);
+  function getNotificationPref(category: string, channel: 'push' | 'sms') {
+    const pref = (notificationPrefs as any[] | undefined)?.find(
+      (item: any) => item.category === category
+    );
+    if (!pref) return channel === 'push';
+    return pref[channel] !== false;
+  }
+
+  async function toggleNotificationChannel(category: string, channel: 'push' | 'sms') {
+    const next = !getNotificationPref(category, channel);
+    await upsertNotificationPref.mutateAsync({ category, [channel]: next });
+    await refetchNotificationPrefs();
   }
 
   async function saveMessaging(v: MessagingOption) {
@@ -631,37 +638,79 @@ export default function SettingsScreen() {
           saveBool(NOTIF_PUSH_KEY, v);
         }}
       />
+      <InfoRow
+        icon="mail-outline"
+        iconColor={brandColors.purple}
+        label="Email Delivery"
+        value={notificationChannels?.emailEnabled ? 'Available' : 'Not configured'}
+      />
+      <InfoRow
+        icon="chatbubble-ellipses-outline"
+        iconColor={brandColors.purple}
+        label="SMS Delivery"
+        value={
+          notificationChannels?.smsEnabled
+            ? phone
+              ? 'Available'
+              : 'Available · add phone in profile'
+            : 'Not configured'
+        }
+      />
       <ToggleRow
         icon="chatbubble-outline"
         iconColor={brandColors.purple}
         label="New Messages"
-        value={notifMessages && notifPush}
-        onToggle={() => toggleNotif(NOTIF_MESSAGES_KEY, notifMessages, setNotifMessages)}
-        disabled={!notifPush}
+        subtitle="Server-backed push preference"
+        value={notifPush && getNotificationPref('messages', 'push')}
+        onToggle={() => toggleNotificationChannel('messages', 'push')}
+        disabled={!notifPush || upsertNotificationPref.isPending}
       />
       <ToggleRow
         icon="calendar-outline"
         iconColor={brandColors.purple}
         label="Event Reminders"
-        value={notifEvents && notifPush}
-        onToggle={() => toggleNotif(NOTIF_EVENTS_KEY, notifEvents, setNotifEvents)}
-        disabled={!notifPush}
+        subtitle="Server-backed push preference"
+        value={notifPush && getNotificationPref('events', 'push')}
+        onToggle={() => toggleNotificationChannel('events', 'push')}
+        disabled={!notifPush || upsertNotificationPref.isPending}
       />
       <ToggleRow
         icon="globe-outline"
         iconColor={brandColors.purple}
         label="Community Posts"
-        value={notifCommunity && notifPush}
-        onToggle={() => toggleNotif(NOTIF_COMMUNITY_KEY, notifCommunity, setNotifCommunity)}
-        disabled={!notifPush}
+        subtitle="Server-backed push preference"
+        value={notifPush && getNotificationPref('community', 'push')}
+        onToggle={() => toggleNotificationChannel('community', 'push')}
+        disabled={!notifPush || upsertNotificationPref.isPending}
       />
       <ToggleRow
         icon="megaphone-outline"
         iconColor={brandColors.purple}
         label="Admin Announcements"
-        value={notifAdmin && notifPush}
-        onToggle={() => toggleNotif(NOTIF_ADMIN_KEY, notifAdmin, setNotifAdmin)}
-        disabled={!notifPush}
+        subtitle="Server-backed push preference"
+        value={notifPush && getNotificationPref('admin', 'push')}
+        onToggle={() => toggleNotificationChannel('admin', 'push')}
+        disabled={!notifPush || upsertNotificationPref.isPending}
+      />
+      <ToggleRow
+        icon="chatbubble-ellipses-outline"
+        iconColor={brandColors.purple}
+        label="Event SMS Alerts"
+        subtitle={phone ? 'Text reminders and updates' : 'Add a phone number to receive texts'}
+        value={getNotificationPref('events', 'sms')}
+        onToggle={() => toggleNotificationChannel('events', 'sms')}
+        disabled={!notificationChannels?.smsEnabled || !phone || upsertNotificationPref.isPending}
+      />
+      <ToggleRow
+        icon="megaphone-outline"
+        iconColor={brandColors.purple}
+        label="Admin SMS Alerts"
+        subtitle={
+          phone ? 'Important account and admin messages' : 'Add a phone number to receive texts'
+        }
+        value={getNotificationPref('admin', 'sms')}
+        onToggle={() => toggleNotificationChannel('admin', 'sms')}
+        disabled={!notificationChannels?.smsEnabled || !phone || upsertNotificationPref.isPending}
       />
 
       {/* ── PRIVACY ── */}
