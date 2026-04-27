@@ -46,7 +46,7 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
             day: 'numeric',
           })
         : 'TBD',
-    [event.startDate],
+    [event.startDate]
   );
 
   const priceLabel = useMemo(() => {
@@ -106,7 +106,11 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
         )}
         {/* Subtle gradient overlay */}
         <LinearGradient
-          colors={theme.isDark ? ['transparent', 'rgba(26,26,46,0.6)'] : ['transparent', 'rgba(255,248,252,0.12)']}
+          colors={
+            theme.isDark
+              ? ['transparent', 'rgba(26,26,46,0.6)']
+              : ['transparent', 'rgba(255,248,252,0.12)']
+          }
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 }}
         />
         {community && (
@@ -145,7 +149,9 @@ const EventCard = React.memo(function EventCard({ event, onPress }: EventCardPro
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
             <Ionicons name="calendar-outline" size={13} color={theme.colors.textMuted} />
-            <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '400' }}>{dateStr}</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '400' }}>
+              {dateStr}
+            </Text>
           </View>
 
           {event.venue && (

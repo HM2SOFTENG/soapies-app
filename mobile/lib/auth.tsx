@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { loadTokenFromStorage, clearToken, SESSION_COOKIE_KEY } from './trpc';
+import { clearToken } from './trpc';
 
 type User = {
   id: number;
@@ -16,7 +16,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  hasToken: boolean;           // reactive — triggers re-render when token changes
+  hasToken: boolean; // reactive — triggers re-render when token changes
   setUser: (user: User | null) => void;
   setHasToken: (val: boolean) => void;
   logout: () => Promise<void>;
@@ -52,18 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Nuke ALL possible stale token keys from previous app versions
         const SecureStore = await import('expo-secure-store');
         const allKeys = [
-          'app_session_cookie',   // current key
-          'app_session_id',       // old key variant
-          'session_token',        // old key variant
-          'sessionToken',         // old key variant
-          'SESSION_COOKIE',       // old key variant
+          'app_session_cookie', // current key
+          'app_session_id', // old key variant
+          'session_token', // old key variant
+          'sessionToken', // old key variant
+          'SESSION_COOKIE', // old key variant
         ];
-        
+
         // Read current key first
         const token = await SecureStore.getItemAsync('app_session_cookie').catch(() => null);
-        
+
         // Clear all old/stale keys regardless
-        for (const key of allKeys.filter(k => k !== 'app_session_cookie')) {
+        for (const key of allKeys.filter((k) => k !== 'app_session_cookie')) {
           await SecureStore.deleteItemAsync(key).catch(() => {});
         }
 
@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // console.log('[Auth] No token on mount');
           setHasToken(false);
         }
-      } catch (e) {
-        console.warn('[Auth] mount check error:', e);
+      } catch (error) {
+        if (__DEV__) console.warn('[Auth] mount check error:', error);
       } finally {
         setIsLoading(false);
       }
@@ -96,12 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     await clearToken();
     setUserState(null);
-    setHasToken(false);         // triggers re-render — disables all queries immediately
+    setHasToken(false); // triggers re-render — disables all queries immediately
     try {
       const { queryClient } = await import('../app/_layout');
       queryClient.clear();
-    } catch (e) {
-      // console.log('[auth] queryClient clear skip:', e);
+    } catch {
+      // console.log('[auth] queryClient clear skip');
     }
   }
 

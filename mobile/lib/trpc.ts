@@ -2,14 +2,23 @@ import { createTRPCReact } from '@trpc/react-query';
 import { httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import * as SecureStore from 'expo-secure-store';
-import type { AppRouter } from '../../server/routers';
 
-export const trpc = createTRPCReact<AppRouter>();
+/**
+ * Mobile should not typecheck against server implementation files.
+ * Runtime behavior is defined by the HTTP tRPC endpoint; a shared contract package
+ * can restore end-to-end inference later without coupling the mobile CI graph to backend deps.
+ */
+export const trpc = createTRPCReact() as unknown as any;
 
 export const SESSION_COOKIE_KEY = 'app_session_cookie';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
-// console.log('[trpc] API_URL:', API_URL);
+
+function devWarn(...args: unknown[]) {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.warn(...args);
+  }
+}
 
 // In-memory token — PRIMARY source of truth for all requests
 // SecureStore is ONLY used to persist across cold app restarts
@@ -29,7 +38,7 @@ export async function loadTokenFromStorage(): Promise<string | null> {
     if (token) _memoryToken = token;
     return token;
   } catch (e) {
-    console.warn('[trpc] SecureStore load failed:', e);
+    devWarn('[trpc] SecureStore load failed:', e);
     return null;
   }
 }
@@ -43,7 +52,7 @@ export async function saveToken(token: string): Promise<void> {
     await SecureStore.setItemAsync(SESSION_COOKIE_KEY, token);
     // Note: removed post-write verify read (ITEM-043) — unnecessary SecureStore round-trip
   } catch (e) {
-    console.warn('[trpc] SecureStore save failed:', e);
+    devWarn('[trpc] SecureStore save failed:', e);
   }
 }
 
@@ -67,7 +76,7 @@ export function createTRPCClient() {
             return {
               'x-session-token': _memoryToken,
               // Also send Cookie for web compatibility
-              'Cookie': `app_session_id=${_memoryToken}`,
+              Cookie: `app_session_id=${_memoryToken}`,
             };
           }
           return {};
@@ -75,8 +84,8 @@ export function createTRPCClient() {
         async fetch(url, options) {
           const path = String(url).split('/api/trpc/')[1]?.substring(0, 50) ?? '';
           const res = await global.fetch(url as string, options as any);
-          if (res.status === 401) console.warn('[trpc] 401 on', path);
-          if (res.status >= 500) console.warn('[trpc] Server error on', path, res.status);
+          if (res.status === 401) devWarn('[trpc] 401 on', path);
+          if (res.status >= 500) devWarn('[trpc] Server error on', path, res.status);
           return res;
         },
       }),

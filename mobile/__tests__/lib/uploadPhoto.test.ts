@@ -4,7 +4,9 @@
  * Tests the uploadPhoto function's auth token handling, header construction,
  * and response processing. Mocks FileSystem and fetch.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { uploadPhoto } from '../../lib/uploadPhoto';
+import { setMemoryToken } from '../../lib/trpc';
 
 // ── Mock expo-file-system/legacy ──────────────────────────────────────────────
 vi.mock('expo-file-system/legacy', () => ({
@@ -31,9 +33,6 @@ vi.mock('../../lib/trpc', () => ({
 const mockFetch = vi.fn();
 globalThis.fetch = mockFetch as any;
 
-import { uploadPhoto } from '../../lib/uploadPhoto';
-import { setMemoryToken, getMemoryToken } from '../../lib/trpc';
-
 describe('lib/uploadPhoto — authentication and headers', () => {
   beforeEach(() => {
     memoryToken = null;
@@ -51,7 +50,6 @@ describe('lib/uploadPhoto — authentication and headers', () => {
 
   it('throws before fetch when token is null', async () => {
     setMemoryToken(null);
-    const error = new Error();
     await expect(uploadPhoto('file:///test.jpg')).rejects.toBeDefined();
     expect(mockFetch).not.toHaveBeenCalled();
   });

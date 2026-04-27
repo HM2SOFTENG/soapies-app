@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { uploadPhoto } from '../lib/uploadPhoto';
-import { LinearGradient } from 'expo-linear-gradient';
 import BrandGradient from '../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,13 +24,29 @@ import { useTheme, type ThemeColors } from '../lib/theme';
 const STEPS = ['Photo', 'About', 'Identity', 'Location'];
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-Binary', 'Trans Male', 'Trans Female', 'Other'];
-const ORIENTATION_OPTIONS = ['Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Queer', 'Other'];
+const ORIENTATION_OPTIONS = [
+  'Straight',
+  'Gay',
+  'Lesbian',
+  'Bisexual',
+  'Pansexual',
+  'Queer',
+  'Other',
+];
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+function calculateAge(year: string, month: string, day: string): number | null {
+  if (!year || !month || !day) return null;
+  const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDelta = today.getMonth() - dob.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) age--;
+  return isNaN(age) || age < 0 ? null : age;
+}
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  useAuth();
   const toast = useToast();
   const { colors, alpha } = useTheme();
   const styles = React.useMemo(() => createStyles(colors, alpha), [colors, alpha]);
@@ -84,7 +99,11 @@ export default function ProfileSetupScreen() {
     const result =
       source === 'camera'
         ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 })
-        : await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.8 });
+        : await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          });
 
     if (result.canceled) return;
 
@@ -95,7 +114,7 @@ export default function ProfileSetupScreen() {
       const url = await uploadPhoto(asset.uri);
       // console.log('[ProfileSetup] uploaded URL:', url);
       setAvatarUrl(url);
-    } catch (e: any) {
+    } catch {
       toast.error('Photo upload failed. Please try again.');
     } finally {
       setIsUploading(false);
@@ -135,21 +154,23 @@ export default function ProfileSetupScreen() {
     }
   }
 
-  function calculateAge(year: string, month: string, day: string): number | null {
-    if (!year || !month || !day) return null;
-    const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return isNaN(age) || age < 0 ? null : age;
-  }
-
   function handleFinish() {
-    if (!avatarUrl) { Alert.alert('Photo Required', 'Please add a profile photo.'); return; }
-    if (!displayName.trim()) { Alert.alert('Name Required', 'Please add your display name.'); return; }
-    if (!gender) { Alert.alert('Gender Required', 'Please select your gender.'); return; }
-    if (!orientation) { Alert.alert('Orientation Required', 'Please select your orientation.'); return; }
+    if (!avatarUrl) {
+      Alert.alert('Photo Required', 'Please add a profile photo.');
+      return;
+    }
+    if (!displayName.trim()) {
+      Alert.alert('Name Required', 'Please add your display name.');
+      return;
+    }
+    if (!gender) {
+      Alert.alert('Gender Required', 'Please select your gender.');
+      return;
+    }
+    if (!orientation) {
+      Alert.alert('Orientation Required', 'Please select your orientation.');
+      return;
+    }
 
     const currentAge = calculateAge(dobYear, dobMonth, dobDay);
     if (currentAge !== null && currentAge < 18) {
@@ -157,9 +178,10 @@ export default function ProfileSetupScreen() {
       return;
     }
 
-    const dateOfBirth = dobYear && dobMonth && dobDay
-      ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
-      : undefined;
+    const dateOfBirth =
+      dobYear && dobMonth && dobDay
+        ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+        : undefined;
 
     upsertMutation.mutate({
       displayName: displayName.trim(),
@@ -180,14 +202,14 @@ export default function ProfileSetupScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => step > 0 ? setStep(step - 1) : undefined}
+          onPress={() => (step > 0 ? setStep(step - 1) : undefined)}
           disabled={step === 0}
-          style={{ width: 36, alignItems: 'flex-start' }}
+          style={styles.headerEdge}
         >
           {step > 0 && <Ionicons name="chevron-back" size={26} color={colors.text} />}
         </TouchableOpacity>
 
-        <View style={{ flex: 1, alignItems: 'center' }}>
+        <View style={styles.headerCenter}>
           <Text style={styles.stepTitle}>{STEPS[step]}</Text>
           <View style={styles.dotsRow}>
             {STEPS.map((_, i) => (
@@ -202,32 +224,53 @@ export default function ProfileSetupScreen() {
           </View>
         </View>
 
-        <View style={{ width: 36 }} />
+        <View style={styles.headerEdge} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {step === 0 && <StepPhoto avatarUrl={avatarUrl} isUploading={isUploading} onPickPhoto={handlePickPhoto} colors={colors} styles={styles} />}
-        {step === 1 && (
-          <StepAbout
-            displayName={displayName} setDisplayName={setDisplayName}
-            bio={bio} setBio={setBio}
-            dobYear={dobYear} setDobYear={setDobYear}
-            dobMonth={dobMonth} setDobMonth={setDobMonth}
-            dobDay={dobDay} setDobDay={setDobDay}
+        {step === 0 && (
+          <StepPhoto
+            avatarUrl={avatarUrl}
+            isUploading={isUploading}
+            onPickPhoto={handlePickPhoto}
             colors={colors}
             styles={styles}
-            alpha={alpha}
+          />
+        )}
+        {step === 1 && (
+          <StepAbout
+            displayName={displayName}
+            setDisplayName={setDisplayName}
+            bio={bio}
+            setBio={setBio}
+            dobYear={dobYear}
+            setDobYear={setDobYear}
+            dobMonth={dobMonth}
+            setDobMonth={setDobMonth}
+            dobDay={dobDay}
+            setDobDay={setDobDay}
+            colors={colors}
+            styles={styles}
           />
         )}
         {step === 2 && (
           <StepIdentity
-            gender={gender} setGender={setGender}
-            orientation={orientation} setOrientation={setOrientation}
+            gender={gender}
+            setGender={setGender}
+            orientation={orientation}
+            setOrientation={setOrientation}
             colors={colors}
             styles={styles}
           />
         )}
-        {step === 3 && <StepLocation location={location} setLocation={setLocation} colors={colors} styles={styles} />}
+        {step === 3 && (
+          <StepLocation
+            location={location}
+            setLocation={setLocation}
+            colors={colors}
+            styles={styles}
+          />
+        )}
       </ScrollView>
 
       {/* Footer button */}
@@ -236,16 +279,13 @@ export default function ProfileSetupScreen() {
           onPress={handleNext}
           disabled={isBusy || (step === 0 && !avatarUrl)}
           activeOpacity={0.85}
-          style={{ borderRadius: 14, overflow: 'hidden' }}
+          style={styles.footerButtonWrap}
         >
           <BrandGradient
-            style={[
-              styles.nextBtn,
-              (isBusy || (step === 0 && !avatarUrl)) && { opacity: 0.5 },
-            ]}
+            style={[styles.nextBtn, (isBusy || (step === 0 && !avatarUrl)) && { opacity: 0.5 }]}
           >
             {isBusy ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.white} size="small" />
             ) : (
               <Text style={styles.nextBtnText}>{isLastStep ? 'Finish' : 'Next'}</Text>
             )}
@@ -253,8 +293,8 @@ export default function ProfileSetupScreen() {
         </TouchableOpacity>
 
         {isLastStep && (
-          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: 14, alignItems: 'center' }}>
-            <Text style={{ color: colors.textMuted, fontSize: 14 }}>Skip for now</Text>
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.skipButton}>
+            <Text style={styles.skipButtonText}>Skip for now</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -282,7 +322,7 @@ function StepPhoto({
       <Text style={styles.stepHeading}>Add a profile photo</Text>
       <Text style={styles.stepSubheading}>Help the community recognise you</Text>
 
-      <TouchableOpacity onPress={onPickPhoto} style={{ alignSelf: 'center', marginTop: 32 }}>
+      <TouchableOpacity onPress={onPickPhoto} style={styles.photoButton}>
         <View style={styles.avatarCircle}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
@@ -294,56 +334,48 @@ function StepPhoto({
         </View>
         <View style={styles.cameraOverlay}>
           {isUploading ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Ionicons name="camera" size={16} color="#fff" />
+            <Ionicons name="camera" size={16} color={colors.white} />
           )}
         </View>
       </TouchableOpacity>
 
-      {!avatarUrl && (
-        <Text style={{ color: colors.textMuted, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
-          Tap to upload a photo
-        </Text>
-      )}
+      {!avatarUrl && <Text style={styles.helperText}>Tap to upload a photo</Text>}
       {avatarUrl && !isUploading && (
-        <Text style={{ color: colors.success, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
-          ✓ Photo uploaded successfully
-        </Text>
+        <Text style={styles.helperTextSuccess}>✓ Photo uploaded successfully</Text>
       )}
     </View>
   );
 }
 
 function StepAbout({
-  displayName, setDisplayName,
-  bio, setBio,
-  dobYear, setDobYear,
-  dobMonth, setDobMonth,
-  dobDay, setDobDay,
+  displayName,
+  setDisplayName,
+  bio,
+  setBio,
+  dobYear,
+  setDobYear,
+  dobMonth,
+  setDobMonth,
+  dobDay,
+  setDobDay,
   colors,
   styles,
-  alpha,
 }: {
-  displayName: string; setDisplayName: (v: string) => void;
-  bio: string; setBio: (v: string) => void;
-  dobYear: string; setDobYear: (v: string) => void;
-  dobMonth: string; setDobMonth: (v: string) => void;
-  dobDay: string; setDobDay: (v: string) => void;
+  displayName: string;
+  setDisplayName: (v: string) => void;
+  bio: string;
+  setBio: (v: string) => void;
+  dobYear: string;
+  setDobYear: (v: string) => void;
+  dobMonth: string;
+  setDobMonth: (v: string) => void;
+  dobDay: string;
+  setDobDay: (v: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
-  alpha: (color: string, opacity: number) => string;
 }) {
-  function calculateAge(year: string, month: string, day: string): number | null {
-    if (!year || !month || !day) return null;
-    const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return isNaN(age) || age < 0 ? null : age;
-  }
-
   const currentAge = calculateAge(dobYear, dobMonth, dobDay);
   const isAdult = currentAge !== null && currentAge >= 18;
 
@@ -364,7 +396,9 @@ function StepAbout({
       </View>
 
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>BIO <Text style={{ color: colors.textMuted }}>{bio.length}/200</Text></Text>
+        <Text style={styles.fieldLabel}>
+          BIO <Text style={styles.fieldLabelCount}>{bio.length}/200</Text>
+        </Text>
         <TextInput
           value={bio}
           onChangeText={(v) => setBio(v.slice(0, 200))}
@@ -380,7 +414,7 @@ function StepAbout({
       {/* Date of Birth — split MM / DD / YYYY inputs with live age display */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={styles.dateRow}>
           <TextInput
             value={dobMonth}
             onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
@@ -410,16 +444,16 @@ function StepAbout({
           />
         </View>
         {currentAge !== null && (
-          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <View style={styles.statusRow}>
             {isAdult ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: alpha(colors.success, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <View style={[styles.statusPill, styles.statusPillSuccess]}>
                 <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                <Text style={{ color: colors.success, fontWeight: '700', marginLeft: 4 }}>{currentAge} years old ✓</Text>
+                <Text style={styles.statusPillTextSuccess}>{currentAge} years old ✓</Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: alpha(colors.danger, 0.12), borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <View style={[styles.statusPill, styles.statusPillDanger]}>
                 <Ionicons name="close-circle" size={16} color={colors.danger} />
-                <Text style={{ color: colors.danger, fontWeight: '700', marginLeft: 4 }}>Must be 18+ to join</Text>
+                <Text style={styles.statusPillTextDanger}>Must be 18+ to join</Text>
               </View>
             )}
           </View>
@@ -430,13 +464,17 @@ function StepAbout({
 }
 
 function StepIdentity({
-  gender, setGender,
-  orientation, setOrientation,
+  gender,
+  setGender,
+  orientation,
+  setOrientation,
   colors,
   styles,
 }: {
-  gender: string; setGender: (v: string) => void;
-  orientation: string; setOrientation: (v: string) => void;
+  gender: string;
+  setGender: (v: string) => void;
+  orientation: string;
+  setOrientation: (v: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
 }) {
@@ -446,10 +484,22 @@ function StepIdentity({
       <Text style={styles.stepSubheading}>Help us personalise your experience</Text>
 
       <Text style={[styles.fieldLabel, { marginTop: 24, marginBottom: 10 }]}>GENDER *</Text>
-      <PillGrid options={GENDER_OPTIONS} selected={gender} onSelect={setGender} colors={colors} styles={styles} />
+      <PillGrid
+        options={GENDER_OPTIONS}
+        selected={gender}
+        onSelect={setGender}
+        colors={colors}
+        styles={styles}
+      />
 
       <Text style={[styles.fieldLabel, { marginTop: 24, marginBottom: 10 }]}>ORIENTATION *</Text>
-      <PillGrid options={ORIENTATION_OPTIONS} selected={orientation} onSelect={setOrientation} colors={colors} styles={styles} />
+      <PillGrid
+        options={ORIENTATION_OPTIONS}
+        selected={orientation}
+        onSelect={setOrientation}
+        colors={colors}
+        styles={styles}
+      />
     </View>
   );
 }
@@ -504,14 +554,9 @@ function PillGrid({
           key={opt}
           onPress={() => onSelect(opt)}
           activeOpacity={0.75}
-          style={[
-            styles.pill,
-            selected === opt && styles.pillSelected,
-          ]}
+          style={[styles.pill, selected === opt && styles.pillSelected]}
         >
-          <Text style={[styles.pillText, selected === opt && styles.pillTextSelected]}>
-            {opt}
-          </Text>
+          <Text style={[styles.pillText, selected === opt && styles.pillTextSelected]}>{opt}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -534,6 +579,14 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
+    headerEdge: {
+      width: 36,
+      alignItems: 'flex-start',
+    },
+    headerCenter: {
+      flex: 1,
+      alignItems: 'center',
+    },
     stepTitle: {
       color: colors.text,
       fontSize: 18,
@@ -550,11 +603,11 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderRadius: 4,
     },
     dotActive: {
-      backgroundColor: colors.pink,
+      backgroundColor: colors.primary,
       width: 20,
     },
     dotDone: {
-      backgroundColor: colors.purple,
+      backgroundColor: colors.secondary,
     },
     dotInactive: {
       backgroundColor: colors.border,
@@ -577,6 +630,10 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       shadowOffset: { width: 0, height: -4 },
       elevation: 6,
     },
+    footerButtonWrap: {
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
     nextBtn: {
       paddingVertical: 16,
       alignItems: 'center',
@@ -584,7 +641,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderRadius: 14,
     },
     nextBtnText: {
-      color: '#fff',
+      color: colors.white,
       fontWeight: '700',
       fontSize: 16,
     },
@@ -603,13 +660,29 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       color: colors.textSecondary,
       fontSize: 15,
     },
+    photoButton: {
+      alignSelf: 'center',
+      marginTop: 32,
+    },
+    helperText: {
+      color: colors.textMuted,
+      marginTop: 16,
+      textAlign: 'center',
+      fontSize: 13,
+    },
+    helperTextSuccess: {
+      color: colors.success,
+      marginTop: 16,
+      textAlign: 'center',
+      fontSize: 13,
+    },
     avatarCircle: {
       width: 120,
       height: 120,
       borderRadius: 60,
       overflow: 'hidden',
       borderWidth: 2,
-      borderColor: alpha(colors.pink, 0.36),
+      borderColor: alpha(colors.primary, 0.36),
       backgroundColor: colors.surfaceHigh,
       shadowColor: colors.shadow,
       shadowOpacity: 0.14,
@@ -631,7 +704,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       position: 'absolute',
       bottom: 2,
       right: 2,
-      backgroundColor: colors.pink,
+      backgroundColor: colors.primary,
       borderRadius: 16,
       padding: 7,
       borderWidth: 2,
@@ -647,6 +720,9 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       marginBottom: 8,
       letterSpacing: 0.5,
     },
+    fieldLabelCount: {
+      color: colors.textMuted,
+    },
     input: {
       backgroundColor: colors.input,
       borderWidth: 1,
@@ -657,6 +733,41 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       color: colors.text,
       fontSize: 15,
       minHeight: 48,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    statusRow: {
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+    },
+    statusPillSuccess: {
+      backgroundColor: colors.successSoft,
+      borderColor: colors.successBorder,
+    },
+    statusPillDanger: {
+      backgroundColor: colors.dangerSoft,
+      borderColor: colors.dangerBorder,
+    },
+    statusPillTextSuccess: {
+      color: colors.success,
+      fontWeight: '700',
+      marginLeft: 4,
+    },
+    statusPillTextDanger: {
+      color: colors.danger,
+      fontWeight: '700',
+      marginLeft: 4,
     },
     pillGrid: {
       flexDirection: 'row',
@@ -674,8 +785,8 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       alignItems: 'center',
     },
     pillSelected: {
-      borderColor: alpha(colors.pink, 0.32),
-      backgroundColor: alpha(colors.pink, 0.12),
+      borderColor: colors.focusRing,
+      backgroundColor: colors.tintSoft,
     },
     pillText: {
       color: colors.textSecondary,
@@ -683,8 +794,16 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       fontWeight: '500',
     },
     pillTextSelected: {
-      color: colors.pink,
+      color: colors.primary,
       fontWeight: '700',
+    },
+    skipButton: {
+      marginTop: 14,
+      alignItems: 'center',
+    },
+    skipButtonText: {
+      color: colors.textMuted,
+      fontSize: 14,
     },
   });
 }

@@ -1,19 +1,13 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 // Compact horizontal stat tile: icon • number • label in a single row
 function StatTile({
@@ -62,7 +56,7 @@ function StatTile({
           style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', lineHeight: 22 }}
           numberOfLines={1}
         >
-          {value ?? '—'}
+          {value ?? '-'}
         </Text>
         <Text
           style={{ color: theme.colors.textMuted, fontSize: 10, fontWeight: '600', lineHeight: 13 }}
@@ -137,40 +131,28 @@ function ActionTile({
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const theme = useTheme();
-  const utils = trpc.useUtils();
 
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
-  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsIsError,
+    error: statsError,
+    refetch: refetchStats,
+  } = trpc.admin.stats.useQuery(undefined, { enabled: isAdmin });
+  const {
+    data: pendingVenmo,
+    isLoading: venmoLoading,
+    isError: venmoIsError,
+    error: venmoError,
+    refetch: refetchVenmo,
+  } = trpc.admin.pendingVenmoReservations.useQuery(undefined, { enabled: isAdmin });
 
-  const { data: stats, isLoading: statsLoading, isError: statsIsError, error: statsError, refetch: refetchStats } = trpc.admin.stats.useQuery(
-    undefined,
-    { enabled: isAdmin }
-  );
-  const { data: pendingVenmo, isLoading: venmoLoading, isError: venmoIsError, error: venmoError, refetch: refetchVenmo } = trpc.admin.pendingVenmoReservations.useQuery(
-    undefined,
-    { enabled: isAdmin }
-  );
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
-  const confirmMutation = trpc.admin.confirmReservation.useMutation({
-    onSuccess: () => {
-      utils.admin.pendingVenmoReservations.invalidate();
-      utils.admin.stats.invalidate();
-    },
-    onError: (e: any) => Alert.alert('Error', e.message),
-  });
-
-  const rejectMutation = trpc.admin.rejectReservation.useMutation({
-    onSuccess: () => {
-      utils.admin.pendingVenmoReservations.invalidate();
-      utils.admin.stats.invalidate();
-    },
-    onError: (e: any) => Alert.alert('Error', e.message),
-  });
-
-  // Guard AFTER all hooks
-  if (!isAdmin) {
+  if (statsIsError || venmoIsError) {
     return (
       <SafeAreaView
         style={{
@@ -181,16 +163,38 @@ export default function AdminDashboard() {
           padding: 24,
         }}
       >
-        <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
-        <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 8 }}>
-          Access Denied
+        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 20,
+            fontWeight: '800',
+            marginTop: 16,
+            textAlign: 'center',
+          }}
+        >
+          Could not load admin dashboard
         </Text>
-        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
-          You need admin privileges to access this area.
+        <Text
+          style={{
+            color: theme.colors.textMuted,
+            fontSize: 14,
+            textAlign: 'center',
+            marginTop: 8,
+            lineHeight: 21,
+          }}
+        >
+          {(statsError as any)?.message ??
+            (venmoError as any)?.message ??
+            'Please try again in a moment.'}
         </Text>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => {
+            refetchStats();
+            refetchVenmo();
+          }}
           style={{
+            marginTop: 18,
             paddingVertical: 12,
             paddingHorizontal: 24,
             backgroundColor: theme.colors.surface,
@@ -198,29 +202,6 @@ export default function AdminDashboard() {
             borderColor: theme.colors.border,
             borderWidth: 1,
           }}
-        >
-          <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  if (statsIsError || venmoIsError) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Ionicons name="cloud-offline-outline" size={46} color={theme.colors.textMuted} />
-        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', marginTop: 16, textAlign: 'center' }}>
-          Could not load admin dashboard
-        </Text>
-        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 21 }}>
-          {(statsError as any)?.message ?? (venmoError as any)?.message ?? 'Please try again in a moment.'}
-        </Text>
-        <TouchableOpacity
-          onPress={() => {
-            refetchStats();
-            refetchVenmo();
-          }}
-          style={{ marginTop: 18, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.surface, borderRadius: 12, borderColor: theme.colors.border, borderWidth: 1 }}
         >
           <Text style={{ color: theme.colors.text, fontWeight: '700' }}>Retry</Text>
         </TouchableOpacity>
@@ -234,16 +215,52 @@ export default function AdminDashboard() {
   const quickActions = [
     { label: 'Events', icon: 'calendar', route: '/admin/events', color: theme.colors.purple },
     { label: 'Members', icon: 'people', route: '/admin/members', color: theme.colors.primary },
-    { label: 'Applications', icon: 'person-add', route: '/admin/applications', color: theme.colors.pink },
-    { label: 'Reservations', icon: 'ticket', route: '/admin/reservations', color: theme.colors.success },
-    { label: 'Announcements', icon: 'megaphone', route: '/admin/announcements', color: theme.colors.warning },
-    { label: 'Push Alerts', icon: 'notifications', route: '/admin/push-notifications', color: theme.colors.primary },
-    { label: 'Interviews', icon: 'calendar-outline', route: '/admin/interview-slots', color: '#06B6D4' },
-    { label: 'Settings', icon: 'settings', route: '/admin/settings', color: theme.colors.secondary },
+    {
+      label: 'Applications',
+      icon: 'person-add',
+      route: '/admin/applications',
+      color: theme.colors.pink,
+    },
+    {
+      label: 'Reservations',
+      icon: 'ticket',
+      route: '/admin/reservations',
+      color: theme.colors.success,
+    },
+    {
+      label: 'Announcements',
+      icon: 'megaphone',
+      route: '/admin/announcements',
+      color: theme.colors.warning,
+    },
+    {
+      label: 'Push Alerts',
+      icon: 'notifications',
+      route: '/admin/push-notifications',
+      color: theme.colors.primary,
+    },
+    {
+      label: 'Platform Ops',
+      icon: 'speedometer',
+      route: '/admin/platform-ops',
+      color: '#22C7F2',
+    },
+    {
+      label: 'Interviews',
+      icon: 'calendar-outline',
+      route: '/admin/interview-slots',
+      color: '#06B6D4',
+    },
+    {
+      label: 'Settings',
+      icon: 'settings',
+      route: '/admin/settings',
+      color: theme.colors.secondary,
+    },
   ];
 
   // Chunk actions into rows of 3 for the grid
-  const actionRows: typeof quickActions[] = [];
+  const actionRows: (typeof quickActions)[] = [];
   for (let i = 0; i < quickActions.length; i += 3) {
     actionRows.push(quickActions.slice(i, i + 3));
   }
@@ -252,7 +269,11 @@ export default function AdminDashboard() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
       <LinearGradient
-        colors={[theme.alpha(theme.colors.secondary, 0.2), theme.alpha(theme.colors.primary, 0.12), theme.colors.background]}
+        colors={[
+          theme.alpha(theme.colors.secondary, 0.2),
+          theme.alpha(theme.colors.primary, 0.12),
+          theme.colors.background,
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16 }}
@@ -262,10 +283,14 @@ export default function AdminDashboard() {
             <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', lineHeight: 27 }}>
+            <Text
+              style={{ color: theme.colors.text, fontSize: 22, fontWeight: '800', lineHeight: 27 }}
+            >
               Admin Dashboard
             </Text>
-            <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Manage your community</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+              Manage your community
+            </Text>
           </View>
           <View
             style={{
@@ -277,13 +302,14 @@ export default function AdminDashboard() {
               borderWidth: 1,
             }}
           >
-            <Text style={{ color: theme.colors.secondary, fontWeight: '700', fontSize: 12 }}>⚡ ADMIN</Text>
+            <Text style={{ color: theme.colors.secondary, fontWeight: '700', fontSize: 12 }}>
+              ⚡ ADMIN
+            </Text>
           </View>
         </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}>
-
         {/* ── Stats ── */}
         <Text style={sectionLabel}>Overview</Text>
         {statsLoading ? (
@@ -348,9 +374,38 @@ export default function AdminDashboard() {
         ))}
 
         {/* ── Pending Venmo Payments ── */}
-        <Text style={[sectionLabel, { marginTop: 12 }]}>
-          Pending Venmo Payments ({venmoList.length})
-        </Text>
+        <View
+          style={{
+            marginTop: 12,
+            marginBottom: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={sectionLabel}>Pending Venmo Payments ({venmoList.length})</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: -4 }}>
+              Dashboard preview only — open Reservations for the canonical review queue.
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/admin/reservations' as any)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 10,
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+            }}
+          >
+            <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 12 }}>
+              Open Queue
+            </Text>
+          </TouchableOpacity>
+        </View>
         {venmoLoading ? (
           <ActivityIndicator color={theme.colors.pink} style={{ marginVertical: 16 }} />
         ) : venmoList.length === 0 ? (
@@ -370,91 +425,67 @@ export default function AdminDashboard() {
             </Text>
           </View>
         ) : (
-          venmoList.map((res: any) => (
-            <View
-              key={res.id}
-              style={{
-                backgroundColor: theme.colors.surface,
-                borderRadius: 14,
-                padding: 14,
-                borderColor: theme.colors.border,
-                borderWidth: 1,
-                marginBottom: 10,
-              }}
-            >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                <Text
-                  style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, flex: 1 }}
-                  numberOfLines={1}
+          <>
+            {venmoList.slice(0, 3).map((res: any) => (
+              <View
+                key={res.id}
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 14,
+                  padding: 14,
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                  marginBottom: 10,
+                }}
+              >
+                <View
+                  style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}
                 >
-                  {res.user?.name ?? res.userName ?? 'Unknown'}
-                </Text>
-                <Text style={{ color: theme.colors.warning, fontWeight: '700', fontSize: 13, marginLeft: 8 }}>
-                  {res.ticketType?.replace('_', ' ') ?? 'Ticket'}
-                </Text>
-              </View>
-              <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 2 }}>
-                {res.event?.title ?? res.eventTitle ?? 'Event'}
-              </Text>
-              {res.user?.email && (
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 10 }}>
-                  {res.user.email}
-                </Text>
-              )}
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TouchableOpacity
-                  onPress={() => confirmMutation.mutate({ id: res.id })}
-                  disabled={confirmMutation.isPending || rejectMutation.isPending}
-                  style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}
-                >
-                  <LinearGradient
-                    colors={[theme.colors.success, '#059669']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
+                  <Text
+                    style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, flex: 1 }}
+                    numberOfLines={1}
+                  >
+                    {res.user?.name ?? res.userName ?? 'Unknown'}
+                  </Text>
+                  <Text
                     style={{
-                      paddingVertical: 10,
-                      alignItems: 'center',
-                      opacity: confirmMutation.isPending ? 0.7 : 1,
+                      color: theme.colors.warning,
+                      fontWeight: '700',
+                      fontSize: 13,
+                      marginLeft: 8,
                     }}
                   >
-                    {confirmMutation.isPending ? (
-                      <ActivityIndicator color={theme.colors.white} size="small" />
-                    ) : (
-                      <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 14 }}>✓ Confirm</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    Alert.alert(
-                      'Reject Reservation',
-                      'Are you sure you want to reject this payment?',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Reject',
-                          style: 'destructive',
-                          onPress: () => rejectMutation.mutate({ id: res.id }),
-                        },
-                      ]
-                    )
-                  }
-                  disabled={confirmMutation.isPending || rejectMutation.isPending}
-                  style={{
-                    flex: 1,
-                    borderRadius: 10,
-                    paddingVertical: 10,
-                    alignItems: 'center',
-                    backgroundColor: theme.colors.dangerSoft,
-                    borderColor: theme.colors.dangerBorder,
-                    borderWidth: 1,
-                  }}
-                >
-                  <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 14 }}>✕ Reject</Text>
-                </TouchableOpacity>
+                    {res.ticketType?.replace('_', ' ') ?? 'Ticket'}
+                  </Text>
+                </View>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 2 }}>
+                  {res.event?.title ?? res.eventTitle ?? 'Event'}
+                </Text>
+                {res.user?.email && (
+                  <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                    {res.user.email}
+                  </Text>
+                )}
               </View>
-            </View>
-          ))
+            ))}
+            {venmoList.length > 3 && (
+              <TouchableOpacity
+                onPress={() => router.push('/admin/reservations' as any)}
+                style={{
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 12,
+                  borderColor: theme.colors.border,
+                  borderWidth: 1,
+                }}
+              >
+                <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>
+                  View all {venmoList.length} pending payments
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>

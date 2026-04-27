@@ -13,13 +13,13 @@ interface NotifIconConfig {
 
 function getIconConfig(type?: string | null): NotifIconConfig {
   const map: Record<string, NotifIconConfig> = {
-    message:  { name: 'chatbubbles',      color: '#EC4899' },
-    event:    { name: 'calendar',         color: '#10B981' },
-    like:     { name: 'heart',            color: '#EC4899' },
-    comment:  { name: 'chatbubble',       color: '#A855F7' },
-    system:   { name: 'notifications',    color: '#7C3AED' },
+    message: { name: 'chatbubbles', color: '#EC4899' },
+    event: { name: 'calendar', color: '#10B981' },
+    like: { name: 'heart', color: '#EC4899' },
+    comment: { name: 'chatbubble', color: '#A855F7' },
+    system: { name: 'notifications', color: '#7C3AED' },
     approval: { name: 'checkmark-circle', color: '#10B981' },
-    rejection:{ name: 'close-circle',     color: '#EF4444' },
+    rejection: { name: 'close-circle', color: '#EF4444' },
   };
   return map[type ?? ''] ?? { name: 'notifications', color: '#9CA3AF' };
 }
@@ -44,12 +44,22 @@ interface NotificationItemProps {
 // Parse data field (may be JSON string or object)
 function parseData(raw: Record<string, any> | string | null | undefined): Record<string, any> {
   if (!raw) return {};
-  if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
   return raw;
 }
 
 // Resolve the route to navigate to based on notification type + data
-function resolveRoute(type: string, data: Record<string, any>, targetId?: string | number | null): string | null {
+function resolveRoute(
+  type: string,
+  data: Record<string, any>,
+  targetId?: string | number | null
+): string | null {
   switch (type) {
     case 'message':
       // data.conversationId or targetId
@@ -81,7 +91,10 @@ function resolveRoute(type: string, data: Record<string, any>, targetId?: string
   }
 }
 
-const NotificationItem = React.memo(function NotificationItem({ notification, onMarkRead }: NotificationItemProps) {
+const NotificationItem = React.memo(function NotificationItem({
+  notification,
+  onMarkRead,
+}: NotificationItemProps) {
   const router = useRouter();
   const theme = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
@@ -120,7 +133,7 @@ const NotificationItem = React.memo(function NotificationItem({ notification, on
   const icon = useMemo(() => getIconConfig(notification.type), [notification.type]);
   const timeAgo = useMemo(
     () => (notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt)) : ''),
-    [notification.createdAt],
+    [notification.createdAt]
   );
   const isUnread = !notification.readAt;
 
@@ -190,7 +203,9 @@ const NotificationItem = React.memo(function NotificationItem({ notification, on
               {notification.body}
             </Text>
           ) : null}
-          <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 4 }}>{timeAgo}</Text>
+          <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 4 }}>
+            {timeAgo}
+          </Text>
         </View>
 
         {isUnread && (

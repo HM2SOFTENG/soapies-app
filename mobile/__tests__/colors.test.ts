@@ -15,8 +15,8 @@ describe('Brand Colors', () => {
     expect(colors.purple).toBe('#A855F7');
   });
 
-  it('background (bg) is #0D0D0D', () => {
-    expect(colors.bg).toBe('#0D0D0D');
+  it('background (bg) matches the dark luxe base token', () => {
+    expect(colors.bg).toBe('#080810');
   });
 
   it('pinkDark is #DB2777', () => {
@@ -31,20 +31,20 @@ describe('Brand Colors', () => {
     expect(colors.violet).toBe('#7C3AED');
   });
 
-  it('card is #1A1A2E', () => {
-    expect(colors.card).toBe('#1A1A2E');
+  it('card matches the current surfaced token', () => {
+    expect(colors.card).toBe('#10101C');
   });
 
-  it('border is #2D2D44', () => {
-    expect(colors.border).toBe('#2D2D44');
+  it('border matches the current dark theme token', () => {
+    expect(colors.border).toBe('#1A1A30');
   });
 
   it('white is #FFFFFF', () => {
     expect(colors.white).toBe('#FFFFFF');
   });
 
-  it('text is #F9FAFB', () => {
-    expect(colors.text).toBe('#F9FAFB');
+  it('text matches the current primary text token', () => {
+    expect(colors.text).toBe('#F1F0FF');
   });
 
   it('muted is #9CA3AF', () => {
@@ -53,7 +53,19 @@ describe('Brand Colors', () => {
 
   it('has all 11 required color keys', () => {
     const keys = Object.keys(colors);
-    const required = ['pink', 'pinkDark', 'purple', 'purpleDark', 'violet', 'bg', 'card', 'border', 'muted', 'white', 'text'];
+    const required = [
+      'pink',
+      'pinkDark',
+      'purple',
+      'purpleDark',
+      'violet',
+      'bg',
+      'card',
+      'border',
+      'muted',
+      'white',
+      'text',
+    ];
     for (const key of required) {
       expect(keys).toContain(key);
     }

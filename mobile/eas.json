@@ -1,37 +1,51 @@
 {
   "cli": {
-    "version": ">= 7.0.0"
+    "version": ">= 7.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app"
+        "EXPO_PUBLIC_ENVIRONMENT": "development",
+        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app",
+        "EXPO_PUBLIC_WEB_URL": "https://soapiesplaygrp.club"
       }
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "ios": {
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app"
+        "EXPO_PUBLIC_ENVIRONMENT": "preview",
+        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app",
+        "EXPO_PUBLIC_WEB_URL": "https://soapiesplaygrp.club"
       }
     },
     "production": {
+      "channel": "production",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app"
+        "EXPO_PUBLIC_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_API_URL": "https://soapies-app-3uk2q.ondigitalocean.app",
+        "EXPO_PUBLIC_WEB_URL": "https://soapiesplaygrp.club"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./credentials/google-play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }

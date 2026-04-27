@@ -5,14 +5,19 @@
  * We test the business logic directly rather than rendering React components
  * (no jsdom/RN renderer available in node environment).
  */
+import * as SecureStore from 'expo-secure-store';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mock expo-secure-store ────────────────────────────────────────────────────
 const store: Record<string, string> = {};
 vi.mock('expo-secure-store', () => ({
   getItemAsync: vi.fn(async (key: string) => store[key] ?? null),
-  setItemAsync: vi.fn(async (key: string, value: string) => { store[key] = value; }),
-  deleteItemAsync: vi.fn(async (key: string) => { delete store[key]; }),
+  setItemAsync: vi.fn(async (key: string, value: string) => {
+    store[key] = value;
+  }),
+  deleteItemAsync: vi.fn(async (key: string) => {
+    delete store[key];
+  }),
 }));
 
 // ── Mock expo-linear-gradient (pulled in transitively) ───────────────────────
@@ -28,8 +33,6 @@ vi.mock('../lib/trpc', () => ({
   trpc: { auth: { me: { useQuery: vi.fn(() => ({ data: null })) } } },
   createTRPCClient: vi.fn(() => ({})),
 }));
-
-import * as SecureStore from 'expo-secure-store';
 
 const SESSION_KEY = 'session_token';
 

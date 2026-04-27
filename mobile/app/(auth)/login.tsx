@@ -17,7 +17,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc, saveToken } from '../../lib/trpc';
-import { queryClient } from '../_layout';
 import { useAuth } from '../../lib/auth';
 
 export default function LoginScreen() {
@@ -52,7 +51,8 @@ export default function LoginScreen() {
     },
     onError: (err: any) => {
       if (__DEV__) console.error('[Login] onError:', JSON.stringify(err));
-      const msg = err?.message || err?.data?.message || 'Please check your credentials and try again.';
+      const msg =
+        err?.message || err?.data?.message || 'Please check your credentials and try again.';
       Alert.alert('Sign In Failed', msg);
     },
   });
@@ -67,11 +67,21 @@ export default function LoginScreen() {
   }
 
   function handlePressIn() {
-    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
   }
 
   function handlePressOut() {
-    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
   }
 
   return (
@@ -87,16 +97,36 @@ export default function LoginScreen() {
       >
         {/* Ambient orbs */}
         <View
-          style={{ position: 'absolute', top: -40, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: '#EC489912' }}
+          style={{
+            position: 'absolute',
+            top: -40,
+            right: -60,
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            backgroundColor: '#EC489912',
+          }}
           pointerEvents="none"
         />
         <View
-          style={{ position: 'absolute', bottom: 100, left: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: '#A855F710' }}
+          style={{
+            position: 'absolute',
+            bottom: 100,
+            left: -40,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: '#A855F710',
+          }}
           pointerEvents="none"
         />
 
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: insets.top + 48,
+            paddingBottom: insets.bottom + 32,
+          }}
           keyboardShouldPersistTaps="handled"
         >
           <View style={{ paddingHorizontal: 28 }}>
@@ -106,30 +136,55 @@ export default function LoginScreen() {
                 colors={['#EC4899', '#A855F7']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 24,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}
               >
                 <Ionicons name="heart" size={36} color="#fff" />
               </LinearGradient>
-              <Text style={{ fontSize: 34, fontWeight: '900', color: '#F1F0FF', letterSpacing: -0.5, textAlign: 'center' }}>
+              <Text
+                style={{
+                  fontSize: 34,
+                  fontWeight: '900',
+                  color: '#F1F0FF',
+                  letterSpacing: -0.5,
+                  textAlign: 'center',
+                }}
+              >
                 Soapies
               </Text>
-              <Text style={{ color: '#5A5575', fontSize: 14, textAlign: 'center', marginTop: 6, marginBottom: 0 }}>
+              <Text
+                style={{
+                  color: '#5A5575',
+                  fontSize: 14,
+                  textAlign: 'center',
+                  marginTop: 6,
+                  marginBottom: 0,
+                }}
+              >
                 Your community. Your vibe.
               </Text>
             </View>
 
             {/* Email input */}
-            <View style={{
-              backgroundColor: '#0C0C1A',
-              borderColor: emailFocused ? '#EC489960' : '#1A1A30',
-              borderWidth: emailFocused ? 1.5 : 1,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}>
+            <View
+              style={{
+                backgroundColor: '#0C0C1A',
+                borderColor: emailFocused ? '#EC489960' : '#1A1A30',
+                borderWidth: emailFocused ? 1.5 : 1,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+            >
               <Ionicons name="mail" size={18} color="#5A5575" style={{ marginRight: 10 }} />
               <TextInput
                 value={email}
@@ -146,17 +201,19 @@ export default function LoginScreen() {
             </View>
 
             {/* Password input */}
-            <View style={{
-              backgroundColor: '#0C0C1A',
-              borderColor: passwordFocused ? '#EC489960' : '#1A1A30',
-              borderWidth: passwordFocused ? 1.5 : 1,
-              borderRadius: 16,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 12,
-            }}>
+            <View
+              style={{
+                backgroundColor: '#0C0C1A',
+                borderColor: passwordFocused ? '#EC489960' : '#1A1A30',
+                borderWidth: passwordFocused ? 1.5 : 1,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+            >
               <Ionicons name="lock-closed" size={18} color="#5A5575" style={{ marginRight: 10 }} />
               <TextInput
                 value={password}
@@ -169,7 +226,10 @@ export default function LoginScreen() {
                 onBlur={() => setPasswordFocused(false)}
                 style={{ flex: 1, color: '#F1F0FF', fontSize: 15 }}
               />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color="#5A5575" />
               </TouchableOpacity>
             </View>
@@ -179,19 +239,23 @@ export default function LoginScreen() {
               onPress={() => router.push('/(auth)/forgot-password' as any)}
               style={{ alignSelf: 'flex-end', marginBottom: 20 }}
             >
-              <Text style={{ color: '#A855F7', fontWeight: '600', fontSize: 14, textAlign: 'right' }}>
+              <Text
+                style={{ color: '#A855F7', fontWeight: '600', fontSize: 14, textAlign: 'right' }}
+              >
                 Forgot password?
               </Text>
             </TouchableOpacity>
 
             {/* Sign In button */}
-            <Animated.View style={{
-              transform: [{ scale: scaleAnim }],
-              shadowColor: '#EC4899',
-              shadowOpacity: 0.4,
-              shadowRadius: 14,
-              shadowOffset: { width: 0, height: 4 },
-            }}>
+            <Animated.View
+              style={{
+                transform: [{ scale: scaleAnim }],
+                shadowColor: '#EC4899',
+                shadowOpacity: 0.4,
+                shadowRadius: 14,
+                shadowOffset: { width: 0, height: 4 },
+              }}
+            >
               <TouchableOpacity
                 onPress={handleLogin}
                 onPressIn={handlePressIn}
@@ -203,7 +267,12 @@ export default function LoginScreen() {
                   colors={['#EC4899', '#A855F7']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 18, paddingVertical: 16, width: '100%', alignItems: 'center' }}
+                  style={{
+                    borderRadius: 18,
+                    paddingVertical: 16,
+                    width: '100%',
+                    alignItems: 'center',
+                  }}
                 >
                   {loginMutation.isPending ? (
                     <ActivityIndicator color="#fff" />
@@ -216,7 +285,7 @@ export default function LoginScreen() {
 
             {/* Sign up link */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-              <Text style={{ color: '#5A5575' }}>Don't have an account? </Text>
+              <Text style={{ color: '#5A5575' }}>Don&apos;t have an account? </Text>
               <TouchableOpacity onPress={() => router.push('/onboarding' as any)}>
                 <Text style={{ color: '#EC4899', fontWeight: '700' }}>Join now</Text>
               </TouchableOpacity>

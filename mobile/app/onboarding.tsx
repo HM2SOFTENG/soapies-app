@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,15 +21,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { uploadPhoto } from '../lib/uploadPhoto';
-import { trpc } from '../lib/trpc';
+import { trpc, setMemoryToken } from '../lib/trpc';
 import { colors } from '../lib/colors';
 import { useAuth } from '../lib/auth';
 import { useToast } from '../components/Toast';
-import { saveToken, setMemoryToken, SESSION_COOKIE_KEY } from '../lib/trpc';
 import { useTheme } from '../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,21 +41,69 @@ const STEPS = [
   { id: 7, title: 'Submit', subtitle: 'Almost there!' },
 ];
 
-const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Trans Male', 'Trans Female', 'Other', 'Prefer not to say'];
-const ORIENTATION_OPTIONS = ['Straight', 'Gay', 'Lesbian', 'Bisexual', 'Pansexual', 'Queer', 'Asexual', 'Other', 'Prefer not to say'];
-const RELATIONSHIP_OPTIONS = ['Single', 'In a Relationship', 'Married', 'Open Relationship', "It's Complicated", 'Prefer not to say'];
+const GENDER_OPTIONS = [
+  'Male',
+  'Female',
+  'Non-binary',
+  'Trans Male',
+  'Trans Female',
+  'Other',
+  'Prefer not to say',
+];
+const ORIENTATION_OPTIONS = [
+  'Straight',
+  'Gay',
+  'Lesbian',
+  'Bisexual',
+  'Pansexual',
+  'Queer',
+  'Asexual',
+  'Other',
+  'Prefer not to say',
+];
+const RELATIONSHIP_OPTIONS = [
+  'Single',
+  'In a Relationship',
+  'Married',
+  'Open Relationship',
+  "It's Complicated",
+  'Prefer not to say',
+];
 const COMMUNITY_OPTIONS = [
   { id: 'soapies', name: 'Soapies', desc: 'The original lifestyle community' },
   { id: 'groupies', name: 'Groupies', desc: 'For couples and groups' },
   { id: 'gaypeez', name: 'Gaypeez', desc: 'LGBTQ+ friendly community' },
 ];
-const INTERESTS = ['House Parties', 'Raves', 'Beach Events', 'Pool Parties', 'Dance', 'Music', 'Socializing', 'Networking', 'Fitness', 'Travel', 'Art', 'Photography'];
-const LOOKING_FOR = ['New Friends', 'Social Events', 'Couples Community', 'Dating', 'Networking', 'Adventure', 'Fun Nights Out', 'Like-minded People'];
+const INTERESTS = [
+  'House Parties',
+  'Raves',
+  'Beach Events',
+  'Pool Parties',
+  'Dance',
+  'Music',
+  'Socializing',
+  'Networking',
+  'Fitness',
+  'Travel',
+  'Art',
+  'Photography',
+];
+const LOOKING_FOR = [
+  'New Friends',
+  'Social Events',
+  'Couples Community',
+  'Dating',
+  'Networking',
+  'Adventure',
+  'Fun Nights Out',
+  'Like-minded People',
+];
 
 function getPasswordStrength(password: string): { label: string; color: string; pct: number } {
   if (password.length < 8) return { label: 'Weak', color: '#EF4444', pct: 20 };
   if (password.length < 12) return { label: 'Medium', color: '#F59E0B', pct: 60 };
-  if (/[A-Z]/.test(password) && /[0-9!@#$%^&*]/.test(password)) return { label: 'Strong', color: '#10B981', pct: 100 };
+  if (/[A-Z]/.test(password) && /[0-9!@#$%^&*]/.test(password))
+    return { label: 'Strong', color: '#10B981', pct: 100 };
   return { label: 'Medium', color: '#F59E0B', pct: 60 };
 }
 
@@ -129,20 +175,19 @@ function PillSelector({
     multi ? (selected as string[]).includes(opt) : selected === opt;
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16, gap: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingRight: 16, gap: 8, flexDirection: 'row', flexWrap: 'wrap' }}
+    >
       {options.map((opt) => (
         <TouchableOpacity
           key={opt}
           onPress={() => onSelect(opt)}
           activeOpacity={0.75}
-          style={[
-            styles.pill,
-            isSelected(opt) && styles.pillSelected,
-          ]}
+          style={[styles.pill, isSelected(opt) && styles.pillSelected]}
         >
-          <Text style={[styles.pillText, isSelected(opt) && styles.pillTextSelected]}>
-            {opt}
-          </Text>
+          <Text style={[styles.pillText, isSelected(opt) && styles.pillTextSelected]}>{opt}</Text>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -184,7 +229,7 @@ function ChipGrid({
 export default function OnboardingScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { setUser, setHasToken } = useAuth();
+  useAuth();
   const toast = useToast();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -249,7 +294,7 @@ export default function OnboardingScreen() {
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [currentStep]);
+  }, [currentStep, progressAnim]);
 
   // Resend timer countdown
   useEffect(() => {
@@ -275,14 +320,15 @@ export default function OnboardingScreen() {
 
   const handleRegister = async () => {
     if (__DEV__) {
-      console.log('[onboarding] handleRegister:start', {
-        email: email.trim().toLowerCase(),
-        hasPassword: !!password,
-        hasConfirmPassword: !!confirmPassword,
-        agreedToTerms,
-        hasDobPieces: !!(dobYear && dobMonth && dobDay),
-        currentStep,
-      });
+      if (__DEV__)
+        console.log('[onboarding] handleRegister:start', {
+          email: email.trim().toLowerCase(),
+          hasPassword: !!password,
+          hasConfirmPassword: !!confirmPassword,
+          agreedToTerms,
+          hasDobPieces: !!(dobYear && dobMonth && dobDay),
+          currentStep,
+        });
     }
 
     if (!email.trim() || !password || !confirmPassword) {
@@ -296,7 +342,8 @@ export default function OnboardingScreen() {
       return;
     }
     if (password.length < 8) {
-      if (__DEV__) console.warn('[onboarding] handleRegister:password-too-short', { length: password.length });
+      if (__DEV__)
+        console.warn('[onboarding] handleRegister:password-too-short', { length: password.length });
       toast.error('Password must be at least 8 characters');
       return;
     }
@@ -307,16 +354,18 @@ export default function OnboardingScreen() {
     }
 
     try {
-      const dobForServer = dobYear && dobMonth && dobDay
-        ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
-        : undefined;
+      const dobForServer =
+        dobYear && dobMonth && dobDay
+          ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+          : undefined;
 
       if (__DEV__) {
-        console.log('[onboarding] handleRegister:request', {
-          email: email.trim().toLowerCase(),
-          name: email.split('@')[0],
-          dateOfBirth: dobForServer ?? null,
-        });
+        if (__DEV__)
+          console.log('[onboarding] handleRegister:request', {
+            email: email.trim().toLowerCase(),
+            name: email.split('@')[0],
+            dateOfBirth: dobForServer ?? null,
+          });
       }
 
       const registerPayload: any = {
@@ -328,14 +377,15 @@ export default function OnboardingScreen() {
         dateOfBirth: dobForServer ?? '1990-01-01',
       };
 
-      const result = await registerMutation.mutateAsync(registerPayload) as any;
+      const result = (await registerMutation.mutateAsync(registerPayload)) as any;
 
       if (__DEV__) {
-        console.log('[onboarding] handleRegister:success', {
-          userId: result?.userId,
-          hasSessionToken: !!result?.sessionToken,
-          message: result?.message,
-        });
+        if (__DEV__)
+          console.log('[onboarding] handleRegister:success', {
+            userId: result?.userId,
+            hasSessionToken: !!result?.sessionToken,
+            message: result?.message,
+          });
       }
 
       // Store token in memory ONLY (for making authenticated API calls during onboarding)
@@ -350,12 +400,13 @@ export default function OnboardingScreen() {
     } catch (e: any) {
       const msg = e?.message ?? '';
       if (__DEV__) {
-        console.error('[onboarding] handleRegister:error', {
-          message: msg,
-          data: e?.data,
-          shape: e?.shape,
-          cause: e?.cause,
-        });
+        if (__DEV__)
+          console.error('[onboarding] handleRegister:error', {
+            message: msg,
+            data: e?.data,
+            shape: e?.shape,
+            cause: e?.cause,
+          });
       }
       if (msg.toLowerCase().includes('already exists') || e?.data?.code === 'CONFLICT') {
         Alert.alert(
@@ -380,10 +431,10 @@ export default function OnboardingScreen() {
       return;
     }
     try {
-      const result = await verifyEmailMutation.mutateAsync({
+      const result = (await verifyEmailMutation.mutateAsync({
         email: email.trim().toLowerCase(),
         code: otpCode,
-      }) as any;
+      })) as any;
 
       // Update memory token from verify (do NOT save to SecureStore or log in)
       if (result?.sessionToken) {
@@ -419,7 +470,9 @@ export default function OnboardingScreen() {
     setReferralVerified(false);
     setReferrerName('');
     try {
-      const result = await trpcUtils.referrals.validate.fetch({ code: referralCode.trim().toUpperCase() });
+      const result = await trpcUtils.referrals.validate.fetch({
+        code: referralCode.trim().toUpperCase(),
+      });
       if (result.valid) {
         setReferralVerified(true);
         setReferrerName(result.referrerName || '');
@@ -436,10 +489,22 @@ export default function OnboardingScreen() {
   // ─── Step 4: About You ────────────────────────────────────────────────────
 
   const handleAboutYouNext = async () => {
-    if (!displayName.trim()) { toast.error('Display name is required'); return; }
-    if (!gender) { toast.error('Please select your gender'); return; }
-    if (!communityId) { toast.error('Please select a community'); return; }
-    if (!bio.trim()) { toast.error('Please write a short bio'); return; }
+    if (!displayName.trim()) {
+      toast.error('Display name is required');
+      return;
+    }
+    if (!gender) {
+      toast.error('Please select your gender');
+      return;
+    }
+    if (!communityId) {
+      toast.error('Please select a community');
+      return;
+    }
+    if (!bio.trim()) {
+      toast.error('Please write a short bio');
+      return;
+    }
 
     if (!dobDay || !dobMonth || !dobYear) {
       toast.error('Please enter your date of birth.');
@@ -451,9 +516,10 @@ export default function OnboardingScreen() {
       return;
     }
 
-    const dateOfBirth = dobYear && dobMonth && dobDay
-      ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
-      : undefined;
+    const dateOfBirth =
+      dobYear && dobMonth && dobDay
+        ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+        : undefined;
 
     try {
       await upsertMutation.mutateAsync({
@@ -465,7 +531,8 @@ export default function OnboardingScreen() {
         location: location.trim() || undefined,
         communityId,
         phone: phone.trim() || undefined,
-        referredByCode: referralVerified && referralCode ? referralCode.trim().toUpperCase() : undefined,
+        referredByCode:
+          referralVerified && referralCode ? referralCode.trim().toUpperCase() : undefined,
         preferences: { relationshipStatus },
       } as any);
       goTo(5);
@@ -506,7 +573,7 @@ export default function OnboardingScreen() {
         updated[idx] = { localUri: asset.uri, remoteUrl, uploading: false };
         return updated;
       });
-    } catch (e: any) {
+    } catch {
       toast.error('Photo upload failed');
       setPhotos((prev) => prev.filter((_, i) => i !== index));
     }
@@ -528,14 +595,20 @@ export default function OnboardingScreen() {
   // ─── Step 6: Preferences ──────────────────────────────────────────────────
 
   const toggleInterest = (v: string) =>
-    setInterests((prev) => prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v]);
+    setInterests((prev) => (prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v]));
 
   const toggleLookingFor = (v: string) =>
-    setLookingFor((prev) => prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v]);
+    setLookingFor((prev) => (prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v]));
 
   const handlePreferencesNext = async () => {
-    if (interests.length === 0) { toast.error('Please select at least one interest'); return; }
-    if (lookingFor.length === 0) { toast.error('Please select what you\'re looking for'); return; }
+    if (interests.length === 0) {
+      toast.error('Please select at least one interest');
+      return;
+    }
+    if (lookingFor.length === 0) {
+      toast.error("Please select what you're looking for");
+      return;
+    }
 
     // Save preferences to profile
     try {
@@ -579,71 +652,763 @@ export default function OnboardingScreen() {
       locations={[0, 0.4, 1]}
       style={{ flex: 1 }}
     >
-    <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
-      {/* Step indicators */}
-      {currentStep > 1 && (
-        <StepIndicators currentStep={currentStep} totalSteps={STEPS.length} />
-      )}
+      <SafeAreaView style={[styles.container, { backgroundColor: 'transparent' }]}>
+        {/* Step indicators */}
+        {currentStep > 1 && <StepIndicators currentStep={currentStep} totalSteps={STEPS.length} />}
 
-      {/* Header (step > 1) */}
-      {currentStep > 1 && (
-        <View style={styles.header}>
-          {/*
+        {/* Header (step > 1) */}
+        {currentStep > 1 && (
+          <View style={styles.header}>
+            {/*
             Back button is disabled on step 3 (email OTP verification) because
             the account has already been created at step 2 — going back would
             silently re-hit the register mutation and 409. On every other step
             (2, 4–7) the user can safely step back to revise input.
             Fixes ITEM-020.
           */}
-          <TouchableOpacity
-            onPress={() => {
-              if (currentStep === 3) return;
-              goTo(currentStep - 1);
-            }}
-            style={styles.backBtn}
-            disabled={currentStep === 3}
-          >
-            {currentStep !== 3 && <Ionicons name="chevron-back" size={24} color={colors.text} />}
-          </TouchableOpacity>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={styles.headerTitle}>{STEPS[currentStep - 1]?.title}</Text>
-            <Text style={styles.headerSub}>{STEPS[currentStep - 1]?.subtitle}</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-      )}
-
-      {/* ─── Step 1: Welcome ──────────────────────────────────────────── */}
-      {currentStep === 1 && (
-        <LinearGradient
-          colors={['#0D0D1A', '#1A0830', '#0D0D1A']}
-          style={StyleSheet.absoluteFillObject}
-        />
-      )}
-
-      {currentStep === 1 && (
-        <View style={styles.welcomeContainer}>
-          {/* Glow blobs */}
-          <View style={[styles.blob, { top: -60, left: -60, backgroundColor: 'rgba(168,85,247,0.25)' }]} />
-          <View style={[styles.blob, { bottom: -60, right: -60, backgroundColor: 'rgba(236,72,153,0.2)' }]} />
-
-          <View style={styles.welcomeContent}>
-            <LinearGradient
-              colors={['#EC4899', '#A855F7', '#7C3AED']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.logoCircle}
+            <TouchableOpacity
+              onPress={() => {
+                if (currentStep === 3) return;
+                goTo(currentStep - 1);
+              }}
+              style={styles.backBtn}
+              disabled={currentStep === 3}
             >
-              <Text style={styles.logoLetter}>S</Text>
-            </LinearGradient>
+              {currentStep !== 3 && <Ionicons name="chevron-back" size={24} color={colors.text} />}
+            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={styles.headerTitle}>{STEPS[currentStep - 1]?.title}</Text>
+              <Text style={styles.headerSub}>{STEPS[currentStep - 1]?.subtitle}</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+        )}
 
-            <Text style={styles.welcomeTitle}>Welcome to{'\n'}Soapies</Text>
-            <Text style={styles.welcomeSubtitle}>Join the hottest lifestyle community</Text>
+        {/* ─── Step 1: Welcome ──────────────────────────────────────────── */}
+        {currentStep === 1 && (
+          <LinearGradient
+            colors={['#0D0D1A', '#1A0830', '#0D0D1A']}
+            style={StyleSheet.absoluteFillObject}
+          />
+        )}
+
+        {currentStep === 1 && (
+          <View style={styles.welcomeContainer}>
+            {/* Glow blobs */}
+            <View
+              style={[
+                styles.blob,
+                { top: -60, left: -60, backgroundColor: 'rgba(168,85,247,0.25)' },
+              ]}
+            />
+            <View
+              style={[
+                styles.blob,
+                { bottom: -60, right: -60, backgroundColor: 'rgba(236,72,153,0.2)' },
+              ]}
+            />
+
+            <View style={styles.welcomeContent}>
+              <LinearGradient
+                colors={['#EC4899', '#A855F7', '#7C3AED']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoCircle}
+              >
+                <Text style={styles.logoLetter}>S</Text>
+              </LinearGradient>
+
+              <Text style={styles.welcomeTitle}>Welcome to{'\n'}Soapies</Text>
+              <Text style={styles.welcomeSubtitle}>Join the hottest lifestyle community</Text>
+
+              <TouchableOpacity
+                onPress={() => goTo(2)}
+                activeOpacity={0.85}
+                style={{ borderRadius: 18, overflow: 'hidden', marginTop: 40, width: '100%' }}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.primaryBtn}
+                >
+                  <Ionicons name="sparkles" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.primaryBtnText}>Begin Your Journey</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/login')}
+                style={{ marginTop: 20 }}
+              >
+                <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+                  Already have an account?{' '}
+                  <Text style={{ color: colors.pink, fontWeight: '700' }}>Log In</Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* ─── Step 2: Create Account ────────────────────────────────────── */}
+        {currentStep === 2 && (
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
+              <Text style={styles.stepHeading}>Create Account</Text>
+              <Text style={styles.stepSubheading}>
+                Membership is by approval. We&apos;ll review your application.
+              </Text>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>EMAIL *</Text>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  style={styles.input}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>PASSWORD *</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry={!showPassword}
+                    autoComplete="new-password"
+                    style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeBtn}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+                {pwStrength && (
+                  <View style={{ marginTop: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                        Password Strength
+                      </Text>
+                      <Text style={{ color: pwStrength.color, fontSize: 12, fontWeight: '700' }}>
+                        {pwStrength.label}
+                      </Text>
+                    </View>
+                    <View style={{ height: 4, backgroundColor: '#1A1A30', borderRadius: 2 }}>
+                      <View
+                        style={{
+                          height: 4,
+                          width: `${pwStrength.pct}%`,
+                          backgroundColor: pwStrength.color,
+                          borderRadius: 2,
+                        }}
+                      />
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>CONFIRM PASSWORD *</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry={!showConfirmPassword}
+                    autoComplete="new-password"
+                    style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeBtn}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off' : 'eye'}
+                      size={20}
+                      color={colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+                {confirmPassword.length > 0 && password !== confirmPassword && (
+                  <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>
+                    Passwords don&apos;t match
+                  </Text>
+                )}
+              </View>
+
+              {/* Terms checkbox */}
+              <TouchableOpacity
+                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                style={styles.checkboxRow}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                  {agreedToTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+                <Text style={{ color: colors.textMuted, fontSize: 13, flex: 1, marginLeft: 10 }}>
+                  I agree to the{' '}
+                  <Text
+                    style={{ color: colors.pink, textDecorationLine: 'underline' }}
+                    onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
+                  >
+                    community guidelines
+                  </Text>{' '}
+                  and{' '}
+                  <Text
+                    style={{ color: colors.pink, textDecorationLine: 'underline' }}
+                    onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
+                  >
+                    terms of service
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <View style={{ height: 24 }} />
+
+              <TouchableOpacity
+                onPress={handleRegister}
+                disabled={registerMutation.isPending}
+                activeOpacity={0.85}
+                style={{ borderRadius: 14, overflow: 'hidden' }}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.primaryBtn, registerMutation.isPending && { opacity: 0.6 }]}
+                >
+                  {registerMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Create Account</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/login')}
+                style={{ marginTop: 20, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#5A5575', fontSize: 14, textDecorationLine: 'underline' }}>
+                  Already a member? Sign In
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+
+        {/* ─── Step 3: Verify Email ──────────────────────────────────────── */}
+        {currentStep === 3 && (
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
+              <View style={styles.otpIconContainer}>
+                <Ionicons name="mail-outline" size={48} color={colors.pink} />
+              </View>
+              <Text style={styles.stepHeading}>Check Your Email</Text>
+              <Text style={[styles.stepSubheading, { textAlign: 'center' }]}>
+                We sent a 6-digit code to
+              </Text>
+              <Text
+                style={{
+                  color: colors.pink,
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  marginBottom: 32,
+                }}
+              >
+                {email}
+              </Text>
+
+              <Text style={styles.fieldLabel}>VERIFICATION CODE</Text>
+              <TextInput
+                value={otpCode}
+                onChangeText={(v) => setOtpCode(v.replace(/\D/g, '').slice(0, 6))}
+                placeholder="123456"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="number-pad"
+                maxLength={6}
+                style={[
+                  styles.input,
+                  { textAlign: 'center', fontSize: 28, letterSpacing: 12, fontWeight: '700' },
+                ]}
+              />
+
+              <View style={{ height: 24 }} />
+
+              <TouchableOpacity
+                onPress={handleVerifyEmail}
+                disabled={verifyEmailMutation.isPending || otpCode.length !== 6}
+                activeOpacity={0.85}
+                style={{ borderRadius: 14, overflow: 'hidden' }}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.primaryBtn,
+                    (verifyEmailMutation.isPending || otpCode.length !== 6) && { opacity: 0.5 },
+                  ]}
+                >
+                  {verifyEmailMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Verify Code</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleResendCode}
+                disabled={resendTimer > 0 || resendMutation.isPending}
+                style={{ marginTop: 20, alignItems: 'center' }}
+              >
+                {resendTimer > 0 ? (
+                  <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+                    Resend in {resendTimer}s
+                  </Text>
+                ) : (
+                  <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '600' }}>
+                    {resendMutation.isPending ? 'Sending...' : 'Resend Code'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+
+        {/* ─── Step 4: About You ─────────────────────────────────────────── */}
+        {currentStep === 4 && (
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
+              {/* Display Name */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>DISPLAY NAME *</Text>
+                <TextInput
+                  value={displayName}
+                  onChangeText={setDisplayName}
+                  placeholder="Your display name"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.input}
+                />
+              </View>
+
+              {/* Date of Birth */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    value={dobMonth}
+                    onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
+                    placeholder="MM"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    maxLength={2}
+                    style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  />
+                  <TextInput
+                    value={dobDay}
+                    onChangeText={(v) => setDobDay(v.replace(/\D/g, '').slice(0, 2))}
+                    placeholder="DD"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    maxLength={2}
+                    style={[styles.input, { flex: 1, textAlign: 'center' }]}
+                  />
+                  <TextInput
+                    value={dobYear}
+                    onChangeText={(v) => setDobYear(v.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="YYYY"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                    maxLength={4}
+                    style={[styles.input, { flex: 2, textAlign: 'center' }]}
+                  />
+                </View>
+                {currentAge !== null && (
+                  <View style={{ marginTop: 8 }}>
+                    {isAdult ? (
+                      <View style={styles.ageBadgeGood}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                        <Text
+                          style={{
+                            color: '#10B981',
+                            fontWeight: '700',
+                            marginLeft: 4,
+                            fontSize: 13,
+                          }}
+                        >
+                          {currentAge} years old ✓
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.ageBadgeBad}>
+                        <Ionicons name="close-circle" size={14} color="#EF4444" />
+                        <Text
+                          style={{
+                            color: '#EF4444',
+                            fontWeight: '700',
+                            marginLeft: 4,
+                            fontSize: 13,
+                          }}
+                        >
+                          Must be 21+ to join
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* Community */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>COMMUNITY *</Text>
+                {COMMUNITY_OPTIONS.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    onPress={() => setCommunityId(c.id)}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.communityCard,
+                      communityId === c.id && styles.communityCardSelected,
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.communityCardName,
+                          communityId === c.id && { color: colors.pink },
+                        ]}
+                      >
+                        {c.name}
+                      </Text>
+                      <Text style={styles.communityCardDesc}>{c.desc}</Text>
+                    </View>
+                    {communityId === c.id && (
+                      <Ionicons name="checkmark-circle" size={22} color={colors.pink} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Gender */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>GENDER *</Text>
+                <PillSelector options={GENDER_OPTIONS} selected={gender} onSelect={setGender} />
+              </View>
+
+              {/* Orientation */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>ORIENTATION</Text>
+                <PillSelector
+                  options={ORIENTATION_OPTIONS}
+                  selected={orientation}
+                  onSelect={setOrientation}
+                />
+              </View>
+
+              {/* Relationship Status */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>RELATIONSHIP STATUS</Text>
+                <PillSelector
+                  options={RELATIONSHIP_OPTIONS}
+                  selected={relationshipStatus}
+                  onSelect={setRelationshipStatus}
+                />
+              </View>
+
+              {/* Bio */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>
+                  BIO *{' '}
+                  <Text style={{ color: colors.textMuted, fontWeight: '400' }}>
+                    {bio.length}/200
+                  </Text>
+                </Text>
+                <TextInput
+                  value={bio}
+                  onChangeText={(v) => setBio(v.slice(0, 200))}
+                  placeholder="Tell the community about yourself..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={200}
+                  style={[styles.input, { minHeight: 100, textAlignVertical: 'top' }]}
+                />
+              </View>
+
+              {/* Location */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>LOCATION</Text>
+                <TextInput
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="City, State"
+                  placeholderTextColor={colors.textMuted}
+                  style={styles.input}
+                />
+              </View>
+
+              {/* Phone */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>
+                  PHONE{' '}
+                  <Text style={{ fontWeight: '400', color: colors.textMuted }}>(optional)</Text>
+                </Text>
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="+1 (555) 000-0000"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+              </View>
+
+              {/* Referral Code */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>
+                  REFERRAL CODE{' '}
+                  <Text style={{ fontWeight: '400', color: colors.textMuted }}>(optional)</Text>
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    value={referralCode}
+                    onChangeText={(v) => {
+                      setReferralCode(v.toUpperCase());
+                      setReferralVerified(false);
+                      setReferralError('');
+                      setReferrerName('');
+                    }}
+                    placeholder="SOAP12345"
+                    placeholderTextColor={colors.textMuted}
+                    autoCapitalize="characters"
+                    style={[styles.input, { flex: 1 }]}
+                  />
+                  <TouchableOpacity
+                    onPress={handleVerifyReferralCode}
+                    disabled={!referralCode.trim() || referralVerifying}
+                    style={[
+                      styles.verifyBtn,
+                      (!referralCode.trim() || referralVerifying) && { opacity: 0.5 },
+                    ]}
+                  >
+                    {referralVerifying ? (
+                      <ActivityIndicator size="small" color={colors.pink} />
+                    ) : (
+                      <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 13 }}>
+                        Verify
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {referralVerified && (
+                  <Text style={{ color: '#10B981', fontSize: 13, marginTop: 6 }}>
+                    ✓ Referred by {referrerName || 'a member'}
+                  </Text>
+                )}
+                {referralError ? (
+                  <Text style={{ color: '#EF4444', fontSize: 13, marginTop: 6 }}>
+                    {referralError}
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={{ height: 24 }} />
+
+              <TouchableOpacity
+                onPress={handleAboutYouNext}
+                disabled={upsertMutation.isPending}
+                activeOpacity={0.85}
+                style={{ borderRadius: 14, overflow: 'hidden' }}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.primaryBtn, upsertMutation.isPending && { opacity: 0.6 }]}
+                >
+                  {upsertMutation.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Next →</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+
+        {/* ─── Step 5: Photos ────────────────────────────────────────────── */}
+        {currentStep === 5 && (
+          <View style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={styles.stepBody}>
+              <Text style={styles.stepHeading}>Your Photos</Text>
+              <Text style={styles.stepSubheading}>
+                Show the community who you are — minimum 3 photos required.
+              </Text>
+
+              <View style={[styles.fieldGroup, { alignItems: 'flex-end' }]}>
+                <Text
+                  style={{
+                    color: uploadedCount >= 3 ? '#10B981' : colors.textMuted,
+                    fontSize: 13,
+                    fontWeight: '600',
+                  }}
+                >
+                  {uploadedCount}/6 photos {uploadedCount >= 3 ? '✓' : ''}
+                </Text>
+              </View>
+
+              {/* Photo grid */}
+              <View style={styles.photoGrid}>
+                {Array.from({ length: 6 }).map((_, i) => {
+                  const photo = photos[i];
+                  return (
+                    <View key={i} style={styles.photoSlot}>
+                      {photo ? (
+                        <>
+                          <Image source={{ uri: photo.localUri }} style={styles.photoPreview} />
+                          {photo.uploading && (
+                            <View style={styles.photoOverlay}>
+                              <ActivityIndicator color="#fff" />
+                            </View>
+                          )}
+                          {!photo.uploading && (
+                            <TouchableOpacity
+                              onPress={() => handleDeletePhoto(i)}
+                              style={styles.deletePhotoBtn}
+                            >
+                              <Ionicons name="close" size={14} color="#fff" />
+                            </TouchableOpacity>
+                          )}
+                          {photo.remoteUrl && (
+                            <View style={styles.photoCheck}>
+                              <Ionicons name="checkmark" size={12} color="#fff" />
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => handlePickPhoto(i)}
+                          style={styles.photoAddBtn}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="add" size={28} color={colors.textMuted} />
+                          {i === 0 && (
+                            <Text style={{ color: colors.textMuted, fontSize: 10, marginTop: 4 }}>
+                              Main
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+
+              {uploadedCount < 3 && (
+                <View style={styles.warnBanner}>
+                  <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
+                  <Text style={{ color: '#F59E0B', fontSize: 13, marginLeft: 6 }}>
+                    Need at least 3 photos to continue
+                  </Text>
+                </View>
+              )}
+
+              <View style={{ height: 24 }} />
+
+              <TouchableOpacity
+                onPress={handlePhotosNext}
+                activeOpacity={0.85}
+                style={{ borderRadius: 14, overflow: 'hidden' }}
+              >
+                <LinearGradient
+                  colors={['#EC4899', '#A855F7']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.primaryBtn, uploadedCount < 3 && { opacity: 0.5 }]}
+                >
+                  <Text style={styles.primaryBtnText}>Next →</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ─── Step 6: Preferences ───────────────────────────────────────── */}
+        {currentStep === 6 && (
+          <ScrollView contentContainerStyle={styles.stepBody}>
+            <Text style={styles.stepHeading}>Your Preferences</Text>
+            <Text style={styles.stepSubheading}>
+              Help us connect you with the right people and events.
+            </Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>
+                INTERESTS *{' '}
+                <Text
+                  style={{
+                    fontWeight: '400',
+                    color: interests.length > 0 ? '#10B981' : colors.textMuted,
+                  }}
+                >
+                  {interests.length} selected
+                </Text>
+              </Text>
+              <ChipGrid options={INTERESTS} selected={interests} onToggle={toggleInterest} />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>
+                LOOKING FOR *{' '}
+                <Text
+                  style={{
+                    fontWeight: '400',
+                    color: lookingFor.length > 0 ? '#10B981' : colors.textMuted,
+                  }}
+                >
+                  {lookingFor.length} selected
+                </Text>
+              </Text>
+              <ChipGrid options={LOOKING_FOR} selected={lookingFor} onToggle={toggleLookingFor} />
+            </View>
+
+            <View style={{ height: 24 }} />
 
             <TouchableOpacity
-              onPress={() => goTo(2)}
+              onPress={handlePreferencesNext}
               activeOpacity={0.85}
-              style={{ borderRadius: 18, overflow: 'hidden', marginTop: 40, width: '100%' }}
+              style={{ borderRadius: 14, overflow: 'hidden' }}
             >
               <LinearGradient
                 colors={['#EC4899', '#A855F7']}
@@ -651,688 +1416,162 @@ export default function OnboardingScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.primaryBtn}
               >
-                <Ionicons name="sparkles" size={18} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.primaryBtnText}>Begin Your Journey</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/login')}
-              style={{ marginTop: 20 }}
-            >
-              <Text style={{ color: colors.textMuted, fontSize: 14 }}>
-                Already have an account?{' '}
-                <Text style={{ color: colors.pink, fontWeight: '700' }}>Log In</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* ─── Step 2: Create Account ────────────────────────────────────── */}
-      {currentStep === 2 && (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
-            <Text style={styles.stepHeading}>Create Account</Text>
-            <Text style={styles.stepSubheading}>Membership is by approval. We'll review your application.</Text>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>EMAIL *</Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                style={styles.input}
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>PASSWORD *</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.textMuted}
-                  secureTextEntry={!showPassword}
-                  autoComplete="new-password"
-                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeBtn}
-                >
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
-                </TouchableOpacity>
-              </View>
-              {pwStrength && (
-                <View style={{ marginTop: 8 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text style={{ color: colors.textMuted, fontSize: 12 }}>Password Strength</Text>
-                    <Text style={{ color: pwStrength.color, fontSize: 12, fontWeight: '700' }}>{pwStrength.label}</Text>
-                  </View>
-                  <View style={{ height: 4, backgroundColor: '#1A1A30', borderRadius: 2 }}>
-                    <View style={{ height: 4, width: `${pwStrength.pct}%`, backgroundColor: pwStrength.color, borderRadius: 2 }} />
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>CONFIRM PASSWORD *</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TextInput
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.textMuted}
-                  secureTextEntry={!showConfirmPassword}
-                  autoComplete="new-password"
-                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeBtn}
-                >
-                  <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={colors.textMuted} />
-                </TouchableOpacity>
-              </View>
-              {confirmPassword.length > 0 && password !== confirmPassword && (
-                <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>Passwords don't match</Text>
-              )}
-            </View>
-
-            {/* Terms checkbox */}
-            <TouchableOpacity
-              onPress={() => setAgreedToTerms(!agreedToTerms)}
-              style={styles.checkboxRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                {agreedToTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
-              </View>
-              <Text style={{ color: colors.textMuted, fontSize: 13, flex: 1, marginLeft: 10 }}>
-                I agree to the{' '}
-                <Text
-                  style={{ color: colors.pink, textDecorationLine: 'underline' }}
-                  onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
-                >community guidelines</Text>
-                {' '}and{' '}
-                <Text
-                  style={{ color: colors.pink, textDecorationLine: 'underline' }}
-                  onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
-                >terms of service</Text>
-              </Text>
-            </TouchableOpacity>
-
-            <View style={{ height: 24 }} />
-
-            <TouchableOpacity
-              onPress={handleRegister}
-              disabled={registerMutation.isPending}
-              activeOpacity={0.85}
-              style={{ borderRadius: 14, overflow: 'hidden' }}
-            >
-              <LinearGradient
-                colors={['#EC4899', '#A855F7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.primaryBtn, registerMutation.isPending && { opacity: 0.6 }]}
-              >
-                {registerMutation.isPending
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.primaryBtnText}>Create Account</Text>
-                }
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')} style={{ marginTop: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#5A5575', fontSize: 14, textDecorationLine: 'underline' }}>
-                Already a member? Sign In
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      )}
-
-      {/* ─── Step 3: Verify Email ──────────────────────────────────────── */}
-      {currentStep === 3 && (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
-            <View style={styles.otpIconContainer}>
-              <Ionicons name="mail-outline" size={48} color={colors.pink} />
-            </View>
-            <Text style={styles.stepHeading}>Check Your Email</Text>
-            <Text style={[styles.stepSubheading, { textAlign: 'center' }]}>
-              We sent a 6-digit code to
-            </Text>
-            <Text style={{ color: colors.pink, fontWeight: '700', textAlign: 'center', marginBottom: 32 }}>
-              {email}
-            </Text>
-
-            <Text style={styles.fieldLabel}>VERIFICATION CODE</Text>
-            <TextInput
-              value={otpCode}
-              onChangeText={(v) => setOtpCode(v.replace(/\D/g, '').slice(0, 6))}
-              placeholder="123456"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="number-pad"
-              maxLength={6}
-              style={[styles.input, { textAlign: 'center', fontSize: 28, letterSpacing: 12, fontWeight: '700' }]}
-            />
-
-            <View style={{ height: 24 }} />
-
-            <TouchableOpacity
-              onPress={handleVerifyEmail}
-              disabled={verifyEmailMutation.isPending || otpCode.length !== 6}
-              activeOpacity={0.85}
-              style={{ borderRadius: 14, overflow: 'hidden' }}
-            >
-              <LinearGradient
-                colors={['#EC4899', '#A855F7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.primaryBtn, (verifyEmailMutation.isPending || otpCode.length !== 6) && { opacity: 0.5 }]}
-              >
-                {verifyEmailMutation.isPending
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.primaryBtnText}>Verify Code</Text>
-                }
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleResendCode}
-              disabled={resendTimer > 0 || resendMutation.isPending}
-              style={{ marginTop: 20, alignItems: 'center' }}
-            >
-              {resendTimer > 0
-                ? <Text style={{ color: colors.textMuted, fontSize: 14 }}>Resend in {resendTimer}s</Text>
-                : <Text style={{ color: colors.pink, fontSize: 14, fontWeight: '600' }}>
-                    {resendMutation.isPending ? 'Sending...' : 'Resend Code'}
-                  </Text>
-              }
-            </TouchableOpacity>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      )}
-
-      {/* ─── Step 4: About You ─────────────────────────────────────────── */}
-      {currentStep === 4 && (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView contentContainerStyle={styles.stepBody} keyboardShouldPersistTaps="handled">
-
-            {/* Display Name */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>DISPLAY NAME *</Text>
-              <TextInput
-                value={displayName}
-                onChangeText={setDisplayName}
-                placeholder="Your display name"
-                placeholderTextColor={colors.textMuted}
-                style={styles.input}
-              />
-            </View>
-
-            {/* Date of Birth */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TextInput
-                  value={dobMonth}
-                  onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
-                  placeholder="MM"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numeric"
-                  maxLength={2}
-                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
-                />
-                <TextInput
-                  value={dobDay}
-                  onChangeText={(v) => setDobDay(v.replace(/\D/g, '').slice(0, 2))}
-                  placeholder="DD"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numeric"
-                  maxLength={2}
-                  style={[styles.input, { flex: 1, textAlign: 'center' }]}
-                />
-                <TextInput
-                  value={dobYear}
-                  onChangeText={(v) => setDobYear(v.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="YYYY"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="numeric"
-                  maxLength={4}
-                  style={[styles.input, { flex: 2, textAlign: 'center' }]}
-                />
-              </View>
-              {currentAge !== null && (
-                <View style={{ marginTop: 8 }}>
-                  {isAdult
-                    ? (
-                      <View style={styles.ageBadgeGood}>
-                        <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                        <Text style={{ color: '#10B981', fontWeight: '700', marginLeft: 4, fontSize: 13 }}>{currentAge} years old ✓</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.ageBadgeBad}>
-                        <Ionicons name="close-circle" size={14} color="#EF4444" />
-                        <Text style={{ color: '#EF4444', fontWeight: '700', marginLeft: 4, fontSize: 13 }}>Must be 21+ to join</Text>
-                      </View>
-                    )
-                  }
-                </View>
-              )}
-            </View>
-
-            {/* Community */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>COMMUNITY *</Text>
-              {COMMUNITY_OPTIONS.map((c) => (
-                <TouchableOpacity
-                  key={c.id}
-                  onPress={() => setCommunityId(c.id)}
-                  activeOpacity={0.8}
-                  style={[styles.communityCard, communityId === c.id && styles.communityCardSelected]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.communityCardName, communityId === c.id && { color: colors.pink }]}>{c.name}</Text>
-                    <Text style={styles.communityCardDesc}>{c.desc}</Text>
-                  </View>
-                  {communityId === c.id && (
-                    <Ionicons name="checkmark-circle" size={22} color={colors.pink} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Gender */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>GENDER *</Text>
-              <PillSelector
-                options={GENDER_OPTIONS}
-                selected={gender}
-                onSelect={setGender}
-              />
-            </View>
-
-            {/* Orientation */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>ORIENTATION</Text>
-              <PillSelector
-                options={ORIENTATION_OPTIONS}
-                selected={orientation}
-                onSelect={setOrientation}
-              />
-            </View>
-
-            {/* Relationship Status */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>RELATIONSHIP STATUS</Text>
-              <PillSelector
-                options={RELATIONSHIP_OPTIONS}
-                selected={relationshipStatus}
-                onSelect={setRelationshipStatus}
-              />
-            </View>
-
-            {/* Bio */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>
-                BIO *{' '}
-                <Text style={{ color: colors.textMuted, fontWeight: '400' }}>{bio.length}/200</Text>
-              </Text>
-              <TextInput
-                value={bio}
-                onChangeText={(v) => setBio(v.slice(0, 200))}
-                placeholder="Tell the community about yourself..."
-                placeholderTextColor={colors.textMuted}
-                multiline
-                numberOfLines={4}
-                maxLength={200}
-                style={[styles.input, { minHeight: 100, textAlignVertical: 'top' }]}
-              />
-            </View>
-
-            {/* Location */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>LOCATION</Text>
-              <TextInput
-                value={location}
-                onChangeText={setLocation}
-                placeholder="City, State"
-                placeholderTextColor={colors.textMuted}
-                style={styles.input}
-              />
-            </View>
-
-            {/* Phone */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>PHONE <Text style={{ fontWeight: '400', color: colors.textMuted }}>(optional)</Text></Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="+1 (555) 000-0000"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-                style={styles.input}
-              />
-            </View>
-
-            {/* Referral Code */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>REFERRAL CODE <Text style={{ fontWeight: '400', color: colors.textMuted }}>(optional)</Text></Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TextInput
-                  value={referralCode}
-                  onChangeText={(v) => {
-                    setReferralCode(v.toUpperCase());
-                    setReferralVerified(false);
-                    setReferralError('');
-                    setReferrerName('');
-                  }}
-                  placeholder="SOAP12345"
-                  placeholderTextColor={colors.textMuted}
-                  autoCapitalize="characters"
-                  style={[styles.input, { flex: 1 }]}
-                />
-                <TouchableOpacity
-                  onPress={handleVerifyReferralCode}
-                  disabled={!referralCode.trim() || referralVerifying}
-                  style={[styles.verifyBtn, (!referralCode.trim() || referralVerifying) && { opacity: 0.5 }]}
-                >
-                  {referralVerifying
-                    ? <ActivityIndicator size="small" color={colors.pink} />
-                    : <Text style={{ color: colors.pink, fontWeight: '700', fontSize: 13 }}>Verify</Text>
-                  }
-                </TouchableOpacity>
-              </View>
-              {referralVerified && (
-                <Text style={{ color: '#10B981', fontSize: 13, marginTop: 6 }}>
-                  ✓ Referred by {referrerName || 'a member'}
-                </Text>
-              )}
-              {referralError ? (
-                <Text style={{ color: '#EF4444', fontSize: 13, marginTop: 6 }}>{referralError}</Text>
-              ) : null}
-            </View>
-
-            <View style={{ height: 24 }} />
-
-            <TouchableOpacity
-              onPress={handleAboutYouNext}
-              disabled={upsertMutation.isPending}
-              activeOpacity={0.85}
-              style={{ borderRadius: 14, overflow: 'hidden' }}
-            >
-              <LinearGradient
-                colors={['#EC4899', '#A855F7']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.primaryBtn, upsertMutation.isPending && { opacity: 0.6 }]}
-              >
-                {upsertMutation.isPending
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.primaryBtnText}>Next →</Text>
-                }
+                <Text style={styles.primaryBtnText}>Review Application →</Text>
               </LinearGradient>
             </TouchableOpacity>
           </ScrollView>
-        </KeyboardAvoidingView>
-      )}
+        )}
 
-      {/* ─── Step 5: Photos ────────────────────────────────────────────── */}
-      {currentStep === 5 && (
-        <View style={{ flex: 1 }}>
+        {/* ─── Step 7: Review & Submit ───────────────────────────────────── */}
+        {currentStep === 7 && (
           <ScrollView contentContainerStyle={styles.stepBody}>
-            <Text style={styles.stepHeading}>Your Photos</Text>
-            <Text style={styles.stepSubheading}>Show the community who you are — minimum 3 photos required.</Text>
+            <Text style={styles.stepHeading}>Almost There!</Text>
+            <Text style={styles.stepSubheading}>Review your application before submitting.</Text>
 
-            <View style={[styles.fieldGroup, { alignItems: 'flex-end' }]}>
-              <Text style={{ color: uploadedCount >= 3 ? '#10B981' : colors.textMuted, fontSize: 13, fontWeight: '600' }}>
-                {uploadedCount}/6 photos {uploadedCount >= 3 ? '✓' : ''}
+            {/* Summary card */}
+            <View style={styles.summaryCard}>
+              {/* Avatar */}
+              {firstPhoto ? (
+                <Image source={{ uri: firstPhoto.localUri }} style={styles.summaryAvatar} />
+              ) : (
+                <View
+                  style={[
+                    styles.summaryAvatar,
+                    {
+                      backgroundColor: colors.card,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    },
+                  ]}
+                >
+                  <Ionicons name="person" size={36} color={colors.textMuted} />
+                </View>
+              )}
+
+              <Text style={styles.summaryName}>{displayName || 'Your Name'}</Text>
+              {communityId && (
+                <Text
+                  style={{ color: colors.purple, fontSize: 13, fontWeight: '600', marginBottom: 4 }}
+                >
+                  {COMMUNITY_OPTIONS.find((c) => c.id === communityId)?.name ?? communityId}
+                </Text>
+              )}
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                {gender}
+                {currentAge ? `, ${currentAge}` : ''}
+                {location ? ` · ${location}` : ''}
+              </Text>
+
+              {bio ? (
+                <Text style={styles.summaryBio} numberOfLines={3}>
+                  {bio}
+                </Text>
+              ) : null}
+
+              {interests.length > 0 && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>INTERESTS</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {interests.map((i) => (
+                      <View key={i} style={styles.summaryChip}>
+                        <Text style={{ color: colors.pink, fontSize: 12 }}>{i}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.summaryRow}>
+                <Ionicons name="images-outline" size={16} color={colors.textMuted} />
+                <Text style={{ color: colors.textMuted, fontSize: 13, marginLeft: 6 }}>
+                  {uploadedCount} photos uploaded
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={{
+                marginTop: 8,
+                marginBottom: 16,
+                padding: 14,
+                backgroundColor: colors.card,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.textMuted,
+                  fontSize: 13,
+                  lineHeight: 20,
+                  textAlign: 'center',
+                }}
+              >
+                Our team reviews all applications within 24-48 hours. You&apos;ll receive an email
+                notification with the decision.
               </Text>
             </View>
 
-            {/* Photo grid */}
-            <View style={styles.photoGrid}>
-              {Array.from({ length: 6 }).map((_, i) => {
-                const photo = photos[i];
-                return (
-                  <View key={i} style={styles.photoSlot}>
-                    {photo ? (
-                      <>
-                        <Image source={{ uri: photo.localUri }} style={styles.photoPreview} />
-                        {photo.uploading && (
-                          <View style={styles.photoOverlay}>
-                            <ActivityIndicator color="#fff" />
-                          </View>
-                        )}
-                        {!photo.uploading && (
-                          <TouchableOpacity
-                            onPress={() => handleDeletePhoto(i)}
-                            style={styles.deletePhotoBtn}
-                          >
-                            <Ionicons name="close" size={14} color="#fff" />
-                          </TouchableOpacity>
-                        )}
-                        {photo.remoteUrl && (
-                          <View style={styles.photoCheck}>
-                            <Ionicons name="checkmark" size={12} color="#fff" />
-                          </View>
-                        )}
-                      </>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={() => handlePickPhoto(i)}
-                        style={styles.photoAddBtn}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="add" size={28} color={colors.textMuted} />
-                        {i === 0 && <Text style={{ color: colors.textMuted, fontSize: 10, marginTop: 4 }}>Main</Text>}
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-
-            {uploadedCount < 3 && (
-              <View style={styles.warnBanner}>
-                <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
-                <Text style={{ color: '#F59E0B', fontSize: 13, marginLeft: 6 }}>
-                  Need at least 3 photos to continue
-                </Text>
+            {/* Waiver acknowledgment */}
+            <TouchableOpacity
+              onPress={() => setWaiverAccepted(!waiverAccepted)}
+              style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginBottom: 20 }}
+              activeOpacity={0.8}
+            >
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  borderWidth: 2,
+                  borderColor: waiverAccepted ? colors.pink : colors.border,
+                  backgroundColor: waiverAccepted ? colors.pink : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}
+              >
+                {waiverAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-            )}
-
-            <View style={{ height: 24 }} />
+              <Text style={{ color: colors.textMuted, flex: 1, lineHeight: 20, fontSize: 13 }}>
+                I am 21+ years old, agree to the{' '}
+                <Text
+                  style={{ color: colors.pink }}
+                  onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}
+                >
+                  Community Guidelines &amp; Terms
+                </Text>
+                , and understand this is an adult members-only platform.
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={handlePhotosNext}
+              onPress={handleSubmit}
+              disabled={submitMutation.isPending || !waiverAccepted}
               activeOpacity={0.85}
-              style={{ borderRadius: 14, overflow: 'hidden' }}
+              style={{ borderRadius: 14, overflow: 'hidden', opacity: waiverAccepted ? 1 : 0.4 }}
             >
               <LinearGradient
                 colors={['#EC4899', '#A855F7']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={[styles.primaryBtn, uploadedCount < 3 && { opacity: 0.5 }]}
+                style={[styles.primaryBtn, submitMutation.isPending && { opacity: 0.6 }]}
               >
-                <Text style={styles.primaryBtnText}>Next →</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      )}
-
-      {/* ─── Step 6: Preferences ───────────────────────────────────────── */}
-      {currentStep === 6 && (
-        <ScrollView contentContainerStyle={styles.stepBody}>
-          <Text style={styles.stepHeading}>Your Preferences</Text>
-          <Text style={styles.stepSubheading}>Help us connect you with the right people and events.</Text>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              INTERESTS *{' '}
-              <Text style={{ fontWeight: '400', color: interests.length > 0 ? '#10B981' : colors.textMuted }}>
-                {interests.length} selected
-              </Text>
-            </Text>
-            <ChipGrid options={INTERESTS} selected={interests} onToggle={toggleInterest} />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              LOOKING FOR *{' '}
-              <Text style={{ fontWeight: '400', color: lookingFor.length > 0 ? '#10B981' : colors.textMuted }}>
-                {lookingFor.length} selected
-              </Text>
-            </Text>
-            <ChipGrid options={LOOKING_FOR} selected={lookingFor} onToggle={toggleLookingFor} />
-          </View>
-
-          <View style={{ height: 24 }} />
-
-          <TouchableOpacity
-            onPress={handlePreferencesNext}
-            activeOpacity={0.85}
-            style={{ borderRadius: 14, overflow: 'hidden' }}
-          >
-            <LinearGradient
-              colors={['#EC4899', '#A855F7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.primaryBtn}
-            >
-              <Text style={styles.primaryBtnText}>Review Application →</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-
-      {/* ─── Step 7: Review & Submit ───────────────────────────────────── */}
-      {currentStep === 7 && (
-        <ScrollView contentContainerStyle={styles.stepBody}>
-          <Text style={styles.stepHeading}>Almost There!</Text>
-          <Text style={styles.stepSubheading}>Review your application before submitting.</Text>
-
-          {/* Summary card */}
-          <View style={styles.summaryCard}>
-            {/* Avatar */}
-            {firstPhoto ? (
-              <Image source={{ uri: firstPhoto.localUri }} style={styles.summaryAvatar} />
-            ) : (
-              <View style={[styles.summaryAvatar, { backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' }]}>
-                <Ionicons name="person" size={36} color={colors.textMuted} />
-              </View>
-            )}
-
-            <Text style={styles.summaryName}>{displayName || 'Your Name'}</Text>
-            {communityId && (
-              <Text style={{ color: colors.purple, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>
-                {COMMUNITY_OPTIONS.find((c) => c.id === communityId)?.name ?? communityId}
-              </Text>
-            )}
-            <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-              {gender}{currentAge ? `, ${currentAge}` : ''}{location ? ` · ${location}` : ''}
-            </Text>
-
-            {bio ? (
-              <Text style={styles.summaryBio} numberOfLines={3}>{bio}</Text>
-            ) : null}
-
-            {interests.length > 0 && (
-              <View style={{ marginTop: 12 }}>
-                <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>INTERESTS</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  {interests.map((i) => (
-                    <View key={i} style={styles.summaryChip}>
-                      <Text style={{ color: colors.pink, fontSize: 12 }}>{i}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            <View style={styles.summaryRow}>
-              <Ionicons name="images-outline" size={16} color={colors.textMuted} />
-              <Text style={{ color: colors.textMuted, fontSize: 13, marginLeft: 6 }}>
-                {uploadedCount} photos uploaded
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ marginTop: 8, marginBottom: 16, padding: 14, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 20, textAlign: 'center' }}>
-              Our team reviews all applications within 24-48 hours. You'll receive an email notification with the decision.
-            </Text>
-          </View>
-
-          {/* Waiver acknowledgment */}
-          <TouchableOpacity
-            onPress={() => setWaiverAccepted(!waiverAccepted)}
-            style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginBottom: 20 }}
-            activeOpacity={0.8}
-          >
-            <View style={{
-              width: 22, height: 22, borderRadius: 6, borderWidth: 2,
-              borderColor: waiverAccepted ? colors.pink : colors.border,
-              backgroundColor: waiverAccepted ? colors.pink : 'transparent',
-              alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, marginTop: 1,
-            }}>
-              {waiverAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
-            </View>
-            <Text style={{ color: colors.textMuted, flex: 1, lineHeight: 20, fontSize: 13 }}>
-              I am 21+ years old, agree to the{' '}
-              <Text style={{ color: colors.pink }} onPress={() => Linking.openURL('https://soapiesplaygrp.club/terms')}>
-                Community Guidelines &amp; Terms
-              </Text>
-              , and understand this is an adult members-only platform.
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleSubmit}
-            disabled={submitMutation.isPending || !waiverAccepted}
-            activeOpacity={0.85}
-            style={{ borderRadius: 14, overflow: 'hidden', opacity: waiverAccepted ? 1 : 0.4 }}
-          >
-            <LinearGradient
-              colors={['#EC4899', '#A855F7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.primaryBtn, submitMutation.isPending && { opacity: 0.6 }]}
-            >
-              {submitMutation.isPending
-                ? <ActivityIndicator color="#fff" />
-                : (
+                {submitMutation.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
                   <>
                     <Ionicons name="send" size={18} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={styles.primaryBtnText}>Submit Application</Text>
                   </>
-                )
-              }
-            </LinearGradient>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-    </SafeAreaView>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+      </SafeAreaView>
     </LinearGradient>
   );
 }
@@ -1609,7 +1848,7 @@ const styles = StyleSheet.create({
   },
   photoSlot: {
     width: (SCREEN_WIDTH - 48 - 20) / 3,
-    height: (SCREEN_WIDTH - 48 - 20) / 3 * 1.2,
+    height: ((SCREEN_WIDTH - 48 - 20) / 3) * 1.2,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: colors.card,

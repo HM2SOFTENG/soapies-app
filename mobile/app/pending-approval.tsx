@@ -10,7 +10,6 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { trpc } from '../lib/trpc';
@@ -39,7 +38,8 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         color: '#3B82F6',
         bgColor: 'rgba(59,130,246,0.1)',
         message: 'Interview scheduled! Check your email for details.',
-        subMessage: 'Your application passed initial review. The next step is a short intro call with our team.',
+        subMessage:
+          'Your application passed initial review. The next step is a short intro call with our team.',
         showScheduleCall: true,
       };
     case 'interview_complete':
@@ -66,7 +66,8 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         title: 'Application Update',
         color: colors.muted,
         bgColor: 'rgba(156,163,175,0.1)',
-        message: "Thank you for your interest in Soapies. Unfortunately, we're unable to approve your application at this time.",
+        message:
+          "Thank you for your interest in Soapies. Unfortunately, we're unable to approve your application at this time.",
         subMessage: 'Feel free to reach out if you have questions.',
       };
     case 'approved':
@@ -76,7 +77,8 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
         title: 'Welcome to Soapies!',
         color: '#10B981',
         bgColor: 'rgba(16,185,129,0.1)',
-        message: "Your application has been approved! You now have full access to all Soapies events, community features, and messaging.",
+        message:
+          'Your application has been approved! You now have full access to all Soapies events, community features, and messaging.',
         subMessage: "We can't wait to see you at our next event!",
       };
     case 'submitted':
@@ -104,8 +106,22 @@ function getStatusConfig(status: string, phase?: string | null): StatusConfig {
 // ─── Timeline ─────────────────────────────────────────────────────────────────
 
 const TIMELINE_STEPS = [
-  { label: 'Submitted', key: ['submitted', 'under_review', 'interview_scheduled', 'interview_complete', 'approved', 'waitlisted', 'rejected'] },
-  { label: 'Under Review', key: ['under_review', 'interview_scheduled', 'interview_complete', 'approved'] },
+  {
+    label: 'Submitted',
+    key: [
+      'submitted',
+      'under_review',
+      'interview_scheduled',
+      'interview_complete',
+      'approved',
+      'waitlisted',
+      'rejected',
+    ],
+  },
+  {
+    label: 'Under Review',
+    key: ['under_review', 'interview_scheduled', 'interview_complete', 'approved'],
+  },
   { label: 'Interview', key: ['interview_scheduled', 'interview_complete', 'approved'] },
   { label: 'Approved', key: ['approved', 'final_approved'] },
 ];
@@ -127,9 +143,7 @@ function Timeline({ status, phase }: { status: string; phase?: string | null }) 
                 {step.label}
               </Text>
             </View>
-            {!isLast && (
-              <View style={[styles.timelineLine, done && styles.timelineLineDone]} />
-            )}
+            {!isLast && <View style={[styles.timelineLine, done && styles.timelineLineDone]} />}
           </React.Fragment>
         );
       })}
@@ -143,7 +157,11 @@ function Accordion({ title, children }: { title: string; children: React.ReactNo
   const [open, setOpen] = useState(false);
   return (
     <View style={styles.accordion}>
-      <TouchableOpacity onPress={() => setOpen(!open)} style={styles.accordionHeader} activeOpacity={0.7}>
+      <TouchableOpacity
+        onPress={() => setOpen(!open)}
+        style={styles.accordionHeader}
+        activeOpacity={0.7}
+      >
         <Text style={styles.accordionTitle}>{title}</Text>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />
       </TouchableOpacity>
@@ -197,7 +215,7 @@ export default function PendingApprovalScreen() {
     if (phase === 'final_approved') {
       router.replace('/(tabs)');
     }
-  }, [status, phase]);
+  }, [phase, router, status]);
 
   const handleLogout = async () => {
     await logout();
@@ -214,11 +232,23 @@ export default function PendingApprovalScreen() {
 
   if (profileQuery.isError) {
     return (
-      <SafeAreaView style={[styles.container, { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }]}> 
+      <SafeAreaView
+        style={[
+          styles.container,
+          { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+        ]}
+      >
         <Ionicons name="cloud-offline-outline" size={42} color={colors.muted} />
-        <Text style={[styles.title, { color: colors.text, marginTop: 14, textAlign: 'center' }]}>Could not load your application status</Text>
-        <Text style={[styles.statusSubMessage, { textAlign: 'center', marginTop: 8 }]}>{(profileQuery.error as any)?.message ?? 'Please try again in a moment.'}</Text>
-        <TouchableOpacity onPress={() => profileQuery.refetch()} style={[styles.scheduleBtn, { marginTop: 18, borderColor: colors.pink }]}> 
+        <Text style={[styles.title, { color: colors.text, marginTop: 14, textAlign: 'center' }]}>
+          Could not load your application status
+        </Text>
+        <Text style={[styles.statusSubMessage, { textAlign: 'center', marginTop: 8 }]}>
+          {(profileQuery.error as any)?.message ?? 'Please try again in a moment.'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => profileQuery.refetch()}
+          style={[styles.scheduleBtn, { marginTop: 18, borderColor: colors.pink }]}
+        >
           <Ionicons name="refresh-outline" size={16} color={colors.pink} />
           <Text style={[styles.scheduleBtnText, { color: colors.pink }]}>Retry</Text>
         </TouchableOpacity>
@@ -229,7 +259,6 @@ export default function PendingApprovalScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
         {/* Status emoji */}
         <View style={[styles.emojiContainer, { backgroundColor: config.bgColor }]}>
           <Text style={styles.emoji}>{config.emoji}</Text>
@@ -241,13 +270,14 @@ export default function PendingApprovalScreen() {
         {/* Status card */}
         <View style={[styles.statusCard, { borderColor: config.color, borderWidth: 1.5 }]}>
           <Text style={styles.statusMessage}>{config.message}</Text>
-          {config.subMessage && (
-            <Text style={styles.statusSubMessage}>{config.subMessage}</Text>
-          )}
+          {config.subMessage && <Text style={styles.statusSubMessage}>{config.subMessage}</Text>}
 
           {config.showScheduleCall && (
             <TouchableOpacity
-              style={[styles.scheduleBtn, { backgroundColor: config.bgColor, borderColor: config.color }]}
+              style={[
+                styles.scheduleBtn,
+                { backgroundColor: config.bgColor, borderColor: config.color },
+              ]}
               activeOpacity={0.8}
               onPress={() => setSlotModalOpen(true)}
             >
@@ -272,9 +302,11 @@ export default function PendingApprovalScreen() {
         {/* FAQ accordion */}
         <Accordion title="What happens next?">
           <Text style={styles.accordionText}>
-            Our team reviews each application carefully. We look at your profile, photos, and how you present yourself in the community.
+            Our team reviews each application carefully. We look at your profile, photos, and how
+            you present yourself in the community.
             {'\n\n'}
-            Most reviews are completed within 24-48 hours. You'll receive an email and push notification as soon as there's an update.
+            Most reviews are completed within 24-48 hours. You&apos;ll receive an email and push
+            notification as soon as there&apos;s an update.
             {'\n\n'}
             Approved members get full access to events, messaging, and community features.
           </Text>
@@ -282,14 +314,17 @@ export default function PendingApprovalScreen() {
 
         <Accordion title="Can I update my application?">
           <Text style={styles.accordionText}>
-            While your application is under review, you can still add or update your photos to strengthen your application. Reach out to our team if you have questions.
+            While your application is under review, you can still add or update your photos to
+            strengthen your application. Reach out to our team if you have questions.
           </Text>
         </Accordion>
 
         {/* Polling indicator */}
         <View style={styles.pollingRow}>
           <View style={styles.pollingDot} />
-          <Text style={{ color: colors.muted, fontSize: 12 }}>Auto-refreshing every 30 seconds</Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            Auto-refreshing every 30 seconds
+          </Text>
         </View>
 
         {/* Logout */}
@@ -297,7 +332,6 @@ export default function PendingApprovalScreen() {
           <Ionicons name="log-out-outline" size={18} color={colors.muted} />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
-
       </ScrollView>
 
       {/* Intro-call slot picker modal */}
@@ -327,7 +361,8 @@ export default function PendingApprovalScreen() {
               <View style={{ paddingVertical: 24, alignItems: 'center' }}>
                 <Ionicons name="cloud-offline-outline" size={28} color={colors.muted} />
                 <Text style={[styles.modalEmpty, { marginTop: 12, marginBottom: 14 }]}>
-                  {(slotsQuery.error as any)?.message ?? 'Could not load interview slots right now.'}
+                  {(slotsQuery.error as any)?.message ??
+                    'Could not load interview slots right now.'}
                 </Text>
                 <TouchableOpacity
                   onPress={() => slotsQuery.refetch()}
@@ -339,7 +374,8 @@ export default function PendingApprovalScreen() {
               </View>
             ) : (slotsQuery.data ?? []).length === 0 ? (
               <Text style={styles.modalEmpty}>
-                No slots available right now. Please check back soon — we release new times regularly.
+                No slots available right now. Please check back soon — we release new times
+                regularly.
               </Text>
             ) : (
               <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
@@ -363,11 +399,15 @@ export default function PendingApprovalScreen() {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={styles.slotTime}>{pretty}</Text>
-                        <Text style={styles.slotDuration}>{slot.duration ?? 20} min · video call</Text>
+                        <Text style={styles.slotDuration}>
+                          {slot.duration ?? 20} min · video call
+                        </Text>
                       </View>
-                      {busy
-                        ? <ActivityIndicator size="small" color={colors.pink} />
-                        : <Ionicons name="chevron-forward" size={18} color={colors.muted} />}
+                      {busy ? (
+                        <ActivityIndicator size="small" color={colors.pink} />
+                      ) : (
+                        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                      )}
                     </TouchableOpacity>
                   );
                 })}

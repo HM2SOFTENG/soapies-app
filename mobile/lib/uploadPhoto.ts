@@ -13,8 +13,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { getMemoryToken } from './trpc';
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://soapies-app-3uk2q.ondigitalocean.app';
 
 export async function uploadPhoto(uri: string): Promise<string> {
   const token = getMemoryToken();
@@ -24,8 +23,12 @@ export async function uploadPhoto(uri: string): Promise<string> {
 
   const ext = uri.split('.').pop()?.toLowerCase().split('?')[0] ?? 'jpg';
   const mimeMap: Record<string, string> = {
-    jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    png: 'image/png', webp: 'image/webp', heic: 'image/jpeg', heif: 'image/jpeg',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    heic: 'image/jpeg',
+    heif: 'image/jpeg',
   };
   const mimeType = mimeMap[ext] ?? 'image/jpeg';
 
@@ -47,7 +50,7 @@ export async function uploadPhoto(uri: string): Promise<string> {
       'Content-Type': 'application/octet-stream',
       'X-Image-Type': mimeType,
       'x-session-token': token,
-      'Cookie': `app_session_id=${token}`,
+      Cookie: `app_session_id=${token}`,
     },
     body: bytes,
   });

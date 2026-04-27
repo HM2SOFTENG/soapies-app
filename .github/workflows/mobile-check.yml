@@ -1,32 +1,11 @@
-name: Mobile App Check
+name: Mobile App Check (legacy shim)
 
 on:
-  push:
-    branches: [react-native]
-    paths:
-      - 'mobile/**'
-  pull_request:
-    branches: [main, react-native]
-    paths:
-      - 'mobile/**'
+  workflow_dispatch:
 
 jobs:
-  check:
+  redirect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install mobile deps
-        run: |
-          cd mobile
-          npm install --legacy-peer-deps
-      - name: TypeScript check
-        run: |
-          cd mobile
-          npx tsc --noEmit
-      - name: Run tests
-        run: |
-          cd mobile
-          npx vitest run --passWithNoTests
+      - name: Notice
+        run: echo "Use .github/workflows/mobile-ci.yml for the canonical Spoapies mobile CI workflow."

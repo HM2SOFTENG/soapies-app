@@ -1,0 +1,64 @@
+name: Soapies Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit_to_play_internal:
+        description: 'Submit to Google Play internal track after build'
+        required: true
+        default: 'false'
+      release_profile:
+        description: 'EAS profile to use'
+        required: true
+        default: 'production'
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: mobile-android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_PROJECT_ID: ${{ secrets.EXPO_PUBLIC_PROJECT_ID }}
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_WEB_URL: ${{ secrets.EXPO_PUBLIC_WEB_URL }}
+      EXPO_PUBLIC_ENVIRONMENT: production
+      EXPO_PUBLIC_ANDROID_PACKAGE: ${{ secrets.EXPO_PUBLIC_ANDROID_PACKAGE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: mobile/.nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+          eas-version: latest
+
+      - name: Materialize Google Play service account
+        if: github.event_name == 'push' || github.event.inputs.submit_to_play_internal == 'true'
+        run: |
+          mkdir -p credentials
+          echo "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64 }}" | base64 --decode > credentials/google-play-service-account.json
+
+      - name: Build Android AAB
+        run: eas build --platform android --profile ${{ github.event.inputs.release_profile || 'production' }} --non-interactive
+
+      - name: Submit to Google Play internal track
+        if: github.event_name == 'push' || github.event.inputs.submit_to_play_internal == 'true'
+        run: eas submit --platform android --profile production --non-interactive

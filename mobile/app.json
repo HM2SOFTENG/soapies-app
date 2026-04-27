@@ -36,55 +36,73 @@
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeEmailAddress",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhoneNumber",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeName",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePreciseLocation",
             "NSPrivacyCollectedDataTypeLinked": false,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypePhotosOrVideos",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserID",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeSensitiveInfo",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherUserContent",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           },
           {
             "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeOtherFinancialInfo",
             "NSPrivacyCollectedDataTypeLinked": true,
             "NSPrivacyCollectedDataTypeTracking": false,
-            "NSPrivacyCollectedDataTypePurposes": ["NSPrivacyCollectedDataTypePurposeAppFunctionality"]
+            "NSPrivacyCollectedDataTypePurposes": [
+              "NSPrivacyCollectedDataTypePurposeAppFunctionality"
+            ]
           }
         ]
       },
@@ -106,13 +124,11 @@
       "versionCode": 1,
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "INTERNET",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "VIBRATE"
       ]
     },
     "plugins": [
@@ -148,6 +164,7 @@
       "expo-web-browser"
     ],
     "scheme": "soapies",
-    "privacy": "https://soapiesplaygrp.club/privacy"
+    "privacy": "https://soapiesplaygrp.club/privacy",
+    "owner": "brianbarry2009"
   }
 }

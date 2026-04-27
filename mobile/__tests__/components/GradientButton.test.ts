@@ -20,12 +20,14 @@
  *   - Does not call onPress when disabled=true
  *   - Reduces opacity when disabled or loading
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 
 // Simulate the GradientButton press-guard logic
 function simulatePress(
   onPress: () => void,
-  opts: { loading?: boolean; disabled?: boolean } = {},
+  opts: { loading?: boolean; disabled?: boolean } = {}
 ): void {
   if (opts.loading || opts.disabled) return;
   onPress();
@@ -77,8 +79,6 @@ describe('GradientButton — loading state display logic', () => {
 
 describe('GradientButton — component existence check', () => {
   it('GradientButton component file must be created at components/GradientButton.tsx', () => {
-    const fs = require('fs');
-    const path = require('path');
     const componentPath = path.join(__dirname, '../../components/GradientButton.tsx');
     const exists = fs.existsSync(componentPath);
     if (!exists) {

@@ -86,8 +86,14 @@ function FloatingBlob({
     return () => animation.stop();
   }, [delay, duration, progress]);
 
-  const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [startX, startX + travelX] });
-  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [startY, startY + travelY] });
+  const translateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [startX, startX + travelX],
+  });
+  const translateY = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [startY, startY + travelY],
+  });
   const scale = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.12, 1] });
   const opacity = progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.32, 0.5, 0.32] });
 
@@ -106,7 +112,15 @@ function FloatingBlob({
   );
 }
 
-function Sparkle({ index, total, progress }: { index: number; total: number; progress: Animated.Value }) {
+function Sparkle({
+  index,
+  total,
+  progress,
+}: {
+  index: number;
+  total: number;
+  progress: Animated.Value;
+}) {
   const angle = (index / total) * 2 * Math.PI;
   const radius = 108;
   const x = Math.cos(angle) * radius;
@@ -220,7 +234,17 @@ export default function LoadingScreen() {
       rotateLoop.stop();
       sparkleLoop.stop();
     };
-  }, [cardOpacity, cardScale, logoFloat, progress, rotation, shimmer, sparklePulse, textLift, textOpacity]);
+  }, [
+    cardOpacity,
+    cardScale,
+    logoFloat,
+    progress,
+    rotation,
+    shimmer,
+    sparklePulse,
+    textLift,
+    textOpacity,
+  ]);
 
   const cardTranslateY = logoFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
   const shimmerX = shimmer.interpolate({ inputRange: [0, 1], outputRange: [-180, 220] });
@@ -232,12 +256,50 @@ export default function LoadingScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#12041F', '#2A0C45', '#4C136F', '#5B167A']} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={['#12041F', '#2A0C45', '#4C136F', '#5B167A']}
+        style={StyleSheet.absoluteFill}
+      />
 
-      <FloatingBlob size={320} color="rgba(244, 114, 182, 0.18)" startX={-90} startY={110} travelX={40} travelY={35} duration={9000} />
-      <FloatingBlob size={260} color="rgba(192, 132, 252, 0.18)" startX={W - 200} startY={H * 0.18} travelX={-30} travelY={45} duration={8400} delay={300} />
-      <FloatingBlob size={380} color="rgba(236, 72, 153, 0.12)" startX={W * 0.35} startY={H * 0.64} travelX={-28} travelY={-34} duration={9800} delay={500} />
-      <FloatingBlob size={180} color="rgba(245, 208, 254, 0.12)" startX={W * 0.12} startY={H * 0.72} travelX={24} travelY={-24} duration={7600} delay={200} />
+      <FloatingBlob
+        size={320}
+        color="rgba(244, 114, 182, 0.18)"
+        startX={-90}
+        startY={110}
+        travelX={40}
+        travelY={35}
+        duration={9000}
+      />
+      <FloatingBlob
+        size={260}
+        color="rgba(192, 132, 252, 0.18)"
+        startX={W - 200}
+        startY={H * 0.18}
+        travelX={-30}
+        travelY={45}
+        duration={8400}
+        delay={300}
+      />
+      <FloatingBlob
+        size={380}
+        color="rgba(236, 72, 153, 0.12)"
+        startX={W * 0.35}
+        startY={H * 0.64}
+        travelX={-28}
+        travelY={-34}
+        duration={9800}
+        delay={500}
+      />
+      <FloatingBlob
+        size={180}
+        color="rgba(245, 208, 254, 0.12)"
+        startX={W * 0.12}
+        startY={H * 0.72}
+        travelX={24}
+        travelY={-24}
+        duration={7600}
+        delay={200}
+      />
 
       <View style={styles.noiseOverlay} />
 
@@ -274,9 +336,19 @@ export default function LoadingScreen() {
             <View style={styles.glassReflection} />
             <View style={styles.innerGlow} />
 
-            <Animated.View style={[styles.shimmerSweep, { transform: [{ translateX: shimmerX }, { rotate: '-12deg' }] }]}>
+            <Animated.View
+              style={[
+                styles.shimmerSweep,
+                { transform: [{ translateX: shimmerX }, { rotate: '-12deg' }] },
+              ]}
+            >
               <LinearGradient
-                colors={['transparent', 'rgba(255,255,255,0.22)', 'rgba(255,255,255,0.08)', 'transparent']}
+                colors={[
+                  'transparent',
+                  'rgba(255,255,255,0.22)',
+                  'rgba(255,255,255,0.08)',
+                  'transparent',
+                ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={StyleSheet.absoluteFill}
@@ -290,7 +362,11 @@ export default function LoadingScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.logoFrameInner}
               >
-                <Image source={require('../assets/icon.png')} style={styles.logo} resizeMode="contain" />
+                <Image
+                  source={require('../assets/icon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
               </LinearGradient>
             </View>
           </LinearGradient>
@@ -302,7 +378,12 @@ export default function LoadingScreen() {
         </Animated.View>
       </View>
 
-      <Animated.View style={[styles.bottomPanel, { opacity: textOpacity, transform: [{ translateY: textLift }] }]}>
+      <Animated.View
+        style={[
+          styles.bottomPanel,
+          { opacity: textOpacity, transform: [{ translateY: textLift }] },
+        ]}
+      >
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFill, { width: progressWidth as any }]}>
             <LinearGradient
@@ -312,7 +393,9 @@ export default function LoadingScreen() {
               style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          <Animated.View style={[styles.progressShine, { transform: [{ translateX: shimmerX }] }]} />
+          <Animated.View
+            style={[styles.progressShine, { transform: [{ translateX: shimmerX }] }]}
+          />
         </View>
         <Text style={styles.loadingText}>Preparing events, chats, and connections...</Text>
       </Animated.View>

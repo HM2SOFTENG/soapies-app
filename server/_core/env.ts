@@ -10,12 +10,18 @@ export const ENV = {
   // DigitalOcean Spaces / S3-compatible storage
   // Accepts both DO_SPACES_* and generic S3_* env var names
   spacesKey: process.env.DO_SPACES_KEY ?? process.env.S3_ACCESS_KEY_ID ?? "",
-  spacesSecret: process.env.DO_SPACES_SECRET ?? process.env.S3_SECRET_ACCESS_KEY ?? "",
-  spacesBucket: process.env.DO_SPACES_BUCKET ?? process.env.S3_BUCKET ?? "soapies-uploads",
+  spacesSecret:
+    process.env.DO_SPACES_SECRET ?? process.env.S3_SECRET_ACCESS_KEY ?? "",
+  spacesBucket:
+    process.env.DO_SPACES_BUCKET ?? process.env.S3_BUCKET ?? "soapies-uploads",
   spacesRegion: process.env.DO_SPACES_REGION ?? process.env.S3_REGION ?? "sfo3",
-  spacesEndpoint: process.env.DO_SPACES_ENDPOINT ?? process.env.S3_ENDPOINT ?? "https://sfo3.digitaloceanspaces.com",
+  spacesEndpoint:
+    process.env.DO_SPACES_ENDPOINT ??
+    process.env.S3_ENDPOINT ??
+    "https://sfo3.digitaloceanspaces.com",
   sendgridApiKey: process.env.SENDGRID_API_KEY ?? "",
-  sendgridFromEmail: process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapiesplaygrp.club",
+  sendgridFromEmail:
+    process.env.SENDGRID_FROM_EMAIL ?? "noreply@soapiesplaygrp.club",
   twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ?? "",
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? "",
   twilioFromNumber: process.env.TWILIO_FROM_NUMBER ?? "",
@@ -30,4 +36,15 @@ export const ENV = {
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
   vapidEmail: process.env.VAPID_EMAIL ?? "admin@soapiesplaygrp.club",
+  // Platform Ops integrations
+  githubToken: process.env.GITHUB_TOKEN ?? "",
+  githubRepo: process.env.GITHUB_REPOSITORY ?? "",
+  githubBranch: process.env.GITHUB_WORKFLOW_BRANCH ?? "",
+  githubPrNumber: process.env.GITHUB_PR_NUMBER ?? "",
+  digitalOceanToken:
+    process.env.DIGITALOCEAN_TOKEN ?? process.env.DO_API_TOKEN ?? "",
+  digitalOceanAppId:
+    process.env.DIGITALOCEAN_APP_ID ?? process.env.DO_APP_ID ?? "",
+  expoToken: process.env.EXPO_TOKEN ?? "",
+  expoProjectId: process.env.EXPO_PROJECT_ID ?? "",
 };

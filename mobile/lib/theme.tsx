@@ -12,7 +12,10 @@ function withAlpha(color: string, alpha: number) {
   const normalized = color.replace('#', '');
   if (normalized.length !== 6) return color;
   const safeAlpha = Math.max(0, Math.min(1, alpha));
-  const hexAlpha = Math.round(safeAlpha * 255).toString(16).padStart(2, '0').toUpperCase();
+  const hexAlpha = Math.round(safeAlpha * 255)
+    .toString(16)
+    .padStart(2, '0')
+    .toUpperCase();
   return `#${normalized}${hexAlpha}`;
 }
 
@@ -156,19 +159,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(THEME_PREFERENCE_KEY, nextPreference);
   };
 
-  const scheme: ThemeScheme = preference === 'system'
-    ? (systemScheme === 'light' ? 'light' : 'dark')
-    : preference;
+  const scheme: ThemeScheme =
+    preference === 'system' ? (systemScheme === 'light' ? 'light' : 'dark') : preference;
 
-  const value = useMemo<AppTheme>(() => ({
-    preference,
-    scheme,
-    isDark: scheme === 'dark',
-    colors: createThemeColors(scheme),
-    gradients: scheme === 'dark' ? darkGradients : lightGradients,
-    setPreference,
-    alpha: withAlpha,
-  }), [preference, scheme]);
+  const value = useMemo<AppTheme>(
+    () => ({
+      preference,
+      scheme,
+      isDark: scheme === 'dark',
+      colors: createThemeColors(scheme),
+      gradients: scheme === 'dark' ? darkGradients : lightGradients,
+      setPreference,
+      alpha: withAlpha,
+    }),
+    [preference, scheme]
+  );
 
   if (!isHydrated) return null;
 

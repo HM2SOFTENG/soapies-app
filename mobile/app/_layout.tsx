@@ -1,6 +1,6 @@
 import '../global.css';
-import React, { useEffect, useRef } from 'react';
-import { Slot, Stack, useRouter, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,7 +11,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { StatusBar } from 'expo-status-bar';
 import { ToastProvider } from '../components/Toast';
 import LoadingScreen from '../components/LoadingScreen';
-import ErrorBoundary from '../components/ErrorBoundary';
+import AppErrorBoundary from '../components/ErrorBoundary';
 import OfflineBanner from '../components/OfflineBanner';
 import { parseDeepLink } from '../lib/deepLinks';
 import { ThemeProvider, useTheme } from '../lib/theme';
@@ -24,13 +24,14 @@ import {
 
 // Configure how notifications appear when app is foregrounded
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  } as any),
+  handleNotification: async () =>
+    ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }) as any,
 });
 
 export const queryClient = new QueryClient({
@@ -84,20 +85,54 @@ function ShellErrorScreen({
   const { colors } = useTheme();
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
-      <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>{title}</Text>
-      <Text style={{ color: colors.textMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 10 }}>{message}</Text>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 28,
+      }}
+    >
+      <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' }}>
+        {title}
+      </Text>
+      <Text
+        style={{
+          color: colors.textMuted,
+          fontSize: 14,
+          lineHeight: 21,
+          textAlign: 'center',
+          marginTop: 10,
+        }}
+      >
+        {message}
+      </Text>
       <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
         <TouchableOpacity
           onPress={onRetry}
-          style={{ paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+          style={{
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
         >
           <Text style={{ color: colors.text, fontWeight: '800' }}>Retry</Text>
         </TouchableOpacity>
         {onLogout && (
           <TouchableOpacity
             onPress={onLogout}
-            style={{ paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.tintSoft, borderWidth: 1, borderColor: colors.focusRing }}
+            style={{
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: colors.tintSoft,
+              borderWidth: 1,
+              borderColor: colors.focusRing,
+            }}
           >
             <Text style={{ color: colors.text, fontWeight: '800' }}>Log out</Text>
           </TouchableOpacity>
@@ -128,7 +163,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       setUser(meQuery.data as any);
       setHasToken(true);
     }
-  }, [meQuery.data]);
+  }, [meQuery.data, setHasToken, setUser, user]);
 
   // Only clear a stored token on real auth failures — not transient network issues.
   const clearedTokenRef = React.useRef(false);
@@ -148,7 +183,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const profileAuthFailureRef = React.useRef(false);
 
   useEffect(() => {
-    if (!profileQuery.error || profileAuthFailureRef.current || !isAuthFailure(profileQuery.error)) return;
+    if (!profileQuery.error || profileAuthFailureRef.current || !isAuthFailure(profileQuery.error))
+      return;
     profileAuthFailureRef.current = true;
     logout();
   }, [profileQuery.error, logout]);
@@ -174,19 +210,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         // Non-fatal — push is best-effort
       }
     })();
-  }, [user?.id]);
+  }, [savePushToken, user]);
 
   useEffect(() => {
     if (isLoading) return;
 
     const seg0 = segments[0] as string | undefined;
-    const inAuthGroup   = seg0 === '(auth)';
-    const inTabsGroup   = seg0 === '(tabs)';
-    const inOnboarding  = seg0 === 'onboarding';
-    const inPending     = seg0 === 'pending-approval';
+    const inAuthGroup = seg0 === '(auth)';
+    const inTabsGroup = seg0 === '(tabs)';
+    const inOnboarding = seg0 === 'onboarding';
+    const inPending = seg0 === 'pending-approval';
     const inSetupScreen = seg0 === 'profile-setup';
     // Landing screen = root index (segments is empty or undefined first segment)
-    const inLanding     = seg0 === undefined || seg0 === 'index';
+    const inLanding = seg0 === undefined || seg0 === 'index';
 
     // ── Authenticated user routing ──────────────────────────────────────────
     if (user) {
@@ -195,15 +231,25 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       const profile = profileQuery.data as any;
 
       if (!profile && !inOnboarding) {
-        router.replace('/onboarding'); return;
+        router.replace('/onboarding');
+        return;
       }
       if (profile && !profile.profileSetupComplete && !inSetupScreen && !inOnboarding) {
-        router.replace('/onboarding'); return;
+        router.replace('/onboarding');
+        return;
       }
 
-      const pendingStatuses = ['submitted','under_review','waitlisted','interview_scheduled','interview_complete','rejected'];
+      const pendingStatuses = [
+        'submitted',
+        'under_review',
+        'waitlisted',
+        'interview_scheduled',
+        'interview_complete',
+        'rejected',
+      ];
       if (profile && pendingStatuses.includes(profile.applicationStatus) && !inPending) {
-        router.replace('/pending-approval'); return;
+        router.replace('/pending-approval');
+        return;
       }
 
       if (profile && profile.applicationStatus === 'approved') {
@@ -235,10 +281,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
     // Let landing/auth/onboarding/pending render freely — no forced redirect needed
   }, [
-    isLoading, user,
-    meQuery.isLoading, meQuery.fetchStatus, meQuery.data,
-    profileQuery.isLoading, profileQuery.data,
+    isLoading,
+    user,
+    meQuery.isLoading,
+    meQuery.fetchStatus,
+    meQuery.data,
+    profileQuery.isLoading,
+    profileQuery.data,
+    router,
     segments,
+    hasToken,
   ]);
 
   if (isLoading) return <LoadingScreen />;
@@ -247,7 +299,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <ShellErrorScreen
         title="Could not restore your session"
-        message={(meQuery.error as any)?.message ?? 'The app could not verify your session right now. Retry before logging out.'}
+        message={
+          (meQuery.error as any)?.message ??
+          'The app could not verify your session right now. Retry before logging out.'
+        }
         onRetry={() => meQuery.refetch()}
         onLogout={() => logout()}
       />
@@ -258,7 +313,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return (
       <ShellErrorScreen
         title="Could not load your account"
-        message={(profileQuery.error as any)?.message ?? 'The app could not load your profile data right now.'}
+        message={
+          (profileQuery.error as any)?.message ??
+          'The app could not load your profile data right now.'
+        }
         onRetry={() => profileQuery.refetch()}
         onLogout={() => logout()}
       />
@@ -271,39 +329,44 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 function DeepLinkHandler({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
-  const handleDeepLink = React.useCallback((url: string) => {
-    try {
-      const parsed = parseDeepLink(url);
-      if (!parsed) {
-        if (__DEV__) console.warn('[deepLink] failed to parse:', url);
-        return;
-      }
+  const handleDeepLink = React.useCallback(
+    (url: string) => {
+      try {
+        const parsed = parseDeepLink(url);
+        if (!parsed) {
+          if (__DEV__) console.warn('[deepLink] failed to parse:', url);
+          return;
+        }
 
-      // Map parsed deep link to expo-router route
-      const routeMap: Record<string, string> = {
-        'event': `/event/${parsed.id}`,
-        'chat': `/chat/${parsed.id}`,
-        'member': `/member/${parsed.id}`,
-        'ticket': `/tickets`, // tickets is a tab-accessible screen
-      };
+        // Map parsed deep link to expo-router route
+        const routeMap: Record<string, string> = {
+          event: `/event/${parsed.id}`,
+          chat: `/chat/${parsed.id}`,
+          member: `/member/${parsed.id}`,
+          ticket: `/tickets`, // tickets is a tab-accessible screen
+        };
 
-      const route = routeMap[parsed.type];
-      if (route) {
-        (router as any).push(route);
-      } else {
-        if (__DEV__) console.warn('[deepLink] unknown type:', parsed.type);
+        const route = routeMap[parsed.type];
+        if (route) {
+          (router as any).push(route);
+        } else {
+          if (__DEV__) console.warn('[deepLink] unknown type:', parsed.type);
+        }
+      } catch (error) {
+        if (__DEV__) console.error('[deepLink] error handling url:', error);
       }
-    } catch (error) {
-      if (__DEV__) console.error('[deepLink] error handling url:', error);
-    }
-  }, [router]);
+    },
+    [router]
+  );
 
   // Handle cold-start deep links (app launched from a push notification tap)
   React.useEffect(() => {
-    Linking.getInitialURL().then((url) => {
-      if (url) handleDeepLink(url);
-    }).catch(() => {});
-  }, []);
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) handleDeepLink(url);
+      })
+      .catch(() => {});
+  }, [handleDeepLink]);
 
   useEffect(() => {
     const subscription = Linking.addEventListener('url', ({ url }) => {
@@ -331,7 +394,13 @@ function AppShell() {
                 <StatusBar style={colors.statusBar} translucent backgroundColor="transparent" />
                 <OfflineBanner />
                 <AuthGuard>
-                  <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }}>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      animation: 'slide_from_right',
+                      contentStyle: { backgroundColor: colors.background },
+                    }}
+                  >
                     <Stack.Screen name="index" />
                     <Stack.Screen name="(auth)" />
                     <Stack.Screen name="(tabs)" />
@@ -379,10 +448,10 @@ export default function RootLayout() {
   // the DeepLinkHandler itself. DeepLinkHandler needs to live inside the
   // router context but must NOT own the crash-fallback.
   return (
-    <ErrorBoundary>
+    <AppErrorBoundary>
       <ThemeProvider>
         <AppShell />
       </ThemeProvider>
-    </ErrorBoundary>
+    </AppErrorBoundary>
   );
 }

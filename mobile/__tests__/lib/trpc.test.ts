@@ -4,14 +4,27 @@
  * Tests the in-memory token buffer and persistent SecureStore integration.
  * Validates round-trip behavior, memory clearing, and SecureStore mocking.
  */
+import * as SecureStore from 'expo-secure-store';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  setMemoryToken,
+  getMemoryToken,
+  clearToken,
+  saveToken,
+  loadTokenFromStorage,
+  SESSION_COOKIE_KEY,
+} from '../../lib/trpc';
 
 // ── Mock expo-secure-store ────────────────────────────────────────────────────
 const store: Record<string, string> = {};
 vi.mock('expo-secure-store', () => ({
   getItemAsync: vi.fn(async (key: string) => store[key] ?? null),
-  setItemAsync: vi.fn(async (key: string, value: string) => { store[key] = value; }),
-  deleteItemAsync: vi.fn(async (key: string) => { delete store[key]; }),
+  setItemAsync: vi.fn(async (key: string, value: string) => {
+    store[key] = value;
+  }),
+  deleteItemAsync: vi.fn(async (key: string) => {
+    delete store[key];
+  }),
 }));
 
 // ── Mock @trpc/react-query ────────────────────────────────────────────────────
@@ -31,16 +44,6 @@ vi.mock('superjson', () => ({ default: {} }));
 
 // ── Mock console.warn to verify __DEV__ gating ────────────────────────────────
 const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-import {
-  setMemoryToken,
-  getMemoryToken,
-  clearToken,
-  saveToken,
-  loadTokenFromStorage,
-  SESSION_COOKIE_KEY,
-} from '../../lib/trpc';
-import * as SecureStore from 'expo-secure-store';
 
 describe('lib/trpc — token memory buffer', () => {
   beforeEach(() => {

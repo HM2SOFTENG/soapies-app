@@ -11,7 +11,6 @@ import {
   FlatList,
   TextInput,
   Animated,
-  Switch,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -19,7 +18,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import { trpc } from '../../lib/trpc';
 import { FONT } from '../../lib/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,7 +30,7 @@ const TICKET_TYPES = [
   { key: 'couple', label: 'Couple' },
 ] as const;
 
-type TicketType = typeof TICKET_TYPES[number]['key'];
+type TicketType = (typeof TICKET_TYPES)[number]['key'];
 
 export default function EventDetailScreen() {
   const toast = useToast();
@@ -40,12 +38,12 @@ export default function EventDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { colors, alpha, isDark } = theme;
+  const { alpha, colors, gradients, isDark } = theme;
   const utils = trpc.useUtils();
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [ticketType, setTicketType] = useState<TicketType>('single_female');
   const [partnerUserId, setPartnerUserId] = useState<number | null>(null);
-  const [showPartnerPicker, setShowPartnerPicker] = useState(false);
+  const [, setShowPartnerPicker] = useState(false);
   const [partnerSearch, setPartnerSearch] = useState('');
   const [modalStep, setModalStep] = useState<'ticket' | 'partner' | 'picker'>('ticket');
   const [isQueerPlay, setIsQueerPlay] = useState(false);
@@ -58,17 +56,25 @@ export default function EventDetailScreen() {
   const [waiverSignature, setWaiverSignature] = useState('');
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const { data: event, isLoading, isError, error, refetch } = trpc.events.byId.useQuery(
-    { id: Number(id) },
-    { enabled: !!id },
-  );
+  const {
+    data: event,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = trpc.events.byId.useQuery({ id: Number(id) }, { enabled: !!id });
 
   const { data: profileData, isLoading: profileLoading } = trpc.profile.me.useQuery();
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
   const waiverRequired = !!profileData && !(profileData as any)?.waiverSignedAt;
-  const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, { staleTime: 60_000 });
+  const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, {
+    staleTime: 60_000,
+  });
   // Credits stored as dollars (e.g. 105.00 = $105.00)
-  const creditBalanceDollars = typeof creditBalanceData === 'number' ? creditBalanceData : ((creditBalanceData as any)?.balance ?? 0);
+  const creditBalanceDollars =
+    typeof creditBalanceData === 'number'
+      ? creditBalanceData
+      : ((creditBalanceData as any)?.balance ?? 0);
 
   const { data: primaryPartnerData } = trpc.partners.myPrimaryPartner.useQuery();
   const primaryPartner = primaryPartnerData as any;
@@ -79,10 +85,15 @@ export default function EventDetailScreen() {
   // Pre-fill partner when couple ticket is selected and user has a primary partner,
   // but only if they haven't manually cleared it this session.
   useEffect(() => {
-    if (ticketType === 'couple' && primaryPartner?.partnerUserId && !partnerUserId && !partnerManuallyCleared) {
+    if (
+      ticketType === 'couple' &&
+      primaryPartner?.partnerUserId &&
+      !partnerUserId &&
+      !partnerManuallyCleared
+    ) {
       setPartnerUserId(primaryPartner.partnerUserId);
     }
-  }, [ticketType, primaryPartner]);
+  }, [ticketType, partnerManuallyCleared, partnerUserId, primaryPartner]);
 
   function clearPartner() {
     setPartnerUserId(null);
@@ -92,9 +103,9 @@ export default function EventDetailScreen() {
 
   // Gender helpers — must be above the query that uses them
   const FEMALE_VALS = ['female', 'woman', 'trans female', 'transfemale'];
-  const MALE_VALS   = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'];
+  const MALE_VALS = ['male', 'man', 'trans male', 'transmale', 'non-binary', 'nonbinary'];
   const ug = userGender.toLowerCase();
-  const userIsMale   = MALE_VALS.includes(ug);
+  const userIsMale = MALE_VALS.includes(ug);
   const userIsFemale = FEMALE_VALS.includes(ug);
 
   // Debounce partner search so we don't fire on every keystroke
@@ -103,12 +114,17 @@ export default function EventDetailScreen() {
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => setDebouncedSearch(partnerSearch.trim()), 300);
-    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
   }, [partnerSearch]);
 
   // Partner search — always cross-community.
   // Only apply gender filter once profileData has resolved — prevents empty list on first open.
-  const partnerPickerActive = showTicketModal && ticketType === 'couple' && (modalStep === 'partner' || modalStep === 'picker');
+  const partnerPickerActive =
+    showTicketModal &&
+    ticketType === 'couple' &&
+    (modalStep === 'partner' || modalStep === 'picker');
   const { data: membersData, isLoading: membersLoading } = trpc.members.browse.useQuery(
     {
       page: 0,
@@ -119,10 +135,10 @@ export default function EventDetailScreen() {
       enabled: partnerPickerActive,
       staleTime: 15_000,
       placeholderData: keepPreviousData,
-    } as any,
+    } as any
   );
 
-  const availableTicketTypes = TICKET_TYPES.filter(t => {
+  const availableTicketTypes = TICKET_TYPES.filter((t) => {
     if (t.key === 'couple') return true;
     if (!userGender) return true;
     const isMale = ['male', 'man', 'non-binary', 'nonbinary'].includes(userGender);
@@ -132,24 +148,22 @@ export default function EventDetailScreen() {
     return true;
   });
 
-  const defaultTicketType = (): TicketType => {
-    if (!userGender) return 'single_female';
-    const isMale = ['male', 'man', 'non-binary', 'nonbinary'].includes(userGender);
-    return isMale ? 'single_male' : 'single_female';
-  };
-
   useEffect(() => {
-    if (profileData) setTicketType(defaultTicketType());
-  }, [profileData]);
+    if (!profileData) return;
+    const nextTicketType: TicketType = !userGender
+      ? 'single_female'
+      : ['male', 'man', 'non-binary', 'nonbinary'].includes(userGender)
+        ? 'single_male'
+        : 'single_female';
+    setTicketType(nextTicketType);
+  }, [profileData, userGender]);
 
   const { data: myReservations } = trpc.reservations.myReservations.useQuery(undefined, {
     staleTime: 30_000,
   });
 
-  const { data: waitlistPosition, refetch: refetchWaitlist } = trpc.reservations.getWaitlistPosition.useQuery(
-    { eventId: Number(id) },
-    { enabled: !!id },
-  );
+  const { data: waitlistPosition, refetch: refetchWaitlist } =
+    trpc.reservations.getWaitlistPosition.useQuery({ eventId: Number(id) }, { enabled: !!id });
 
   // Waiver mutation — used by the gate modal before proceeding to reservation.
   const signWaiverMutation = trpc.profile.signWaiver.useMutation({
@@ -192,24 +206,65 @@ export default function EventDetailScreen() {
     },
   });
 
-  const checkoutMutation = trpc.reservations.createCheckoutSession.useMutation({
-    onSuccess: async (result: any) => {
-      if (result?.url) {
-        // console.log('[EventDetail] opening stripe checkout:', result.url);
-        await WebBrowser.openBrowserAsync(result.url);
-      }
-    },
-    onError: (e: any) => {
-      // console.log('[EventDetail] checkout error:', e.message);
-      Alert.alert('Payment Error', e.message);
-    },
-  });
-
   const ev = event as any;
+  const fallbackHeroGradient = (ev?.gradientColors ?? gradients.brandH) as [string, string];
+  const reservationNoticeTone = React.useMemo(
+    () => ({
+      successGradient: gradients.green,
+      pendingGradient: gradients.amber,
+      soldOutBg: alpha(colors.primary, 0.12),
+      soldOutBorder: alpha(colors.primary, 0.24),
+      communityBadgeBg: alpha(colors.secondary, isDark ? 0.2 : 0.13),
+      queerBadgeBorder: alpha(colors.secondary, 0.26),
+      selectedPartnerBg: alpha(colors.primary, 0.07),
+      selectedPartnerBorder: alpha(colors.primary, 0.3),
+    }),
+    [alpha, colors, gradients.amber, gradients.green, isDark]
+  );
+
+  function renderWaiverNotice() {
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 12,
+          backgroundColor: alpha(colors.warning, 0.1),
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: alpha(colors.warning, 0.22),
+          padding: 14,
+          marginBottom: 12,
+        }}
+      >
+        <Ionicons
+          name="document-text-outline"
+          size={18}
+          color={colors.warning}
+          style={{ marginTop: 1 }}
+        />
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              color: colors.warning,
+              fontWeight: '800',
+              fontSize: 13,
+              marginBottom: 4,
+            }}
+          >
+            Waiver required before reserving
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 18 }}>
+            You will review and sign the community waiver before your reservation is submitted.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   // Check if user already has reservation for this event
   const existingReservation = (myReservations as any[])?.find(
-    (r: any) => r.eventId === Number(id) && r.status !== 'cancelled',
+    (r: any) => r.eventId === Number(id) && r.status !== 'cancelled'
   );
 
   const isAtCapacity = ev?.capacity && ev.capacity > 0 && (ev.currentAttendees ?? 0) >= ev.capacity;
@@ -240,7 +295,14 @@ export default function EventDetailScreen() {
   // ── Loading / error states ─────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.page, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.page,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <ActivityIndicator color={theme.colors.pink} size="large" />
       </View>
     );
@@ -248,17 +310,49 @@ export default function EventDetailScreen() {
 
   if (isError) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.page, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.page,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 28,
+        }}
+      >
         <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
-        <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800', textAlign: 'center', marginTop: 14 }}>
+        <Text
+          style={{
+            color: theme.colors.text,
+            fontSize: 20,
+            fontWeight: '800',
+            textAlign: 'center',
+            marginTop: 14,
+          }}
+        >
           Could not load this event
         </Text>
-        <Text style={{ color: theme.colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 21, marginTop: 8 }}>
+        <Text
+          style={{
+            color: theme.colors.textMuted,
+            fontSize: 14,
+            textAlign: 'center',
+            lineHeight: 21,
+            marginTop: 8,
+          }}
+        >
           {(error as any)?.message ?? 'Please try again in a moment.'}
         </Text>
         <TouchableOpacity
           onPress={() => refetch()}
-          style={{ marginTop: 18, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border }}
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 18,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
         >
           <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
         </TouchableOpacity>
@@ -268,7 +362,14 @@ export default function EventDetailScreen() {
 
   if (!ev) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.page, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.page,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <Text style={{ color: theme.colors.textMuted }}>Event not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
           <Text style={{ color: theme.colors.pink }}>Go back</Text>
@@ -281,7 +382,10 @@ export default function EventDetailScreen() {
   const title = ev.title ?? ev.name ?? 'Event';
   const dateStr = ev.startDate
     ? new Date(ev.startDate).toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
       })
     : 'TBD';
   const timeStr = ev.startDate
@@ -290,9 +394,12 @@ export default function EventDetailScreen() {
 
   function getTicketPriceDollars(t: TicketType): number {
     switch (t) {
-      case 'single_female': return ev.priceSingleFemale ? parseFloat(ev.priceSingleFemale) : 0;
-      case 'single_male': return ev.priceSingleMale ? parseFloat(ev.priceSingleMale) : 0;
-      case 'couple': return ev.priceCouple ? parseFloat(ev.priceCouple) : 0;
+      case 'single_female':
+        return ev.priceSingleFemale ? parseFloat(ev.priceSingleFemale) : 0;
+      case 'single_male':
+        return ev.priceSingleMale ? parseFloat(ev.priceSingleMale) : 0;
+      case 'couple':
+        return ev.priceCouple ? parseFloat(ev.priceCouple) : 0;
     }
   }
 
@@ -387,7 +494,7 @@ export default function EventDetailScreen() {
 
   function isOppositeGender(mGender: string) {
     const mg = mGender.toLowerCase();
-    if (userIsMale)   return FEMALE_VALS.includes(mg);
+    if (userIsMale) return FEMALE_VALS.includes(mg);
     if (userIsFemale) return MALE_VALS.includes(mg);
     return false;
   }
@@ -408,11 +515,6 @@ export default function EventDetailScreen() {
     joinWaitlistMutation.mutate({ eventId: Number(id) });
   }
 
-  function handlePayNow(reservationId: number) {
-    // console.log('[EventDetail] pay now for reservation:', reservationId);
-    checkoutMutation.mutate({ reservationId });
-  }
-
   // ── Render CTA ─────────────────────────────────────────────────────────────
   function renderCTA() {
     if (existingReservation) {
@@ -420,12 +522,27 @@ export default function EventDetailScreen() {
       return (
         <View style={{ flex: 1 }}>
           <LinearGradient
-            colors={hasPendingPayment ? ['#F59E0B', '#D97706'] : ['#10B981', '#059669']}
+            colors={
+              hasPendingPayment
+                ? reservationNoticeTone.pendingGradient
+                : reservationNoticeTone.successGradient
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+            style={{
+              borderRadius: 14,
+              paddingVertical: 14,
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+            }}
           >
-            <Ionicons name={hasPendingPayment ? 'card-outline' : 'checkmark-circle'} size={20} color={theme.colors.white} />
+            <Ionicons
+              name={hasPendingPayment ? 'card-outline' : 'checkmark-circle'}
+              size={20}
+              color={theme.colors.white}
+            />
             <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16 }}>
               {hasPendingPayment ? 'Reservation Held — Complete Payment' : "You're Going! ✅"}
             </Text>
@@ -435,7 +552,9 @@ export default function EventDetailScreen() {
               onPress={() => router.push('/tickets' as any)}
               style={{ marginTop: 8, alignItems: 'center' }}
             >
-              <Text style={{ color: theme.colors.pink, fontSize: 13, fontWeight: '600' }}>Complete payment to secure your ticket</Text>
+              <Text style={{ color: theme.colors.pink, fontSize: 13, fontWeight: '600' }}>
+                Complete payment to secure your ticket
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -450,8 +569,8 @@ export default function EventDetailScreen() {
               borderRadius: 14,
               paddingVertical: 14,
               alignItems: 'center',
-              backgroundColor: `${theme.colors.pink}22`,
-              borderColor: `${theme.colors.pink}44`,
+              backgroundColor: reservationNoticeTone.soldOutBg,
+              borderColor: reservationNoticeTone.soldOutBorder,
               borderWidth: 1,
             }}
           >
@@ -471,10 +590,19 @@ export default function EventDetailScreen() {
             colors={['#F59E0B', '#EF4444']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{ borderRadius: 14, paddingVertical: 16, alignItems: 'center', opacity: joinWaitlistMutation.isPending ? 0.7 : 1 }}
+            style={{
+              borderRadius: 14,
+              paddingVertical: 16,
+              alignItems: 'center',
+              opacity: joinWaitlistMutation.isPending ? 0.7 : 1,
+            }}
           >
-            {joinWaitlistMutation.isPending ? <ActivityIndicator color={theme.colors.white} /> : (
-              <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 16 }}>Join Waitlist</Text>
+            {joinWaitlistMutation.isPending ? (
+              <ActivityIndicator color={theme.colors.white} />
+            ) : (
+              <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 16 }}>
+                Join Waitlist
+              </Text>
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -500,7 +628,16 @@ export default function EventDetailScreen() {
               shadowOffset: { width: 0, height: 4 },
             }}
           >
-            <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16, fontFamily: FONT.displaySemiBold }}>Reserve Now</Text>
+            <Text
+              style={{
+                color: theme.colors.white,
+                fontWeight: '800',
+                fontSize: 16,
+                fontFamily: FONT.displaySemiBold,
+              }}
+            >
+              Reserve Now
+            </Text>
           </BrandGradient>
         </TouchableOpacity>
       </Animated.View>
@@ -513,19 +650,32 @@ export default function EventDetailScreen() {
         {/* Hero */}
         <View style={{ height: 280, position: 'relative' }}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+            <Image
+              source={{ uri: imageUrl }}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+            />
           ) : (
             <LinearGradient
-              colors={ev.gradientColors ?? ['#7C3AED', '#EC4899']}
+              colors={fallbackHeroGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <Text style={{ fontSize: 64 }}>{ev.emoji ?? '🎉'}</Text>
             </LinearGradient>
           )}
           <LinearGradient
-            colors={[alpha(theme.colors.page, 0.04), alpha(theme.colors.page, isDark ? 0.55 : 0.18), theme.colors.page]}
+            colors={[
+              alpha(theme.colors.page, 0.04),
+              alpha(theme.colors.page, isDark ? 0.55 : 0.18),
+              theme.colors.page,
+            ]}
             style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200 }}
           />
           <TouchableOpacity
@@ -552,15 +702,25 @@ export default function EventDetailScreen() {
         <View style={{ padding: 20, paddingTop: 16 }}>
           {/* Community badge */}
           {(ev.communityId || ev.community?.name) && (
-            <View style={{
-              alignSelf: 'flex-start',
-              backgroundColor: `${theme.colors.purple}22`,
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              marginBottom: 10,
-            }}>
-              <Text style={{ color: theme.colors.purple, fontSize: 12, fontWeight: '700', fontFamily: FONT.displaySemiBold, letterSpacing: 0.4 }}>
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: reservationNoticeTone.communityBadgeBg,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                marginBottom: 10,
+              }}
+            >
+              <Text
+                style={{
+                  color: theme.colors.purple,
+                  fontSize: 12,
+                  fontWeight: '700',
+                  fontFamily: FONT.displaySemiBold,
+                  letterSpacing: 0.4,
+                }}
+              >
                 {ev.communityId ?? ev.community?.name}
               </Text>
             </View>
@@ -568,56 +728,146 @@ export default function EventDetailScreen() {
 
           {/* Capacity badge */}
           {isAtCapacity && (
-            <View style={{
-              alignSelf: 'flex-start',
-              backgroundColor: theme.colors.dangerSoft,
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              marginBottom: 10,
-              borderColor: theme.colors.dangerBorder,
-              borderWidth: 1,
-            }}>
-              <Text style={{ color: theme.colors.danger, fontSize: 12, fontWeight: '700', fontFamily: FONT.displaySemiBold, letterSpacing: 0.8 }}>SOLD OUT</Text>
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: theme.colors.dangerSoft,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                marginBottom: 10,
+                borderColor: theme.colors.dangerBorder,
+                borderWidth: 1,
+              }}
+            >
+              <Text
+                style={{
+                  color: theme.colors.danger,
+                  fontSize: 12,
+                  fontWeight: '700',
+                  fontFamily: FONT.displaySemiBold,
+                  letterSpacing: 0.8,
+                }}
+              >
+                SOLD OUT
+              </Text>
             </View>
           )}
 
-          <Text style={{ color: theme.colors.text, fontSize: 30, fontWeight: '900', marginBottom: 14, letterSpacing: -0.9, fontFamily: FONT.displayBold }}>{title}</Text>
+          <Text
+            style={{
+              color: theme.colors.text,
+              fontSize: 30,
+              fontWeight: '900',
+              marginBottom: 14,
+              letterSpacing: -0.9,
+              fontFamily: FONT.displayBold,
+            }}
+          >
+            {title}
+          </Text>
 
           <LinearGradient
-            colors={[alpha(theme.colors.primary, isDark ? 0.14 : 0.1), alpha(theme.colors.secondary, isDark ? 0.08 : 0.06)]}
+            colors={[
+              alpha(theme.colors.primary, isDark ? 0.14 : 0.1),
+              alpha(theme.colors.secondary, isDark ? 0.08 : 0.06),
+            ]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 20, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: alpha(theme.colors.primary, isDark ? 0.16 : 0.12) }}
+            style={{
+              borderRadius: 20,
+              padding: 18,
+              marginBottom: 16,
+              borderWidth: 1,
+              borderColor: alpha(theme.colors.primary, isDark ? 0.16 : 0.12),
+            }}
           >
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 11, fontWeight: '800', letterSpacing: 1.2, fontFamily: FONT.displaySemiBold }}>EVENING ACCESS</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 10 }}>
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 1.2,
+                fontFamily: FONT.displaySemiBold,
+              }}
+            >
+              EVENING ACCESS
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                marginTop: 10,
+              }}
+            >
               <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={{ color: theme.colors.text, fontSize: 26, fontWeight: '900', fontFamily: FONT.displayBold }}>
-                  {TICKET_TYPES.some(t => getTicketPriceDollars(t.key) > 0)
-                    ? `$${Math.min(...TICKET_TYPES.map(t => getTicketPriceDollars(t.key)).filter(v => v > 0)).toFixed(0)}`
+                <Text
+                  style={{
+                    color: theme.colors.text,
+                    fontSize: 26,
+                    fontWeight: '900',
+                    fontFamily: FONT.displayBold,
+                  }}
+                >
+                  {TICKET_TYPES.some((t) => getTicketPriceDollars(t.key) > 0)
+                    ? `$${Math.min(...TICKET_TYPES.map((t) => getTicketPriceDollars(t.key)).filter((v) => v > 0)).toFixed(0)}`
                     : 'Free'}
                 </Text>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 13, marginTop: 4 }}>Starting price for this experience</Text>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 13, marginTop: 4 }}>
+                  Starting price for this experience
+                </Text>
               </View>
               {countdownStr ? (
-                <View style={{ backgroundColor: alpha(theme.colors.white, isDark ? 0.06 : 0.52), borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: alpha(theme.colors.white, isDark ? 0.08 : 0.36) }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '800', fontFamily: FONT.displaySemiBold }}>{countdownStr}</Text>
+                <View
+                  style={{
+                    backgroundColor: alpha(theme.colors.white, isDark ? 0.06 : 0.52),
+                    borderRadius: 16,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderWidth: 1,
+                    borderColor: alpha(theme.colors.white, isDark ? 0.08 : 0.36),
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.text,
+                      fontSize: 12,
+                      fontWeight: '800',
+                      fontFamily: FONT.displaySemiBold,
+                    }}
+                  >
+                    {countdownStr}
+                  </Text>
                 </View>
               ) : null}
             </View>
           </LinearGradient>
 
           {/* Meta rows */}
-          <View style={{ marginBottom: 6, backgroundColor: theme.colors.surface, borderRadius: 18, borderWidth: 1, borderColor: theme.colors.border, padding: 16 }}>
+          <View
+            style={{
+              marginBottom: 6,
+              backgroundColor: theme.colors.surface,
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              padding: 16,
+            }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
               <Ionicons name="calendar-outline" size={16} color={theme.colors.pink} />
-              <Text style={{ color: theme.colors.textSecondary, marginLeft: 8, fontSize: 13 }}>{dateStr}{timeStr ? ' · ' + timeStr : ''}</Text>
+              <Text style={{ color: theme.colors.textSecondary, marginLeft: 8, fontSize: 13 }}>
+                {dateStr}
+                {timeStr ? ' · ' + timeStr : ''}
+              </Text>
             </View>
-            {(ev.venue || ev.location) ? (
+            {ev.venue || ev.location ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                 <Ionicons name="location-outline" size={16} color={theme.colors.purple} />
-                <Text style={{ color: theme.colors.textSecondary, marginLeft: 8, fontSize: 13 }}>{ev.venue || ev.location}</Text>
+                <Text style={{ color: theme.colors.textSecondary, marginLeft: 8, fontSize: 13 }}>
+                  {ev.venue || ev.location}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -625,11 +875,24 @@ export default function EventDetailScreen() {
           {/* Attendees / capacity bar */}
           {ev.capacity && ev.capacity > 0 ? (
             <View style={{ marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>{ev.currentAttendees ?? 0} attending</Text>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>{ev.capacity} capacity</Text>
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}
+              >
+                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                  {ev.currentAttendees ?? 0} attending
+                </Text>
+                <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                  {ev.capacity} capacity
+                </Text>
               </View>
-              <View style={{ height: 4, backgroundColor: theme.colors.border, borderRadius: 4, overflow: 'hidden' }}>
+              <View
+                style={{
+                  height: 4,
+                  backgroundColor: theme.colors.border,
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                }}
+              >
                 <LinearGradient
                   colors={[theme.colors.purple, theme.colors.pink]}
                   start={{ x: 0, y: 0 }}
@@ -645,31 +908,54 @@ export default function EventDetailScreen() {
           ) : null}
 
           {/* Pricing */}
-          <View style={{
-            backgroundColor: theme.colors.surface,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 12,
-          }}>
-            <Text style={{ color: theme.colors.textMuted, fontWeight: '800', fontSize: 11, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1.2 }}>
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              borderRadius: 16,
+              padding: 16,
+              marginBottom: 12,
+            }}
+          >
+            <Text
+              style={{
+                color: theme.colors.textMuted,
+                fontWeight: '800',
+                fontSize: 11,
+                marginBottom: 12,
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+              }}
+            >
               Tickets
             </Text>
-            {TICKET_TYPES.map(t => (
-              <View key={t.key} style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: theme.colors.page,
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-                borderRadius: 14,
-                padding: 14,
-                marginBottom: 8,
-              }}>
-                <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>{t.label}</Text>
-                <Text style={{ color: theme.colors.pink, fontSize: 18, fontWeight: '800', fontFamily: FONT.displayBold }}>
+            {TICKET_TYPES.map((t) => (
+              <View
+                key={t.key}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.page,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  borderRadius: 14,
+                  padding: 14,
+                  marginBottom: 8,
+                }}
+              >
+                <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '700' }}>
+                  {t.label}
+                </Text>
+                <Text
+                  style={{
+                    color: theme.colors.pink,
+                    fontSize: 18,
+                    fontWeight: '800',
+                    fontFamily: FONT.displayBold,
+                  }}
+                >
                   {getPriceForTicketType(t.key)}
                 </Text>
               </View>
@@ -677,18 +963,32 @@ export default function EventDetailScreen() {
           </View>
 
           {ev.description && (
-            <View style={{
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-              borderWidth: 1,
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 12,
-            }}>
-              <Text style={{ color: theme.colors.textMuted, fontWeight: '800', fontSize: 11, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1.2, fontFamily: FONT.displaySemiBold }}>
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                borderWidth: 1,
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 12,
+              }}
+            >
+              <Text
+                style={{
+                  color: theme.colors.textMuted,
+                  fontWeight: '800',
+                  fontSize: 11,
+                  marginBottom: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: 1.2,
+                  fontFamily: FONT.displaySemiBold,
+                }}
+              >
                 About
               </Text>
-              <Text style={{ color: theme.colors.textSecondary, lineHeight: 22, fontSize: 14 }}>{ev.description}</Text>
+              <Text style={{ color: theme.colors.textSecondary, lineHeight: 22, fontSize: 14 }}>
+                {ev.description}
+              </Text>
             </View>
           )}
         </View>
@@ -713,7 +1013,9 @@ export default function EventDetailScreen() {
 
       {/* Ticket type selection modal — hidden when picker is open so iOS doesn't stack two modals */}
       <Modal visible={showTicketModal && modalStep !== 'picker'} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' }}>
+        <View
+          style={{ flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' }}
+        >
           <View
             style={{
               backgroundColor: theme.colors.floating,
@@ -726,17 +1028,30 @@ export default function EventDetailScreen() {
             }}
           >
             {/* Drag handle */}
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 20 }} />
+            <View
+              style={{
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: theme.colors.border,
+                alignSelf: 'center',
+                marginBottom: 20,
+              }}
+            />
             {modalStep === 'ticket' ? (
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                  <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>Select Ticket Type</Text>
+                  <Text
+                    style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}
+                  >
+                    Select Ticket Type
+                  </Text>
                   <TouchableOpacity onPress={() => setShowTicketModal(false)}>
                     <Ionicons name="close" size={24} color={theme.colors.textMuted} />
                   </TouchableOpacity>
                 </View>
 
-                {availableTicketTypes.map(t => (
+                {availableTicketTypes.map((t) => (
                   <TouchableOpacity
                     key={t.key}
                     onPress={() => {
@@ -750,39 +1065,104 @@ export default function EventDetailScreen() {
                       alignItems: 'center',
                       padding: 14,
                       borderRadius: 12,
-                      backgroundColor: ticketType === t.key ? alpha(theme.colors.primary, 0.08) : theme.colors.surface,
-                      borderColor: ticketType === t.key ? theme.colors.primary : theme.colors.border,
+                      backgroundColor:
+                        ticketType === t.key
+                          ? alpha(theme.colors.primary, 0.08)
+                          : theme.colors.surface,
+                      borderColor:
+                        ticketType === t.key ? theme.colors.primary : theme.colors.border,
                       borderWidth: 1,
                       marginBottom: 10,
                     }}
                   >
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 15 }}>{t.label}</Text>
-                      <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>{getPriceForTicketType(t.key)}</Text>
+                      <Text style={{ color: theme.colors.text, fontWeight: '600', fontSize: 15 }}>
+                        {t.label}
+                      </Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>
+                        {getPriceForTicketType(t.key)}
+                      </Text>
                     </View>
-                    {ticketType === t.key && t.key !== 'couple' && <Ionicons name="checkmark-circle" size={22} color={theme.colors.pink} />}
-                    {t.key === 'couple' && <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />}
+                    {ticketType === t.key && t.key !== 'couple' && (
+                      <Ionicons name="checkmark-circle" size={22} color={theme.colors.pink} />
+                    )}
+                    {t.key === 'couple' && (
+                      <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+                    )}
                   </TouchableOpacity>
                 ))}
 
                 {/* Queer Play Zone opt-in */}
-                <View style={{ backgroundColor: theme.colors.card, borderRadius: 12, padding: 16, borderColor: `${theme.colors.purple}44`, borderWidth: 1, marginBottom: 12 }}>
-                  <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, marginBottom: 8 }}>🌈 Queer Play Zone</Text>
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 16,
+                    borderColor: reservationNoticeTone.queerBadgeBorder,
+                    borderWidth: 1,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.text,
+                      fontWeight: '700',
+                      fontSize: 15,
+                      marginBottom: 8,
+                    }}
+                  >
+                    🌈 Queer Play Zone
+                  </Text>
                   <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginBottom: 12 }}>
-                    Would you like to opt into the Queer Play Zone? You'll receive a rainbow wristband at check-in, granting access to queer-friendly play spaces.
+                    Would you like to opt into the Queer Play Zone? You&apos;ll receive a rainbow
+                    wristband at check-in, granting access to queer-friendly play spaces.
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity
                       onPress={() => setIsQueerPlay(true)}
-                      style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: isQueerPlay ? alpha(theme.colors.purple, 0.2) : theme.colors.page, borderColor: isQueerPlay ? theme.colors.purple : theme.colors.border, borderWidth: 1, alignItems: 'center' }}
+                      style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 10,
+                        backgroundColor: isQueerPlay
+                          ? alpha(theme.colors.purple, 0.2)
+                          : theme.colors.page,
+                        borderColor: isQueerPlay ? theme.colors.purple : theme.colors.border,
+                        borderWidth: 1,
+                        alignItems: 'center',
+                      }}
                     >
-                      <Text style={{ color: isQueerPlay ? theme.colors.purple : theme.colors.textMuted, fontWeight: '600' }}>🌈 Yes, opt in</Text>
+                      <Text
+                        style={{
+                          color: isQueerPlay ? theme.colors.purple : theme.colors.textMuted,
+                          fontWeight: '600',
+                        }}
+                      >
+                        🌈 Yes, opt in
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setIsQueerPlay(false)}
-                      style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: !isQueerPlay ? alpha(theme.colors.pink, 0.14) : theme.colors.page, borderColor: !isQueerPlay ? theme.colors.pink : theme.colors.border, borderWidth: 1, alignItems: 'center' }}
+                      style={{
+                        flex: 1,
+                        padding: 12,
+                        borderRadius: 10,
+                        backgroundColor: !isQueerPlay
+                          ? alpha(theme.colors.pink, 0.14)
+                          : theme.colors.page,
+                        borderColor: !isQueerPlay ? theme.colors.pink : theme.colors.border,
+                        borderWidth: 1,
+                        alignItems: 'center',
+                      }}
                     >
-                      <Text style={{ color: !isQueerPlay ? theme.colors.pink : theme.colors.textMuted, fontWeight: '600' }}>No thanks</Text>
+                      <Text
+                        style={{
+                          color: !isQueerPlay ? theme.colors.pink : theme.colors.textMuted,
+                          fontWeight: '600',
+                        }}
+                      >
+                        No thanks
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -790,14 +1170,41 @@ export default function EventDetailScreen() {
                 {/* Credits toggle */}
                 {creditBalanceDollars > 0 && (
                   <TouchableOpacity
-                    onPress={() => setUseCredits(v => !v)}
-                    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 12, padding: 14, borderColor: useCredits ? theme.colors.pink : theme.colors.border, borderWidth: 1, marginBottom: 12 }}
+                    onPress={() => setUseCredits((v) => !v)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: theme.colors.card,
+                      borderRadius: 12,
+                      padding: 14,
+                      borderColor: useCredits ? theme.colors.pink : theme.colors.border,
+                      borderWidth: 1,
+                      marginBottom: 12,
+                    }}
                   >
-                    <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: useCredits ? theme.colors.pink : theme.colors.border, backgroundColor: useCredits ? theme.colors.pink : alpha(theme.colors.page, 0), marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
-                      {useCredits && <Ionicons name="checkmark" size={14} color={theme.colors.white} />}
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 6,
+                        borderWidth: 2,
+                        borderColor: useCredits ? theme.colors.pink : theme.colors.border,
+                        backgroundColor: useCredits
+                          ? theme.colors.pink
+                          : alpha(theme.colors.page, 0),
+                        marginRight: 10,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {useCredits && (
+                        <Ionicons name="checkmark" size={14} color={theme.colors.white} />
+                      )}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.text, fontWeight: '700' }}>⭐ Apply credits — ${Number(creditBalanceDollars).toFixed(2)} available</Text>
+                      <Text style={{ color: theme.colors.text, fontWeight: '700' }}>
+                        ⭐ Apply credits — ${Number(creditBalanceDollars).toFixed(2)} available
+                      </Text>
                       <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
                         {useCredits && getTicketPriceDollars(ticketType) > 0
                           ? `Saves $${Math.min(creditBalanceDollars, getTicketPriceDollars(ticketType)).toFixed(2)} on this ticket`
@@ -810,46 +1217,59 @@ export default function EventDetailScreen() {
                 {/* Volunteer add-on */}
                 <TouchableOpacity
                   onPress={handleVolunteerToggle}
-                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 12, padding: 14, borderColor: isVolunteer ? theme.colors.successBorder : theme.colors.border, borderWidth: 1, marginBottom: 12 }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 14,
+                    borderColor: isVolunteer ? theme.colors.successBorder : theme.colors.border,
+                    borderWidth: 1,
+                    marginBottom: 12,
+                  }}
                 >
-                  <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: isVolunteer ? theme.colors.success : theme.colors.border, backgroundColor: isVolunteer ? theme.colors.success : alpha(theme.colors.page, 0), marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
-                    {isVolunteer && <Ionicons name="checkmark" size={14} color={theme.colors.white} />}
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      borderWidth: 2,
+                      borderColor: isVolunteer ? theme.colors.success : theme.colors.border,
+                      backgroundColor: isVolunteer
+                        ? theme.colors.success
+                        : alpha(theme.colors.page, 0),
+                      marginRight: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {isVolunteer && (
+                      <Ionicons name="checkmark" size={14} color={theme.colors.white} />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.colors.text, fontWeight: '700' }}>🙌 I want to volunteer</Text>
-                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Help with setup/teardown and potentially get your ticket reimbursed</Text>
+                    <Text style={{ color: theme.colors.text, fontWeight: '700' }}>
+                      🙌 I want to volunteer
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                      Help with setup/teardown and potentially get your ticket reimbursed
+                    </Text>
                   </View>
                 </TouchableOpacity>
 
-                {waiverRequired && !profileLoading && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                      backgroundColor: alpha(theme.colors.warning, 0.1),
-                      borderRadius: 14,
-                      borderWidth: 1,
-                      borderColor: alpha(theme.colors.warning, 0.22),
-                      padding: 14,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Ionicons name="document-text-outline" size={18} color={theme.colors.warning} style={{ marginTop: 1 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.warning, fontWeight: '800', fontSize: 13, marginBottom: 4 }}>Waiver required before reserving</Text>
-                      <Text style={{ color: theme.colors.textSecondary, fontSize: 12, lineHeight: 18 }}>
-                        You will review and sign the community waiver before your reservation is submitted.
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                {waiverRequired && !profileLoading && renderWaiverNotice()}
 
                 <TouchableOpacity
                   onPress={handleReserve}
                   disabled={reserveMutation.isPending || ticketType === 'couple' || profileLoading}
                   activeOpacity={0.85}
-                  style={{ marginTop: 8, opacity: (reserveMutation.isPending || ticketType === 'couple' || profileLoading) ? 0.5 : 1 }}
+                  style={{
+                    marginTop: 8,
+                    opacity:
+                      reserveMutation.isPending || ticketType === 'couple' || profileLoading
+                        ? 0.5
+                        : 1,
+                  }}
                 >
                   <BrandGradient
                     style={{
@@ -865,7 +1285,9 @@ export default function EventDetailScreen() {
                     {reserveMutation.isPending ? (
                       <ActivityIndicator color={theme.colors.white} />
                     ) : (
-                      <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16 }}>{reserveButtonLabel}</Text>
+                      <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16 }}>
+                        {reserveButtonLabel}
+                      </Text>
                     )}
                   </BrandGradient>
                 </TouchableOpacity>
@@ -874,10 +1296,17 @@ export default function EventDetailScreen() {
               /* Partner selection step */
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                  <TouchableOpacity onPress={() => setModalStep('ticket')} style={{ marginRight: 12 }}>
+                  <TouchableOpacity
+                    onPress={() => setModalStep('ticket')}
+                    style={{ marginRight: 12 }}
+                  >
                     <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
                   </TouchableOpacity>
-                  <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>Select Your Partner</Text>
+                  <Text
+                    style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}
+                  >
+                    Select Your Partner
+                  </Text>
                   <TouchableOpacity onPress={() => setShowTicketModal(false)}>
                     <Ionicons name="close" size={24} color={theme.colors.textMuted} />
                   </TouchableOpacity>
@@ -885,65 +1314,140 @@ export default function EventDetailScreen() {
 
                 {/* Selected partner card */}
                 {selectedPartner ? (
-                  <View style={{
-                    borderRadius: 14,
-                    borderWidth: 1,
-                    borderColor: theme.colors.pink,
-                    backgroundColor: `${theme.colors.pink}12`,
-                    marginBottom: 14,
-                    overflow: 'hidden',
-                  }}>
+                  <View
+                    style={{
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: reservationNoticeTone.selectedPartnerBorder,
+                      backgroundColor: reservationNoticeTone.selectedPartnerBg,
+                      marginBottom: 14,
+                      overflow: 'hidden',
+                    }}
+                  >
                     {/* Default connection label */}
                     {primaryPartner && selectedPartner.id === primaryPartner.partnerUserId && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 5,
+                          paddingHorizontal: 14,
+                          paddingTop: 10,
+                          paddingBottom: 4,
+                        }}
+                      >
                         <Text style={{ fontSize: 12 }}>💗</Text>
-                        <Text style={{ color: theme.colors.pink, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>YOUR CONNECTION</Text>
+                        <Text
+                          style={{
+                            color: theme.colors.pink,
+                            fontSize: 11,
+                            fontWeight: '800',
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          YOUR CONNECTION
+                        </Text>
                       </View>
                     )}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, paddingTop: primaryPartner && selectedPartner.id === primaryPartner.partnerUserId ? 6 : 14, gap: 12 }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: 14,
+                        paddingTop:
+                          primaryPartner && selectedPartner.id === primaryPartner.partnerUserId
+                            ? 6
+                            : 14,
+                        gap: 12,
+                      }}
+                    >
                       {selectedPartner.avatarUrl ? (
-                        <Image source={{ uri: selectedPartner.avatarUrl }} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: alpha(theme.colors.pink, 0.38) }} />
+                        <Image
+                          source={{ uri: selectedPartner.avatarUrl }}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 24,
+                            borderWidth: 2,
+                            borderColor: alpha(theme.colors.pink, 0.38),
+                          }}
+                        />
                       ) : (
-                        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: alpha(theme.colors.purple, 0.14), justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: alpha(theme.colors.purple, 0.24) }}>
+                        <View
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 24,
+                            backgroundColor: alpha(theme.colors.purple, 0.14),
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            borderWidth: 2,
+                            borderColor: alpha(theme.colors.purple, 0.24),
+                          }}
+                        >
                           <Ionicons name="person" size={22} color={theme.colors.purple} />
                         </View>
                       )}
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.colors.text, fontWeight: '800', fontSize: 15 }}>{selectedPartner.displayName ?? 'Member'}</Text>
+                        <Text style={{ color: theme.colors.text, fontWeight: '800', fontSize: 15 }}>
+                          {selectedPartner.displayName ?? 'Member'}
+                        </Text>
                         {selectedPartner.gender ? (
-                          <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 1 }}>{selectedPartner.gender}{selectedPartner.orientation ? ` · ${selectedPartner.orientation}` : ''}</Text>
+                          <Text
+                            style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 1 }}
+                          >
+                            {selectedPartner.gender}
+                            {selectedPartner.orientation ? ` · ${selectedPartner.orientation}` : ''}
+                          </Text>
                         ) : null}
                       </View>
                       {/* Remove / change button */}
                       <TouchableOpacity
                         onPress={clearPartner}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        style={{ backgroundColor: theme.colors.dangerSoft, borderRadius: 20, padding: 6, borderWidth: 1, borderColor: theme.colors.dangerBorder }}
+                        style={{
+                          backgroundColor: theme.colors.dangerSoft,
+                          borderRadius: 20,
+                          padding: 6,
+                          borderWidth: 1,
+                          borderColor: theme.colors.dangerBorder,
+                        }}
                       >
                         <Ionicons name="close" size={16} color={theme.colors.danger} />
                       </TouchableOpacity>
                     </View>
                   </View>
                 ) : (
-                  <View style={{
-                    padding: 20,
-                    borderRadius: 14,
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                    borderWidth: 1,
-                    marginBottom: 14,
-                    alignItems: 'center',
-                    gap: 6,
-                  }}>
+                  <View
+                    style={{
+                      padding: 20,
+                      borderRadius: 14,
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      borderWidth: 1,
+                      marginBottom: 14,
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
                     <Ionicons name="people-outline" size={28} color={theme.colors.textMuted} />
-                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14 }}>No partner selected</Text>
-                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, textAlign: 'center' }}>Search for a member below to link to your couples ticket</Text>
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14 }}>
+                      No partner selected
+                    </Text>
+                    <Text
+                      style={{ color: theme.colors.textMuted, fontSize: 12, textAlign: 'center' }}
+                    >
+                      Search for a member below to link to your couples ticket
+                    </Text>
                   </View>
                 )}
 
                 {/* Search / change partner — opens picker as separate modal above ticket modal */}
                 <TouchableOpacity
-                  onPress={() => { setPartnerSearch(''); setModalStep('picker'); }}
+                  onPress={() => {
+                    setPartnerSearch('');
+                    setModalStep('picker');
+                  }}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -951,47 +1455,40 @@ export default function EventDetailScreen() {
                     padding: 13,
                     borderRadius: 14,
                     backgroundColor: theme.colors.surface,
-                    borderColor: selectedPartner ? theme.colors.border : `${theme.colors.purple}44`,
+                    borderColor: selectedPartner
+                      ? theme.colors.border
+                      : reservationNoticeTone.queerBadgeBorder,
                     borderWidth: 1,
                     marginBottom: 16,
                     gap: 8,
                   }}
                 >
-                  <Ionicons name={selectedPartner ? 'swap-horizontal' : 'search'} size={18} color={selectedPartner ? theme.colors.textMuted : theme.colors.purple} />
-                  <Text style={{ color: selectedPartner ? theme.colors.textMuted : theme.colors.purple, fontWeight: '700', fontSize: 14 }}>
+                  <Ionicons
+                    name={selectedPartner ? 'swap-horizontal' : 'search'}
+                    size={18}
+                    color={selectedPartner ? theme.colors.textMuted : theme.colors.purple}
+                  />
+                  <Text
+                    style={{
+                      color: selectedPartner ? theme.colors.textMuted : theme.colors.purple,
+                      fontWeight: '700',
+                      fontSize: 14,
+                    }}
+                  >
                     {selectedPartner ? 'Change partner' : 'Search for a partner'}
                   </Text>
                 </TouchableOpacity>
 
-                {waiverRequired && !profileLoading && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                      backgroundColor: alpha(theme.colors.warning, 0.1),
-                      borderRadius: 14,
-                      borderWidth: 1,
-                      borderColor: alpha(theme.colors.warning, 0.22),
-                      padding: 14,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Ionicons name="document-text-outline" size={18} color={theme.colors.warning} style={{ marginTop: 1 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.warning, fontWeight: '800', fontSize: 13, marginBottom: 4 }}>Waiver required before reserving</Text>
-                      <Text style={{ color: theme.colors.textSecondary, fontSize: 12, lineHeight: 18 }}>
-                        You will review and sign the community waiver before your reservation is submitted.
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                {waiverRequired && !profileLoading && renderWaiverNotice()}
 
                 <TouchableOpacity
                   onPress={handleReserve}
                   disabled={reserveMutation.isPending || !partnerUserId || profileLoading}
                   activeOpacity={0.85}
-                  style={{ opacity: (reserveMutation.isPending || !partnerUserId || profileLoading) ? 0.5 : 1 }}
+                  style={{
+                    opacity:
+                      reserveMutation.isPending || !partnerUserId || profileLoading ? 0.5 : 1,
+                  }}
                 >
                   <BrandGradient
                     style={{
@@ -1007,7 +1504,9 @@ export default function EventDetailScreen() {
                     {reserveMutation.isPending ? (
                       <ActivityIndicator color={theme.colors.white} />
                     ) : (
-                      <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16 }}>{reserveButtonLabel}</Text>
+                      <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 16 }}>
+                        {reserveButtonLabel}
+                      </Text>
                     )}
                   </BrandGradient>
                 </TouchableOpacity>
@@ -1019,7 +1518,13 @@ export default function EventDetailScreen() {
 
       {/* Partner picker — rendered as its own modal so it sits above the ticket modal on iOS */}
       <Modal visible={showTicketModal && modalStep === 'picker'} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: alpha(theme.colors.overlay, 0.95), justifyContent: 'flex-end' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: alpha(theme.colors.overlay, 0.95),
+            justifyContent: 'flex-end',
+          }}
+        >
           <View
             style={{
               backgroundColor: theme.colors.floating,
@@ -1035,14 +1540,32 @@ export default function EventDetailScreen() {
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               <TouchableOpacity
-                onPress={() => { setModalStep('partner'); setPartnerSearch(''); }}
-                style={{ marginRight: 12, width: 36, height: 36, borderRadius: 18, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => {
+                  setModalStep('partner');
+                  setPartnerSearch('');
+                }}
+                style={{
+                  marginRight: 12,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: theme.colors.surface,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
                 <Ionicons name="arrow-back" size={18} color={theme.colors.text} />
               </TouchableOpacity>
-              <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', flex: 1 }}>Choose Partner</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 17, fontWeight: '800', flex: 1 }}>
+                Choose Partner
+              </Text>
               <TouchableOpacity
-                onPress={() => { setModalStep('partner'); setPartnerSearch(''); }}
+                onPress={() => {
+                  setModalStep('partner');
+                  setPartnerSearch('');
+                }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="close" size={22} color={theme.colors.textMuted} />
@@ -1050,31 +1573,46 @@ export default function EventDetailScreen() {
             </View>
 
             {/* Search bar */}
-            <View style={{
-              flexDirection: 'row', alignItems: 'center',
-              backgroundColor: theme.colors.surface, borderRadius: 14,
-              borderColor: alpha(theme.colors.primary, 0.16), borderWidth: 1,
-              paddingHorizontal: 14, marginBottom: 12,
-            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.colors.surface,
+                borderRadius: 14,
+                borderColor: alpha(theme.colors.primary, 0.16),
+                borderWidth: 1,
+                paddingHorizontal: 14,
+                marginBottom: 12,
+              }}
+            >
               <Ionicons name="search-outline" size={16} color={theme.colors.textMuted} />
               <TextInput
                 value={partnerSearch}
                 onChangeText={setPartnerSearch}
                 placeholder="Search by name…"
                 placeholderTextColor={theme.colors.textMuted}
-                style={{ flex: 1, color: theme.colors.text, fontSize: 14, paddingVertical: 12, paddingLeft: 8 }}
+                style={{
+                  flex: 1,
+                  color: theme.colors.text,
+                  fontSize: 14,
+                  paddingVertical: 12,
+                  paddingLeft: 8,
+                }}
                 autoCorrect={false}
                 autoCapitalize="none"
                 autoFocus
               />
-              {membersLoading
-                ? <ActivityIndicator size="small" color={theme.colors.pink} style={{ marginLeft: 6 }} />
-                : partnerSearch.length > 0
-                  ? <TouchableOpacity onPress={() => setPartnerSearch('')}>
-                      <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
-                    </TouchableOpacity>
-                  : null
-              }
+              {membersLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.colors.pink}
+                  style={{ marginLeft: 6 }}
+                />
+              ) : partnerSearch.length > 0 ? (
+                <TouchableOpacity onPress={() => setPartnerSearch('')}>
+                  <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
+                </TouchableOpacity>
+              ) : null}
             </View>
 
             <FlatList
@@ -1097,35 +1635,80 @@ export default function EventDetailScreen() {
                       setModalStep('partner');
                     }}
                     style={{
-                      flexDirection: 'row', alignItems: 'center',
-                      padding: 12, borderRadius: 12,
-                      backgroundColor: isSelected ? alpha(theme.colors.primary, 0.12) : theme.colors.surface,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      padding: 12,
+                      borderRadius: 12,
+                      backgroundColor: isSelected
+                        ? alpha(theme.colors.primary, 0.12)
+                        : theme.colors.surface,
                       borderWidth: 1,
-                      borderColor: isSelected ? alpha(theme.colors.primary, 0.38) : isOpp ? alpha(theme.colors.primary, 0.18) : theme.colors.border,
-                      marginBottom: 8, gap: 12,
+                      borderColor: isSelected
+                        ? alpha(theme.colors.primary, 0.38)
+                        : isOpp
+                          ? alpha(theme.colors.primary, 0.18)
+                          : theme.colors.border,
+                      marginBottom: 8,
+                      gap: 12,
                     }}
                   >
                     {item.avatarUrl ? (
-                      <Image source={{ uri: item.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: isOpp ? alpha(theme.colors.primary, 0.38) : alpha(theme.colors.border, 0.6) }} />
+                      <Image
+                        source={{ uri: item.avatarUrl }}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          borderWidth: 1.5,
+                          borderColor: isOpp
+                            ? alpha(theme.colors.primary, 0.38)
+                            : alpha(theme.colors.border, 0.6),
+                        }}
+                      />
                     ) : (
-                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isOpp ? alpha(theme.colors.pink, 0.12) : alpha(theme.colors.purple, 0.12), justifyContent: 'center', alignItems: 'center' }}>
-                        <Ionicons name="person" size={20} color={isOpp ? theme.colors.pink : theme.colors.purple} />
+                      <View
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          backgroundColor: isOpp
+                            ? alpha(theme.colors.pink, 0.12)
+                            : alpha(theme.colors.purple, 0.12),
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Ionicons
+                          name="person"
+                          size={20}
+                          color={isOpp ? theme.colors.pink : theme.colors.purple}
+                        />
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14 }}>{item.displayName ?? 'Member'}</Text>
-                      {(item.gender || item.orientation) ? (
+                      <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 14 }}>
+                        {item.displayName ?? 'Member'}
+                      </Text>
+                      {item.gender || item.orientation ? (
                         <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 1 }}>
                           {[item.gender, item.orientation].filter(Boolean).join(' · ')}
                         </Text>
                       ) : null}
                     </View>
-                    {isSelected
-                      ? <Ionicons name="checkmark-circle" size={22} color={theme.colors.pink} />
-                      : isOpp
-                        ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.pink }} />
-                        : <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-                    }
+                    {isSelected ? (
+                      <Ionicons name="checkmark-circle" size={22} color={theme.colors.pink} />
+                    ) : isOpp ? (
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: theme.colors.pink,
+                        }}
+                      />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
+                    )}
                   </TouchableOpacity>
                 );
               }}
@@ -1136,11 +1719,27 @@ export default function EventDetailScreen() {
                   ) : (
                     <>
                       <Text style={{ fontSize: 36, marginBottom: 10 }}>🔍</Text>
-                      <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15, marginBottom: 6 }}>
+                      <Text
+                        style={{
+                          color: theme.colors.text,
+                          fontWeight: '700',
+                          fontSize: 15,
+                          marginBottom: 6,
+                        }}
+                      >
                         {partnerSearch.trim() ? 'No matches found' : 'No members available'}
                       </Text>
-                      <Text style={{ color: theme.colors.textMuted, fontSize: 13, textAlign: 'center', paddingHorizontal: 24 }}>
-                        {partnerSearch.trim() ? 'Try a different name' : 'Start typing a name to search members'}
+                      <Text
+                        style={{
+                          color: theme.colors.textMuted,
+                          fontSize: 13,
+                          textAlign: 'center',
+                          paddingHorizontal: 24,
+                        }}
+                      >
+                        {partnerSearch.trim()
+                          ? 'Try a different name'
+                          : 'Start typing a name to search members'}
                       </Text>
                     </>
                   )}
@@ -1154,22 +1753,49 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* ───── Waiver gate modal (P1-4 / ITEM-025) ─────────────────────────── */}
-      <Modal visible={showWaiverModal} animationType="slide" transparent onRequestClose={handleCloseWaiverModal}>
-        <View style={{ flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' }}>
-          <View style={{
-            backgroundColor: theme.colors.floating,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            padding: 20,
-            paddingBottom: 36,
-            borderTopWidth: 1,
-            borderColor: theme.colors.border,
-            maxHeight: '90%',
-          }}>
+      <Modal
+        visible={showWaiverModal}
+        animationType="slide"
+        transparent
+        onRequestClose={handleCloseWaiverModal}
+      >
+        <View
+          style={{ flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' }}
+        >
+          <View
+            style={{
+              backgroundColor: theme.colors.floating,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              padding: 20,
+              paddingBottom: 36,
+              borderTopWidth: 1,
+              borderColor: theme.colors.border,
+              maxHeight: '90%',
+            }}
+          >
             {/* Drag handle */}
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 16 }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>Community Waiver</Text>
+            <View
+              style={{
+                width: 36,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: theme.colors.border,
+                alignSelf: 'center',
+                marginBottom: 16,
+              }}
+            />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>
+                Community Waiver
+              </Text>
               <TouchableOpacity
                 onPress={handleCloseWaiverModal}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -1182,17 +1808,28 @@ export default function EventDetailScreen() {
               <Text style={{ color: theme.colors.text, fontSize: 14, lineHeight: 22 }}>
                 Before reserving, please acknowledge the Soapies community agreement.
                 {'\n\n'}
-                <Text style={{ fontWeight: '700' }}>Consent:</Text> All interaction at community events is based on enthusiastic consent. "No" is always respected. Consent can be withdrawn at any time.
+                <Text style={{ fontWeight: '700' }}>Consent:</Text> All interaction at community
+                events is based on enthusiastic consent. &quot;No&quot; is always respected. Consent
+                can be withdrawn at any time.
                 {'\n\n'}
-                <Text style={{ fontWeight: '700' }}>Confidentiality:</Text> What happens at an event stays at the event. Do not share photos, identities, or stories of other members without their explicit permission.
+                <Text style={{ fontWeight: '700' }}>Confidentiality:</Text> What happens at an event
+                stays at the event. Do not share photos, identities, or stories of other members
+                without their explicit permission.
                 {'\n\n'}
-                <Text style={{ fontWeight: '700' }}>Safety:</Text> You participate at your own risk. You agree to follow venue rules, operator instructions, and community guidelines. You will not participate while impaired beyond your ability to give consent.
+                <Text style={{ fontWeight: '700' }}>Safety:</Text> You participate at your own risk.
+                You agree to follow venue rules, operator instructions, and community guidelines.
+                You will not participate while impaired beyond your ability to give consent.
                 {'\n\n'}
-                <Text style={{ fontWeight: '700' }}>Liability:</Text> You release Soapies, its organizers, hosts, and venue partners from liability for any injury, loss, or damage arising from your voluntary participation, except in cases of gross negligence.
+                <Text style={{ fontWeight: '700' }}>Liability:</Text> You release Soapies, its
+                organizers, hosts, and venue partners from liability for any injury, loss, or damage
+                arising from your voluntary participation, except in cases of gross negligence.
                 {'\n\n'}
-                <Text style={{ fontWeight: '700' }}>Enforcement:</Text> Violations may result in removal from the event and suspension or termination of your Soapies membership without refund.
+                <Text style={{ fontWeight: '700' }}>Enforcement:</Text> Violations may result in
+                removal from the event and suspension or termination of your Soapies membership
+                without refund.
                 {'\n\n'}
-                By typing your full legal name below, you acknowledge that you have read, understood, and agreed to this waiver (version {WAIVER_VERSION}).
+                By typing your full legal name below, you acknowledge that you have read,
+                understood, and agreed to this waiver (version {WAIVER_VERSION}).
               </Text>
             </ScrollView>
 
@@ -1217,7 +1854,12 @@ export default function EventDetailScreen() {
             />
 
             <TouchableOpacity
-              onPress={() => signWaiverMutation.mutate({ signature: waiverSignature.trim(), version: WAIVER_VERSION })}
+              onPress={() =>
+                signWaiverMutation.mutate({
+                  signature: waiverSignature.trim(),
+                  version: WAIVER_VERSION,
+                })
+              }
               disabled={signWaiverMutation.isPending || waiverSignature.trim().length < 2}
               activeOpacity={0.85}
             >
@@ -1226,13 +1868,16 @@ export default function EventDetailScreen() {
                   borderRadius: 14,
                   paddingVertical: 14,
                   alignItems: 'center',
-                  opacity: (signWaiverMutation.isPending || waiverSignature.trim().length < 2) ? 0.4 : 1,
+                  opacity:
+                    signWaiverMutation.isPending || waiverSignature.trim().length < 2 ? 0.4 : 1,
                 }}
               >
                 {signWaiverMutation.isPending ? (
                   <ActivityIndicator color={theme.colors.white} />
                 ) : (
-                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>Agree &amp; Continue to Reserve</Text>
+                  <Text style={{ color: theme.colors.white, fontWeight: '700', fontSize: 15 }}>
+                    Agree &amp; Continue to Reserve
+                  </Text>
                 )}
               </BrandGradient>
             </TouchableOpacity>
