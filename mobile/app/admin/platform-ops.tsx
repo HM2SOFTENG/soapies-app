@@ -236,6 +236,11 @@ function DetailRow({
   value: React.ReactNode;
   theme: ReturnType<typeof useTheme>;
 }) {
+  const isPrimitive = typeof value === 'string' || typeof value === 'number';
+  const isRenderableElement = React.isValidElement(value);
+  const displayValue =
+    value == null ? '-' : isPrimitive ? value : isRenderableElement ? value : JSON.stringify(value);
+
   return (
     <View
       style={{
@@ -249,15 +254,52 @@ function DetailRow({
         {label}
       </Text>
       <View style={{ flex: 1, alignItems: 'flex-end' }}>
-        {typeof value === 'string' || typeof value === 'number' ? (
-          <Text selectable style={{ color: theme.colors.text, fontSize: 12, textAlign: 'right' }}>
-            {value}
-          </Text>
+        {React.isValidElement(displayValue) ? (
+          displayValue
         ) : (
-          value
+          <Text selectable style={{ color: theme.colors.text, fontSize: 12, textAlign: 'right' }}>
+            {displayValue}
+          </Text>
         )}
       </View>
     </View>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  onPress,
+  theme,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: active ? theme.colors.primary : theme.colors.surfaceMuted,
+        borderWidth: 1,
+        borderColor: active ? theme.colors.primary : theme.colors.border,
+      }}
+    >
+      <Text
+        style={{
+          color: active ? theme.colors.white : theme.colors.text,
+          fontSize: 11,
+          fontWeight: '800',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -285,6 +327,8 @@ export default function PlatformOpsScreen() {
     tone: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [runFilter, setRunFilter] = React.useState<'all' | 'active' | 'failed' | 'passed'>('all');
+  const [auditFilter, setAuditFilter] = React.useState<'all' | string>('all');
 
   const { data, isLoading, isError, error, refetch } = trpc.admin.platformOpsSummary.useQuery(
     undefined,
@@ -409,6 +453,19 @@ export default function PlatformOpsScreen() {
   const unhealthyServices = serviceHealth.filter((item) => item.status !== 'healthy').length;
   const totalBacklog = queueHealth.reduce((sum, item) => sum + (item.count ?? 0), 0);
   const activeWorkflowRuns = githubRuns.filter((run) => run.status !== 'completed').length;
+  const filteredRuns = githubRuns.filter((run) => {
+    if (runFilter === 'active') return run.status !== 'completed';
+    if (runFilter === 'failed') return run.conclusion === 'failure';
+    if (runFilter === 'passed') return run.conclusion === 'success';
+    return true;
+  });
+  const auditFilterOptions = [
+    'all',
+    ...new Set(auditLogs.map((item) => item.targetType).filter(Boolean)),
+  ];
+  const filteredAuditLogs = auditLogs.filter((item) =>
+    auditFilter === 'all' ? true : item.targetType === auditFilter
+  );
   const queueRouteMap: Record<string, string> = {
     applications: '/admin/applications',
     venmo: '/admin/reservations',
@@ -862,11 +919,36 @@ export default function PlatformOpsScreen() {
             </Text>
           )}
 
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+            {[
+              { key: 'all', label: `All (${githubRuns.length})` },
+              { key: 'active', label: `Active (${activeWorkflowRuns})` },
+              {
+                key: 'failed',
+                label: `Failed (${githubRuns.filter((run) => run.conclusion === 'failure').length})`,
+              },
+              {
+                key: 'passed',
+                label: `Passed (${githubRuns.filter((run) => run.conclusion === 'success').length})`,
+              },
+            ].map((item) => (
+              <FilterChip
+                key={item.key}
+                label={item.label}
+                active={runFilter === item.key}
+                onPress={() => setRunFilter(item.key as typeof runFilter)}
+                theme={theme}
+              />
+            ))}
+          </View>
+
           <View style={{ marginTop: 14 }}>
-            {githubRuns.length === 0 ? (
-              <Text style={{ color: theme.colors.textMuted }}>No workflow runs available.</Text>
+            {filteredRuns.length === 0 ? (
+              <Text style={{ color: theme.colors.textMuted }}>
+                No workflow runs match this filter.
+              </Text>
             ) : (
-              githubRuns.slice(0, 5).map((run) => {
+              filteredRuns.slice(0, 6).map((run) => {
                 const failed = run.conclusion === 'failure';
                 const pending = run.status !== 'completed';
                 const tone = failed ? 'critical' : pending ? 'warning' : 'healthy';
@@ -1219,15 +1301,26 @@ export default function PlatformOpsScreen() {
 
         <SectionCard
           title="Recent Admin Actions"
-          subtitle="Latest audit trail entries for ops and admin activity."
+          subtitle="Filter the audit trail in-app to focus on the kinds of ops activity you care about."
           theme={theme}
         >
-          {auditLogs.length === 0 ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {auditFilterOptions.map((item) => (
+              <FilterChip
+                key={item}
+                label={item}
+                active={auditFilter === item}
+                onPress={() => setAuditFilter(item)}
+                theme={theme}
+              />
+            ))}
+          </View>
+          {filteredAuditLogs.length === 0 ? (
             <Text style={{ color: theme.colors.textMuted }}>
-              No recent audit log entries available.
+              No recent audit log entries available for this filter.
             </Text>
           ) : (
-            auditLogs.map((item) => (
+            filteredAuditLogs.map((item) => (
               <View
                 key={item.id}
                 style={{
