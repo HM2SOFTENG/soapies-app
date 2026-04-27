@@ -240,6 +240,12 @@ export default function AdminDashboard() {
       color: theme.colors.primary,
     },
     {
+      label: 'Platform Ops',
+      icon: 'speedometer',
+      route: '/admin/platform-ops',
+      color: '#22C7F2',
+    },
+    {
       label: 'Interviews',
       icon: 'calendar-outline',
       route: '/admin/interview-slots',
