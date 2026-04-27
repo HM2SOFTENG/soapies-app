@@ -132,6 +132,20 @@ function SectionCard({
   );
 }
 
+function formatDateTime(value: unknown) {
+  if (!value) return '-';
+
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function PlatformOpsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -458,7 +472,7 @@ export default function PlatformOpsScreen() {
               </Text>
               <Text style={{ color: theme.colors.textMuted, marginTop: 4 }}>
                 {summary.github.pullRequest.state} • updated{' '}
-                {summary.github.pullRequest.updatedAt ?? '-'}
+                {formatDateTime(summary.github.pullRequest.updatedAt)}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -585,7 +599,7 @@ export default function PlatformOpsScreen() {
                   Latest deployment: {summary.deployment.latestDeployment.phase}
                 </Text>
                 <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 4 }}>
-                  {summary.deployment.latestDeployment.createdAt ?? '-'}
+                  {formatDateTime(summary.deployment.latestDeployment.createdAt)}
                 </Text>
               </View>
             ) : null}
@@ -804,7 +818,8 @@ export default function PlatformOpsScreen() {
               >
                 <Text style={{ color: theme.colors.text, fontWeight: '700' }}>{item.action}</Text>
                 <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 3 }}>
-                  {item.targetType} #{item.targetId} • admin {item.adminId} • {item.createdAt}
+                  {item.targetType} #{item.targetId} • admin {item.adminId} •{' '}
+                  {formatDateTime(item.createdAt)}
                 </Text>
               </View>
             ))
