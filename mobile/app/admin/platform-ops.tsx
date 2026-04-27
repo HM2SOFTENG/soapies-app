@@ -132,6 +132,102 @@ function SectionCard({
   );
 }
 
+function MetricCard({
+  label,
+  value,
+  theme,
+}: {
+  label: string;
+  value: string | number;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <View
+      style={{
+        minWidth: '47%',
+        flexGrow: 1,
+        backgroundColor: theme.colors.surfaceMuted,
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+      }}
+    >
+      <Text
+        style={{
+          color: theme.colors.textMuted,
+          fontSize: 11,
+          fontWeight: '700',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </Text>
+      <Text style={{ color: theme.colors.text, fontSize: 28, fontWeight: '900', marginTop: 8 }}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function ActionCard({
+  title,
+  subtitle,
+  onPress,
+  theme,
+  icon,
+  tone = 'default',
+}: {
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  theme: ReturnType<typeof useTheme>;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone?: 'default' | 'primary';
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        flex: 1,
+        minWidth: '46%',
+        backgroundColor: tone === 'primary' ? theme.colors.primary : theme.colors.surfaceMuted,
+        borderRadius: 14,
+        padding: 14,
+        borderWidth: tone === 'primary' ? 0 : 1,
+        borderColor: tone === 'primary' ? 'transparent' : theme.colors.border,
+      }}
+    >
+      <Ionicons
+        name={icon}
+        size={18}
+        color={tone === 'primary' ? theme.colors.white : theme.colors.text}
+      />
+      <Text
+        style={{
+          color: tone === 'primary' ? theme.colors.white : theme.colors.text,
+          fontWeight: '800',
+          fontSize: 14,
+          marginTop: 10,
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          color:
+            tone === 'primary' ? theme.alpha(theme.colors.white, 0.84) : theme.colors.textMuted,
+          fontSize: 12,
+          marginTop: 4,
+          lineHeight: 18,
+        }}
+      >
+        {subtitle}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 function formatDateTime(value: unknown) {
   if (!value) return '-';
 
@@ -152,6 +248,10 @@ export default function PlatformOpsScreen() {
   const theme = useTheme();
   const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [actionFeedback, setActionFeedback] = React.useState<{
+    tone: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const { data, isLoading, isError, error, refetch } = trpc.admin.platformOpsSummary.useQuery(
     undefined,
@@ -164,10 +264,16 @@ export default function PlatformOpsScreen() {
 
   const runAction = trpc.admin.platformOpsRunAction.useMutation({
     onSuccess: (result: any) => {
-      Alert.alert('Done', result?.message ?? 'Action completed.');
+      const message = result?.message ?? 'Action completed.';
+      setActionFeedback({ tone: 'success', message });
+      Alert.alert('Done', message);
       refetch();
     },
-    onError: (err: any) => Alert.alert('Action failed', err.message ?? 'Please try again.'),
+    onError: (err: any) => {
+      const message = err.message ?? 'Please try again.';
+      setActionFeedback({ tone: 'error', message });
+      Alert.alert('Action failed', message);
+    },
   });
 
   if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
@@ -175,8 +281,13 @@ export default function PlatformOpsScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
+    setActionFeedback(null);
     await refetch();
     setRefreshing(false);
+  }
+
+  function openRoute(route: string) {
+    router.push(route as any);
   }
 
   function openUrl(url?: string | null) {
@@ -266,6 +377,81 @@ export default function PlatformOpsScreen() {
   const serviceHealth = (summary.serviceHealth ?? []) as any[];
   const queueHealth = (summary.queueHealth ?? []) as any[];
   const auditLogs = (summary.recentAuditLogs ?? []) as any[];
+  const configuredIntegrations = integrations.filter((item) =>
+    ['connected', 'configured'].includes(item.status)
+  ).length;
+  const unhealthyServices = serviceHealth.filter((item) => item.status !== 'healthy').length;
+  const totalBacklog = queueHealth.reduce((sum, item) => sum + (item.count ?? 0), 0);
+  const activeWorkflowRuns = githubRuns.filter((run) => run.status !== 'completed').length;
+  const queueRouteMap: Record<string, string> = {
+    applications: '/admin/applications',
+    venmo: '/admin/reservations',
+    tests: '/admin/members',
+  };
+  const quickControls = [
+    {
+      title: 'Applications',
+      subtitle: 'Review pending member applications and interviews.',
+      route: '/admin/applications',
+      icon: 'person-add-outline' as const,
+    },
+    {
+      title: 'Reservations',
+      subtitle: 'Process Venmo confirmations and event queue cleanup.',
+      route: '/admin/reservations',
+      icon: 'card-outline' as const,
+    },
+    {
+      title: 'Push Center',
+      subtitle: 'Send member-targeted push notifications or test comms.',
+      route: '/admin/push-notifications',
+      icon: 'notifications-outline' as const,
+    },
+    {
+      title: 'Members',
+      subtitle: 'Inspect member roles, signals, and admin follow-ups.',
+      route: '/admin/members',
+      icon: 'people-outline' as const,
+    },
+  ];
+  const nextSteps = [
+    alerts.length > 0
+      ? {
+          title: `Resolve ${alerts[0]?.title}`,
+          subtitle: alerts[0]?.message ?? 'There is an active platform alert to investigate.',
+          onPress: () =>
+            alerts[0]?.title === 'Pending Applications'
+              ? openRoute('/admin/applications')
+              : alerts[0]?.title === 'Pending Venmo Reviews'
+                ? openRoute('/admin/reservations')
+                : alerts[0]?.title === 'GitHub'
+                  ? openUrl(summary.github?.pullRequest?.url ?? summary.github?.repoUrl)
+                  : alerts[0]?.title === 'DigitalOcean'
+                    ? openUrl(summary.deployment?.url)
+                    : onRefresh(),
+          icon: 'alert-circle-outline' as const,
+        }
+      : null,
+    totalBacklog > 0
+      ? {
+          title: 'Work the hottest queue',
+          subtitle: `${totalBacklog} items are waiting across admin queues.`,
+          onPress: () => openRoute('/admin/applications'),
+          icon: 'list-outline' as const,
+        }
+      : null,
+    {
+      title: 'Refresh live snapshot',
+      subtitle: `Last generated ${formatDateTime(summary.generatedAt)}. Pull a fresh operational read.`,
+      onPress: onRefresh,
+      icon: 'refresh-outline' as const,
+    },
+  ].filter(Boolean) as {
+    title: string;
+    subtitle: string;
+    onPress: () => void;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
@@ -298,12 +484,30 @@ export default function PlatformOpsScreen() {
             <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 3 }}>
               Monitor platform health, release state, and safe admin actions.
             </Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 6 }}>
+              Last updated {formatDateTime(summary.generatedAt)}
+            </Text>
           </View>
-          <StatusBadge
-            label={overview.overallStatus ?? 'unknown'}
-            tone={overview.overallStatus ?? 'unknown'}
-            theme={theme}
-          />
+          <View style={{ alignItems: 'flex-end', gap: 8 }}>
+            <StatusBadge
+              label={overview.overallStatus ?? 'unknown'}
+              tone={overview.overallStatus ?? 'unknown'}
+              theme={theme}
+            />
+            <TouchableOpacity
+              onPress={onRefresh}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                borderRadius: 999,
+                backgroundColor: theme.alpha(theme.colors.white, 0.14),
+              }}
+            >
+              <Text style={{ color: theme.colors.text, fontSize: 11, fontWeight: '800' }}>
+                Refresh
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -317,6 +521,97 @@ export default function PlatformOpsScreen() {
         }
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
       >
+        <SectionCard
+          title="Ops Snapshot"
+          subtitle="High-signal counts to orient quickly before drilling into details."
+          theme={theme}
+        >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <MetricCard label="Active alerts" value={alerts.length} theme={theme} />
+            <MetricCard label="Queue backlog" value={totalBacklog} theme={theme} />
+            <MetricCard label="Unhealthy services" value={unhealthyServices} theme={theme} />
+            <MetricCard label="Live workflow runs" value={activeWorkflowRuns} theme={theme} />
+            <MetricCard
+              label="Configured integrations"
+              value={`${configuredIntegrations}/${integrations.length}`}
+              theme={theme}
+            />
+          </View>
+        </SectionCard>
+
+        <SectionCard
+          title="Recommended Next Steps"
+          subtitle="Fastest actions to take based on the current platform state."
+          theme={theme}
+        >
+          <View style={{ gap: 10 }}>
+            {nextSteps.map((item) => (
+              <TouchableOpacity
+                key={item.title}
+                onPress={item.onPress}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  backgroundColor: theme.colors.surfaceMuted,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                  borderRadius: 14,
+                  padding: 13,
+                }}
+              >
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: theme.alpha(theme.colors.primary, 0.14),
+                  }}
+                >
+                  <Ionicons name={item.icon} size={18} color={theme.colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.colors.text, fontSize: 14, fontWeight: '800' }}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: 12,
+                      lineHeight: 18,
+                      marginTop: 4,
+                    }}
+                  >
+                    {item.subtitle}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </SectionCard>
+
+        <SectionCard
+          title="Quick Controls"
+          subtitle="Jump directly into the operational areas admins actually need to work."
+          theme={theme}
+        >
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {quickControls.map((item) => (
+              <ActionCard
+                key={item.title}
+                title={item.title}
+                subtitle={item.subtitle}
+                onPress={() => openRoute(item.route)}
+                theme={theme}
+                icon={item.icon}
+              />
+            ))}
+          </View>
+        </SectionCard>
+
         <SectionCard
           title="Environment"
           subtitle="Live app/release context for the currently connected environment."
@@ -449,6 +744,16 @@ export default function PlatformOpsScreen() {
                     }}
                   >
                     {item.summary}
+                  </Text>
+                  <Text
+                    style={{
+                      color: theme.colors.primary,
+                      fontSize: 12,
+                      fontWeight: '700',
+                      marginTop: 8,
+                    }}
+                  >
+                    {item.url ? 'Open integration' : 'Server-side visibility only'}
                   </Text>
                 </View>
                 <StatusBadge label={item.status} tone={item.status} theme={theme} />
@@ -710,89 +1015,119 @@ export default function PlatformOpsScreen() {
           theme={theme}
         >
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {queueHealth.map((item) => (
-              <View
-                key={item.id}
-                style={{
-                  width: '47%',
-                  backgroundColor: theme.colors.surfaceMuted,
-                  borderRadius: 14,
-                  padding: 14,
-                  borderColor: theme.colors.border,
-                  borderWidth: 1,
-                }}
-              >
-                <Text
+            {queueHealth.map((item) => {
+              const route = queueRouteMap[item.id];
+              const isWarning = item.severity === 'warning';
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  disabled={!route}
+                  onPress={() => route && openRoute(route)}
                   style={{
-                    color: theme.colors.textMuted,
-                    fontSize: 11,
-                    fontWeight: '700',
-                    textTransform: 'uppercase',
+                    width: '47%',
+                    backgroundColor: theme.colors.surfaceMuted,
+                    borderRadius: 14,
+                    padding: 14,
+                    borderColor: isWarning ? theme.colors.warningBorder : theme.colors.border,
+                    borderWidth: 1,
                   }}
                 >
-                  {item.label}
-                </Text>
-                <Text
-                  style={{
-                    color: theme.colors.text,
-                    fontSize: 28,
-                    fontWeight: '900',
-                    marginTop: 8,
-                  }}
-                >
-                  {item.count}
-                </Text>
-              </View>
-            ))}
+                  <Text
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                  <Text
+                    style={{
+                      color: theme.colors.text,
+                      fontSize: 28,
+                      fontWeight: '900',
+                      marginTop: 8,
+                    }}
+                  >
+                    {item.count}
+                  </Text>
+                  <Text
+                    style={{
+                      color: route ? theme.colors.primary : theme.colors.textMuted,
+                      fontSize: 12,
+                      fontWeight: '700',
+                      marginTop: 6,
+                    }}
+                  >
+                    {route ? 'Open queue' : 'No linked workflow'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </SectionCard>
 
         <SectionCard
           title="Safe Actions"
-          subtitle="Approved admin ops actions exposed inside the app."
+          subtitle="Approved admin ops actions plus fast links to the underlying control surfaces."
           theme={theme}
         >
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <TouchableOpacity
-              onPress={() => runAction.mutate({ action: 'send_test_push_to_self' })}
-              disabled={runAction.isPending}
+          {actionFeedback ? (
+            <View
               style={{
-                flex: 1,
-                minWidth: '46%',
-                backgroundColor: theme.colors.primary,
-                borderRadius: 14,
-                padding: 14,
-              }}
-            >
-              <Text style={{ color: theme.colors.white, fontWeight: '800', fontSize: 14 }}>
-                Send test push to self
-              </Text>
-              <Text
-                style={{ color: theme.alpha(theme.colors.white, 0.84), fontSize: 12, marginTop: 4 }}
-              >
-                Verifies your current admin device can receive push notifications.
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => runAction.mutate({ action: 'create_test_in_app_notification' })}
-              disabled={runAction.isPending}
-              style={{
-                flex: 1,
-                minWidth: '46%',
-                backgroundColor: theme.colors.surfaceMuted,
-                borderRadius: 14,
-                padding: 14,
+                backgroundColor:
+                  actionFeedback.tone === 'success'
+                    ? theme.colors.successSoft
+                    : theme.colors.dangerSoft,
+                borderColor:
+                  actionFeedback.tone === 'success'
+                    ? theme.colors.successBorder
+                    : theme.colors.dangerBorder,
                 borderWidth: 1,
-                borderColor: theme.colors.border,
+                borderRadius: 14,
+                padding: 12,
+                marginBottom: 12,
               }}
             >
-              <Text style={{ color: theme.colors.text, fontWeight: '800', fontSize: 14 }}>
-                Create test in-app alert
+              <Text style={{ color: theme.colors.text, fontWeight: '800', fontSize: 13 }}>
+                {actionFeedback.tone === 'success' ? 'Last action succeeded' : 'Last action failed'}
               </Text>
               <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 4 }}>
-                Confirms admin notification and real-time UI wiring.
+                {actionFeedback.message}
               </Text>
-            </TouchableOpacity>
+            </View>
+          ) : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <ActionCard
+              title="Send test push to self"
+              subtitle="Verify this admin device can receive push notifications."
+              onPress={() => runAction.mutate({ action: 'send_test_push_to_self' })}
+              theme={theme}
+              icon="phone-portrait-outline"
+              tone="primary"
+            />
+            <ActionCard
+              title="Create test in-app alert"
+              subtitle="Confirm admin notification and real-time UI wiring."
+              onPress={() => runAction.mutate({ action: 'create_test_in_app_notification' })}
+              theme={theme}
+              icon="notifications-outline"
+            />
+            <ActionCard
+              title="Open GitHub"
+              subtitle="Jump into the repo, checks, and workflow details in one tap."
+              onPress={() => openUrl(summary.github?.pullRequest?.url ?? summary.github?.repoUrl)}
+              theme={theme}
+              icon="logo-github"
+            />
+            <ActionCard
+              title="Open deployment"
+              subtitle="Inspect the live API surface or current app URL quickly."
+              onPress={() => openUrl(summary.deployment?.url)}
+              theme={theme}
+              icon="cloud-outline"
+            />
           </View>
         </SectionCard>
 
