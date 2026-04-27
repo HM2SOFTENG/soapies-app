@@ -2,7 +2,6 @@ import React from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   RefreshControl,
   ScrollView,
   Text,
@@ -228,6 +227,40 @@ function ActionCard({
   );
 }
 
+function DetailRow({
+  label,
+  value,
+  theme,
+}: {
+  label: string;
+  value: React.ReactNode;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 14,
+        paddingVertical: 6,
+      }}
+    >
+      <Text style={{ color: theme.colors.textMuted, fontSize: 12, fontWeight: '700' }}>
+        {label}
+      </Text>
+      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+        {typeof value === 'string' || typeof value === 'number' ? (
+          <Text selectable style={{ color: theme.colors.text, fontSize: 12, textAlign: 'right' }}>
+            {value}
+          </Text>
+        ) : (
+          value
+        )}
+      </View>
+    </View>
+  );
+}
+
 function formatDateTime(value: unknown) {
   if (!value) return '-';
 
@@ -288,13 +321,6 @@ export default function PlatformOpsScreen() {
 
   function openRoute(route: string) {
     router.push(route as any);
-  }
-
-  function openUrl(url?: string | null) {
-    if (!url) return;
-    Linking.openURL(url).catch(() => {
-      Alert.alert('Could not open link', url);
-    });
   }
 
   function confirmRerun(runId: number, name: string) {
@@ -424,11 +450,9 @@ export default function PlatformOpsScreen() {
               ? openRoute('/admin/applications')
               : alerts[0]?.title === 'Pending Venmo Reviews'
                 ? openRoute('/admin/reservations')
-                : alerts[0]?.title === 'GitHub'
-                  ? openUrl(summary.github?.pullRequest?.url ?? summary.github?.repoUrl)
-                  : alerts[0]?.title === 'DigitalOcean'
-                    ? openUrl(summary.deployment?.url)
-                    : onRefresh(),
+                : alerts[0]?.title === 'Pending Test Reviews'
+                  ? openRoute('/admin/members')
+                  : onRefresh(),
           icon: 'alert-circle-outline' as const,
         }
       : null,
@@ -713,14 +737,12 @@ export default function PlatformOpsScreen() {
 
         <SectionCard
           title="Integrations"
-          subtitle="External platforms and operational dependencies."
+          subtitle="External platforms and operational dependencies, rendered directly in-app."
           theme={theme}
         >
           {integrations.map((item) => (
-            <TouchableOpacity
+            <View
               key={item.id}
-              activeOpacity={item.url ? 0.8 : 1}
-              onPress={() => openUrl(item.url)}
               style={{
                 backgroundColor: theme.colors.surfaceMuted,
                 borderColor: theme.colors.border,
@@ -745,20 +767,77 @@ export default function PlatformOpsScreen() {
                   >
                     {item.summary}
                   </Text>
-                  <Text
-                    style={{
-                      color: theme.colors.primary,
-                      fontSize: 12,
-                      fontWeight: '700',
-                      marginTop: 8,
-                    }}
-                  >
-                    {item.url ? 'Open integration' : 'Server-side visibility only'}
-                  </Text>
                 </View>
                 <StatusBadge label={item.status} tone={item.status} theme={theme} />
               </View>
-            </TouchableOpacity>
+              <View style={{ marginTop: 10 }}>
+                {item.id === 'github' ? (
+                  <>
+                    <DetailRow label="Repo" value={summary.github?.repo ?? '-'} theme={theme} />
+                    <DetailRow
+                      label="Tracked branch"
+                      value={summary.github?.branch ?? '-'}
+                      theme={theme}
+                    />
+                    <DetailRow
+                      label="PR tracked"
+                      value={
+                        summary.github?.prNumber ? `#${summary.github.prNumber}` : 'Not pinned'
+                      }
+                      theme={theme}
+                    />
+                  </>
+                ) : null}
+                {item.id === 'digitalocean' ? (
+                  <>
+                    <DetailRow
+                      label="App"
+                      value={summary.deployment?.app?.name ?? '-'}
+                      theme={theme}
+                    />
+                    <DetailRow
+                      label="Region"
+                      value={summary.deployment?.app?.region ?? '-'}
+                      theme={theme}
+                    />
+                    <DetailRow
+                      label="App ID"
+                      value={summary.deployment?.app?.id ?? '-'}
+                      theme={theme}
+                    />
+                  </>
+                ) : null}
+                {item.id === 'expo' ? (
+                  <>
+                    <DetailRow
+                      label="Project ID"
+                      value={summary.mobileRelease?.projectId ?? '-'}
+                      theme={theme}
+                    />
+                    <DetailRow
+                      label="Runtime"
+                      value={summary.mobileRelease?.runtimeVersion ?? '-'}
+                      theme={theme}
+                    />
+                    <DetailRow
+                      label="Build profiles"
+                      value={(summary.mobileRelease?.buildProfiles ?? []).join(', ') || '-'}
+                      theme={theme}
+                    />
+                  </>
+                ) : null}
+                {item.id === 'storage' ? (
+                  <DetailRow
+                    label="Bucket"
+                    value={item.summary.replace('Bucket ', '')}
+                    theme={theme}
+                  />
+                ) : null}
+                {item.id === 'notifications' ? (
+                  <DetailRow label="Channels" value={item.summary} theme={theme} />
+                ) : null}
+              </View>
+            </View>
           ))}
         </SectionCard>
 
@@ -768,10 +847,7 @@ export default function PlatformOpsScreen() {
           theme={theme}
         >
           {summary.github?.pullRequest ? (
-            <TouchableOpacity
-              onPress={() => openUrl(summary.github.pullRequest.url)}
-              activeOpacity={0.8}
-            >
+            <View>
               <Text style={{ color: theme.colors.text, fontSize: 15, fontWeight: '800' }}>
                 PR #{overview.prNumber}: {summary.github.pullRequest.title}
               </Text>
@@ -779,9 +855,11 @@ export default function PlatformOpsScreen() {
                 {summary.github.pullRequest.state} • updated{' '}
                 {formatDateTime(summary.github.pullRequest.updatedAt)}
               </Text>
-            </TouchableOpacity>
+            </View>
           ) : (
-            <Text style={{ color: theme.colors.textMuted }}>PR metadata unavailable.</Text>
+            <Text style={{ color: theme.colors.textMuted }}>
+              PR metadata unavailable. Live CI data below is still rendered in-app.
+            </Text>
           )}
 
           <View style={{ marginTop: 14 }}>
@@ -830,45 +908,39 @@ export default function PlatformOpsScreen() {
                         theme={theme}
                       />
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                      {run.url ? (
-                        <TouchableOpacity
-                          onPress={() => openUrl(run.url)}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 10,
-                            backgroundColor: theme.colors.background,
-                            borderWidth: 1,
-                            borderColor: theme.colors.border,
-                          }}
-                        >
-                          <Text
-                            style={{ color: theme.colors.text, fontWeight: '700', fontSize: 12 }}
-                          >
-                            Open
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
-                      {failed && summary.actions?.rerunGithubRun ? (
-                        <TouchableOpacity
-                          onPress={() => confirmRerun(run.id, run.name)}
-                          disabled={runAction.isPending}
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 9,
-                            borderRadius: 10,
-                            backgroundColor: theme.colors.primary,
-                          }}
-                        >
-                          <Text
-                            style={{ color: theme.colors.white, fontWeight: '800', fontSize: 12 }}
-                          >
-                            Rerun
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
+                    <View style={{ marginTop: 10 }}>
+                      <DetailRow label="Run ID" value={run.id} theme={theme} />
+                      <DetailRow
+                        label="Updated"
+                        value={formatDateTime(run.updatedAt ?? run.createdAt)}
+                        theme={theme}
+                      />
+                      <DetailRow
+                        label="Commit"
+                        value={run.commitSha ? String(run.commitSha).slice(0, 7) : '-'}
+                        theme={theme}
+                      />
                     </View>
+                    {failed && summary.actions?.rerunGithubRun ? (
+                      <TouchableOpacity
+                        onPress={() => confirmRerun(run.id, run.name)}
+                        disabled={runAction.isPending}
+                        style={{
+                          marginTop: 10,
+                          alignSelf: 'flex-start',
+                          paddingHorizontal: 12,
+                          paddingVertical: 9,
+                          borderRadius: 10,
+                          backgroundColor: theme.colors.primary,
+                        }}
+                      >
+                        <Text
+                          style={{ color: theme.colors.white, fontWeight: '800', fontSize: 12 }}
+                        >
+                          Rerun
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 );
               })
@@ -878,7 +950,7 @@ export default function PlatformOpsScreen() {
 
         <SectionCard
           title="Deployment"
-          subtitle="Current backend hosting and deployment state."
+          subtitle="Current backend hosting and deployment state, fully visible in-app."
           theme={theme}
         >
           <View style={{ gap: 10 }}>
@@ -890,42 +962,52 @@ export default function PlatformOpsScreen() {
                 {summary.deployment?.summary}
               </Text>
             </View>
-            {summary.deployment?.latestDeployment ? (
-              <View
-                style={{
-                  backgroundColor: theme.colors.surfaceMuted,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border,
-                  padding: 12,
-                }}
-              >
-                <Text style={{ color: theme.colors.text, fontWeight: '700' }}>
-                  Latest deployment: {summary.deployment.latestDeployment.phase}
-                </Text>
-                <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 4 }}>
-                  {formatDateTime(summary.deployment.latestDeployment.createdAt)}
-                </Text>
-              </View>
-            ) : null}
-            {summary.deployment?.url ? (
-              <TouchableOpacity
-                onPress={() => openUrl(summary.deployment.url)}
-                style={{
-                  alignSelf: 'flex-start',
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  borderRadius: 10,
-                  borderColor: theme.colors.border,
-                  borderWidth: 1,
-                  backgroundColor: theme.colors.background,
-                }}
-              >
-                <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 12 }}>
-                  Open app URL
-                </Text>
-              </TouchableOpacity>
-            ) : null}
+            <View
+              style={{
+                backgroundColor: theme.colors.surfaceMuted,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                padding: 12,
+              }}
+            >
+              <DetailRow
+                label="Region"
+                value={summary.deployment?.app?.region ?? '-'}
+                theme={theme}
+              />
+              <DetailRow label="App URL" value={summary.deployment?.url ?? '-'} theme={theme} />
+              <DetailRow
+                label="Updated"
+                value={formatDateTime(summary.deployment?.app?.updatedAt)}
+                theme={theme}
+              />
+              <DetailRow
+                label="Deployment ID"
+                value={summary.deployment?.latestDeployment?.id ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Phase"
+                value={summary.deployment?.latestDeployment?.phase ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Cause"
+                value={summary.deployment?.latestDeployment?.cause ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Progress"
+                value={summary.deployment?.latestDeployment?.progress ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Started"
+                value={formatDateTime(summary.deployment?.latestDeployment?.createdAt)}
+                theme={theme}
+              />
+            </View>
           </View>
         </SectionCard>
 
@@ -941,37 +1023,41 @@ export default function PlatformOpsScreen() {
             <Text style={{ color: theme.colors.textMuted, lineHeight: 19 }}>
               {summary.mobileRelease?.summary}
             </Text>
-            {summary.mobileRelease?.bundleId ? (
-              <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
-                iOS bundle: {summary.mobileRelease.bundleId}
-              </Text>
-            ) : null}
-            {summary.mobileRelease?.packageName ? (
-              <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
-                Android package: {summary.mobileRelease.packageName}
-              </Text>
-            ) : null}
-            {!!summary.mobileRelease?.buildProfiles?.length && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                {summary.mobileRelease.buildProfiles.map((profile: string) => (
-                  <View
-                    key={profile}
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 7,
-                      borderRadius: 999,
-                      backgroundColor: theme.colors.surfaceMuted,
-                      borderWidth: 1,
-                      borderColor: theme.colors.border,
-                    }}
-                  >
-                    <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 11 }}>
-                      {profile}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
+            <View
+              style={{
+                backgroundColor: theme.colors.surfaceMuted,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+                padding: 12,
+              }}
+            >
+              <DetailRow
+                label="Project ID"
+                value={summary.mobileRelease?.projectId ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Runtime"
+                value={summary.mobileRelease?.runtimeVersion ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="iOS bundle"
+                value={summary.mobileRelease?.bundleId ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Android package"
+                value={summary.mobileRelease?.packageName ?? '-'}
+                theme={theme}
+              />
+              <DetailRow
+                label="Profiles"
+                value={(summary.mobileRelease?.buildProfiles ?? []).join(', ') || '-'}
+                theme={theme}
+              />
+            </View>
           </View>
         </SectionCard>
 
@@ -1115,18 +1201,18 @@ export default function PlatformOpsScreen() {
               icon="notifications-outline"
             />
             <ActionCard
-              title="Open GitHub"
-              subtitle="Jump into the repo, checks, and workflow details in one tap."
-              onPress={() => openUrl(summary.github?.pullRequest?.url ?? summary.github?.repoUrl)}
+              title="Refresh snapshot"
+              subtitle="Pull the latest deployment, queue, and service state into this dashboard."
+              onPress={onRefresh}
               theme={theme}
-              icon="logo-github"
+              icon="refresh-outline"
             />
             <ActionCard
-              title="Open deployment"
-              subtitle="Inspect the live API surface or current app URL quickly."
-              onPress={() => openUrl(summary.deployment?.url)}
+              title="Review applications"
+              subtitle="Jump directly into the highest-value admin backlog from here."
+              onPress={() => openRoute('/admin/applications')}
               theme={theme}
-              icon="cloud-outline"
+              icon="checkmark-done-outline"
             />
           </View>
         </SectionCard>
