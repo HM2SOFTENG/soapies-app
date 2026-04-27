@@ -236,6 +236,11 @@ function DetailRow({
   value: React.ReactNode;
   theme: ReturnType<typeof useTheme>;
 }) {
+  const isPrimitive = typeof value === 'string' || typeof value === 'number';
+  const isRenderableElement = React.isValidElement(value);
+  const displayValue =
+    value == null ? '-' : isPrimitive ? value : isRenderableElement ? value : JSON.stringify(value);
+
   return (
     <View
       style={{
@@ -249,12 +254,12 @@ function DetailRow({
         {label}
       </Text>
       <View style={{ flex: 1, alignItems: 'flex-end' }}>
-        {typeof value === 'string' || typeof value === 'number' ? (
-          <Text selectable style={{ color: theme.colors.text, fontSize: 12, textAlign: 'right' }}>
-            {value}
-          </Text>
+        {React.isValidElement(displayValue) ? (
+          displayValue
         ) : (
-          value
+          <Text selectable style={{ color: theme.colors.text, fontSize: 12, textAlign: 'right' }}>
+            {displayValue}
+          </Text>
         )}
       </View>
     </View>
