@@ -25,6 +25,7 @@ export type NotificationChannel = "in_app" | "email" | "sms";
 export type SendNotificationInput = {
   userId: number;
   type: string;
+  category?: string;
   title: string;
   body: string;
   data?: Record<string, unknown>;
@@ -239,9 +240,18 @@ export async function sendNotification(input: SendNotificationInput): Promise<{
 }> {
   const channels = input.channels ?? ["in_app", "email", "sms"];
   const results = { inApp: false, email: false, sms: false };
+  const prefs = input.category ? await getChannelPreferences(input.userId, input.category) : null;
+
+  const allowChannel = (channel: NotificationChannel | "push") => {
+    if (!prefs) return true;
+    if (channel === "in_app") return prefs.inApp;
+    if (channel === "email") return prefs.email;
+    if (channel === "sms") return prefs.sms;
+    return prefs.push;
+  };
 
   // In-app notification (always)
-  if (channels.includes("in_app")) {
+  if (channels.includes("in_app") && allowChannel("in_app")) {
     try {
       await createInAppNotification({
         userId: input.userId,
@@ -257,7 +267,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<{
   }
 
   // Email notification
-  if (channels.includes("email") && input.email) {
+  if (channels.includes("email") && input.email && allowChannel("email")) {
     const emailHtml = (input.data as any)?.emailHtml || buildDefaultEmailHtml(input.title, input.body);
     const emailSubject = (input.data as any)?.emailSubject || input.title;
     results.email = await sendEmail(input.email, emailSubject, emailHtml);
@@ -273,7 +283,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<{
   }
 
   // SMS notification
-  if (channels.includes("sms") && input.phone) {
+  if (channels.includes("sms") && input.phone && allowChannel("sms")) {
     const smsMessage = (input.data as any)?.smsMessage || `${input.title}: ${input.body}`;
     results.sms = await sendSms(input.phone, smsMessage, input.userId);
 
@@ -295,7 +305,7 @@ export async function sendNotification(input: SendNotificationInput): Promise<{
       const { getPushSubscriptions, deletePushSubscription } = await import("./db");
       const subs = await getPushSubscriptions(input.userId);
       for (const sub of subs) {
-        if (!sub.p256dh || !sub.auth) continue;
+        if (!sub.p256dh || !sub.auth || !allowChannel("push")) continue;
         try {
           await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, input.title, input.body);
         } catch (err: any) {
@@ -310,6 +320,41 @@ export async function sendNotification(input: SendNotificationInput): Promise<{
   }
 
   return results;
+}
+
+async function getChannelPreferences(userId: number, category: string): Promise<{
+  inApp: boolean;
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+}> {
+  const db = await getDb();
+  if (!db) {
+    return { inApp: true, email: true, sms: false, push: true };
+  }
+
+  const existing = await db
+    .select()
+    .from(notificationPreferences)
+    .where(
+      and(
+        eq(notificationPreferences.userId, userId),
+        eq(notificationPreferences.category, category)
+      )
+    )
+    .limit(1);
+
+  const pref = existing[0];
+  if (!pref) {
+    return { inApp: true, email: true, sms: false, push: true };
+  }
+
+  return {
+    inApp: pref.inApp !== false,
+    email: pref.email !== false,
+    sms: pref.sms === true,
+    push: pref.push !== false,
+  };
 }
 
 // ─── NOTIFICATION PREFERENCES ───────────────────────────────────────────────

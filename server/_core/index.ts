@@ -360,11 +360,17 @@ async function startServer() {
           [event.id]
         );
         for (const res of resRows as any[]) {
+          const profile = await db.getProfileByUserId(res.userId);
           await notif.sendNotification({
             userId: res.userId,
+            category: 'events',
             type: 'system',
             title: `⏰ Event Tomorrow: ${event.title}`,
             body: `Your spot is reserved but payment is still pending. Please send payment via Venmo ${venmoHandle} to confirm your attendance.`,
+            phone: profile?.phone ?? undefined,
+            data: {
+              smsMessage: `Soapies reminder: ${event.title} is tomorrow and your payment is still pending. Send Venmo ${venmoHandle} to keep your spot.`,
+            },
           }).catch(() => {});
         }
       }

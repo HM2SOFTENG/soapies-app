@@ -54,6 +54,7 @@ export default function PushNotificationsScreen() {
   const { isAdmin, isCheckingAdmin } = useAdminAccess();
 
   const [tab, setTab] = useState<'broadcast' | 'individual'>('broadcast');
+  const [broadcastChannel, setBroadcastChannel] = useState<'push' | 'sms' | 'both'>('push');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [communityFilter, setCommunityFilter] = useState<string | undefined>(undefined);
@@ -65,6 +66,18 @@ export default function PushNotificationsScreen() {
       Alert.alert(
         'Sent!',
         `Notification delivered to ${data.sent} of ${data.total} members with push tokens.`
+      );
+      setTitle('');
+      setBody('');
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const smsBroadcastMutation = trpc.admin.broadcastSms.useMutation({
+    onSuccess: (data: any) => {
+      Alert.alert(
+        'Texts sent!',
+        `SMS delivered to ${data.sent} of ${data.eligible} eligible members with phone numbers.`
       );
       setTitle('');
       setBody('');
@@ -117,19 +130,32 @@ export default function PushNotificationsScreen() {
       return;
     }
     if (tab === 'broadcast') {
+      const channelLabel =
+        broadcastChannel === 'both'
+          ? 'push + text'
+          : broadcastChannel === 'sms'
+            ? 'text'
+            : 'push';
       Alert.alert(
-        'Broadcast Push',
-        `Send "${title}" to all${communityFilter ? ` ${communityFilter}` : ''} members with push tokens?`,
+        'Broadcast Alert',
+        `Send "${title}" to all${communityFilter ? ` ${communityFilter}` : ''} members via ${channelLabel}?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Send',
-            onPress: () =>
-              broadcastMutation.mutate({
+            onPress: async () => {
+              const payload = {
                 title: title.trim(),
                 body: body.trim(),
                 communityId: communityFilter,
-              }),
+              };
+              if (broadcastChannel === 'push' || broadcastChannel === 'both') {
+                broadcastMutation.mutate(payload);
+              }
+              if (broadcastChannel === 'sms' || broadcastChannel === 'both') {
+                smsBroadcastMutation.mutate(payload);
+              }
+            },
           },
         ]
       );
@@ -143,7 +169,8 @@ export default function PushNotificationsScreen() {
     }
   }
 
-  const isPending = broadcastMutation.isPending || sendToUserMutation.isPending;
+  const isPending =
+    broadcastMutation.isPending || smsBroadcastMutation.isPending || sendToUserMutation.isPending;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -172,9 +199,9 @@ export default function PushNotificationsScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={{ color: theme.colors.text, fontSize: 20, fontWeight: '800' }}>
-              Push Notifications
+              Member Alerts
             </Text>
-            <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Send to members</Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>Push and SMS broadcasts</Text>
           </View>
           <View
             style={{
@@ -282,7 +309,7 @@ export default function PushNotificationsScreen() {
             >
               Audience
             </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {COMMUNITIES.map((c) => (
                 <TouchableOpacity
                   key={String(c.value)}
@@ -311,6 +338,59 @@ export default function PushNotificationsScreen() {
                     }}
                   >
                     {c.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: 11,
+                fontWeight: '800',
+                textTransform: 'uppercase',
+                letterSpacing: 1.2,
+                marginBottom: 10,
+              }}
+            >
+              Delivery
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+              {([
+                { key: 'push', label: 'Push' },
+                { key: 'sms', label: 'SMS' },
+                { key: 'both', label: 'Both' },
+              ] as const).map((option) => (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setBroadcastChannel(option.key)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    alignItems: 'center',
+                    backgroundColor:
+                      broadcastChannel === option.key
+                        ? theme.alpha(theme.colors.primary, 0.12)
+                        : theme.colors.surface,
+                    borderColor:
+                      broadcastChannel === option.key
+                        ? theme.colors.primary
+                        : theme.colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color:
+                        broadcastChannel === option.key
+                          ? theme.colors.primary
+                          : theme.colors.textSecondary,
+                      fontWeight: '700',
+                      fontSize: 13,
+                    }}
+                  >
+                    {option.label}
                   </Text>
                 </TouchableOpacity>
               ))}

@@ -771,6 +771,7 @@ export const appRouter = router({
                   await notif
                     .sendNotification({
                       userId: uid,
+                      category: "events",
                       type: "system",
                       title: "🎉 New Event Posted!",
                       body: `${input.title} — check it out in the Events tab.`,
@@ -4105,15 +4106,22 @@ export const appRouter = router({
         const reminderVenmoHandle =
           (reminderSettings as any[]).find((s: any) => s.key === "venmo_handle")
             ?.value ?? "@SoapiesEvents";
+        const event = await db.getEventById(input.eventId);
         let count = 0;
         for (const r of pending) {
           if (r.userId) {
+            const profile = await db.getProfileByUserId(r.userId);
             await notif
               .sendNotification({
                 userId: r.userId,
+                category: "events",
                 type: "system",
                 title: "⏰ Payment Reminder",
                 body: `You have a pending ticket payment. Please send payment via Venmo ${reminderVenmoHandle} to confirm your spot.`,
+                phone: profile?.phone ?? undefined,
+                data: {
+                  smsMessage: `Soapies reminder: your ${event?.title ?? 'event'} payment is still pending. Send Venmo ${reminderVenmoHandle} to confirm your spot.`,
+                },
               })
               .catch(() => {});
             count++;
@@ -4156,6 +4164,7 @@ export const appRouter = router({
         // Also create in-app notification
         await notif.sendNotification({
           userId: input.userId,
+          category: "admin",
           type: "system",
           title: input.title,
           body: input.body,
@@ -4228,6 +4237,7 @@ export const appRouter = router({
           await notif
             .sendNotification({
               userId: uid,
+              category: "admin",
               type: "system",
               title: input.title,
               body: input.body,
@@ -4241,6 +4251,54 @@ export const appRouter = router({
           targetId: 0,
         });
         return { success: true, sent, total: allProfiles.length };
+      }),
+
+    broadcastSms: adminProcedure
+      .input(
+        z.object({
+          title: z.string(),
+          body: z.string(),
+          communityId: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const dbConn = await db.getDb();
+        if (!dbConn) throw new Error("DB unavailable");
+        const { profiles: profilesTable } = await import("../drizzle/schema");
+        const { eq: eqOp, and: andOp } = await import("drizzle-orm");
+        const conditions: any[] = [eqOp(profilesTable.applicationStatus, "approved")];
+        if (input.communityId) conditions.push(eqOp(profilesTable.communityId, input.communityId));
+        const allProfiles = await dbConn
+          .select()
+          .from(profilesTable)
+          .where(andOp(...conditions));
+
+        let sent = 0;
+        let eligible = 0;
+        for (const profile of allProfiles) {
+          if (!profile.phone) continue;
+          eligible++;
+          const result = await notif.sendNotification({
+            userId: profile.userId,
+            category: "admin",
+            type: "system",
+            title: input.title,
+            body: input.body,
+            phone: profile.phone,
+            data: { smsMessage: `Soapies: ${input.body}` },
+          }).catch(() => ({ sms: false } as any));
+          if (result?.sms) sent++;
+        }
+
+        await db.createAuditLog({
+          adminId: ctx.user.id,
+          action: "broadcast_sms",
+          targetType: "system",
+          targetId: 0,
+          metadata: { eligible, sent, communityId: input.communityId ?? null } as any,
+        });
+
+        return { success: true, eligible, sent, total: allProfiles.length };
       }),
 
     // ── User Reports ─────────────────────────────────────────────────────────
