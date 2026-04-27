@@ -229,7 +229,7 @@ export default function Apply() {
   // Final submission
   const handleSubmit = async () => {
     if (!form.agreeGuidelines || !form.agreeWaiver) {
-      toast.error("Please agree to the community guidelines and waiver");
+      toast.error("Please agree to the platform guidelines and waiver");
       return;
     }
 
@@ -442,7 +442,7 @@ export default function Apply() {
                       onChange={e => updateField("dateOfBirth", e.target.value)}
                       className="h-12 rounded-xl border-gray-200 bg-white/80 focus:border-pink-400 focus:ring-pink-400/20"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">You must be 21+ to join Soapies</p>
+                    <p className="text-xs text-muted-foreground mt-1">You must meet account eligibility requirements to apply</p>
                   </div>
 
                   <div>
@@ -475,10 +475,10 @@ export default function Apply() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Orientation</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Preferences</label>
                     <Select value={form.orientation} onValueChange={v => updateField("orientation", v)}>
                       <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white/80">
-                        <SelectValue placeholder="Select your orientation" />
+                        <SelectValue placeholder="Select your preference" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="straight">Straight</SelectItem>
@@ -522,15 +522,15 @@ export default function Apply() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Community</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Access Track</label>
                     <Select value={form.communityId} onValueChange={v => updateField("communityId", v)}>
                       <SelectTrigger className="h-12 rounded-xl border-gray-200 bg-white/80">
-                        <SelectValue placeholder="Which community are you interested in?" />
+                        <SelectValue placeholder="Which membership track are you interested in?" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="soapies">Soapies (Main Community)</SelectItem>
-                        <SelectItem value="groupies">Groupies</SelectItem>
-                        <SelectItem value="gaypeez">Gaypeez</SelectItem>
+                        <SelectItem value="soapies">Main Access</SelectItem>
+                        <SelectItem value="groupies">Group Access</SelectItem>
+                        <SelectItem value="gaypeez">Inclusive Access</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -724,20 +724,20 @@ export default function Apply() {
                     </div>
                   )}
 
-                  {/* Community Guidelines */}
+                  {/* Platform Guidelines */}
                   <div className="p-4 rounded-2xl bg-white/80 border border-gray-200 space-y-3">
                     <h3 className="font-display font-bold text-gray-800 flex items-center gap-2">
                       <Shield className="h-5 w-5 text-purple-500" />
-                      Community Guidelines
+                      Platform Guidelines
                     </h3>
                     <div className="text-xs text-gray-600 space-y-2 max-h-40 overflow-y-auto pr-2">
                       <p>By joining Soapies, you agree to:</p>
-                      <p>1. Treat all members with respect and dignity</p>
-                      <p>2. Maintain confidentiality about other members</p>
-                      <p>3. Respect boundaries and consent at all times</p>
-                      <p>4. Not share photos or information about events without permission</p>
-                      <p>5. Follow all event-specific rules and guidelines</p>
-                      <p>6. Report any inappropriate behavior to event organizers</p>
+                      <p>1. Treat other users with respect and dignity</p>
+                      <p>2. Maintain confidentiality about other users</p>
+                      <p>3. Respect boundaries, privacy, and platform rules at all times</p>
+                      <p>4. Not share private photos or information without permission</p>
+                      <p>5. Follow all activity-specific rules and posted guidance</p>
+                      <p>6. Report inappropriate behavior to the support team</p>
                       <p>7. Be honest in your profile and application</p>
                     </div>
                     <label className="flex items-center gap-3 cursor-pointer">
@@ -753,7 +753,7 @@ export default function Apply() {
                         {form.agreeGuidelines && <Check className="h-3.5 w-3.5" />}
                       </motion.button>
                       <span className="text-sm font-semibold text-gray-700">
-                        I agree to the Community Guidelines *
+                        I agree to the Platform Guidelines *
                       </span>
                     </label>
                   </div>
@@ -765,8 +765,8 @@ export default function Apply() {
                       Liability Waiver
                     </h3>
                     <div className="text-xs text-gray-600 space-y-2 max-h-32 overflow-y-auto pr-2">
-                      <p>I understand that participation in Soapies events is voluntary and at my own risk. I release Soapies, its organizers, and venue owners from any liability for injuries, damages, or losses that may occur during events.</p>
-                      <p>I confirm that I am at least 21 years of age and legally able to consent to participation in community activities.</p>
+                      <p>I understand that participation in platform activities is voluntary and at my own risk. I release Soapies, its operators, and participating venues from liability for injuries, damages, or losses that may occur in connection with those activities.</p>
+                      <p>I confirm that I meet the platform's eligibility requirements and can lawfully use the service.</p>
                     </div>
                     <label className="flex items-center gap-3 cursor-pointer">
                       <motion.button
@@ -883,7 +883,7 @@ function ApplicationStatus({ status }: { status: "pending" | "approved" | "rejec
       bgClass: "from-green-50 to-emerald-50",
       borderClass: "border-green-200",
       title: "Welcome to Soapies!",
-      description: "Congratulations! Your application has been approved. You're now a member of the Soapies community. Explore events, connect with other members, and have an amazing time!",
+      description: "Congratulations! Your application has been approved. You now have access to the Soapies platform and member features.",
       action: () => setLocation("/dashboard"),
     },
     rejected: {
@@ -892,7 +892,7 @@ function ApplicationStatus({ status }: { status: "pending" | "approved" | "rejec
       bgClass: "from-red-50 to-pink-50",
       borderClass: "border-red-200",
       title: "Application Not Approved",
-      description: "Unfortunately, your application was not approved at this time. This could be due to incomplete information or not meeting our community requirements. You may reapply after 30 days.",
+      description: "Unfortunately, your application was not approved at this time. This could be due to incomplete information or not meeting platform requirements. You may reapply after 30 days.",
       action: null,
     },
     waitlisted: {

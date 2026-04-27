@@ -102,21 +102,21 @@ const RELATIONSHIP_STATUS_OPTIONS = [
 const COMMUNITY_OPTIONS = [
   {
     id: "soapies",
-    name: "Soapies",
-    subtitle: "Main Community",
-    description: "The original lifestyle community",
+    name: "Main Access",
+    subtitle: "Primary Network",
+    description: "General membership access",
   },
   {
     id: "groupies",
-    name: "Groupies",
-    subtitle: "For couples and groups",
-    description: "For couples and groups",
+    name: "Group Access",
+    subtitle: "Shared Access",
+    description: "Shared membership track",
   },
   {
     id: "gaypeez",
-    name: "Gaypeez",
-    subtitle: "LGBTQ+ friendly community",
-    description: "LGBTQ+ friendly community",
+    name: "Inclusive Access",
+    subtitle: "Inclusive Network",
+    description: "Inclusive membership track",
   },
 ];
 
@@ -429,7 +429,6 @@ export default function JoinFlow() {
         email,
         password,
         name: email.split("@")[0],
-        dateOfBirth: dateOfBirth || new Date().toISOString().split('T')[0], // will be validated server-side
       });
       setCurrentStep(3);
       setResendTimer(60);
@@ -714,7 +713,7 @@ export default function JoinFlow() {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="text-xl md:text-2xl text-gray-300 text-center max-w-2xl mb-12"
           >
-            Join the hottest lifestyle community
+            Join the Soapies membership network
           </motion.p>
 
           <motion.button
@@ -1177,7 +1176,7 @@ export default function JoinFlow() {
 
               {/* Orientation */}
               <FieldContainer delay={0.35}>
-                <Label className="text-gray-700 mb-4 block font-semibold">Orientation</Label>
+                <Label className="text-gray-700 mb-4 block font-semibold">Profile Preferences</Label>
                 <div className="flex flex-wrap gap-2">
                   {ORIENTATION_OPTIONS.map((option) => (
                     <AnimatedChip
@@ -1230,7 +1229,7 @@ export default function JoinFlow() {
 
               {/* Community */}
               <FieldContainer delay={0.5}>
-                <Label className="text-gray-700 mb-4 block font-semibold">Community</Label>
+                <Label className="text-gray-700 mb-4 block font-semibold">Access Track</Label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {COMMUNITY_OPTIONS.map((option) => (
                     <CommunityCard
@@ -1851,7 +1850,7 @@ export default function JoinFlow() {
                       className="mt-1"
                     />
                     <label htmlFor="guidelines" className="text-sm text-gray-700">
-                      I agree to follow the Community Guidelines and code of conduct
+                      I agree to follow the Platform Guidelines and code of conduct
                     </label>
                   </div>
                   <div className="flex items-start gap-3">

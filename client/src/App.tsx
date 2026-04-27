@@ -77,6 +77,8 @@ const GuardedWall = withProfileGuard(Wall);
 const GuardedMembers = withProfileGuard(Members);
 
 function Router() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <AnimatePresence mode="wait">
       <Switch>
@@ -93,12 +95,15 @@ function Router() {
 
         {/* Public routes */}
         <Route path="/" component={Home} />
-        <Route path="/welcome" component={WelcomeGuide} />
-        <Route path="/events" component={Events} />
-        <Route path="/events/:id" component={EventDetail} />
+        <Route path="/welcome">{() => (isAuthenticated ? <WelcomeGuide /> : <Home />)}</Route>
+        <Route path="/events">{() => (isAuthenticated ? <Events /> : <Home />)}</Route>
+        <Route path="/events/:id">{() => (isAuthenticated ? <EventDetail /> : <Home />)}</Route>
         <Route path="/apply" component={Apply} />
         <Route path="/tos" component={ToS} />
+        <Route path="/terms" component={ToS} />
+        <Route path="/terms-and-conditions" component={ToS} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/privacy-policy" component={Privacy} />
         <Route path="/invite/:token" component={AcceptInvite} />
 
         {/* Protected routes — require completed profile */}
@@ -113,9 +118,9 @@ function Router() {
         <Route path="/settings" component={GuardedSettings} />
 
         {/* Community landing pages */}
-        <Route path="/c/soapies">{() => <CommunityPage communityId="soapies" />}</Route>
-        <Route path="/c/groupies">{() => <CommunityPage communityId="groupies" />}</Route>
-        <Route path="/c/gaypeez">{() => <CommunityPage communityId="gaypeez" />}</Route>
+        <Route path="/c/soapies">{() => (isAuthenticated ? <CommunityPage communityId="soapies" /> : <Home />)}</Route>
+        <Route path="/c/groupies">{() => (isAuthenticated ? <CommunityPage communityId="groupies" /> : <Home />)}</Route>
+        <Route path="/c/gaypeez">{() => (isAuthenticated ? <CommunityPage communityId="gaypeez" /> : <Home />)}</Route>
 
         {/* Admin routes — obfuscated paths, all protected by adminProcedure server-side */}
         <Route path="/cp" component={AdminDashboard} />

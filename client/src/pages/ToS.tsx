@@ -1,128 +1,161 @@
 import PageWrapper from "@/components/PageWrapper";
 import { motion } from "framer-motion";
 
+const LAST_UPDATED = "April 27, 2026";
+const SUPPORT_EMAIL = "support@soapiesplaygrp.club";
+
 export default function ToS() {
   return (
     <PageWrapper>
       <div className="container px-4 max-w-3xl mx-auto py-10 sm:py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-4xl font-black text-gray-900 mb-2">Terms of Service</h1>
-          <p className="text-sm text-gray-400 mb-10">Last updated: {new Date().getFullYear()}</p>
+          <h1 className="font-display text-4xl font-black text-gray-900 mb-2">Terms &amp; Conditions</h1>
+          <p className="text-sm text-gray-400 mb-10">Last updated: {LAST_UPDATED}</p>
 
           <div className="prose prose-gray max-w-none space-y-8 text-gray-700 leading-relaxed">
-
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">1. Eligibility (18+)</h2>
               <p>
-                Soapies is an adults-only platform. By accessing or using this service you represent and warrant
-                that you are at least <strong>18 years of age</strong>. If we become aware that any user is under
-                18, we will immediately terminate their account without notice. We reserve the right to request
-                proof of age at any time.
+                These Terms &amp; Conditions govern your access to and use of Soapies,
+                including the website at <strong>soapiesplaygrp.club</strong>, any related mobile
+                applications, user communications, and Soapies-operated platform workflows.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">2. Membership</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">1. Eligibility</h2>
               <p>
-                Soapies is a <strong>private, invite-only community</strong>. Access is granted solely at our
-                discretion following an application and interview process. Membership may be revoked at any time
-                for any reason. You may not transfer, sell, or share your account or membership status with any
-                other person. You are responsible for maintaining the confidentiality of your login credentials.
+                By using the service, you represent that you meet the platform's eligibility
+                requirements and are legally able to agree to these Terms.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">3. Conduct</h2>
-              <p>All members agree to:</p>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">2. Accounts and Access</h2>
               <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                <li>Treat all community members with respect and dignity.</li>
-                <li>Obtain clear, enthusiastic consent before any physical or intimate interaction.</li>
-                <li>Not harass, stalk, threaten, or intimidate any person on or off the platform.</li>
-                <li>Not share other members' personal information, photos, or content outside the platform without explicit consent.</li>
-                <li>Not engage in discrimination based on race, gender, sexual orientation, disability, or religion.</li>
-                <li>Comply with all applicable local, state, and federal laws.</li>
+                <li>You must provide accurate information when creating an account or applying.</li>
+                <li>You are responsible for keeping your login credentials confidential.</li>
+                <li>You may not transfer, sell, or share your account with another person.</li>
+                <li>
+                  Soapies may deny, suspend, or revoke account access at its discretion,
+                  including for safety, conduct, fraud, or policy reasons.
+                </li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">3. Platform Conduct</h2>
+              <p>By using Soapies, you agree to:</p>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li>Treat other users, staff, and support personnel respectfully.</li>
+                <li>Respect boundaries, privacy, and platform safety rules.</li>
+                <li>Not harass, threaten, stalk, impersonate, dox, or intimidate anyone.</li>
+                <li>Not share user content, private information, or photos without permission.</li>
+                <li>Not use the service for unlawful, abusive, discriminatory, or fraudulent activity.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">4. Activities, Reservations, and Access</h2>
+              <p>
+                Platform participation may be subject to approval, availability, pricing, venue rules,
+                and additional activity-specific requirements. Soapies may cancel,
+                reschedule, deny access, or remove participants when necessary for safety, operational, or
+                policy reasons.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">5. SMS Program Terms</h2>
+              <p>
+                If you provide your mobile number and consent to receive texts, Soapies may send
+                transactional SMS messages including one-time passcodes, account verification messages,
+                important account notices, and activity reminders.
+              </p>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                <li><strong>Program name:</strong> Soapies SMS Notifications</li>
+                <li><strong>Message frequency:</strong> varies based on account activity and platform activity</li>
+                <li><strong>Message and data rates:</strong> may apply</li>
+                <li><strong>Opt out:</strong> reply <strong>STOP</strong> to unsubscribe where supported</li>
+                <li><strong>Help:</strong> reply <strong>HELP</strong> or email <a href={`mailto:${SUPPORT_EMAIL}`} className="text-pink-600 underline">{SUPPORT_EMAIL}</a></li>
               </ul>
               <p className="mt-2">
-                Violation of these conduct standards may result in immediate account suspension or termination,
-                and may be reported to law enforcement where required.
+                Consent to receive SMS messages is not a condition of purchase. SMS messages are intended
+                for transactional account and platform operations purposes, not unsolicited third-party
+                marketing.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">4. Events</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">6. Privacy</h2>
               <p>
-                Event attendance is subject to payment and capacity limitations. Tickets are non-refundable
-                unless an event is cancelled by Soapies. You agree to follow all event rules, venue policies,
-                and staff instructions. We reserve the right to refuse entry or remove any attendee who violates
-                our policies, engages in disruptive behavior, or poses a safety risk. Volunteer tickets require
-                fulfillment of duties; failure to do so may result in forfeiture of any credit or refund.
+                Your use of Soapies is also governed by our{' '}
+                <a href="/privacy-policy" className="text-pink-600 underline hover:text-pink-700">
+                  Privacy Policy
+                </a>
+                , which explains how we collect, use, and protect your information.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">5. Privacy</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">7. Intellectual Property and Content</h2>
               <p>
-                Your use of Soapies is also governed by our{" "}
-                <a href="/privacy" className="text-pink-600 underline hover:text-pink-700">Privacy Policy</a>,
-                which is incorporated into these Terms by reference. You consent to the collection and processing
-                of your personal data as described therein.
+                The Soapies platform, branding, design, and service content are owned by Soapies or its
+                licensors. You retain ownership of content you submit, but you grant Soapies a limited,
+                non-exclusive license to host, store, display, and process that content as needed to
+                operate the service.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">6. Termination</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">8. Termination</h2>
               <p>
-                We may suspend or terminate your account at any time, with or without cause or notice, including
-                for violation of these Terms. Upon termination, your right to access the platform ceases
-                immediately. You may request deletion of your personal data by contacting us at
-                privacy@soapies.events.
+                We may suspend or terminate access to the service at any time if we believe a user has
+                violated these Terms, endangered other users, misused the service, or created legal or
+                operational risk.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">7. Disclaimer of Warranties</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">9. Disclaimers</h2>
               <p>
-                The platform is provided <strong>"as is"</strong> without warranties of any kind, express or
-                implied. We do not guarantee uninterrupted access, accuracy of content, or the conduct of other
-                members. Your use of the service is at your own risk.
+                The service is provided on an <strong>"as is"</strong> and <strong>"as available"</strong>{' '}
+                basis. We do not guarantee uninterrupted availability, error-free operation, or the conduct
+                of any user, guest, venue, or third party.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">8. Limitation of Liability</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">10. Limitation of Liability</h2>
               <p>
-                To the fullest extent permitted by law, Soapies and its operators shall not be liable for any
-                indirect, incidental, special, or consequential damages arising from your use of the service,
-                including but not limited to personal injury, property damage, or emotional distress.
+                To the fullest extent permitted by law, Soapies and its operators are not liable for any
+                indirect, incidental, special, consequential, or punitive damages arising out of or related
+                to your use of the service, participation in platform activities, or reliance on platform content.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">9. Governing Law</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">11. Governing Law</h2>
               <p>
-                These Terms are governed by the laws of the <strong>State of California</strong>, without regard
-                to its conflict-of-law provisions. Any disputes shall be resolved exclusively in the state or
-                federal courts located in Los Angeles County, California.
+                These Terms are governed by the laws of the State of California, without regard to conflict
+                of law principles.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-3">10. Changes to Terms</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">12. Changes to These Terms</h2>
               <p>
-                We reserve the right to update these Terms at any time. Continued use of the platform after
-                changes constitutes acceptance of the revised Terms. We will make reasonable efforts to notify
-                members of material changes.
+                We may update these Terms &amp; Conditions from time to time. Changes become effective when
+                posted on this page unless otherwise stated.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-bold text-gray-800 mb-3">Contact</h2>
               <p>
-                Questions about these Terms? Email us at{" "}
-                <a href="mailto:legal@soapies.events" className="text-pink-600 underline">legal@soapies.events</a>.
+                Questions about these Terms can be sent to{' '}
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="text-pink-600 underline">{SUPPORT_EMAIL}</a>.
               </p>
             </section>
-
           </div>
         </motion.div>
       </div>

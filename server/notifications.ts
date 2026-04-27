@@ -9,6 +9,7 @@
 
 import { eq, desc, and } from "drizzle-orm";
 import { getDb } from "./db";
+import { ENV } from "./_core/env";
 import { broadcastToUser } from "./_core/websocket";
 import {
   notifications,
@@ -49,11 +50,7 @@ export function isEmailEnabled(): boolean {
 }
 
 export function isSmsEnabled(): boolean {
-  return (
-    !!process.env.TWILIO_ACCOUNT_SID &&
-    !!process.env.TWILIO_AUTH_TOKEN &&
-    !!process.env.TWILIO_PHONE_NUMBER
-  );
+  return !!ENV.twilioAccountSid && !!ENV.twilioAuthToken && !!ENV.twilioFromNumber;
 }
 
 export function getAvailableChannels(): NotificationChannel[] {
@@ -193,14 +190,11 @@ async function sendSms(to: string, message: string, userId?: number): Promise<bo
 
   try {
     const twilio = await import("twilio");
-    const client = twilio.default(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!
-    );
+    const client = twilio.default(ENV.twilioAccountSid, ENV.twilioAuthToken);
 
     const result = await client.messages.create({
       body: message,
-      from: process.env.TWILIO_PHONE_NUMBER!,
+      from: ENV.twilioFromNumber,
       to,
     });
 

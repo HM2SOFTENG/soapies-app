@@ -16,9 +16,9 @@ const HERO_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663460303717/FfTbhp
 
 // ─── TRUST BADGES ────────────────────────────────────────────────────────────
 const TRUST_ITEMS = [
-  { icon: Shield, label: "Vetted Members", gradient: "from-pink-500 to-rose-400" },
-  { icon: Crown, label: "Premium Events", gradient: "from-purple-500 to-indigo-400" },
-  { icon: Lock, label: "Private & Safe", gradient: "from-pink-400 to-purple-500" },
+  { icon: Shield, label: "Verified Access", gradient: "from-pink-500 to-rose-400" },
+  { icon: Crown, label: "Premium Experiences", gradient: "from-purple-500 to-indigo-400" },
+  { icon: Lock, label: "Private & Secure", gradient: "from-pink-400 to-purple-500" },
 ];
 
 // ─── COUNTDOWN DIGIT ─────────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ export default function Home() {
             transition={{ delay: 0.5 }}
             className="mt-5 text-base md:text-lg text-white/70 max-w-lg mx-auto leading-relaxed font-medium"
           >
-            An exclusive community for adventurous adults. Curated events, genuine connections, unforgettable experiences.
+            A private membership platform for curated experiences, trusted access, and meaningful connections.
           </motion.p>
 
           {/* ── TRUST BADGES ── */}
