@@ -75,11 +75,11 @@ async function fetchJson(url: string, init?: RequestInit) {
 function getGithubConfig() {
   const repo =
     ENV.githubRepo || process.env.GITHUB_REPOSITORY || "HM2SOFTENG/soapies-app";
-  const branch =
-    ENV.githubBranch ||
-    process.env.GITHUB_REF_NAME ||
-    "production-readiness/spoapies-app-store-ci-cd";
-  const prNumber = ENV.githubPrNumber ? Number(ENV.githubPrNumber) : 2;
+  const branch = ENV.githubBranch || process.env.GITHUB_REF_NAME || "main";
+  const parsedPrNumber = ENV.githubPrNumber
+    ? Number(ENV.githubPrNumber)
+    : undefined;
+  const prNumber = parsedPrNumber && Number.isFinite(parsedPrNumber) ? parsedPrNumber : null;
   return { repo, branch, prNumber };
 }
 
@@ -102,9 +102,11 @@ async function getGithubStatus() {
 
   try {
     const [pullRequest, workflowRuns] = await Promise.all([
-      fetchJson(`https://api.github.com/repos/${repo}/pulls/${prNumber}`, {
-        headers: githubHeaders(),
-      }).catch(() => null),
+      prNumber
+        ? fetchJson(`https://api.github.com/repos/${repo}/pulls/${prNumber}`, {
+            headers: githubHeaders(),
+          }).catch(() => null)
+        : Promise.resolve(null),
       fetchJson(
         `https://api.github.com/repos/${repo}/actions/runs?branch=${encodeURIComponent(branch)}&per_page=8`,
         { headers: githubHeaders() }
