@@ -1146,7 +1146,9 @@ export default function EventOpsScreen() {
                           <CameraView
                             style={StyleSheet.absoluteFillObject}
                             facing="back"
-                            onBarcodeScanned={scanned || !hasValidEventId ? undefined : handleBarCodeScanned}
+                            onBarcodeScanned={
+                              scanned || !hasValidEventId ? undefined : handleBarCodeScanned
+                            }
                             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
                           />
                           {/* Scan overlay */}

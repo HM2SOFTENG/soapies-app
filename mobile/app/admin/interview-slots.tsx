@@ -87,7 +87,6 @@ export default function InterviewSlotsScreen() {
   const theme = useTheme();
   const utils = trpc.useUtils();
 
-
   // Form state
   const [formOpen, setFormOpen] = useState(true);
   const [startDate, setStartDate] = useState('');

@@ -165,7 +165,6 @@ export default function AdminMembersScreen() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
 
-
   const { data, isLoading, isError, error, refetch } = trpc.admin.adminMembers.useQuery(
     { search, role, status, community: groupFilter },
     { enabled: isAdmin }

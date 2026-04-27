@@ -109,7 +109,10 @@ export default function AdminCheckinScreen() {
 
   function handleManualSubmit() {
     if (!hasValidEventId) {
-      Alert.alert('Check-In Unavailable', 'Open this scanner from a specific event to check guests in.');
+      Alert.alert(
+        'Check-In Unavailable',
+        'Open this scanner from a specific event to check guests in.'
+      );
       return;
     }
     if (!manualCode.trim()) {
@@ -348,7 +351,9 @@ export default function AdminCheckinScreen() {
                       {WRISTBAND_CONFIG[lastResult.wristbandColor]?.emoji ?? '⬜'}
                     </Text>
                     {lastResult.alreadyCheckedIn && (
-                      <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 6 }}>
+                      <Text
+                        style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 6 }}
+                      >
                         Guest was already marked in for this event.
                       </Text>
                     )}

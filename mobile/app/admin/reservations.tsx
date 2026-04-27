@@ -226,10 +226,8 @@ export default function AdminReservationsScreen() {
             const ticketLabel = TICKET_LABELS[res.ticketType] ?? res.ticketType ?? 'Ticket';
             const amount = res.amount ?? res.totalAmount;
             const paymentMethod = res.paymentMethod ?? 'venmo';
-            const isConfirming =
-              processingId?.id === res.id && processingId?.action === 'confirm';
-            const isRejecting =
-              processingId?.id === res.id && processingId?.action === 'reject';
+            const isConfirming = processingId?.id === res.id && processingId?.action === 'confirm';
+            const isRejecting = processingId?.id === res.id && processingId?.action === 'reject';
             const isRowBusy = isConfirming || isRejecting;
 
             return (

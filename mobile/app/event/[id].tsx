@@ -207,10 +207,7 @@ export default function EventDetailScreen() {
   });
 
   const ev = event as any;
-  const fallbackHeroGradient = (ev?.gradientColors ?? gradients.brandH) as [
-    string,
-    string,
-  ];
+  const fallbackHeroGradient = (ev?.gradientColors ?? gradients.brandH) as [string, string];
   const reservationNoticeTone = React.useMemo(
     () => ({
       successGradient: gradients.green,
@@ -1458,8 +1455,9 @@ export default function EventDetailScreen() {
                     padding: 13,
                     borderRadius: 14,
                     backgroundColor: theme.colors.surface,
-                    borderColor:
-                      selectedPartner ? theme.colors.border : reservationNoticeTone.queerBadgeBorder,
+                    borderColor: selectedPartner
+                      ? theme.colors.border
+                      : reservationNoticeTone.queerBadgeBorder,
                     borderWidth: 1,
                     marginBottom: 16,
                     gap: 8,

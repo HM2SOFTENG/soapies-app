@@ -218,7 +218,6 @@ export default function AdminSettingsScreen() {
   const [exporting, setExporting] = useState(false);
   const seededRef = useRef(false);
 
-
   const {
     data: settingsData,
     refetch,

@@ -117,7 +117,6 @@ export default function AdminApplicationsScreen() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<'member' | 'angel' | 'admin'>('member');
 
-
   const { data, isLoading, isError, error, refetch } = trpc.admin.pendingApplications.useQuery(
     undefined,
     {

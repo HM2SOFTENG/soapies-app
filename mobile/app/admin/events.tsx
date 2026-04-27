@@ -96,7 +96,6 @@ export default function AdminEventsScreen() {
     status: 'draft' as EventStatus,
   });
 
-
   const { data, isLoading, isError, error, refetch } = trpc.events.all.useQuery(undefined, {
     enabled: isAdmin,
   });

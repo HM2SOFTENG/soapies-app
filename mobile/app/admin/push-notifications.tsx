@@ -429,7 +429,9 @@ export default function PushNotificationsScreen() {
               ) : (
                 <ScrollView>
                   {members.length === 0 ? (
-                    <View style={{ paddingVertical: 24, paddingHorizontal: 18, alignItems: 'center' }}>
+                    <View
+                      style={{ paddingVertical: 24, paddingHorizontal: 18, alignItems: 'center' }}
+                    >
                       <Ionicons name="search-outline" size={24} color={theme.colors.textMuted} />
                       <Text
                         style={{

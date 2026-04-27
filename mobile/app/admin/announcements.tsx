@@ -36,7 +36,6 @@ export default function AdminAnnouncementsScreen() {
     dismissible: true,
   });
 
-
   const { data, isLoading, isError, error, refetch } = trpc.announcements.list.useQuery(
     {},
     { enabled: isAdmin }
