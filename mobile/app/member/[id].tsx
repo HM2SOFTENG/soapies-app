@@ -53,20 +53,25 @@ function formatSharedEventDate(date: string | Date | null | undefined) {
   });
 }
 
+function capitalize(value?: string | null) {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 const ORIENTATION_COLORS: Record<string, string> = {
-  straight: '#f9a8d4',
-  gay: '#c084fc',
-  lesbian: '#fda4af',
-  bisexual: '#a78bfa',
-  queer: '#67e8f9',
-  pansexual: '#fde68a',
+  straight: '#F9A8D4',
+  gay: '#C084FC',
+  lesbian: '#FDA4AF',
+  bisexual: '#A78BFA',
+  queer: '#67E8F9',
+  pansexual: '#FDE68A',
 };
 
 const SIGNAL_COLORS: Record<string, string> = {
-  available: '#22c55e',
-  looking: '#eab308',
-  busy: '#f97316',
-  offline: '#6b7280',
+  available: '#22C55E',
+  looking: '#EAB308',
+  busy: '#F97316',
+  offline: '#6B7280',
 };
 
 const SIGNAL_LABELS: Record<string, string> = {
@@ -131,7 +136,7 @@ export default function MemberProfileScreen() {
   });
 
   function handleBlockReport() {
-    Alert.alert('Block or Report', `What would you like to do?`, [
+    Alert.alert('Block or Report', 'What would you like to do?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Block Member',
@@ -212,6 +217,18 @@ export default function MemberProfileScreen() {
   const handleMsgPressOut = () =>
     Animated.spring(msgScale, { toValue: 1, useNativeDriver: true }).start();
 
+  const goBack = React.useCallback(() => {
+    if (returnTo === 'admin-members') {
+      router.replace({
+        pathname: '/admin/members' as any,
+        params: reopenUserId ? { reopenUserId } : {},
+      } as any);
+      return;
+    }
+
+    router.back();
+  }, [reopenUserId, returnTo, router]);
+
   // ── Loading / not-found guards ────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -223,7 +240,7 @@ export default function MemberProfileScreen() {
           alignItems: 'center',
         }}
       >
-        <ActivityIndicator color={colors.pink} size="large" />
+        <ActivityIndicator color={colors.primary} size="large" />
       </View>
     );
   }
@@ -262,7 +279,7 @@ export default function MemberProfileScreen() {
           {(error as any)?.message ?? 'Please try again in a moment.'}
         </Text>
         <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 18 }}>
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Retry</Text>
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -278,18 +295,8 @@ export default function MemberProfileScreen() {
         }}
       >
         <Text style={{ color: colors.textMuted }}>Member not found</Text>
-        <TouchableOpacity
-          onPress={() =>
-            returnTo === 'admin-members'
-              ? router.replace({
-                  pathname: '/admin/members' as any,
-                  params: reopenUserId ? { reopenUserId } : {},
-                } as any)
-              : router.back()
-          }
-          style={{ marginTop: 16 }}
-        >
-          <Text style={{ color: colors.pink }}>Go back</Text>
+        <TouchableOpacity onPress={goBack} style={{ marginTop: 16 }}>
+          <Text style={{ color: colors.primary }}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -314,9 +321,17 @@ export default function MemberProfileScreen() {
   const signalColor = signal
     ? (SIGNAL_COLORS[signal.signalType] ?? SIGNAL_COLORS.offline)
     : SIGNAL_COLORS.offline;
+  const signalLabel = signal ? (SIGNAL_LABELS[signal.signalType] ?? signal.signalType) : '';
   const orientationColor = m.orientation
-    ? (ORIENTATION_COLORS[m.orientation.toLowerCase()] ?? colors.pink)
+    ? (ORIENTATION_COLORS[m.orientation.toLowerCase()] ?? colors.primary)
     : null;
+  const roleColor = m.memberRole === 'admin' ? colors.danger : colors.warning;
+
+  const heroStats = [
+    { label: 'Events', value: m.eventsAttended ?? 0, minWidth: 86, fontSize: 22 },
+    { label: 'Posts', value: m.postsCount ?? 0, minWidth: 86, fontSize: 22 },
+    ...(joinedDate ? [{ label: 'Joined', value: joinedDate, minWidth: 104, fontSize: 18 }] : []),
+  ];
 
   const hasBio = !!(m.bio || m.location || relationshipStatus);
   const hasTags = interests.length > 0 || lookingFor.length > 0;
@@ -335,14 +350,7 @@ export default function MemberProfileScreen() {
     <View style={{ flex: 1, backgroundColor: colors.page }}>
       {/* Back button */}
       <TouchableOpacity
-        onPress={() =>
-          returnTo === 'admin-members'
-            ? router.replace({
-                pathname: '/admin/members' as any,
-                params: reopenUserId ? { reopenUserId } : {},
-              } as any)
-            : router.back()
-        }
+        onPress={goBack}
         accessibilityLabel="Go back"
         accessibilityRole="button"
         style={{
@@ -486,21 +494,15 @@ export default function MemberProfileScreen() {
                     paddingHorizontal: 14,
                     paddingVertical: 5,
                     borderRadius: 999,
-                    backgroundColor:
-                      m.memberRole === 'admin'
-                        ? alpha(colors.danger, 0.14)
-                        : alpha(colors.warning, 0.14),
-                    borderColor:
-                      m.memberRole === 'admin'
-                        ? alpha(colors.danger, 0.34)
-                        : alpha(colors.warning, 0.34),
+                    backgroundColor: alpha(roleColor, 0.14),
+                    borderColor: alpha(roleColor, 0.34),
                     borderWidth: 1,
                     marginBottom: 10,
                   }}
                 >
                   <Text
                     style={{
-                      color: m.memberRole === 'admin' ? colors.danger : colors.warning,
+                      color: roleColor,
                       fontSize: 12,
                       fontFamily: FONT.displaySemiBold,
                     }}
@@ -540,63 +542,12 @@ export default function MemberProfileScreen() {
               <Animated.View
                 style={{ flexDirection: 'row', gap: 12, marginTop: 18, opacity: avatarOpacity }}
               >
-                <View
-                  style={{
-                    alignItems: 'center',
-                    minWidth: 86,
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    borderRadius: 18,
-                    backgroundColor: alpha(colors.white, 0.18),
-                    borderWidth: 1,
-                    borderColor: alpha(colors.white, 0.22),
-                  }}
-                >
-                  <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>
-                    {m.eventsAttended ?? 0}
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.textMuted,
-                      fontSize: 10,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1.1,
-                    }}
-                  >
-                    Events
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    alignItems: 'center',
-                    minWidth: 86,
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    borderRadius: 18,
-                    backgroundColor: alpha(colors.white, 0.18),
-                    borderWidth: 1,
-                    borderColor: alpha(colors.white, 0.22),
-                  }}
-                >
-                  <Text style={{ color: colors.text, fontSize: 22, fontFamily: FONT.displayBold }}>
-                    {m.postsCount ?? 0}
-                  </Text>
-                  <Text
-                    style={{
-                      color: colors.textMuted,
-                      fontSize: 10,
-                      textTransform: 'uppercase',
-                      letterSpacing: 1.1,
-                    }}
-                  >
-                    Posts
-                  </Text>
-                </View>
-                {joinedDate && (
+                {heroStats.map((stat) => (
                   <View
+                    key={stat.label}
                     style={{
                       alignItems: 'center',
-                      minWidth: 104,
+                      minWidth: stat.minWidth,
                       paddingVertical: 10,
                       paddingHorizontal: 12,
                       borderRadius: 18,
@@ -606,9 +557,13 @@ export default function MemberProfileScreen() {
                     }}
                   >
                     <Text
-                      style={{ color: colors.text, fontSize: 18, fontFamily: FONT.displayBold }}
+                      style={{
+                        color: colors.text,
+                        fontSize: stat.fontSize,
+                        fontFamily: FONT.displayBold,
+                      }}
                     >
-                      {joinedDate}
+                      {stat.value}
                     </Text>
                     <Text
                       style={{
@@ -618,10 +573,10 @@ export default function MemberProfileScreen() {
                         letterSpacing: 1.1,
                       }}
                     >
-                      Joined
+                      {stat.label}
                     </Text>
                   </View>
-                )}
+                ))}
               </Animated.View>
 
               {/* Badge row */}
@@ -663,7 +618,7 @@ export default function MemberProfileScreen() {
                       }}
                     />
                     <Text style={{ color: signalColor, fontWeight: '700', fontSize: 12 }}>
-                      {SIGNAL_LABELS[signal.signalType] ?? signal.signalType}
+                      {signalLabel}
                     </Text>
                   </View>
                 )}
@@ -679,7 +634,7 @@ export default function MemberProfileScreen() {
                     }}
                   >
                     <Text style={{ color: colors.text, fontWeight: '700', fontSize: 12 }}>
-                      {m.gender.charAt(0).toUpperCase() + m.gender.slice(1)}
+                      {capitalize(m.gender)}
                     </Text>
                   </View>
                 )}
@@ -688,14 +643,14 @@ export default function MemberProfileScreen() {
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 4,
-                      backgroundColor: alpha(colors.purple, 0.12),
+                      backgroundColor: alpha(colors.secondary, 0.12),
                       borderRadius: 20,
-                      borderColor: alpha(colors.purple, 0.26),
+                      borderColor: alpha(colors.secondary, 0.26),
                       borderWidth: 1,
                     }}
                   >
-                    <Text style={{ color: colors.purple, fontWeight: '700', fontSize: 12 }}>
-                      {community.charAt(0).toUpperCase() + community.slice(1)}
+                    <Text style={{ color: colors.secondary, fontWeight: '700', fontSize: 12 }}>
+                      {capitalize(String(community))}
                     </Text>
                   </View>
                 )}
@@ -704,14 +659,14 @@ export default function MemberProfileScreen() {
                     style={{
                       paddingHorizontal: 12,
                       paddingVertical: 4,
-                      backgroundColor: `${orientationColor}22`,
+                      backgroundColor: alpha(orientationColor, 0.13),
                       borderRadius: 20,
-                      borderColor: `${orientationColor}55`,
+                      borderColor: alpha(orientationColor, 0.33),
                       borderWidth: 1,
                     }}
                   >
                     <Text style={{ color: orientationColor, fontWeight: '700', fontSize: 12 }}>
-                      {m.orientation.charAt(0).toUpperCase() + m.orientation.slice(1)}
+                      {capitalize(m.orientation)}
                     </Text>
                   </View>
                 )}
@@ -726,10 +681,10 @@ export default function MemberProfileScreen() {
             style={{
               marginHorizontal: 16,
               marginTop: 12,
-              backgroundColor: `${signalColor}10`,
+              backgroundColor: alpha(signalColor, 0.06),
               borderRadius: 14,
               borderWidth: 1,
-              borderColor: `${signalColor}30`,
+              borderColor: alpha(signalColor, 0.18),
               padding: 14,
               opacity: contentOpacity,
             }}
@@ -770,20 +725,20 @@ export default function MemberProfileScreen() {
                   fontFamily: FONT.displaySemiBold,
                 }}
               >
-                {SIGNAL_LABELS[signal.signalType] ?? signal.signalType}
+                {signalLabel}
               </Text>
               {signal.seekingGender && (
                 <View
                   style={{
                     paddingHorizontal: 10,
                     paddingVertical: 3,
-                    backgroundColor: alpha(colors.pink, 0.12),
+                    backgroundColor: alpha(colors.primary, 0.12),
                     borderRadius: 12,
-                    borderColor: alpha(colors.pink, 0.24),
+                    borderColor: alpha(colors.primary, 0.24),
                     borderWidth: 1,
                   }}
                 >
-                  <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '600' }}>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>
                     Seeking: {signal.seekingGender}
                   </Text>
                 </View>
@@ -829,204 +784,202 @@ export default function MemberProfileScreen() {
             >
               💗 Connections
             </Text>
-            {connections.map((conn: any) => (
-              <TouchableOpacity
-                key={conn.groupId}
-                activeOpacity={0.85}
-                onPress={() =>
-                  conn.partnerUserId && router.push(`/member/${conn.partnerUserId}` as any)
-                }
-                style={{ marginBottom: 10 }}
-              >
-                <View
-                  style={{
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: alpha(colors.primary, 0.24),
-                    backgroundColor: colors.card,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <LinearGradient
-                    colors={[
-                      alpha(colors.secondary, 0.18),
-                      alpha(colors.primary, 0.1),
-                      alpha(colors.card, 0.96),
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ padding: 18 }}
-                  >
-                    {/* Relationship pill */}
-                    <View style={{ alignItems: 'center', marginBottom: 14 }}>
-                      <View
-                        style={{
-                          paddingHorizontal: 14,
-                          paddingVertical: 4,
-                          backgroundColor: alpha(colors.pink, 0.12),
-                          borderRadius: 20,
-                          borderColor: alpha(colors.pink, 0.3),
-                          borderWidth: 1,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: colors.pink,
-                            fontSize: 12,
-                            letterSpacing: 0.3,
-                            fontFamily: FONT.displaySemiBold,
-                          }}
-                        >
-                          {conn.relationshipType?.replace(/_/g, ' ')}
-                        </Text>
-                      </View>
-                    </View>
+            {connections.map((conn: any) => {
+              const partnerFirstName = (conn.partnerDisplayName ?? '').split(' ')[0];
 
-                    {/* Linked avatar row */}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
+              return (
+                <TouchableOpacity
+                  key={conn.groupId}
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    conn.partnerUserId && router.push(`/member/${conn.partnerUserId}` as any)
+                  }
+                  style={{ marginBottom: 10 }}
+                >
+                  <View
+                    style={{
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: alpha(colors.primary, 0.24),
+                      backgroundColor: colors.card,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[
+                        alpha(colors.secondary, 0.18),
+                        alpha(colors.primary, 0.1),
+                        alpha(colors.card, 0.96),
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{ padding: 18 }}
                     >
-                      {/* Left: this profile */}
-                      <View style={{ alignItems: 'center' }}>
+                      <View style={{ alignItems: 'center', marginBottom: 14 }}>
                         <View
                           style={{
-                            borderRadius: 34,
-                            borderWidth: 2.5,
-                            borderColor: colors.pink,
-                            shadowColor: colors.pink,
-                            shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: 0.6,
-                            shadowRadius: 10,
-                            elevation: 8,
+                            paddingHorizontal: 14,
+                            paddingVertical: 4,
+                            backgroundColor: alpha(colors.primary, 0.12),
+                            borderRadius: 20,
+                            borderColor: alpha(colors.primary, 0.3),
+                            borderWidth: 1,
                           }}
                         >
-                          <Avatar name={displayName} url={m.avatarUrl} size={64} />
-                        </View>
-                        <Text
-                          style={{
-                            color: colors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: '600',
-                            marginTop: 7,
-                            maxWidth: 80,
-                            textAlign: 'center',
-                          }}
-                          numberOfLines={1}
-                        >
-                          {firstName}
-                        </Text>
-                      </View>
-
-                      {/* Heart bridge */}
-                      <View style={{ alignItems: 'center', marginHorizontal: 4, zIndex: 10 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View
+                          <Text
                             style={{
-                              width: 24,
-                              height: 2,
-                              borderTopWidth: 1.5,
-                              borderTopColor: alpha(colors.pink, 0.38),
-                            }}
-                          />
-                          <View
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: 17,
-                              backgroundColor: colors.floating,
-                              borderWidth: 1.5,
-                              borderColor: alpha(colors.pink, 0.5),
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              shadowColor: colors.pink,
-                              shadowOffset: { width: 0, height: 0 },
-                              shadowOpacity: 0.9,
-                              shadowRadius: 10,
+                              color: colors.primary,
+                              fontSize: 12,
+                              letterSpacing: 0.3,
+                              fontFamily: FONT.displaySemiBold,
                             }}
                           >
-                            <Text style={{ fontSize: 15 }}>💗</Text>
-                          </View>
+                            {conn.relationshipType?.replace(/_/g, ' ')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <View style={{ alignItems: 'center' }}>
                           <View
                             style={{
-                              width: 24,
-                              height: 2,
-                              borderTopWidth: 1.5,
-                              borderTopColor: alpha(colors.pink, 0.38),
+                              borderRadius: 34,
+                              borderWidth: 2.5,
+                              borderColor: colors.primary,
+                              shadowColor: colors.primary,
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.6,
+                              shadowRadius: 10,
+                              elevation: 8,
                             }}
-                          />
+                          >
+                            <Avatar name={displayName} url={m.avatarUrl} size={64} />
+                          </View>
+                          <Text
+                            style={{
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: '600',
+                              marginTop: 7,
+                              maxWidth: 80,
+                              textAlign: 'center',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {firstName}
+                          </Text>
                         </View>
-                        <Text
-                          style={{
-                            color: colors.textMuted,
-                            fontSize: 9,
-                            marginTop: 5,
-                            letterSpacing: 0.5,
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          linked
-                        </Text>
+
+                        <View style={{ alignItems: 'center', marginHorizontal: 4, zIndex: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View
+                              style={{
+                                width: 24,
+                                height: 2,
+                                borderTopWidth: 1.5,
+                                borderTopColor: alpha(colors.primary, 0.38),
+                              }}
+                            />
+                            <View
+                              style={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: 17,
+                                backgroundColor: colors.floating,
+                                borderWidth: 1.5,
+                                borderColor: alpha(colors.primary, 0.5),
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                shadowColor: colors.primary,
+                                shadowOffset: { width: 0, height: 0 },
+                                shadowOpacity: 0.9,
+                                shadowRadius: 10,
+                              }}
+                            >
+                              <Text style={{ fontSize: 15 }}>💗</Text>
+                            </View>
+                            <View
+                              style={{
+                                width: 24,
+                                height: 2,
+                                borderTopWidth: 1.5,
+                                borderTopColor: alpha(colors.primary, 0.38),
+                              }}
+                            />
+                          </View>
+                          <Text
+                            style={{
+                              color: colors.textMuted,
+                              fontSize: 9,
+                              marginTop: 5,
+                              letterSpacing: 0.5,
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            linked
+                          </Text>
+                        </View>
+
+                        <View style={{ alignItems: 'center' }}>
+                          <View
+                            style={{
+                              borderRadius: 34,
+                              borderWidth: 2.5,
+                              borderColor: colors.secondary,
+                              shadowColor: colors.secondary,
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.6,
+                              shadowRadius: 10,
+                              elevation: 8,
+                            }}
+                          >
+                            <Avatar
+                              name={conn.partnerDisplayName}
+                              url={conn.partnerAvatarUrl}
+                              size={64}
+                            />
+                          </View>
+                          <Text
+                            style={{
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                              fontWeight: '600',
+                              marginTop: 7,
+                              maxWidth: 80,
+                              textAlign: 'center',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {partnerFirstName}
+                          </Text>
+                        </View>
                       </View>
 
-                      {/* Right: partner */}
-                      <View style={{ alignItems: 'center' }}>
-                        <View
-                          style={{
-                            borderRadius: 34,
-                            borderWidth: 2.5,
-                            borderColor: colors.purple,
-                            shadowColor: colors.purple,
-                            shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: 0.6,
-                            shadowRadius: 10,
-                            elevation: 8,
-                          }}
-                        >
-                          <Avatar
-                            name={conn.partnerDisplayName}
-                            url={conn.partnerAvatarUrl}
-                            size={64}
-                          />
-                        </View>
-                        <Text
-                          style={{
-                            color: colors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: '600',
-                            marginTop: 7,
-                            maxWidth: 80,
-                            textAlign: 'center',
-                          }}
-                          numberOfLines={1}
-                        >
-                          {(conn.partnerDisplayName ?? '').split(' ')[0]}
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 4,
+                          marginTop: 12,
+                        }}
+                      >
+                        <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+                          View {partnerFirstName}&apos;s profile
                         </Text>
+                        <Ionicons name="chevron-forward" size={11} color={colors.textMuted} />
                       </View>
-                    </View>
-
-                    {/* Tap hint */}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 4,
-                        marginTop: 12,
-                      }}
-                    >
-                      <Text style={{ color: colors.textMuted, fontSize: 11 }}>
-                        View {(conn.partnerDisplayName ?? '').split(' ')[0]}&apos;s profile
-                      </Text>
-                      <Ionicons name="chevron-forward" size={11} color={colors.textMuted} />
-                    </View>
-                  </LinearGradient>
-                </View>
-              </TouchableOpacity>
-            ))}
+                    </LinearGradient>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </Animated.View>
         )}
 
@@ -1079,12 +1032,12 @@ export default function MemberProfileScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: 20,
-                      backgroundColor: alpha(colors.pink, 0.1),
+                      backgroundColor: alpha(colors.primary, 0.1),
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Ionicons name="sparkles" size={18} color={colors.pink} />
+                    <Ionicons name="sparkles" size={18} color={colors.primary} />
                   </View>
                 </View>
 
@@ -1092,7 +1045,7 @@ export default function MemberProfileScreen() {
                   <View style={{ marginBottom: pastTogether.length > 0 ? 14 : 0 }}>
                     <Text
                       style={{
-                        color: colors.pink,
+                        color: colors.primary,
                         fontSize: 12,
                         fontWeight: '800',
                         letterSpacing: 1,
@@ -1181,7 +1134,7 @@ export default function MemberProfileScreen() {
                   <View>
                     <Text
                       style={{
-                        color: colors.purple,
+                        color: colors.secondary,
                         fontSize: 12,
                         fontWeight: '800',
                         letterSpacing: 1,
@@ -1223,7 +1176,9 @@ export default function MemberProfileScreen() {
                           >
                             {event.title}
                           </Text>
-                          <Text style={{ color: colors.purple, fontSize: 10, fontWeight: '800' }}>
+                          <Text
+                            style={{ color: colors.secondary, fontSize: 10, fontWeight: '800' }}
+                          >
                             {event.mutualLabel}
                           </Text>
                         </View>
@@ -1258,7 +1213,6 @@ export default function MemberProfileScreen() {
               opacity: contentOpacity,
             }}
           >
-            {/* Bio */}
             {m.bio && (
               <Text
                 style={{
@@ -1272,7 +1226,6 @@ export default function MemberProfileScreen() {
               </Text>
             )}
 
-            {/* Location + relationship status inline */}
             <View
               style={{
                 flexDirection: 'row',
@@ -1291,13 +1244,12 @@ export default function MemberProfileScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                   <Ionicons name="ribbon-outline" size={13} color={colors.textMuted} />
                   <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-                    {relationshipStatus.charAt(0).toUpperCase() + relationshipStatus.slice(1)}
+                    {capitalize(relationshipStatus)}
                   </Text>
                 </View>
               )}
             </View>
 
-            {/* Interests + Looking For chips — merged, no sub-headers */}
             {hasTags && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                 {interests.map((tag) => (
@@ -1306,13 +1258,13 @@ export default function MemberProfileScreen() {
                     style={{
                       paddingHorizontal: 10,
                       paddingVertical: 4,
-                      backgroundColor: alpha(colors.purple, 0.12),
+                      backgroundColor: alpha(colors.secondary, 0.12),
                       borderRadius: 12,
-                      borderColor: alpha(colors.purple, 0.26),
+                      borderColor: alpha(colors.secondary, 0.26),
                       borderWidth: 1,
                     }}
                   >
-                    <Text style={{ color: colors.purple, fontSize: 12, fontWeight: '700' }}>
+                    <Text style={{ color: colors.secondary, fontSize: 12, fontWeight: '700' }}>
                       {tag}
                     </Text>
                   </View>
@@ -1323,13 +1275,13 @@ export default function MemberProfileScreen() {
                     style={{
                       paddingHorizontal: 10,
                       paddingVertical: 4,
-                      backgroundColor: alpha(colors.pink, 0.1),
+                      backgroundColor: alpha(colors.primary, 0.1),
                       borderRadius: 12,
-                      borderColor: alpha(colors.pink, 0.22),
+                      borderColor: alpha(colors.primary, 0.22),
                       borderWidth: 1,
                     }}
                   >
-                    <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700' }}>
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
                       {tag}
                     </Text>
                   </View>
@@ -1357,11 +1309,11 @@ export default function MemberProfileScreen() {
                 style={{
                   paddingHorizontal: 8,
                   paddingVertical: 2,
-                  backgroundColor: `${colors.pink}33`,
+                  backgroundColor: alpha(colors.primary, 0.2),
                   borderRadius: 10,
                 }}
               >
-                <Text style={{ color: colors.pink, fontSize: 12, fontWeight: '700' }}>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
                   {posts.length}
                 </Text>
               </View>
@@ -1369,7 +1321,7 @@ export default function MemberProfileScreen() {
           </View>
 
           {wallLoading ? (
-            <ActivityIndicator color={colors.pink} style={{ marginVertical: 24 }} />
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
           ) : posts.length === 0 ? (
             <View
               style={{
@@ -1510,7 +1462,7 @@ export default function MemberProfileScreen() {
               accessibilityState={{ disabled: createConversation.isPending }}
             >
               <LinearGradient
-                colors={[colors.pink, colors.purple]}
+                colors={[colors.primary, colors.secondary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{

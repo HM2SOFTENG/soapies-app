@@ -16,8 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,12 +83,10 @@ function formatSlotDate(d: string | Date | null | undefined): string {
 
 export default function InterviewSlotsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const theme = useTheme();
   const utils = trpc.useUtils();
 
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
-  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
   // Form state
   const [formOpen, setFormOpen] = useState(true);
@@ -152,46 +151,8 @@ export default function InterviewSlotsScreen() {
   const DURATION_OPTIONS = [15, 20, 30, 45];
   const QUICK_TIME_PRESETS = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'];
 
-  // ─── Guard ───────────────────────────────────────────────────────────────
-  if (!isAdmin) {
-    return (
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 24,
-        }}
-      >
-        <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
-        <Text
-          style={{
-            color: theme.colors.text,
-            fontSize: 18,
-            fontWeight: '700',
-            marginTop: 16,
-            marginBottom: 24,
-          }}
-        >
-          Access Denied
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            backgroundColor: theme.colors.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-          }}
-        >
-          <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   // ─── Handlers ────────────────────────────────────────────────────────────
   function addTime() {

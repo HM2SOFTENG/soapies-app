@@ -13,8 +13,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 const ROLE_OPTIONS = ['all', 'member', 'angel', 'admin'] as const;
 const STATUS_OPTIONS = [
@@ -152,7 +153,7 @@ function ActionRow({ icon, title, subtitle, color, onPress, danger = false }: an
 export default function AdminMembersScreen() {
   const router = useRouter();
   const { reopenUserId } = useLocalSearchParams<{ reopenUserId?: string }>();
-  const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const utils = trpc.useUtils();
@@ -164,8 +165,6 @@ export default function AdminMembersScreen() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
 
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60000 });
-  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
   const { data, isLoading, isError, error, refetch } = trpc.admin.adminMembers.useQuery(
     { search, role, status, community: groupFilter },
@@ -357,20 +356,8 @@ export default function AdminMembersScreen() {
     router.setParams({ reopenUserId: undefined as any });
   }, [reopenUserId, router]);
 
-  if (!isAdmin) {
-    return (
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Text style={{ color: theme.colors.text }}>Access denied</Text>
-      </SafeAreaView>
-    );
-  }
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   if (isError) {
     return (

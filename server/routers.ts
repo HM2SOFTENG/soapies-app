@@ -2460,7 +2460,6 @@ export const appRouter = router({
         console.error("[Tickets] Failed to generate QR:", err);
       }
       // Notify the user
-      const resRows = await db.getReservationsByUser(0); // will query by id below
       try {
         const dbConn = await db.getDb();
         if (dbConn) {

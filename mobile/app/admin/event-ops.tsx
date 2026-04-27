@@ -20,9 +20,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
 import PillTabs from '../../components/PillTabs';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 const SETUP_DUTIES = [
   { id: 'tables', label: 'Set up tables & furniture', icon: 'grid-outline' as const },
@@ -228,8 +229,10 @@ function AttendeeCard({
 export default function EventOpsScreen() {
   const { eventId, eventTitle } = useLocalSearchParams<{ eventId: string; eventTitle: string }>();
   const router = useRouter();
-  useAuth();
   const theme = useTheme();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
+  const numericEventId = Number(eventId);
+  const hasValidEventId = Number.isFinite(numericEventId) && numericEventId > 0;
 
   const [completedSetup, setCompletedSetup] = useState<Record<string, boolean>>({});
   const [completedTeardown, setCompletedTeardown] = useState<Record<string, boolean>>({});
@@ -288,7 +291,10 @@ export default function EventOpsScreen() {
     isError,
     error,
     refetch: refetchReservations,
-  } = trpc.admin.eventReservations.useQuery({ eventId: Number(eventId) }, { enabled: !!eventId });
+  } = trpc.admin.eventReservations.useQuery(
+    { eventId: numericEventId },
+    { enabled: hasValidEventId }
+  );
   const reservations = (reservationsData as any[]) ?? [];
 
   // Mutations
@@ -320,6 +326,9 @@ export default function EventOpsScreen() {
   });
 
   const checkInMutation = trpc.reservations.checkInByQR.useMutation();
+
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   // Computed stats
   const volunteers = reservations.filter(
@@ -369,7 +378,7 @@ export default function EventOpsScreen() {
     try {
       const result = await checkInMutation.mutateAsync({
         qrCode: qrCode.trim(),
-        eventId: Number(eventId),
+        eventId: numericEventId,
       });
       const res = result as any;
       setScanResult({
@@ -919,7 +928,7 @@ export default function EventOpsScreen() {
                       [
                         {
                           text: 'Send',
-                          onPress: () => sendRemindersMutation.mutate({ eventId: Number(eventId) }),
+                          onPress: () => sendRemindersMutation.mutate({ eventId: numericEventId }),
                         },
                         { text: 'Cancel', style: 'cancel' },
                       ]
@@ -945,7 +954,7 @@ export default function EventOpsScreen() {
                   )}
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
-                      Send Reminder to Unpaid
+                      Send Reminders to Unpaid
                     </Text>
                     <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
                       Notify{' '}
@@ -978,10 +987,10 @@ export default function EventOpsScreen() {
                   <Ionicons name="list-outline" size={24} color={colors.purple} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 15 }}>
-                      Export Attendee List
+                      Preview Attendee List
                     </Text>
                     <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 2 }}>
-                      {reservations.length} attendees
+                      {reservations.length} attendees · preview only
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
@@ -1109,6 +1118,18 @@ export default function EventOpsScreen() {
                         >
                           <Text style={{ color: '#fff', fontWeight: '700' }}>Grant Permission</Text>
                         </TouchableOpacity>
+                        {!hasValidEventId && (
+                          <Text
+                            style={{
+                              color: theme.colors.warning,
+                              fontSize: 12,
+                              textAlign: 'center',
+                              marginTop: 12,
+                            }}
+                          >
+                            Reopen Event Ops from a specific event to enable scanning.
+                          </Text>
+                        )}
                       </View>
                     ) : (
                       <View>
@@ -1125,7 +1146,7 @@ export default function EventOpsScreen() {
                           <CameraView
                             style={StyleSheet.absoluteFillObject}
                             facing="back"
-                            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+                            onBarcodeScanned={scanned || !hasValidEventId ? undefined : handleBarCodeScanned}
                             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
                           />
                           {/* Scan overlay */}
@@ -1175,7 +1196,9 @@ export default function EventOpsScreen() {
                             textAlign: 'center',
                           }}
                         >
-                          Point the camera at a guest&apos;s QR code to check them in automatically
+                          {hasValidEventId
+                            ? "Point the camera at a guest's QR code to check them in automatically"
+                            : 'Reopen this screen from a specific event to enable QR check-in.'}
                         </Text>
                       </View>
                     )}
@@ -1359,12 +1382,23 @@ export default function EventOpsScreen() {
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800', flex: 1 }}>
-                📋 Attendee List
+                👀 Attendee Preview
               </Text>
               <TouchableOpacity onPress={() => setShowExportModal(false)}>
                 <Ionicons name="close" size={24} color={theme.colors.textMuted} />
               </TouchableOpacity>
             </View>
+
+            <Text
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: 12,
+                lineHeight: 18,
+                marginBottom: 12,
+              }}
+            >
+              This is an on-device preview for door staff. Download/export wiring is not live yet.
+            </Text>
 
             <FlatList
               data={reservations}

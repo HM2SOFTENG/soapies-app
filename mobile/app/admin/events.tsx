@@ -17,8 +17,9 @@ import BrandGradient from '../../components/BrandGradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 const STATUS_COLORS: Record<string, string> = {
   published: '#10B981',
@@ -71,7 +72,7 @@ function LabeledInput({ label, value, onChangeText, placeholder, multiline, keyb
 
 export default function AdminEventsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const theme = useTheme();
   const utils = trpc.useUtils();
 
@@ -95,8 +96,6 @@ export default function AdminEventsScreen() {
     status: 'draft' as EventStatus,
   });
 
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
-  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
   const { data, isLoading, isError, error, refetch } = trpc.events.all.useQuery(undefined, {
     enabled: isAdmin,
@@ -148,39 +147,8 @@ export default function AdminEventsScreen() {
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
-  // Guard AFTER all hooks
-  if (!isAdmin) {
-    return (
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 24,
-        }}
-      >
-        <Text
-          style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}
-        >
-          Access Denied
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            backgroundColor: theme.colors.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-          }}
-        >
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   function resetForm() {
     setForm({

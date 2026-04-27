@@ -14,8 +14,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 const TICKET_LABELS: Record<string, string> = {
   single_female: 'Single Woman',
@@ -26,13 +27,14 @@ const TICKET_LABELS: Record<string, string> = {
 
 export default function AdminReservationsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const theme = useTheme();
   const utils = trpc.useUtils();
   const [refreshing, setRefreshing] = React.useState(false);
-
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
-  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
+  const [processingId, setProcessingId] = React.useState<{
+    id: number;
+    action: 'confirm' | 'reject';
+  } | null>(null);
 
   const { data, isLoading, isError, error, refetch } = trpc.admin.pendingVenmoReservations.useQuery(
     undefined,
@@ -42,53 +44,30 @@ export default function AdminReservationsScreen() {
 
   const confirmMutation = trpc.admin.confirmReservation.useMutation({
     onSuccess: () => {
+      setProcessingId(null);
       utils.admin.pendingVenmoReservations.invalidate();
       utils.admin.stats.invalidate();
     },
-    onError: (e: any) => Alert.alert('Error', e.message),
+    onError: (e: any) => {
+      setProcessingId(null);
+      Alert.alert('Error', e.message);
+    },
   });
 
   const rejectMutation = trpc.admin.rejectReservation.useMutation({
     onSuccess: () => {
+      setProcessingId(null);
       utils.admin.pendingVenmoReservations.invalidate();
       utils.admin.stats.invalidate();
     },
-    onError: (e: any) => Alert.alert('Error', e.message),
+    onError: (e: any) => {
+      setProcessingId(null);
+      Alert.alert('Error', e.message);
+    },
   });
 
-  // Guard AFTER all hooks
-  if (!isAdmin) {
-    return (
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 24,
-        }}
-      >
-        <Text
-          style={{ color: theme.colors.text, fontSize: 18, fontWeight: '700', marginBottom: 16 }}
-        >
-          Access Denied
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            backgroundColor: theme.colors.surface,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-          }}
-        >
-          <Text style={{ color: colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   async function onRefresh() {
     setRefreshing(true);
@@ -99,7 +78,13 @@ export default function AdminReservationsScreen() {
   function handleConfirm(id: number, name: string) {
     Alert.alert('Confirm Payment', `Confirm Venmo payment from ${name}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', onPress: () => confirmMutation.mutate({ id }) },
+      {
+        text: 'Confirm',
+        onPress: () => {
+          setProcessingId({ id, action: 'confirm' });
+          confirmMutation.mutate({ id });
+        },
+      },
     ]);
   }
 
@@ -109,7 +94,14 @@ export default function AdminReservationsScreen() {
       `Reject reservation from ${name}? This will cancel their spot.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Reject', style: 'destructive', onPress: () => rejectMutation.mutate({ id }) },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: () => {
+            setProcessingId({ id, action: 'reject' });
+            rejectMutation.mutate({ id });
+          },
+        },
       ]
     );
   }
@@ -202,6 +194,23 @@ export default function AdminReservationsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} />
           }
         >
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 14,
+              borderColor: theme.colors.border,
+              borderWidth: 1,
+            }}
+          >
+            <Text style={{ color: theme.colors.text, fontWeight: '800', fontSize: 14 }}>
+              Canonical Venmo review queue
+            </Text>
+            <Text style={{ color: theme.colors.textMuted, fontSize: 13, marginTop: 4 }}>
+              Review pending payments here so confirmations and rejects happen in one place.
+            </Text>
+          </View>
           {reservations.length === 0 && (
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
               <Ionicons name="checkmark-circle-outline" size={48} color={theme.colors.success} />
@@ -217,6 +226,11 @@ export default function AdminReservationsScreen() {
             const ticketLabel = TICKET_LABELS[res.ticketType] ?? res.ticketType ?? 'Ticket';
             const amount = res.amount ?? res.totalAmount;
             const paymentMethod = res.paymentMethod ?? 'venmo';
+            const isConfirming =
+              processingId?.id === res.id && processingId?.action === 'confirm';
+            const isRejecting =
+              processingId?.id === res.id && processingId?.action === 'reject';
+            const isRowBusy = isConfirming || isRejecting;
 
             return (
               <View
@@ -292,7 +306,7 @@ export default function AdminReservationsScreen() {
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <TouchableOpacity
                     onPress={() => handleConfirm(res.id, name)}
-                    disabled={confirmMutation.isPending || rejectMutation.isPending}
+                    disabled={isRowBusy}
                     style={{ flex: 1, borderRadius: 10, overflow: 'hidden' }}
                   >
                     <LinearGradient
@@ -302,10 +316,10 @@ export default function AdminReservationsScreen() {
                       style={{
                         paddingVertical: 12,
                         alignItems: 'center',
-                        opacity: confirmMutation.isPending || rejectMutation.isPending ? 0.7 : 1,
+                        opacity: isRowBusy ? 0.7 : 1,
                       }}
                     >
-                      {confirmMutation.isPending ? (
+                      {isConfirming ? (
                         <ActivityIndicator color={theme.colors.white} size="small" />
                       ) : (
                         <Text
@@ -318,7 +332,7 @@ export default function AdminReservationsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleReject(res.id, name)}
-                    disabled={confirmMutation.isPending || rejectMutation.isPending}
+                    disabled={isRowBusy}
                     style={{
                       flex: 1,
                       borderRadius: 10,
@@ -329,9 +343,13 @@ export default function AdminReservationsScreen() {
                       borderWidth: 1,
                     }}
                   >
-                    <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 14 }}>
-                      ✕ Reject
-                    </Text>
+                    {isRejecting ? (
+                      <ActivityIndicator color={theme.colors.danger} size="small" />
+                    ) : (
+                      <Text style={{ color: theme.colors.danger, fontWeight: '700', fontSize: 14 }}>
+                        ✕ Reject
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>

@@ -34,6 +34,16 @@ const ORIENTATION_OPTIONS = [
   'Other',
 ];
 
+function calculateAge(year: string, month: string, day: string): number | null {
+  if (!year || !month || !day) return null;
+  const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDelta = today.getMonth() - dob.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) age--;
+  return isNaN(age) || age < 0 ? null : age;
+}
+
 export default function ProfileSetupScreen() {
   const router = useRouter();
   useAuth();
@@ -144,16 +154,6 @@ export default function ProfileSetupScreen() {
     }
   }
 
-  function calculateAge(year: string, month: string, day: string): number | null {
-    if (!year || !month || !day) return null;
-    const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return isNaN(age) || age < 0 ? null : age;
-  }
-
   function handleFinish() {
     if (!avatarUrl) {
       Alert.alert('Photo Required', 'Please add a profile photo.');
@@ -204,12 +204,12 @@ export default function ProfileSetupScreen() {
         <TouchableOpacity
           onPress={() => (step > 0 ? setStep(step - 1) : undefined)}
           disabled={step === 0}
-          style={{ width: 36, alignItems: 'flex-start' }}
+          style={styles.headerEdge}
         >
           {step > 0 && <Ionicons name="chevron-back" size={26} color={colors.text} />}
         </TouchableOpacity>
 
-        <View style={{ flex: 1, alignItems: 'center' }}>
+        <View style={styles.headerCenter}>
           <Text style={styles.stepTitle}>{STEPS[step]}</Text>
           <View style={styles.dotsRow}>
             {STEPS.map((_, i) => (
@@ -224,7 +224,7 @@ export default function ProfileSetupScreen() {
           </View>
         </View>
 
-        <View style={{ width: 36 }} />
+        <View style={styles.headerEdge} />
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -251,7 +251,6 @@ export default function ProfileSetupScreen() {
             setDobDay={setDobDay}
             colors={colors}
             styles={styles}
-            alpha={alpha}
           />
         )}
         {step === 2 && (
@@ -280,13 +279,13 @@ export default function ProfileSetupScreen() {
           onPress={handleNext}
           disabled={isBusy || (step === 0 && !avatarUrl)}
           activeOpacity={0.85}
-          style={{ borderRadius: 14, overflow: 'hidden' }}
+          style={styles.footerButtonWrap}
         >
           <BrandGradient
             style={[styles.nextBtn, (isBusy || (step === 0 && !avatarUrl)) && { opacity: 0.5 }]}
           >
             {isBusy ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.white} size="small" />
             ) : (
               <Text style={styles.nextBtnText}>{isLastStep ? 'Finish' : 'Next'}</Text>
             )}
@@ -294,11 +293,8 @@ export default function ProfileSetupScreen() {
         </TouchableOpacity>
 
         {isLastStep && (
-          <TouchableOpacity
-            onPress={() => router.replace('/(tabs)')}
-            style={{ marginTop: 14, alignItems: 'center' }}
-          >
-            <Text style={{ color: colors.textMuted, fontSize: 14 }}>Skip for now</Text>
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.skipButton}>
+            <Text style={styles.skipButtonText}>Skip for now</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -326,7 +322,7 @@ function StepPhoto({
       <Text style={styles.stepHeading}>Add a profile photo</Text>
       <Text style={styles.stepSubheading}>Help the community recognise you</Text>
 
-      <TouchableOpacity onPress={onPickPhoto} style={{ alignSelf: 'center', marginTop: 32 }}>
+      <TouchableOpacity onPress={onPickPhoto} style={styles.photoButton}>
         <View style={styles.avatarCircle}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
@@ -338,22 +334,16 @@ function StepPhoto({
         </View>
         <View style={styles.cameraOverlay}>
           {isUploading ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={colors.white} />
           ) : (
-            <Ionicons name="camera" size={16} color="#fff" />
+            <Ionicons name="camera" size={16} color={colors.white} />
           )}
         </View>
       </TouchableOpacity>
 
-      {!avatarUrl && (
-        <Text style={{ color: colors.textMuted, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
-          Tap to upload a photo
-        </Text>
-      )}
+      {!avatarUrl && <Text style={styles.helperText}>Tap to upload a photo</Text>}
       {avatarUrl && !isUploading && (
-        <Text style={{ color: colors.success, marginTop: 16, textAlign: 'center', fontSize: 13 }}>
-          ✓ Photo uploaded successfully
-        </Text>
+        <Text style={styles.helperTextSuccess}>✓ Photo uploaded successfully</Text>
       )}
     </View>
   );
@@ -372,7 +362,6 @@ function StepAbout({
   setDobDay,
   colors,
   styles,
-  alpha,
 }: {
   displayName: string;
   setDisplayName: (v: string) => void;
@@ -386,18 +375,7 @@ function StepAbout({
   setDobDay: (v: string) => void;
   colors: ThemeColors;
   styles: ReturnType<typeof createStyles>;
-  alpha: (color: string, opacity: number) => string;
 }) {
-  function calculateAge(year: string, month: string, day: string): number | null {
-    if (!year || !month || !day) return null;
-    const dob = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return isNaN(age) || age < 0 ? null : age;
-  }
-
   const currentAge = calculateAge(dobYear, dobMonth, dobDay);
   const isAdult = currentAge !== null && currentAge >= 18;
 
@@ -419,7 +397,7 @@ function StepAbout({
 
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>
-          BIO <Text style={{ color: colors.textMuted }}>{bio.length}/200</Text>
+          BIO <Text style={styles.fieldLabelCount}>{bio.length}/200</Text>
         </Text>
         <TextInput
           value={bio}
@@ -436,7 +414,7 @@ function StepAbout({
       {/* Date of Birth — split MM / DD / YYYY inputs with live age display */}
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>DATE OF BIRTH</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={styles.dateRow}>
           <TextInput
             value={dobMonth}
             onChangeText={(v) => setDobMonth(v.replace(/\D/g, '').slice(0, 2))}
@@ -466,38 +444,16 @@ function StepAbout({
           />
         </View>
         {currentAge !== null && (
-          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
+          <View style={styles.statusRow}>
             {isAdult ? (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: alpha(colors.success, 0.12),
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                }}
-              >
+              <View style={[styles.statusPill, styles.statusPillSuccess]}>
                 <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                <Text style={{ color: colors.success, fontWeight: '700', marginLeft: 4 }}>
-                  {currentAge} years old ✓
-                </Text>
+                <Text style={styles.statusPillTextSuccess}>{currentAge} years old ✓</Text>
               </View>
             ) : (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: alpha(colors.danger, 0.12),
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                }}
-              >
+              <View style={[styles.statusPill, styles.statusPillDanger]}>
                 <Ionicons name="close-circle" size={16} color={colors.danger} />
-                <Text style={{ color: colors.danger, fontWeight: '700', marginLeft: 4 }}>
-                  Must be 18+ to join
-                </Text>
+                <Text style={styles.statusPillTextDanger}>Must be 18+ to join</Text>
               </View>
             )}
           </View>
@@ -623,6 +579,14 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
+    headerEdge: {
+      width: 36,
+      alignItems: 'flex-start',
+    },
+    headerCenter: {
+      flex: 1,
+      alignItems: 'center',
+    },
     stepTitle: {
       color: colors.text,
       fontSize: 18,
@@ -639,11 +603,11 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderRadius: 4,
     },
     dotActive: {
-      backgroundColor: colors.pink,
+      backgroundColor: colors.primary,
       width: 20,
     },
     dotDone: {
-      backgroundColor: colors.purple,
+      backgroundColor: colors.secondary,
     },
     dotInactive: {
       backgroundColor: colors.border,
@@ -666,6 +630,10 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       shadowOffset: { width: 0, height: -4 },
       elevation: 6,
     },
+    footerButtonWrap: {
+      borderRadius: 14,
+      overflow: 'hidden',
+    },
     nextBtn: {
       paddingVertical: 16,
       alignItems: 'center',
@@ -673,7 +641,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       borderRadius: 14,
     },
     nextBtnText: {
-      color: '#fff',
+      color: colors.white,
       fontWeight: '700',
       fontSize: 16,
     },
@@ -692,13 +660,29 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       color: colors.textSecondary,
       fontSize: 15,
     },
+    photoButton: {
+      alignSelf: 'center',
+      marginTop: 32,
+    },
+    helperText: {
+      color: colors.textMuted,
+      marginTop: 16,
+      textAlign: 'center',
+      fontSize: 13,
+    },
+    helperTextSuccess: {
+      color: colors.success,
+      marginTop: 16,
+      textAlign: 'center',
+      fontSize: 13,
+    },
     avatarCircle: {
       width: 120,
       height: 120,
       borderRadius: 60,
       overflow: 'hidden',
       borderWidth: 2,
-      borderColor: alpha(colors.pink, 0.36),
+      borderColor: alpha(colors.primary, 0.36),
       backgroundColor: colors.surfaceHigh,
       shadowColor: colors.shadow,
       shadowOpacity: 0.14,
@@ -720,7 +704,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       position: 'absolute',
       bottom: 2,
       right: 2,
-      backgroundColor: colors.pink,
+      backgroundColor: colors.primary,
       borderRadius: 16,
       padding: 7,
       borderWidth: 2,
@@ -736,6 +720,9 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       marginBottom: 8,
       letterSpacing: 0.5,
     },
+    fieldLabelCount: {
+      color: colors.textMuted,
+    },
     input: {
       backgroundColor: colors.input,
       borderWidth: 1,
@@ -746,6 +733,41 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       color: colors.text,
       fontSize: 15,
       minHeight: 48,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    statusRow: {
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderWidth: 1,
+    },
+    statusPillSuccess: {
+      backgroundColor: colors.successSoft,
+      borderColor: colors.successBorder,
+    },
+    statusPillDanger: {
+      backgroundColor: colors.dangerSoft,
+      borderColor: colors.dangerBorder,
+    },
+    statusPillTextSuccess: {
+      color: colors.success,
+      fontWeight: '700',
+      marginLeft: 4,
+    },
+    statusPillTextDanger: {
+      color: colors.danger,
+      fontWeight: '700',
+      marginLeft: 4,
     },
     pillGrid: {
       flexDirection: 'row',
@@ -763,8 +785,8 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       alignItems: 'center',
     },
     pillSelected: {
-      borderColor: alpha(colors.pink, 0.32),
-      backgroundColor: alpha(colors.pink, 0.12),
+      borderColor: colors.focusRing,
+      backgroundColor: colors.tintSoft,
     },
     pillText: {
       color: colors.textSecondary,
@@ -772,8 +794,16 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       fontWeight: '500',
     },
     pillTextSelected: {
-      color: colors.pink,
+      color: colors.primary,
       fontWeight: '700',
+    },
+    skipButton: {
+      marginTop: 14,
+      alignItems: 'center',
+    },
+    skipButtonText: {
+      color: colors.textMuted,
+      fontSize: 14,
     },
   });
 }

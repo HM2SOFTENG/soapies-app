@@ -14,6 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { trpc } from '../../lib/trpc';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 const COMMUNITIES = [
   { label: 'All Communities', value: undefined },
@@ -49,12 +51,14 @@ export default function PushNotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
 
   const [tab, setTab] = useState<'broadcast' | 'individual'>('broadcast');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [communityFilter, setCommunityFilter] = useState<string | undefined>(undefined);
   const [targetUserId, setTargetUserId] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
 
   const broadcastMutation = trpc.admin.broadcastPush.useMutation({
     onSuccess: (data: any) => {
@@ -78,15 +82,29 @@ export default function PushNotificationsScreen() {
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
-  // Fetch all members for the user picker
   const {
     data: membersData,
     isLoading: membersLoading,
     isError: membersIsError,
     error: membersError,
     refetch: refetchMembers,
-  } = trpc.members.browse.useQuery({ community: 'all' }, { staleTime: 60_000 });
+  } = trpc.admin.adminMembers.useQuery(
+    {
+      search: memberSearch,
+      role: 'all',
+      status: 'all',
+      community: communityFilter ?? 'all',
+    },
+    {
+      enabled: isAdmin && tab === 'individual',
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    }
+  );
   const members = (Array.isArray(membersData) ? membersData : []) as any[];
+
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   function applyTemplate(t: (typeof QUICK_TEMPLATES)[0]) {
     setTitle(t.title);
@@ -332,6 +350,26 @@ export default function PushNotificationsScreen() {
                 marginBottom: 12,
               }}
             />
+            <TextInput
+              value={memberSearch}
+              onChangeText={setMemberSearch}
+              placeholder="Search members by name, email, or ID"
+              placeholderTextColor={theme.colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{
+                backgroundColor: theme.colors.surface,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: memberSearch
+                  ? theme.alpha(theme.colors.primary, 0.32)
+                  : theme.colors.border,
+                color: theme.colors.text,
+                padding: 14,
+                fontSize: 15,
+                marginBottom: 12,
+              }}
+            />
             <View
               style={{
                 maxHeight: 200,
@@ -390,7 +428,33 @@ export default function PushNotificationsScreen() {
                 </View>
               ) : (
                 <ScrollView>
-                  {members.slice(0, 50).map((m: any) => (
+                  {members.length === 0 ? (
+                    <View style={{ paddingVertical: 24, paddingHorizontal: 18, alignItems: 'center' }}>
+                      <Ionicons name="search-outline" size={24} color={theme.colors.textMuted} />
+                      <Text
+                        style={{
+                          color: theme.colors.text,
+                          fontWeight: '700',
+                          fontSize: 14,
+                          marginTop: 10,
+                          textAlign: 'center',
+                        }}
+                      >
+                        No matching members
+                      </Text>
+                      <Text
+                        style={{
+                          color: theme.colors.textMuted,
+                          fontSize: 12,
+                          marginTop: 6,
+                          textAlign: 'center',
+                        }}
+                      >
+                        Try a broader search or clear the community filter.
+                      </Text>
+                    </View>
+                  ) : null}
+                  {members.map((m: any) => (
                     <TouchableOpacity
                       key={m.userId ?? m.id}
                       onPress={() => setTargetUserId(String(m.userId ?? m.id))}
@@ -428,7 +492,7 @@ export default function PushNotificationsScreen() {
                           {m.displayName ?? m.name}
                         </Text>
                         <Text style={{ color: theme.colors.textMuted, fontSize: 11 }}>
-                          ID: {m.userId ?? m.id} · {m.communityId ?? m.community}
+                          ID: {m.userId ?? m.id} · {m.communityId ?? m.community ?? 'member'}
                         </Text>
                       </View>
                       {targetUserId === String(m.userId ?? m.id) && (

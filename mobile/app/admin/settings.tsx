@@ -17,8 +17,9 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { trpc } from '../../lib/trpc';
 import { colors } from '../../lib/colors';
-import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+import AdminAccessGate from '../../components/AdminAccessGate';
+import { useAdminAccess } from '../../lib/useAdminAccess';
 
 // ─── Saving-state reducer ────────────────────────────────────────────────────
 type SavingAction = { type: 'start'; key: string } | { type: 'done'; key: string };
@@ -211,14 +212,12 @@ function TextSettingRow({
 export default function AdminSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const theme = useTheme();
   const [savingKeys, dispatchSaving] = useReducer(savingReducer, new Set<string>());
   const [exporting, setExporting] = useState(false);
   const seededRef = useRef(false);
 
-  const { data: meData } = trpc.auth.me.useQuery(undefined, { staleTime: 60_000 });
-  const isAdmin = user?.role === 'admin' || (meData as any)?.role === 'admin';
 
   const {
     data: settingsData,
@@ -315,55 +314,8 @@ export default function AdminSettingsScreen() {
     }
   }
 
-  if (!isAdmin) {
-    return (
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: theme.colors.background,
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 24,
-        }}
-      >
-        <Ionicons name="lock-closed" size={48} color={theme.colors.textMuted} />
-        <Text
-          style={{
-            color: theme.colors.text,
-            fontSize: 18,
-            fontWeight: '700',
-            marginTop: 16,
-            marginBottom: 8,
-          }}
-        >
-          Access Denied
-        </Text>
-        <Text
-          style={{
-            color: theme.colors.textMuted,
-            fontSize: 14,
-            textAlign: 'center',
-            marginBottom: 24,
-          }}
-        >
-          You need admin privileges to access this area.
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            backgroundColor: theme.colors.surface,
-            borderRadius: 12,
-            borderColor: theme.colors.border,
-            borderWidth: 1,
-          }}
-        >
-          <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  if (isCheckingAdmin) return <AdminAccessGate mode="loading" />;
+  if (!isAdmin) return <AdminAccessGate mode="denied" onBack={() => router.back()} />;
 
   if (isError) {
     return (

@@ -25,6 +25,7 @@ import { useAuth } from '../../lib/auth';
 import { useTheme, type ThemeColors } from '../../lib/theme';
 
 const REACTIONS = ['❤️', '😂', '😮', '👍', '🔥', '💀'];
+const MESSAGE_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 export default function ChatScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
@@ -36,8 +37,8 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [selectedMessageId, setSelectedMessageId] = useState<number | null>(null);
   const [showReactions, setShowReactions] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
   const sendScale = useRef(new Animated.Value(0.85)).current;
+  const animatedSendStyle = useMemo(() => ({ transform: [{ scale: sendScale }] }), [sendScale]);
 
   const conversationId = Number(id);
   const backTarget = typeof returnTo === 'string' && returnTo.length > 0 ? returnTo : null;
@@ -203,31 +204,27 @@ export default function ChatScreen() {
     ({ item }: { item: any }) => {
       const isMine = item.senderId === user?.id;
       const timeAgo = item.createdAt ? formatDistanceToNow(new Date(item.createdAt)) : '';
+      const rowStyle = isMine ? styles.messageRowMine : styles.messageRow;
+      const timestampStyle = isMine ? styles.timestampMine : styles.timestampTheirs;
 
       return (
         <TouchableOpacity
           activeOpacity={0.9}
           onLongPress={() => handleLongPress(item.id)}
-          style={{
-            flexDirection: isMine ? 'row-reverse' : 'row',
-            alignItems: 'flex-end',
-            marginHorizontal: 12,
-            marginBottom: 10,
-            gap: 8,
-          }}
+          style={rowStyle}
         >
           {!isMine && (
             <TouchableOpacity
               onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)}
               activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={MESSAGE_HIT_SLOP}
             >
               <View style={styles.avatarGlow}>
                 <Avatar name={item.senderName} size="sm" />
               </View>
             </TouchableOpacity>
           )}
-          <View style={{ maxWidth: '75%' }}>
+          <View style={styles.messageContent}>
             {!isMine && item.senderName && (
               <TouchableOpacity
                 onPress={() => item.senderId && router.push(`/member/${item.senderId}` as any)}
@@ -237,10 +234,9 @@ export default function ChatScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Bubble */}
             {isMine ? (
               <LinearGradient
-                colors={[colors.pink, colors.purple]}
+                colors={[colors.primary, colors.secondary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.bubbleSent}
@@ -261,13 +257,10 @@ export default function ChatScreen() {
               </View>
             )}
 
-            <Text style={[styles.timestamp, { textAlign: isMine ? 'right' : 'left' }]}>
-              {timeAgo}
-            </Text>
+            <Text style={[styles.timestamp, timestampStyle]}>{timeAgo}</Text>
 
-            {/* Reactions */}
             {item.reactions && item.reactions.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+              <View style={styles.reactionRow}>
                 {item.reactions.map((r: any, i: number) => (
                   <View key={i} style={styles.reactionChip}>
                     <Text style={styles.reactionText}>
@@ -281,14 +274,14 @@ export default function ChatScreen() {
         </TouchableOpacity>
       );
     },
-    [colors.pink, colors.purple, handleLongPress, router, styles, user?.id]
+    [colors.primary, colors.secondary, handleLongPress, router, styles, user?.id]
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={styles.keyboardContainer}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 56 : 0}
       >
         {/* ── Header ── */}
@@ -310,7 +303,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}
+            style={styles.headerPressable}
             onPress={() => {
               const otherId = conversation?.otherUserId;
               if (otherId && conversation?.type === 'dm') router.push(`/member/${otherId}` as any);
@@ -320,7 +313,7 @@ export default function ChatScreen() {
             <View style={styles.headerAvatarWrap}>
               <Avatar name={headerName} size="sm" />
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={styles.headerTextWrap}>
               <Text style={styles.headerName} numberOfLines={1}>
                 {headerName}
               </Text>
@@ -339,7 +332,7 @@ export default function ChatScreen() {
               onPress={handleChatOptions}
               accessibilityLabel="Chat options"
               accessibilityRole="button"
-              style={{ padding: 8, marginLeft: 4 }}
+              style={styles.headerMenuButton}
             >
               <Ionicons name="ellipsis-vertical" size={20} color={colors.textMuted} />
             </TouchableOpacity>
@@ -348,39 +341,14 @@ export default function ChatScreen() {
 
         {/* ── Messages ── */}
         {isLoading ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator color={colors.pink} size="large" />
+          <View style={styles.loadingState}>
+            <ActivityIndicator color={colors.primary} size="large" />
           </View>
         ) : chatLoadError ? (
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              paddingHorizontal: 28,
-            }}
-          >
+          <View style={styles.errorState}>
             <Ionicons name="cloud-offline-outline" size={42} color={colors.textMuted} />
-            <Text
-              style={{
-                color: colors.text,
-                fontSize: 20,
-                fontWeight: '800',
-                textAlign: 'center',
-                marginTop: 14,
-              }}
-            >
-              Could not load this chat
-            </Text>
-            <Text
-              style={{
-                color: colors.textMuted,
-                fontSize: 14,
-                textAlign: 'center',
-                lineHeight: 21,
-                marginTop: 8,
-              }}
-            >
+            <Text style={styles.errorTitle}>Could not load this chat</Text>
+            <Text style={styles.errorMessage}>
               {chatLoadErrorMessage ?? 'Please try again in a moment.'}
             </Text>
             <TouchableOpacity
@@ -388,22 +356,13 @@ export default function ChatScreen() {
                 refetch();
                 refetchConversations();
               }}
-              style={{
-                marginTop: 18,
-                paddingHorizontal: 18,
-                paddingVertical: 12,
-                borderRadius: 12,
-                backgroundColor: colors.card,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
+              style={styles.retryButton}
             >
-              <Text style={{ color: colors.text, fontWeight: '800' }}>Retry</Text>
+              <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <FlatList
-            ref={flatListRef}
             data={reversedMessages}
             keyExtractor={(item: any) => String(item.id)}
             renderItem={renderMessage}
@@ -413,23 +372,12 @@ export default function ChatScreen() {
             windowSize={7}
             initialNumToRender={20}
             updateCellsBatchingPeriod={50}
-            contentContainerStyle={{ paddingVertical: 12 }}
+            contentContainerStyle={styles.listContent}
             ListEmptyComponent={
-              <View style={{ flex: 1, alignItems: 'center', paddingTop: 60 }}>
-                <Text style={{ fontSize: 40, marginBottom: 12 }}>🌙</Text>
-                <Text
-                  style={{
-                    color: colors.text,
-                    fontSize: 18,
-                    fontWeight: '800',
-                    fontFamily: FONT.displayBold,
-                  }}
-                >
-                  No messages yet
-                </Text>
-                <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 6 }}>
-                  Say hello! 👋
-                </Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyEmoji}>🌙</Text>
+                <Text style={styles.emptyTitle}>No messages yet</Text>
+                <Text style={styles.emptySubtitle}>Say hello! 👋</Text>
               </View>
             }
           />
@@ -446,7 +394,7 @@ export default function ChatScreen() {
             maxLength={2000}
             style={styles.textInput}
           />
-          <Animated.View style={{ transform: [{ scale: sendScale }] }}>
+          <Animated.View style={animatedSendStyle}>
             <TouchableOpacity
               onPress={handleSend}
               disabled={!text.trim() || sendMutation.isPending}
@@ -457,7 +405,7 @@ export default function ChatScreen() {
                   <ActivityIndicator color={colors.white} size="small" />
                 </View>
               ) : text.trim() ? (
-                <LinearGradient colors={[colors.pink, colors.purple]} style={styles.sendBtn}>
+                <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
                   <Ionicons name="send" size={18} color={colors.white} />
                 </LinearGradient>
               ) : (
@@ -494,7 +442,7 @@ export default function ChatScreen() {
                 onPress={() => handleReact(emoji)}
                 style={styles.reactionBtn}
               >
-                <Text style={{ fontSize: 26 }}>{emoji}</Text>
+                <Text style={styles.reactionEmoji}>{emoji}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -552,22 +500,59 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       fontSize: 12,
       marginTop: 2,
     },
-    onlineRow: {
+    keyboardContainer: {
+      flex: 1,
+    },
+    headerPressable: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      marginTop: 1,
+      flex: 1,
+      gap: 10,
     },
-    onlineDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.success,
+    headerTextWrap: {
+      flex: 1,
     },
-    onlineText: {
-      color: colors.success,
-      fontSize: 11,
-      fontWeight: '600',
+    headerMenuButton: {
+      padding: 8,
+      marginLeft: 4,
+    },
+    loadingState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 28,
+    },
+    errorTitle: {
+      color: colors.text,
+      fontSize: 20,
+      fontWeight: '800',
+      textAlign: 'center',
+      marginTop: 14,
+    },
+    errorMessage: {
+      color: colors.textMuted,
+      fontSize: 14,
+      textAlign: 'center',
+      lineHeight: 21,
+      marginTop: 8,
+    },
+    retryButton: {
+      marginTop: 18,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+      borderRadius: 12,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    retryText: {
+      color: colors.text,
+      fontWeight: '800',
     },
 
     // ── Avatars in message list
@@ -579,6 +564,23 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
     },
 
     // ── Bubbles
+    messageRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      marginHorizontal: 12,
+      marginBottom: 10,
+      gap: 8,
+    },
+    messageRowMine: {
+      flexDirection: 'row-reverse',
+      alignItems: 'flex-end',
+      marginHorizontal: 12,
+      marginBottom: 10,
+      gap: 8,
+    },
+    messageContent: {
+      maxWidth: '75%',
+    },
     senderName: {
       color: colors.secondary,
       fontSize: 11,
@@ -633,6 +635,18 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       marginTop: 3,
       marginHorizontal: 4,
     },
+    timestampMine: {
+      textAlign: 'right',
+    },
+    timestampTheirs: {
+      textAlign: 'left',
+    },
+    reactionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 4,
+      marginTop: 4,
+    },
     reactionChip: {
       backgroundColor: colors.surfaceMuted,
       borderRadius: 10,
@@ -686,6 +700,32 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       backgroundColor: colors.surfaceMuted,
       borderWidth: 1,
       borderColor: colors.border,
+    },
+    listContent: {
+      paddingVertical: 12,
+    },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      paddingTop: 60,
+    },
+    emptyEmoji: {
+      fontSize: 40,
+      marginBottom: 12,
+    },
+    emptyTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '800',
+      fontFamily: FONT.displayBold,
+    },
+    emptySubtitle: {
+      color: colors.textMuted,
+      fontSize: 13,
+      marginTop: 6,
+    },
+    reactionEmoji: {
+      fontSize: 26,
     },
 
     // ── Reaction picker

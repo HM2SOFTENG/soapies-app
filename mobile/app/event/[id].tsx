@@ -38,7 +38,7 @@ export default function EventDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { alpha, isDark } = theme;
+  const { alpha, colors, gradients, isDark } = theme;
   const utils = trpc.useUtils();
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [ticketType, setTicketType] = useState<TicketType>('single_female');
@@ -207,6 +207,63 @@ export default function EventDetailScreen() {
   });
 
   const ev = event as any;
+  const fallbackHeroGradient = (ev?.gradientColors ?? gradients.brandH) as [
+    string,
+    string,
+  ];
+  const reservationNoticeTone = React.useMemo(
+    () => ({
+      successGradient: gradients.green,
+      pendingGradient: gradients.amber,
+      soldOutBg: alpha(colors.primary, 0.12),
+      soldOutBorder: alpha(colors.primary, 0.24),
+      communityBadgeBg: alpha(colors.secondary, isDark ? 0.2 : 0.13),
+      queerBadgeBorder: alpha(colors.secondary, 0.26),
+      selectedPartnerBg: alpha(colors.primary, 0.07),
+      selectedPartnerBorder: alpha(colors.primary, 0.3),
+    }),
+    [alpha, colors, gradients.amber, gradients.green, isDark]
+  );
+
+  function renderWaiverNotice() {
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 12,
+          backgroundColor: alpha(colors.warning, 0.1),
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: alpha(colors.warning, 0.22),
+          padding: 14,
+          marginBottom: 12,
+        }}
+      >
+        <Ionicons
+          name="document-text-outline"
+          size={18}
+          color={colors.warning}
+          style={{ marginTop: 1 }}
+        />
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              color: colors.warning,
+              fontWeight: '800',
+              fontSize: 13,
+              marginBottom: 4,
+            }}
+          >
+            Waiver required before reserving
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, lineHeight: 18 }}>
+            You will review and sign the community waiver before your reservation is submitted.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   // Check if user already has reservation for this event
   const existingReservation = (myReservations as any[])?.find(
@@ -468,7 +525,11 @@ export default function EventDetailScreen() {
       return (
         <View style={{ flex: 1 }}>
           <LinearGradient
-            colors={hasPendingPayment ? ['#F59E0B', '#D97706'] : ['#10B981', '#059669']}
+            colors={
+              hasPendingPayment
+                ? reservationNoticeTone.pendingGradient
+                : reservationNoticeTone.successGradient
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
@@ -511,8 +572,8 @@ export default function EventDetailScreen() {
               borderRadius: 14,
               paddingVertical: 14,
               alignItems: 'center',
-              backgroundColor: `${theme.colors.pink}22`,
-              borderColor: `${theme.colors.pink}44`,
+              backgroundColor: reservationNoticeTone.soldOutBg,
+              borderColor: reservationNoticeTone.soldOutBorder,
               borderWidth: 1,
             }}
           >
@@ -599,7 +660,7 @@ export default function EventDetailScreen() {
             />
           ) : (
             <LinearGradient
-              colors={ev.gradientColors ?? ['#7C3AED', '#EC4899']}
+              colors={fallbackHeroGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
@@ -647,7 +708,7 @@ export default function EventDetailScreen() {
             <View
               style={{
                 alignSelf: 'flex-start',
-                backgroundColor: `${theme.colors.purple}22`,
+                backgroundColor: reservationNoticeTone.communityBadgeBg,
                 borderRadius: 20,
                 paddingHorizontal: 12,
                 paddingVertical: 4,
@@ -1040,7 +1101,7 @@ export default function EventDetailScreen() {
                     backgroundColor: theme.colors.card,
                     borderRadius: 12,
                     padding: 16,
-                    borderColor: `${theme.colors.purple}44`,
+                    borderColor: reservationNoticeTone.queerBadgeBorder,
                     borderWidth: 1,
                     marginBottom: 12,
                   }}
@@ -1199,46 +1260,7 @@ export default function EventDetailScreen() {
                   </View>
                 </TouchableOpacity>
 
-                {waiverRequired && !profileLoading && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                      backgroundColor: alpha(theme.colors.warning, 0.1),
-                      borderRadius: 14,
-                      borderWidth: 1,
-                      borderColor: alpha(theme.colors.warning, 0.22),
-                      padding: 14,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Ionicons
-                      name="document-text-outline"
-                      size={18}
-                      color={theme.colors.warning}
-                      style={{ marginTop: 1 }}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          color: theme.colors.warning,
-                          fontWeight: '800',
-                          fontSize: 13,
-                          marginBottom: 4,
-                        }}
-                      >
-                        Waiver required before reserving
-                      </Text>
-                      <Text
-                        style={{ color: theme.colors.textSecondary, fontSize: 12, lineHeight: 18 }}
-                      >
-                        You will review and sign the community waiver before your reservation is
-                        submitted.
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                {waiverRequired && !profileLoading && renderWaiverNotice()}
 
                 <TouchableOpacity
                   onPress={handleReserve}
@@ -1299,8 +1321,8 @@ export default function EventDetailScreen() {
                     style={{
                       borderRadius: 14,
                       borderWidth: 1,
-                      borderColor: theme.colors.pink,
-                      backgroundColor: `${theme.colors.pink}12`,
+                      borderColor: reservationNoticeTone.selectedPartnerBorder,
+                      backgroundColor: reservationNoticeTone.selectedPartnerBg,
                       marginBottom: 14,
                       overflow: 'hidden',
                     }}
@@ -1436,7 +1458,8 @@ export default function EventDetailScreen() {
                     padding: 13,
                     borderRadius: 14,
                     backgroundColor: theme.colors.surface,
-                    borderColor: selectedPartner ? theme.colors.border : `${theme.colors.purple}44`,
+                    borderColor:
+                      selectedPartner ? theme.colors.border : reservationNoticeTone.queerBadgeBorder,
                     borderWidth: 1,
                     marginBottom: 16,
                     gap: 8,
@@ -1458,46 +1481,7 @@ export default function EventDetailScreen() {
                   </Text>
                 </TouchableOpacity>
 
-                {waiverRequired && !profileLoading && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                      backgroundColor: alpha(theme.colors.warning, 0.1),
-                      borderRadius: 14,
-                      borderWidth: 1,
-                      borderColor: alpha(theme.colors.warning, 0.22),
-                      padding: 14,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <Ionicons
-                      name="document-text-outline"
-                      size={18}
-                      color={theme.colors.warning}
-                      style={{ marginTop: 1 }}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          color: theme.colors.warning,
-                          fontWeight: '800',
-                          fontSize: 13,
-                          marginBottom: 4,
-                        }}
-                      >
-                        Waiver required before reserving
-                      </Text>
-                      <Text
-                        style={{ color: theme.colors.textSecondary, fontSize: 12, lineHeight: 18 }}
-                      >
-                        You will review and sign the community waiver before your reservation is
-                        submitted.
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                {waiverRequired && !profileLoading && renderWaiverNotice()}
 
                 <TouchableOpacity
                   onPress={handleReserve}
