@@ -312,6 +312,10 @@ export default function SettingsScreen() {
   const { data: notificationChannels } = trpc.notifications.channels.useQuery(undefined, {
     staleTime: 60_000,
   });
+  const { data: membershipData } = trpc.membership.me.useQuery(undefined, {
+    enabled: hasToken,
+    staleTime: 60_000,
+  });
   const { data: notificationPrefs, refetch: refetchNotificationPrefs } =
     trpc.notifications.preferences.useQuery(undefined, {
       enabled: hasToken,
@@ -325,6 +329,7 @@ export default function SettingsScreen() {
   const settingsLoadErrorMessage = (meError as any)?.message ?? (pendingError as any)?.message;
   const email = me?.email ?? '';
   const phone = me?.phone ?? '';
+  const membership = (membershipData as any)?.membership;
 
   // ── Notification prefs ──
   const [notifPush, setNotifPush] = useState(true);
@@ -591,6 +596,13 @@ export default function SettingsScreen() {
 
       {/* ── ACCOUNT ── */}
       <SectionHeader title="Account" />
+      <ChevronRow
+        icon="diamond-outline"
+        iconColor={brandColors.pink}
+        label="Membership"
+        subtitle={membership?.effectiveTier?.name ? `${membership.effectiveTier.name} · ${String(membership?.status ?? 'inactive').replace('_', ' ')}` : 'View plans and billing'}
+        onPress={() => router.push('/membership' as any)}
+      />
       <ChevronRow
         icon="create-outline"
         iconColor={brandColors.pink}

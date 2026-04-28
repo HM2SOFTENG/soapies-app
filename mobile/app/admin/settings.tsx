@@ -547,6 +547,141 @@ export default function AdminSettingsScreen() {
             />
           </View>
 
+          <SectionHeader
+            title="Membership Monetization"
+            subtitle="Configure paid tier pricing and Stripe recurring price IDs"
+          />
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+            <TextSettingRow
+              icon="heart-outline"
+              iconColor={colors.pink}
+              label="Connect Monthly Price ($)"
+              settingKey="membership_connect_monthly_price_usd"
+              value={settings['membership_connect_monthly_price_usd'] ?? '29'}
+              placeholder="29"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="calendar-outline"
+              iconColor={colors.purple}
+              label="Connect Yearly Price ($)"
+              settingKey="membership_connect_yearly_price_usd"
+              value={settings['membership_connect_yearly_price_usd'] ?? '290'}
+              placeholder="290"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="logo-usd"
+              iconColor={theme.colors.warning}
+              label="Connect Monthly Stripe Price ID"
+              subtitle="Required for live subscription checkout"
+              settingKey="membership_connect_monthly_price_id"
+              value={settings['membership_connect_monthly_price_id'] ?? ''}
+              placeholder="price_..."
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="receipt-outline"
+              iconColor={theme.colors.warning}
+              label="Connect Yearly Stripe Price ID"
+              settingKey="membership_connect_yearly_price_id"
+              value={settings['membership_connect_yearly_price_id'] ?? ''}
+              placeholder="price_..."
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="diamond-outline"
+              iconColor={colors.pink}
+              label="Inner Circle Monthly Price ($)"
+              settingKey="membership_inner_circle_monthly_price_usd"
+              value={settings['membership_inner_circle_monthly_price_usd'] ?? '79'}
+              placeholder="79"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="calendar-clear-outline"
+              iconColor={colors.purple}
+              label="Inner Circle Yearly Price ($)"
+              settingKey="membership_inner_circle_yearly_price_usd"
+              value={settings['membership_inner_circle_yearly_price_usd'] ?? '790'}
+              placeholder="790"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="logo-usd"
+              iconColor={theme.colors.warning}
+              label="Inner Circle Monthly Stripe Price ID"
+              settingKey="membership_inner_circle_monthly_price_id"
+              value={settings['membership_inner_circle_monthly_price_id'] ?? ''}
+              placeholder="price_..."
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="receipt-outline"
+              iconColor={theme.colors.warning}
+              label="Inner Circle Yearly Stripe Price ID"
+              settingKey="membership_inner_circle_yearly_price_id"
+              value={settings['membership_inner_circle_yearly_price_id'] ?? ''}
+              placeholder="price_..."
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="pricetag-outline"
+              iconColor={theme.colors.success}
+              label="Connect Add-on Discount (%)"
+              settingKey="membership_connect_addon_discount_pct"
+              value={settings['membership_connect_addon_discount_pct'] ?? '5'}
+              placeholder="5"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="pricetags-outline"
+              iconColor={theme.colors.success}
+              label="Inner Circle Add-on Discount (%)"
+              settingKey="membership_inner_circle_addon_discount_pct"
+              value={settings['membership_inner_circle_addon_discount_pct'] ?? '15'}
+              placeholder="15"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="time-outline"
+              iconColor={colors.purple}
+              label="Connect Early Access (hours)"
+              settingKey="membership_connect_early_access_hours"
+              value={settings['membership_connect_early_access_hours'] ?? '12'}
+              placeholder="12"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="time"
+              iconColor={colors.pink}
+              label="Inner Circle Early Access (hours)"
+              settingKey="membership_inner_circle_early_access_hours"
+              value={settings['membership_inner_circle_early_access_hours'] ?? '48'}
+              placeholder="48"
+              numeric
+              onSave={setSetting}
+            />
+            <TextSettingRow
+              icon="lock-closed-outline"
+              iconColor={theme.colors.warning}
+              label="General Event Release Delay (hours)"
+              subtitle="How long newly published events stay in member-tier early access before general release"
+              settingKey="membership_general_release_delay_hours"
+              value={settings['membership_general_release_delay_hours'] ?? '48'}
+              placeholder="48"
+              numeric
+              onSave={setSetting}
+            />
+          </View>
+
           <SectionHeader title="Member Management" />
           <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
             <ToggleRow

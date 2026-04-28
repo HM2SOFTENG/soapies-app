@@ -326,6 +326,12 @@ export default function MemberProfileScreen() {
     ? (ORIENTATION_COLORS[m.orientation.toLowerCase()] ?? colors.primary)
     : null;
   const roleColor = m.memberRole === 'admin' ? colors.danger : colors.warning;
+  const membershipState = (m.preferences as any)?.membership as any;
+  const hasVipBadge =
+    (membershipState?.status === 'active' ||
+      membershipState?.status === 'trialing' ||
+      membershipState?.status === 'complimentary') &&
+    membershipState?.tierKey === 'inner_circle';
 
   const heroStats = [
     { label: 'Events', value: m.eventsAttended ?? 0, minWidth: 86, fontSize: 22 },
@@ -508,6 +514,29 @@ export default function MemberProfileScreen() {
                     }}
                   >
                     {m.memberRole === 'admin' ? '⚙️ Admin' : '👼 Angel'}
+                  </Text>
+                </View>
+              )}
+              {hasVipBadge && (
+                <View
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 5,
+                    borderRadius: 999,
+                    backgroundColor: alpha(colors.primary, 0.14),
+                    borderColor: alpha(colors.primary, 0.34),
+                    borderWidth: 1,
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontSize: 12,
+                      fontFamily: FONT.displaySemiBold,
+                    }}
+                  >
+                    👑 Inner Circle VIP
                   </Text>
                 </View>
               )}

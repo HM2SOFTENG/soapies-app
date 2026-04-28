@@ -13,7 +13,11 @@ import * as notif from "./notifications";
 import * as auth from "./auth";
 import { sdk } from "./_core/sdk";
 import { TRPCError } from "@trpc/server";
-import { createCheckoutSession } from "./services/stripe";
+import {
+  createBillingPortalSession,
+  createCheckoutSession,
+  createMembershipCheckoutSession,
+} from "./services/stripe";
 import {
   notifyMessageCreated,
   broadcastToUser,
@@ -24,6 +28,77 @@ import {
   getPlatformOpsSummary,
   runPlatformAdminAction,
 } from "./services/platformOps";
+import {
+  computeEventVisibilityForMembership,
+  getMembershipCatalog,
+  getMembershipSettingsMap,
+  getMembershipSnapshotForUser,
+  requireMembershipFeature,
+} from "./services/membership";
+
+async function notifyEligibleMembersOfNewEvent(eventId: number, title: string) {
+  const [event, settingRows] = await Promise.all([db.getEventById(eventId), db.getAppSettings()]);
+  if (!event) return;
+
+  const settingsMap: Record<string, string> = {};
+  (settingRows as any[]).forEach((s: any) => {
+    if (s?.key) settingsMap[s.key] = s.value ?? "";
+  });
+  if (settingsMap["notification_new_event"] !== "1") return;
+
+  const dbConn = await db.getDb();
+  if (!dbConn) return;
+  const { profiles: profilesTable } = await import("../drizzle/schema");
+  const { eq: eqPub } = await import("drizzle-orm");
+  const approvedProfiles = await dbConn
+    .select()
+    .from(profilesTable)
+    .where(eqPub(profilesTable.applicationStatus, "approved"));
+
+  const recipients: { token: string; userId: number }[] = [];
+  for (const profile of approvedProfiles as any[]) {
+    const membershipSnapshot = await getMembershipSnapshotForUser(profile.userId);
+    const access = computeEventVisibilityForMembership({
+      event,
+      membership: membershipSnapshot.membership,
+      settings: settingsMap,
+    });
+    if (!access.visible) continue;
+
+    const prefs =
+      typeof profile.preferences === "string"
+        ? JSON.parse(profile.preferences as string)
+        : ((profile.preferences ?? {}) as any);
+    if ((prefs as any)?.pushToken) {
+      recipients.push({ token: (prefs as any).pushToken, userId: profile.userId });
+    }
+  }
+
+  for (let i = 0; i < recipients.length; i += 100) {
+    const batch = recipients.slice(i, i + 100).map(recipient => ({
+      to: recipient.token,
+      title: "🎉 New Event Posted!",
+      body: `${title} — check it out in the Events tab.`,
+      sound: "default",
+    }));
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batch),
+    }).catch(() => {});
+  }
+
+  for (const recipient of recipients) {
+    await notif
+      .sendNotification({
+        userId: recipient.userId,
+        type: "system",
+        title: "🎉 New Event Posted!",
+        body: `${title} — check it out in the Events tab.`,
+      })
+      .catch(() => {});
+  }
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -667,7 +742,8 @@ export const appRouter = router({
     }),
     search: protectedProcedure
       .input(z.object({ query: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        await requireMembershipFeature(ctx.user.id, "directory_search");
         return db.searchProfiles(input.query);
       }),
   }),
@@ -677,21 +753,51 @@ export const appRouter = router({
     list: protectedProcedure
       .input(z.object({ communityId: z.string().optional() }).nullish())
       .query(async ({ ctx, input }) => {
-        // Scope to user's community if no explicit communityId provided
         let communityId = input?.communityId;
         if (!communityId) {
           const profile = await db.getProfileByUserId(ctx.user.id);
           communityId = (profile as any)?.communityId ?? undefined;
         }
-        return db.getPublishedEvents(communityId);
+        const [events, membershipSnapshot, settingsMap] = await Promise.all([
+          db.getPublishedEvents(communityId),
+          getMembershipSnapshotForUser(ctx.user.id),
+          getMembershipSettingsMap(),
+        ]);
+        return (events as any[])
+          .map((event: any) => {
+            const access = computeEventVisibilityForMembership({
+              event,
+              membership: membershipSnapshot.membership,
+              settings: settingsMap,
+            });
+            return access.visible ? { ...event, access } : null;
+          })
+          .filter(Boolean);
       }),
     all: adminProcedure.query(async () => {
       return db.getEvents();
     }),
     byId: publicProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
-        return db.getEventById(input.id);
+      .query(async ({ ctx, input }) => {
+        const event = await db.getEventById(input.id);
+        if (!event) return null;
+        const settingsMap = await getMembershipSettingsMap();
+        const membershipSnapshot = ctx.user
+          ? await getMembershipSnapshotForUser(ctx.user.id)
+          : null;
+        const access = computeEventVisibilityForMembership({
+          event,
+          membership: membershipSnapshot?.membership,
+          settings: settingsMap,
+        });
+        if (!access.visible && ctx.user?.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `Early access only right now. General release opens ${new Date(access.generalReleaseAt).toLocaleString("en-US")}.`,
+          });
+        }
+        return { ...event, access };
       }),
     create: adminProcedure
       .input(
@@ -721,65 +827,10 @@ export const appRouter = router({
           startDate: new Date(input.startDate),
         };
         if (input.endDate) data.endDate = new Date(input.endDate);
+        if (input.status === "published") data.publishedAt = new Date();
         const eventId = await db.createEvent(data);
-        // Fire broadcast push if notification_new_event is enabled and event is published
-        if (input.status === "published") {
-          try {
-            const settingRows = await db.getAppSettings();
-            const settingsMap: Record<string, string> = {};
-            (settingRows as any[]).forEach((s: any) => {
-              if (s?.key) settingsMap[s.key] = s.value ?? "";
-            });
-            if (settingsMap["notification_new_event"] === "1") {
-              (async () => {
-                const dbConn = await db.getDb();
-                if (!dbConn) return;
-                const { profiles: profilesTable } = await import(
-                  "../drizzle/schema"
-                );
-                const { eq: eqPub } = await import("drizzle-orm");
-                const approvedProfiles = await dbConn
-                  .select()
-                  .from(profilesTable)
-                  .where(eqPub(profilesTable.applicationStatus, "approved"));
-                const tokens: string[] = [];
-                const userIds: number[] = [];
-                for (const p of approvedProfiles) {
-                  const prefs =
-                    typeof p.preferences === "string"
-                      ? JSON.parse(p.preferences as string)
-                      : ((p.preferences ?? {}) as any);
-                  if ((prefs as any)?.pushToken) {
-                    tokens.push((prefs as any).pushToken);
-                    userIds.push(p.userId);
-                  }
-                }
-                for (let i = 0; i < tokens.length; i += 100) {
-                  const batch = tokens.slice(i, i + 100).map(token => ({
-                    to: token,
-                    title: "🎉 New Event Posted!",
-                    body: `${input.title} — check it out in the Events tab.`,
-                    sound: "default",
-                  }));
-                  await fetch("https://exp.host/--/api/v2/push/send", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(batch),
-                  }).catch(() => {});
-                }
-                for (const uid of userIds) {
-                  await notif
-                    .sendNotification({
-                      userId: uid,
-                      type: "system",
-                      title: "🎉 New Event Posted!",
-                      body: `${input.title} — check it out in the Events tab.`,
-                    })
-                    .catch(() => {});
-                }
-              })().catch(() => {});
-            }
-          } catch {}
+        if (input.status === "published" && typeof eventId === "number") {
+          notifyEligibleMembersOfNewEvent(eventId, input.title).catch(() => {});
         }
         return eventId;
       }),
@@ -804,11 +855,17 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
+        const existing = input.status === "published" ? await db.getEventById(input.id) : null;
         const { id, startDate, endDate, ...rest } = input;
         const data: Record<string, unknown> = { ...rest };
         if (startDate) data.startDate = new Date(startDate);
         if (endDate) data.endDate = new Date(endDate);
+        if (input.status === "published") data.publishedAt = new Date();
         await db.updateEvent(id, data);
+        if (input.status === "published" && existing?.status !== "published") {
+          const title = String(input.title ?? existing?.title ?? "New event");
+          notifyEligibleMembersOfNewEvent(id, title).catch(() => {});
+        }
         return { success: true };
       }),
     delete: adminProcedure
@@ -831,8 +888,18 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        for (const id of input.ids)
-          await db.updateEvent(id, { status: input.status });
+        for (const id of input.ids) {
+          const existing = input.status === "published" ? await db.getEventById(id) : null;
+          await db.updateEvent(id, {
+            status: input.status,
+            ...(input.status === "published" ? { publishedAt: new Date() } : {}),
+          });
+          if (input.status === "published" && existing?.status !== "published") {
+            notifyEligibleMembersOfNewEvent(id, String(existing?.title ?? "New event")).catch(
+              () => {}
+            );
+          }
+        }
         return { success: true };
       }),
     addons: publicProcedure
@@ -917,6 +984,15 @@ export const appRouter = router({
           partnerUserId: z.number().optional(),
           testResultUrl: z.string().optional(),
           creditsUsed: z.number().optional(), // cents to apply from credit balance
+          promoCode: z.string().trim().max(64).optional(),
+          addonSelections: z
+            .array(
+              z.object({
+                addonId: z.number(),
+                quantity: z.number().int().min(1).max(25),
+              })
+            )
+            .optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -985,6 +1061,8 @@ export const appRouter = router({
           ...input,
           userId: ctx.user.id,
           creditsUsedCents: creditsToUse,
+          promoCode: input.promoCode,
+          addonSelections: input.addonSelections,
           notes: input.isVolunteer ? "volunteer" : undefined,
         });
 
@@ -1339,18 +1417,9 @@ export const appRouter = router({
           });
         }
 
-        // Ticket price in cents — use live event prices when available
-        const amounts: Record<string, number> = {
-          single_female: Math.round(
-            parseFloat(event.priceSingleFemale ?? "40") * 100
-          ),
-          couple: Math.round(parseFloat(event.priceCouple ?? "130") * 100),
-          single_male: Math.round(
-            parseFloat(event.priceSingleMale ?? "145") * 100
-          ),
-          volunteer: 0,
-        };
-        const fullAmount = amounts[res.ticketType ?? ""] ?? 0;
+        const reservationSubtotal = Math.round(
+          parseFloat(String(res.totalAmount ?? "0")) * 100
+        );
         const creditsApplied = Math.round(
           parseFloat(String(res.creditsUsed ?? "0")) * 100
         );
@@ -1359,7 +1428,7 @@ export const appRouter = router({
         );
         const amount = Math.max(
           0,
-          fullAmount - creditsApplied - amountAlreadyPaid
+          reservationSubtotal - creditsApplied - amountAlreadyPaid
         );
         if (amount === 0)
           throw new TRPCError({
@@ -1960,6 +2029,125 @@ export const appRouter = router({
     }),
   }),
 
+  // ─── MEMBERSHIP ──────────────────────────────────────────────────────────
+  membership: router({
+    catalog: protectedProcedure.query(async () => {
+      const catalog = await getMembershipCatalog();
+      return catalog;
+    }),
+    me: protectedProcedure.query(async ({ ctx }) => {
+      return getMembershipSnapshotForUser(ctx.user.id);
+    }),
+    adminGrant: adminProcedure
+      .input(
+        z.object({
+          userId: z.number(),
+          tierKey: z.string(),
+          status: z.enum(["inactive", "active", "trialing", "past_due", "canceled", "complimentary"]),
+          interval: z.enum(["month", "year"]).optional(),
+          currentPeriodEnd: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { saveMembershipStateForUser } = await import("./services/membership");
+        await saveMembershipStateForUser(input.userId, {
+          tierKey: input.tierKey,
+          status: input.status,
+          interval: input.interval ?? null,
+          currentPeriodEnd: input.currentPeriodEnd ?? null,
+          activatedAt: input.status === "inactive" ? null : new Date().toISOString(),
+          stripeCustomerId: input.status === "complimentary" ? null : undefined,
+          stripeSubscriptionId: input.status === "complimentary" ? null : undefined,
+        });
+        await db.createAuditLog({
+          adminId: ctx.user.id,
+          action: "membership_admin_grant",
+          targetType: "user",
+          targetId: input.userId,
+          details: input,
+        });
+        return { success: true };
+      }),
+    createCheckoutSession: protectedProcedure
+      .input(
+        z.object({
+          tierKey: z.string(),
+          interval: z.enum(["month", "year"]).default("month"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const snapshot = await getMembershipSnapshotForUser(ctx.user.id);
+        const tier = snapshot.catalog.tiers.find(
+          (item: any) => item.key === input.tierKey
+        );
+        if (!tier) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Membership tier not found",
+          });
+        }
+        if (Number(tier.monthlyPriceUsd ?? 0) <= 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This tier does not require checkout",
+          });
+        }
+        const priceId =
+          input.interval === "year"
+            ? tier.stripePriceIdYearly ?? null
+            : tier.stripePriceIdMonthly ?? null;
+        if (!priceId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `${tier.name} ${input.interval} pricing is not configured yet`,
+          });
+        }
+
+        const baseUrl = process.env.APP_URL ?? "https://soapiesplaygrp.club";
+        const result = await createMembershipCheckoutSession({
+          userId: ctx.user.id,
+          customerEmail: ctx.user.email ?? undefined,
+          customerId: snapshot.membership.stripeCustomerId ?? undefined,
+          tierKey: tier.key,
+          interval: input.interval,
+          priceId,
+          successUrl: `${baseUrl}/settings?membership=success`,
+          cancelUrl: `${baseUrl}/settings?membership=cancelled`,
+        });
+
+        if (!result) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Stripe not configured",
+          });
+        }
+
+        return result;
+      }),
+    createBillingPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
+      const snapshot = await getMembershipSnapshotForUser(ctx.user.id);
+      const customerId = snapshot.membership.stripeCustomerId;
+      if (!customerId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No billing profile found for this account",
+        });
+      }
+      const baseUrl = process.env.APP_URL ?? "https://soapiesplaygrp.club";
+      const result = await createBillingPortalSession({
+        customerId,
+        returnUrl: `${baseUrl}/settings`,
+      });
+      if (!result) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Stripe not configured",
+        });
+      }
+      return result;
+    }),
+  }),
+
   // ─── CREDITS ─────────────────────────────────────────────────────────────
   credits: router({
     balance: protectedProcedure.query(async ({ ctx }) => {
@@ -2041,10 +2229,12 @@ export const appRouter = router({
         return db.getEventPromoCodes(input.eventId);
       }),
     validate: protectedProcedure
-      .input(z.object({ code: z.string() }))
+      .input(z.object({ code: z.string(), eventId: z.number().optional() }))
       .query(async ({ input }) => {
         const promo = await db.getPromoCodeByCode(input.code);
         if (!promo) return { valid: false, reason: "Code not found" };
+        if (input.eventId && Number(promo.eventId) !== Number(input.eventId))
+          return { valid: false, reason: "Code is not valid for this event" };
         if (!promo.isActive)
           return { valid: false, reason: "Code is inactive" };
         if (promo.maxUses && (promo.currentUses ?? 0) >= promo.maxUses)
@@ -2348,6 +2538,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        await requireMembershipFeature(ctx.user.id, "relationship_tools");
         const profile = await db.getProfileByUserId(ctx.user.id);
         if (!profile) throw new Error("Profile required");
         const groupId = await db.createRelationshipGroup(input);
@@ -2374,6 +2565,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        await requireMembershipFeature(ctx.user.id, "relationship_tools");
         const token = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
         return db.createPartnerInvitation({
           inviterId: ctx.user.id,
@@ -2422,6 +2614,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
+        await requireMembershipFeature(ctx.user.id, "relationship_tools");
         const invitationId = await db.createPartnerInvitationByUserId({
           inviterId: ctx.user.id,
           inviteeUserId: input.targetUserId,
@@ -2931,6 +3124,9 @@ export const appRouter = router({
         })
       )
       .query(async ({ ctx, input }) => {
+        if (input.search?.trim() || input.community === "all") {
+          await requireMembershipFeature(ctx.user.id, "directory_search");
+        }
         // If a search term is provided without explicit community, search across all communities
         // If no search, default to user's own community
         let community = input.community;

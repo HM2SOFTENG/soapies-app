@@ -49,6 +49,11 @@ export default function EventDetailScreen() {
   const [isQueerPlay, setIsQueerPlay] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
   const [useCredits, setUseCredits] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
+  const [promoFeedback, setPromoFeedback] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>({});
 
   // Waiver gate (P1-4 / ITEM-025). Bump this when the waiver text materially changes.
   const WAIVER_VERSION = '2026-04';
@@ -65,11 +70,21 @@ export default function EventDetailScreen() {
   } = trpc.events.byId.useQuery({ id: Number(id) }, { enabled: !!id });
 
   const { data: profileData, isLoading: profileLoading } = trpc.profile.me.useQuery();
+  const { data: membershipData } = trpc.membership.me.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const { data: appSettings } = trpc.settings.get.useQuery(undefined, {
+    staleTime: 60_000,
+  });
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
   const waiverRequired = !!profileData && !(profileData as any)?.waiverSignedAt;
   const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, {
     staleTime: 60_000,
   });
+  const { data: eventAddons } = trpc.eventAddons.list.useQuery(
+    { eventId: Number(id) },
+    { enabled: !!id, staleTime: 60_000 }
+  );
   // Credits stored as dollars (e.g. 105.00 = $105.00)
   const creditBalanceDollars =
     typeof creditBalanceData === 'number'
@@ -195,10 +210,14 @@ export default function EventDetailScreen() {
   });
 
   const joinWaitlistMutation = trpc.reservations.joinWaitlist.useMutation({
-    onSuccess: () => {
-      // console.log('[EventDetail] joined waitlist for event:', id);
+    onSuccess: (result: any) => {
       refetchWaitlist();
-      Alert.alert('✅ Added to Waitlist', "We'll notify you if a spot opens up!");
+      Alert.alert(
+        '✅ Added to Waitlist',
+        result?.priorityApplied
+          ? `Priority waitlist applied — you're in position #${result?.position ?? 1}.`
+          : "We'll notify you if a spot opens up!"
+      );
     },
     onError: (e: any) => {
       // console.log('[EventDetail] waitlist error:', e.message);
@@ -309,6 +328,8 @@ export default function EventDetailScreen() {
   }
 
   if (isError) {
+    const errorMessage = (error as any)?.message ?? 'Please try again in a moment.';
+    const isEarlyAccessLock = errorMessage.toLowerCase().includes('early access only');
     return (
       <View
         style={{
@@ -319,7 +340,11 @@ export default function EventDetailScreen() {
           paddingHorizontal: 28,
         }}
       >
-        <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
+        <Ionicons
+          name={isEarlyAccessLock ? 'lock-closed-outline' : 'cloud-offline-outline'}
+          size={42}
+          color={theme.colors.textMuted}
+        />
         <Text
           style={{
             color: theme.colors.text,
@@ -329,7 +354,7 @@ export default function EventDetailScreen() {
             marginTop: 14,
           }}
         >
-          Could not load this event
+          {isEarlyAccessLock ? 'This event is still in early access' : 'Could not load this event'}
         </Text>
         <Text
           style={{
@@ -340,12 +365,26 @@ export default function EventDetailScreen() {
             marginTop: 8,
           }}
         >
-          {(error as any)?.message ?? 'Please try again in a moment.'}
+          {errorMessage}
         </Text>
+        {isEarlyAccessLock ? (
+          <TouchableOpacity
+            onPress={() => router.push('/membership' as any)}
+            style={{
+              marginTop: 18,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: theme.colors.primary,
+            }}
+          >
+            <Text style={{ color: theme.colors.white, fontWeight: '800' }}>View membership options</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           onPress={() => refetch()}
           style={{
-            marginTop: 18,
+            marginTop: 12,
             paddingHorizontal: 18,
             paddingVertical: 12,
             borderRadius: 12,
@@ -354,7 +393,9 @@ export default function EventDetailScreen() {
             borderColor: theme.colors.border,
           }}
         >
-          <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
+          <Text style={{ color: theme.colors.text, fontWeight: '800' }}>
+            {isEarlyAccessLock ? 'Check again' : 'Retry'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -403,18 +444,86 @@ export default function EventDetailScreen() {
     }
   }
 
+  const activeAddons = ((eventAddons as any[]) ?? []).filter(
+    (addon: any) => addon?.isActive !== false
+  );
+  const addonSubtotal = activeAddons.reduce((sum: number, addon: any) => {
+    const qty = selectedAddons[Number(addon.id)] ?? 0;
+    return sum + parseFloat(String(addon.price ?? 0)) * qty;
+  }, 0);
+  const membership = (membershipData as any)?.membership;
+  const addonDiscountPct = membership?.isEntitled
+    ? membership?.effectiveTierKey === 'inner_circle'
+      ? Number((appSettings as any)?.membership_inner_circle_addon_discount_pct ?? 15)
+      : membership?.effectiveTierKey === 'connect'
+        ? Number((appSettings as any)?.membership_connect_addon_discount_pct ?? 5)
+        : 0
+    : 0;
+  const addonMembershipDiscount = Math.min(
+    addonSubtotal,
+    addonSubtotal * (Math.max(0, addonDiscountPct) / 100)
+  );
+  const promoDiscount = appliedPromo
+    ? Math.min(
+        getTicketPriceDollars(ticketType) + addonSubtotal,
+        appliedPromo.discountType === 'percentage'
+          ? (getTicketPriceDollars(ticketType) + addonSubtotal) *
+              (parseFloat(String(appliedPromo.discountValue ?? 0)) / 100)
+          : parseFloat(String(appliedPromo.discountValue ?? 0))
+      )
+    : 0;
+  const subtotalBeforeCredits = Math.max(
+    0,
+    getTicketPriceDollars(ticketType) + addonSubtotal - addonMembershipDiscount - promoDiscount
+  );
+
   function getPriceForTicketType(t: TicketType) {
     const priceDollars = getTicketPriceDollars(t);
     if (priceDollars === 0) return 'Free';
-    if (useCredits && creditBalanceDollars > 0) {
-      const creditsApplied = Math.min(creditBalanceDollars, priceDollars);
-      const remaining = priceDollars - creditsApplied;
+    if (useCredits && t === ticketType && creditBalanceDollars > 0) {
+      const creditsApplied = Math.min(creditBalanceDollars, subtotalBeforeCredits);
+      const remaining = subtotalBeforeCredits - creditsApplied;
       const creditsDisplay = `$${creditsApplied.toFixed(2)} credits`;
       return remaining === 0
         ? `Free (${creditsDisplay})`
         : `$${remaining.toFixed(2)} + ${creditsDisplay}`;
     }
     return `$${priceDollars.toFixed(0)}`;
+  }
+
+  function toggleAddon(addonId: number) {
+    setSelectedAddons((prev) => {
+      const next = { ...prev };
+      if (next[addonId]) delete next[addonId];
+      else next[addonId] = 1;
+      return next;
+    });
+  }
+
+  async function applyPromoCode() {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code) {
+      setAppliedPromo(null);
+      setPromoFeedback(null);
+      return;
+    }
+    try {
+      setIsApplyingPromo(true);
+      const result = await utils.promoCodes.validate.fetch({ code, eventId: Number(id) });
+      if (!(result as any)?.valid) {
+        setAppliedPromo(null);
+        setPromoFeedback((result as any)?.reason ?? 'Invalid promo code');
+        return;
+      }
+      setAppliedPromo((result as any).promo);
+      setPromoCodeInput(code);
+      setPromoFeedback(`Promo applied: ${code}`);
+    } catch (error: any) {
+      setAppliedPromo(null);
+      setPromoFeedback(error?.message ?? 'Could not validate promo code');
+    } finally {
+      setIsApplyingPromo(false);
+    }
   }
 
   function handleVolunteerToggle() {
@@ -435,10 +544,9 @@ export default function EventDetailScreen() {
   // Actual reservation mutation call — separated so the waiver gate can
   // defer it, then re-invoke post-sign without re-entering the modal flow.
   function doReserve() {
-    const priceDollars = ev ? getTicketPriceDollars(ticketType) : 0;
+    const priceDollars = subtotalBeforeCredits;
     const creditsApplied = useCredits ? Math.min(creditBalanceDollars, priceDollars) : 0;
     const remaining = priceDollars - creditsApplied;
-    // Server expects creditsUsed in cents (multiply back)
     const creditsUsedCents = Math.round(creditsApplied * 100);
     reserveMutation.mutate({
       eventId: Number(id),
@@ -451,6 +559,11 @@ export default function EventDetailScreen() {
       isQueerPlay,
       orientationSignal: isQueerPlay ? 'queer' : 'straight',
       isVolunteer,
+      promoCode: appliedPromo?.code ?? undefined,
+      addonSelections: Object.entries(selectedAddons).map(([addonId, quantity]) => ({
+        addonId: Number(addonId),
+        quantity: Number(quantity),
+      })),
     });
   }
 
@@ -474,6 +587,10 @@ export default function EventDetailScreen() {
     setPartnerSearch('');
     setPartnerManuallyCleared(false);
     setShowPartnerPicker(false);
+    setPromoCodeInput('');
+    setAppliedPromo(null);
+    setPromoFeedback(null);
+    setSelectedAddons({});
     setShowTicketModal(true);
   }
 
@@ -577,6 +694,11 @@ export default function EventDetailScreen() {
             <Text style={{ color: theme.colors.pink, fontWeight: '700', fontSize: 16 }}>
               🕐 Waitlist Position #{(waitlistPosition as any).position}
             </Text>
+            {membership?.effectiveTierKey === 'inner_circle' && membership?.isEntitled ? (
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 6 }}>
+                Inner Circle priority is active on waitlists.
+              </Text>
+            ) : null}
           </View>
         );
       }
@@ -1213,6 +1335,249 @@ export default function EventDetailScreen() {
                     </View>
                   </TouchableOpacity>
                 )}
+
+                {activeAddons.length > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: theme.colors.card,
+                      borderRadius: 12,
+                      padding: 14,
+                      borderColor: theme.colors.border,
+                      borderWidth: 1,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', marginBottom: 6 }}>
+                      Add-ons
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 10 }}>
+                      Optional upgrades for this reservation.
+                    </Text>
+                    {activeAddons.map((addon: any) => {
+                      const qty = selectedAddons[Number(addon.id)] ?? 0;
+                      return (
+                        <TouchableOpacity
+                          key={addon.id}
+                          onPress={() => toggleAddon(Number(addon.id))}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: theme.colors.page,
+                            borderRadius: 10,
+                            padding: 12,
+                            borderColor: qty > 0 ? theme.colors.pink : theme.colors.border,
+                            borderWidth: 1,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: theme.colors.text, fontWeight: '600' }}>
+                              {addon.name}
+                            </Text>
+                            {addon.description ? (
+                              <Text
+                                style={{
+                                  color: theme.colors.textMuted,
+                                  fontSize: 12,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {addon.description}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Text
+                            style={{ color: theme.colors.pink, fontWeight: '700', marginRight: 10 }}
+                          >
+                            ${parseFloat(String(addon.price ?? 0)).toFixed(2)}
+                          </Text>
+                          {qty > 0 ? (
+                            <TouchableOpacity
+                              onPress={() =>
+                                setSelectedAddons((prev) => ({
+                                  ...prev,
+                                  [Number(addon.id)]: Math.min(
+                                    addon.maxQuantity ?? 10,
+                                    (prev[Number(addon.id)] ?? 1) + 1
+                                  ),
+                                }))
+                              }
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                                backgroundColor: alpha(theme.colors.pink, 0.12),
+                              }}
+                            >
+                              <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>
+                                Qty {qty}
+                              </Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text style={{ color: theme.colors.text, fontWeight: '700', marginBottom: 6 }}>
+                    Promo Code
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      value={promoCodeInput}
+                      onChangeText={(text) => {
+                        setPromoCodeInput(text.toUpperCase());
+                        if (promoFeedback) setPromoFeedback(null);
+                      }}
+                      placeholder="Enter code"
+                      placeholderTextColor={theme.colors.textMuted}
+                      autoCapitalize="characters"
+                      style={{
+                        flex: 1,
+                        backgroundColor: theme.colors.page,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: theme.colors.border,
+                        color: theme.colors.text,
+                        paddingHorizontal: 12,
+                        paddingVertical: 12,
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={applyPromoCode}
+                      style={{
+                        paddingHorizontal: 14,
+                        borderRadius: 10,
+                        backgroundColor: alpha(theme.colors.pink, 0.12),
+                        borderWidth: 1,
+                        borderColor: alpha(theme.colors.pink, 0.25),
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>
+                        {isApplyingPromo ? '...' : 'Apply'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {promoFeedback ? (
+                    <Text
+                      style={{
+                        color: appliedPromo ? theme.colors.success : theme.colors.danger,
+                        fontSize: 12,
+                        marginTop: 8,
+                      }}
+                    >
+                      {promoFeedback}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    marginBottom: 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Ticket</Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                      ${getTicketPriceDollars(ticketType).toFixed(2)}
+                    </Text>
+                  </View>
+                  {addonSubtotal > 0 && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Add-ons</Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                        ${addonSubtotal.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  {addonMembershipDiscount > 0 && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        {membership?.effectiveTier?.name ?? 'Membership'} add-on perk
+                      </Text>
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        - ${addonMembershipDiscount.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  {promoDiscount > 0 && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        Promo discount
+                      </Text>
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        - ${promoDiscount.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Subtotal</Text>
+                    <Text style={{ color: theme.colors.text, fontWeight: '800' }}>
+                      ${subtotalBeforeCredits.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+
+                {membership?.perkConfig?.earlyAccessHoursByTier?.[membership?.effectiveTierKey] ? (
+                  <View
+                    style={{
+                      backgroundColor: alpha(theme.colors.primary, 0.1),
+                      borderRadius: 12,
+                      padding: 12,
+                      borderWidth: 1,
+                      borderColor: alpha(theme.colors.primary, 0.18),
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 12 }}>
+                      {membership?.effectiveTier?.name} perk
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 4 }}>
+                      Includes {membership.perkConfig.earlyAccessHoursByTier[membership.effectiveTierKey]}h early-access window guidance and {addonDiscountPct > 0 ? `${addonDiscountPct}% off add-ons.` : 'membership perks.'}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {/* Volunteer add-on */}
                 <TouchableOpacity

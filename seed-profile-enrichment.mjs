@@ -1,6 +1,16 @@
 import mysql from 'mysql2/promise';
 
-const DB_URI = 'process.env.DATABASE_URL';
+const DB_URI = process.env.DATABASE_URL;
+
+function fmt(date) {
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
 
 const avatarUrls = [
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop&crop=face',
@@ -114,6 +124,125 @@ const postImages = [
   'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=600&h=400&fit=crop',
 ];
 
+function daysFromNow(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function buildMembershipState(index, isApproved) {
+  if (!isApproved) {
+    return {
+      tierKey: 'community',
+      status: 'inactive',
+      interval: null,
+      currentPeriodEnd: null,
+      activatedAt: null,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+    };
+  }
+
+  const pattern = index % 12;
+  const base = {
+    activatedAt: fmt(daysAgo(45 - (index % 20))),
+  };
+
+  switch (pattern) {
+    case 0:
+      return {
+        ...base,
+        tierKey: 'inner_circle',
+        status: 'complimentary',
+        interval: 'month',
+        currentPeriodEnd: fmt(daysFromNow(180)),
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+      };
+    case 1:
+      return {
+        ...base,
+        tierKey: 'inner_circle',
+        status: 'active',
+        interval: 'year',
+        currentPeriodEnd: fmt(daysFromNow(300)),
+        stripeCustomerId: `cus_seed_${index + 1}`,
+        stripeSubscriptionId: `sub_seed_inner_${index + 1}`,
+      };
+    case 2:
+    case 11:
+      return {
+        ...base,
+        tierKey: 'connect',
+        status: 'active',
+        interval: pattern === 11 ? 'year' : 'month',
+        currentPeriodEnd: fmt(daysFromNow(pattern === 11 ? 240 : 26)),
+        stripeCustomerId: `cus_seed_${index + 1}`,
+        stripeSubscriptionId: `sub_seed_connect_${index + 1}`,
+      };
+    case 3:
+      return {
+        ...base,
+        tierKey: 'connect',
+        status: 'trialing',
+        interval: 'month',
+        currentPeriodEnd: fmt(daysFromNow(12)),
+        stripeCustomerId: `cus_seed_${index + 1}`,
+        stripeSubscriptionId: `sub_seed_trial_${index + 1}`,
+      };
+    case 5:
+      return {
+        ...base,
+        tierKey: 'connect',
+        status: 'past_due',
+        interval: 'month',
+        currentPeriodEnd: fmt(daysFromNow(3)),
+        stripeCustomerId: `cus_seed_${index + 1}`,
+        stripeSubscriptionId: `sub_seed_pastdue_${index + 1}`,
+      };
+    case 6:
+      return {
+        ...base,
+        tierKey: 'inner_circle',
+        status: 'active',
+        interval: 'month',
+        currentPeriodEnd: fmt(daysFromNow(21)),
+        stripeCustomerId: `cus_seed_${index + 1}`,
+        stripeSubscriptionId: `sub_seed_inner_${index + 1}`,
+      };
+    case 8:
+      return {
+        ...base,
+        tierKey: 'connect',
+        status: 'complimentary',
+        interval: 'month',
+        currentPeriodEnd: fmt(daysFromNow(90)),
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+      };
+    case 10:
+      return {
+        ...base,
+        tierKey: 'inner_circle',
+        status: 'canceled',
+        interval: 'month',
+        currentPeriodEnd: fmt(daysAgo(5)),
+        stripeCustomerId: `cus_seed_${index + 1}`,
+        stripeSubscriptionId: `sub_seed_canceled_${index + 1}`,
+      };
+    default:
+      return {
+        ...base,
+        tierKey: 'community',
+        status: 'inactive',
+        interval: null,
+        currentPeriodEnd: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+      };
+  }
+}
+
 // Varied post content pool — 50 unique entries
 const postContents = [
   "Last night was absolutely electric ⚡ Can't believe how many amazing people I met. Already counting down to the next one 🥂",
@@ -178,11 +307,16 @@ async function main() {
 
   // 1. Get all test users, ordered by email so user1, user2... maps to index 0, 1...
   const [users] = await conn.execute(
-    "SELECT id, email FROM users WHERE email LIKE '%@testuser.soapies' ORDER BY email ASC"
+    `SELECT u.id, u.email, p.preferences, p.applicationStatus
+     FROM users u
+     LEFT JOIN profiles p ON p.userId = u.id
+     WHERE u.email LIKE '%@testuser.soapies'
+     ORDER BY u.email ASC`
   );
   console.log(`Found ${users.length} test users`);
 
   let profilesUpdated = 0;
+  let membershipSeeded = 0;
   let postsUpdated = 0;
   let postsImageAdded = 0;
 
@@ -193,10 +327,28 @@ async function main() {
     const location = locations[i] || locations[i % locations.length];
     const bio = bios[i] || bios[i % bios.length];
 
+    const existingPreferences = (() => {
+      try {
+        if (!user.preferences) return {};
+        return typeof user.preferences === 'string' ? JSON.parse(user.preferences) : user.preferences;
+      } catch {
+        return {};
+      }
+    })();
+    const membership = buildMembershipState(i, user.applicationStatus === 'approved');
+    const nextPreferences = {
+      ...(existingPreferences || {}),
+      membership,
+    };
+
     const [result] = await conn.execute(
-      'UPDATE profiles SET avatarUrl = ?, location = ?, bio = ? WHERE userId = ?',
-      [avatarUrl, location, bio, user.id]
+      'UPDATE profiles SET avatarUrl = ?, location = ?, bio = ?, preferences = ? WHERE userId = ?',
+      [avatarUrl, location, bio, JSON.stringify(nextPreferences), user.id]
     );
+
+    if (result.affectedRows > 0) {
+      membershipSeeded++;
+    }
 
     if (result.affectedRows > 0) {
       profilesUpdated++;
@@ -251,6 +403,7 @@ async function main() {
 
   console.log(`\n=== Summary ===`);
   console.log(`Profiles updated: ${profilesUpdated}`);
+  console.log(`Membership states seeded: ${membershipSeeded}`);
   console.log(`Wall posts content updated: ${postsUpdated}`);
   console.log(`Wall posts with new images: ${postsImageAdded}`);
 
