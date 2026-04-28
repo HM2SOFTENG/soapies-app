@@ -401,6 +401,29 @@ function AnimatedEventCard({
                   </Text>
                 </View>
               )}
+              {event.access?.exclusiveUntil && (
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 10,
+                    backgroundColor: `${colors.purple}20`,
+                    borderColor: `${colors.purple}50`,
+                    borderWidth: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.purple,
+                      fontSize: 10,
+                      fontWeight: '800',
+                      fontFamily: FONT.displaySemiBold,
+                    }}
+                  >
+                    ✨ Early Access
+                  </Text>
+                </View>
+              )}
               {event.status === 'published' && (
                 <View style={{ marginLeft: 'auto' }}>
                   <Text

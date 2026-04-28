@@ -53,6 +53,10 @@ export default function ConnectionsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { hasToken } = useAuth();
+  const { data: membershipData } = trpc.membership.me.useQuery(undefined, {
+    enabled: hasToken,
+    staleTime: 60_000,
+  });
   const theme = useTheme();
   const t = {
     page: theme.colors.background,
@@ -140,6 +144,10 @@ export default function ConnectionsScreen() {
   });
 
   const connections = (myConnections as any[]) ?? [];
+  const membership = (membershipData as any)?.membership;
+  const searchLocked = String((searchError as any)?.message ?? '')
+    .toLowerCase()
+    .includes('membership required');
   const incoming = (pendingForMe as any[]) ?? [];
   const outgoing = ((myInvitations as any[]) ?? []).filter((i: any) => i.status === 'pending');
   const members = Array.isArray(searchResults) ? searchResults : [];
@@ -722,26 +730,61 @@ export default function ConnectionsScreen() {
                 <Text style={{ color: t.muted, fontSize: 13, marginTop: 10 }}>Searching...</Text>
               </View>
             ) : members.length === 0 ? (
-              <View
-                style={{
-                  backgroundColor: t.surface,
-                  borderRadius: 16,
-                  padding: 32,
-                  alignItems: 'center',
-                  borderWidth: 1,
-                  borderColor: t.border,
-                }}
-              >
-                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
-                <Text style={{ color: t.text, fontWeight: '700', fontSize: 15, marginBottom: 4 }}>
-                  No members found
-                </Text>
-                <Text style={{ color: t.muted, fontSize: 13, textAlign: 'center' }}>
-                  {searchError
-                    ? `Error: ${(searchError as any)?.message ?? 'Search failed'}`
-                    : `No results for "${trimmedQuery}"`}
-                </Text>
-              </View>
+              searchLocked ? (
+                <View
+                  style={{
+                    backgroundColor: t.surface,
+                    borderRadius: 16,
+                    padding: 24,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: t.border,
+                  }}
+                >
+                  <Ionicons name="diamond-outline" size={30} color={theme.colors.primary} />
+                  <Text style={{ color: t.text, fontWeight: '700', fontSize: 15, marginTop: 10 }}>
+                    Upgrade to unlock member search
+                  </Text>
+                  <Text style={{ color: t.muted, fontSize: 13, textAlign: 'center', marginTop: 6 }}>
+                    {membership?.effectiveTier?.name
+                      ? `${membership.effectiveTier.name} includes basic access, but connection search needs Connect or higher.`
+                      : 'Connection search needs Connect or higher.'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => router.push('/membership' as any)}
+                    style={{
+                      marginTop: 14,
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: 12,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '800' }}>View plans</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View
+                  style={{
+                    backgroundColor: t.surface,
+                    borderRadius: 16,
+                    padding: 32,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: t.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+                  <Text style={{ color: t.text, fontWeight: '700', fontSize: 15, marginBottom: 4 }}>
+                    No members found
+                  </Text>
+                  <Text style={{ color: t.muted, fontSize: 13, textAlign: 'center' }}>
+                    {searchError
+                      ? `Error: ${(searchError as any)?.message ?? 'Search failed'}`
+                      : `No results for "${trimmedQuery}"`}
+                  </Text>
+                </View>
+              )
             ) : (
               members.map((m: any) => (
                 <TouchableOpacity

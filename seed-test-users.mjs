@@ -31,6 +31,57 @@ function fmt(date) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+function daysFromNow(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function buildMembershipState(userNumber, isApproved) {
+  if (!isApproved) {
+    return null;
+  }
+
+  const pattern = userNumber % 10;
+  const base = {
+    activatedAt: fmt(daysAgo(30 + (userNumber % 10))),
+  };
+
+  if (pattern === 0 || pattern === 5) {
+    return {
+      ...base,
+      tierKey: 'inner_circle',
+      status: pattern === 5 ? 'complimentary' : 'active',
+      interval: 'year',
+      currentPeriodEnd: fmt(daysFromNow(240)),
+      stripeCustomerId: pattern === 5 ? null : `cus_seed_${userNumber}`,
+      stripeSubscriptionId: pattern === 5 ? null : `sub_seed_inner_${userNumber}`,
+    };
+  }
+
+  if (pattern === 2 || pattern === 3 || pattern === 7) {
+    return {
+      ...base,
+      tierKey: 'connect',
+      status: pattern === 7 ? 'trialing' : 'active',
+      interval: 'month',
+      currentPeriodEnd: fmt(daysFromNow(pattern === 7 ? 10 : 28)),
+      stripeCustomerId: `cus_seed_${userNumber}`,
+      stripeSubscriptionId: `sub_seed_connect_${userNumber}`,
+    };
+  }
+
+  return {
+    ...base,
+    tierKey: 'community',
+    status: 'inactive',
+    interval: null,
+    currentPeriodEnd: null,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+  };
+}
+
 // ─── User definitions ─────────────────────────────────────────────────────────
 // Index 0-19: approved (20)
 // Index 20-23: submitted/pending (4)
@@ -186,14 +237,17 @@ async function main() {
 
     const waiverSignedAt = isApproved ? fmt(daysAgo(44 - u.n)) : null;
     const appPhase = u.interviewScheduled ? 'interview_scheduled' : null;
+    const preferences = JSON.stringify({
+      membership: buildMembershipState(u.n, isApproved),
+    });
 
     const [res] = await conn.execute(
       `INSERT INTO profiles
          (userId, displayName, bio, gender, orientation, communityId, memberRole, applicationStatus,
           applicationPhase, isProfileComplete, approvedAt, approvedBy, waiverSignedAt, waiverVersion,
           profileSetupComplete, referredByCode, referredByUserId, referralConverted, referralConvertedAt,
-          createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          preferences, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userIds[u.n],
         `${u.firstName} ${u.lastName.charAt(0)}.`,
@@ -214,6 +268,7 @@ async function main() {
         referredByUserId,
         referralConverted,
         referralConvertedAt,
+        preferences,
         fmt(daysAgo(60 - u.n)),
         fmt(daysAgo(5)),
       ]

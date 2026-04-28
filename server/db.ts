@@ -628,6 +628,30 @@ function parseMoneyToCents(value: unknown): number {
   return Math.round(parseFloat(String(value ?? 0)) * 100);
 }
 
+function getStoredMembershipFromPreferences(preferences: any) {
+  const membership = preferences?.membership;
+  if (!membership || typeof membership !== "object") return null;
+  return membership as {
+    tierKey?: string | null;
+    status?: string | null;
+  };
+}
+
+function membershipIsEntitled(status?: string | null) {
+  return status === "active" || status === "trialing" || status === "complimentary";
+}
+
+function getAddonDiscountPercentForTier(tierKey?: string | null, settings?: Record<string, string>) {
+  if (!tierKey) return 0;
+  if (tierKey === "inner_circle") {
+    return Number(settings?.membership_inner_circle_addon_discount_pct ?? 15) || 0;
+  }
+  if (tierKey === "connect") {
+    return Number(settings?.membership_connect_addon_discount_pct ?? 5) || 0;
+  }
+  return 0;
+}
+
 export async function createReservationTransaction(
   input: CreateReservationTransactionInput
 ): Promise<CreateReservationTransactionResult> {
@@ -705,6 +729,36 @@ export async function createReservationTransaction(
       eventRow,
       input.ticketType
     );
+
+    const [profileRows] = await conn.execute(
+      `SELECT preferences FROM profiles WHERE userId = ? LIMIT 1 FOR UPDATE`,
+      [input.userId]
+    );
+    const rawPreferences = (profileRows as any[])[0]?.preferences;
+    let parsedPreferences: any = {};
+    if (typeof rawPreferences === "string") {
+      try {
+        parsedPreferences = JSON.parse(rawPreferences);
+      } catch {
+        parsedPreferences = {};
+      }
+    } else if (rawPreferences && typeof rawPreferences === "object") {
+      parsedPreferences = rawPreferences;
+    }
+
+    const membership = getStoredMembershipFromPreferences(parsedPreferences);
+    const [settingsRows] = await conn.execute(
+      `SELECT settingKey, value FROM app_settings WHERE settingKey IN (
+        'membership_connect_addon_discount_pct',
+        'membership_inner_circle_addon_discount_pct'
+      )`
+    );
+    const settingsMap = Object.fromEntries(
+      (settingsRows as any[]).map((row) => [String(row.settingKey), String(row.value ?? "")])
+    ) as Record<string, string>;
+    const addonDiscountPercent = membershipIsEntitled(membership?.status)
+      ? getAddonDiscountPercentForTier(membership?.tierKey, settingsMap)
+      : 0;
     const normalizedAddons = Array.from(
       new Map(
         (input.addonSelections ?? [])
@@ -761,7 +815,15 @@ export async function createReservationTransaction(
       }
     }
 
-    let discountCents = 0;
+    let membershipDiscountCents = 0;
+    if (addonDiscountPercent > 0 && addonsTotalCents > 0) {
+      membershipDiscountCents = Math.min(
+        addonsTotalCents,
+        Math.round(addonsTotalCents * (addonDiscountPercent / 100))
+      );
+    }
+
+    let discountCents = membershipDiscountCents;
     if (input.promoCode?.trim()) {
       const [promoRows] = await conn.execute(
         `SELECT id, code, eventId, discountType, discountValue, maxUses, currentUses, validFrom, validUntil, isActive
@@ -778,7 +840,8 @@ export async function createReservationTransaction(
         const validUntil = promo.validUntil ? new Date(promo.validUntil) : null;
         const maxUses = promo.maxUses == null ? null : Number(promo.maxUses);
         const currentUses = Number(promo.currentUses ?? 0);
-        const subtotalBeforeDiscount = serverPriceCents + addonsTotalCents;
+        const subtotalBeforeDiscount =
+          serverPriceCents + addonsTotalCents - membershipDiscountCents;
         const promoIsValid =
           (!validFrom || now >= validFrom) &&
           (!validUntil || now <= validUntil) &&
@@ -866,6 +929,9 @@ export async function createReservationTransaction(
     const notes =
       [
         input.notes?.trim(),
+        membershipDiscountCents > 0
+          ? `membership-addon-discount:${addonDiscountPercent}%`
+          : null,
         input.promoCode?.trim()
           ? `promo:${input.promoCode.trim().toUpperCase()}`
           : null,
@@ -3855,6 +3921,26 @@ export async function joinWaitlist(eventId: number, userId: number) {
     )
     .limit(1);
   if (existing.length > 0) return existing[0];
+
+  const profile = await getProfileByUserId(userId);
+  const membership = getStoredMembershipFromPreferences((profile as any)?.preferences);
+  const hasPriorityWaitlist =
+    membershipIsEntitled(membership?.status) && membership?.tierKey === "inner_circle";
+
+  if (hasPriorityWaitlist) {
+    await db
+      .update(waitlistTable)
+      .set({ position: sql`${waitlistTable.position} + 1` })
+      .where(
+        and(
+          eq(waitlistTable.eventId, eventId),
+          eq(waitlistTable.status, "waiting")
+        )
+      );
+    await db.insert(waitlistTable).values({ eventId, userId, position: 1 });
+    return { position: 1, priorityApplied: true };
+  }
+
   const count = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(waitlistTable)
@@ -3866,7 +3952,7 @@ export async function joinWaitlist(eventId: number, userId: number) {
     );
   const position = Number(count[0]?.count ?? 0) + 1;
   await db.insert(waitlistTable).values({ eventId, userId, position });
-  return { position };
+  return { position, priorityApplied: false };
 }
 
 export async function getWaitlistPosition(eventId: number, userId: number) {
@@ -4206,6 +4292,71 @@ export const DEFAULT_SETTINGS: Array<{
     key: "maintenance_mode",
     value: "0",
     description: "Put app in maintenance mode",
+  },
+  {
+    key: "membership_connect_monthly_price_usd",
+    value: "29",
+    description: "Connect membership monthly display price (USD)",
+  },
+  {
+    key: "membership_connect_yearly_price_usd",
+    value: "290",
+    description: "Connect membership yearly display price (USD)",
+  },
+  {
+    key: "membership_connect_monthly_price_id",
+    value: "",
+    description: "Stripe Price ID for Connect monthly subscription",
+  },
+  {
+    key: "membership_connect_yearly_price_id",
+    value: "",
+    description: "Stripe Price ID for Connect yearly subscription",
+  },
+  {
+    key: "membership_inner_circle_monthly_price_usd",
+    value: "79",
+    description: "Inner Circle membership monthly display price (USD)",
+  },
+  {
+    key: "membership_inner_circle_yearly_price_usd",
+    value: "790",
+    description: "Inner Circle membership yearly display price (USD)",
+  },
+  {
+    key: "membership_inner_circle_monthly_price_id",
+    value: "",
+    description: "Stripe Price ID for Inner Circle monthly subscription",
+  },
+  {
+    key: "membership_inner_circle_yearly_price_id",
+    value: "",
+    description: "Stripe Price ID for Inner Circle yearly subscription",
+  },
+  {
+    key: "membership_connect_addon_discount_pct",
+    value: "5",
+    description: "Connect membership add-on discount percentage",
+  },
+  {
+    key: "membership_inner_circle_addon_discount_pct",
+    value: "15",
+    description: "Inner Circle membership add-on discount percentage",
+  },
+  {
+    key: "membership_connect_early_access_hours",
+    value: "12",
+    description: "Connect membership early-access window in hours",
+  },
+  {
+    key: "membership_inner_circle_early_access_hours",
+    value: "48",
+    description: "Inner Circle membership early-access window in hours",
+  },
+  {
+    key: "membership_general_release_delay_hours",
+    value: "48",
+    description: "Delay before events become visible to all approved members",
   },
 ];
 

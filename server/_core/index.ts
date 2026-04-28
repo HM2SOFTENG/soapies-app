@@ -125,63 +125,159 @@ async function startServer() {
 
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
-        const reservationId = parseInt(session.metadata.reservationId);
-        const userId = parseInt(session.metadata.userId);
+        const kind = session.metadata?.kind;
 
-        const db = await import("../db");
-        const notif = await import("../notifications");
-
-        // Mark reservation paid
-        await db.updateReservation(reservationId, {
-          paymentStatus: "paid",
-          status: "confirmed",
-          stripeSessionId: session.id,
-          stripePaymentIntentId: session.payment_intent,
-        });
-
-        // Generate QR ticket
-        try {
-          const { generateTicketQR } = await import("../services/tickets");
-          const qrCode = await generateTicketQR(reservationId);
-          await db.createTicketForReservation(reservationId, userId, qrCode);
-        } catch {}
-
-        // Assign wristband color
-        try { await db.updateReservationWristband(reservationId); } catch {}
-
-        // Notify user
-        try {
-          await notif.sendNotification({
-            userId,
-            type: 'system',
-            title: '🎉 Payment Confirmed!',
-            body: 'Your Stripe payment was successful. Your ticket QR code is ready in the Tickets tab.',
-          });
-        } catch {}
-
-        // Sync to party chat if event is within 7 days
-        try {
-          const dbConn = await db.getDb();
-          if (dbConn) {
-            const { reservations: resTable } = await import('../../drizzle/schema');
-            const { eq: eqOp } = await import('drizzle-orm');
-            const rows = await dbConn.select().from(resTable).where(eqOp(resTable.id, reservationId)).limit(1);
-            if (rows[0]?.eventId) {
-              const { syncUserToPartyChat } = await import('../partyChat');
-              await syncUserToPartyChat(rows[0].eventId, userId);
+        if (kind === "membership") {
+          const userId = parseInt(session.metadata?.userId ?? "0");
+          if (userId) {
+            const { saveMembershipStateForUser } = await import(
+              "../services/membership"
+            );
+            const notif = await import("../notifications");
+            const subscriptionId =
+              typeof session.subscription === "string"
+                ? session.subscription
+                : session.subscription?.id;
+            let periodEndIso: string | null = null;
+            if (subscriptionId) {
+              try {
+                const subscription = await stripe.subscriptions.retrieve(
+                  subscriptionId
+                );
+                const currentPeriodEnd = (subscription as any).current_period_end;
+                if (currentPeriodEnd) {
+                  periodEndIso = new Date(
+                    Number(currentPeriodEnd) * 1000
+                  ).toISOString();
+                }
+              } catch {}
             }
-          }
-        } catch {}
 
-        // Log audit
-        try {
-          await db.createAuditLog({
-            adminId: userId,
-            action: "stripe_payment_confirmed",
-            targetType: "reservation",
-            targetId: reservationId,
+            await saveMembershipStateForUser(userId, {
+              tierKey: session.metadata?.tierKey ?? null,
+              status: "active",
+              interval:
+                session.metadata?.interval === "year" ? "year" : "month",
+              stripeCustomerId:
+                typeof session.customer === "string" ? session.customer : null,
+              stripeSubscriptionId: subscriptionId ?? null,
+              lastCheckoutSessionId: session.id,
+              activatedAt: new Date().toISOString(),
+              currentPeriodEnd: periodEndIso,
+            });
+
+            try {
+              await notif.sendNotification({
+                userId,
+                type: "system",
+                title: "💎 Membership active",
+                body: `Your ${session.metadata?.tierKey?.replace(/_/g, " ") ?? "membership"} subscription is now active.`,
+              });
+            } catch {}
+          }
+        } else {
+          const reservationId = parseInt(session.metadata.reservationId);
+          const userId = parseInt(session.metadata.userId);
+
+          const db = await import("../db");
+          const notif = await import("../notifications");
+
+          // Mark reservation paid
+          await db.updateReservation(reservationId, {
+            paymentStatus: "paid",
+            status: "confirmed",
+            stripeSessionId: session.id,
+            stripePaymentIntentId: session.payment_intent,
           });
-        } catch {}
+
+          // Generate QR ticket
+          try {
+            const { generateTicketQR } = await import("../services/tickets");
+            const qrCode = await generateTicketQR(reservationId);
+            await db.createTicketForReservation(reservationId, userId, qrCode);
+          } catch {}
+
+          // Assign wristband color
+          try {
+            await db.updateReservationWristband(reservationId);
+          } catch {}
+
+          // Notify user
+          try {
+            await notif.sendNotification({
+              userId,
+              type: "system",
+              title: "🎉 Payment Confirmed!",
+              body: "Your Stripe payment was successful. Your ticket QR code is ready in the Tickets tab.",
+            });
+          } catch {}
+
+          // Sync to party chat if event is within 7 days
+          try {
+            const dbConn = await db.getDb();
+            if (dbConn) {
+              const { reservations: resTable } = await import("../../drizzle/schema");
+              const { eq: eqOp } = await import("drizzle-orm");
+              const rows = await dbConn
+                .select()
+                .from(resTable)
+                .where(eqOp(resTable.id, reservationId))
+                .limit(1);
+              if (rows[0]?.eventId) {
+                const { syncUserToPartyChat } = await import("../partyChat");
+                await syncUserToPartyChat(rows[0].eventId, userId);
+              }
+            }
+          } catch {}
+
+          // Log audit
+          try {
+            await db.createAuditLog({
+              adminId: userId,
+              action: "stripe_payment_confirmed",
+              targetType: "reservation",
+              targetId: reservationId,
+            });
+          } catch {}
+        }
+      }
+
+      if (
+        event.type === "customer.subscription.updated" ||
+        event.type === "customer.subscription.deleted"
+      ) {
+        const subscription = event.data.object;
+        const userId = parseInt(subscription.metadata?.userId ?? "0");
+        if (userId) {
+          const { saveMembershipStateForUser } = await import(
+            "../services/membership"
+          );
+          const stripeStatus = String(subscription.status ?? "inactive");
+          const mappedStatus =
+            stripeStatus === "active" || stripeStatus === "trialing"
+              ? stripeStatus
+              : stripeStatus === "past_due"
+                ? "past_due"
+                : stripeStatus === "canceled" || event.type === "customer.subscription.deleted"
+                  ? "canceled"
+                  : "inactive";
+          const currentPeriodEnd = (subscription as any).current_period_end;
+          await saveMembershipStateForUser(userId, {
+            tierKey: subscription.metadata?.tierKey ?? null,
+            status: mappedStatus as any,
+            interval:
+              subscription.metadata?.interval === "year" ? "year" : "month",
+            stripeCustomerId:
+              typeof subscription.customer === "string"
+                ? subscription.customer
+                : null,
+            stripeSubscriptionId: subscription.id ?? null,
+            cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
+            currentPeriodEnd: currentPeriodEnd
+              ? new Date(Number(currentPeriodEnd) * 1000).toISOString()
+              : null,
+          });
+        }
       }
 
       // Handle abandoned Stripe checkout — cancel ghost reservations

@@ -70,6 +70,12 @@ export default function EventDetailScreen() {
   } = trpc.events.byId.useQuery({ id: Number(id) }, { enabled: !!id });
 
   const { data: profileData, isLoading: profileLoading } = trpc.profile.me.useQuery();
+  const { data: membershipData } = trpc.membership.me.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const { data: appSettings } = trpc.settings.get.useQuery(undefined, {
+    staleTime: 60_000,
+  });
   const userGender = (profileData as any)?.gender?.toLowerCase() ?? '';
   const waiverRequired = !!profileData && !(profileData as any)?.waiverSignedAt;
   const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, {
@@ -204,10 +210,14 @@ export default function EventDetailScreen() {
   });
 
   const joinWaitlistMutation = trpc.reservations.joinWaitlist.useMutation({
-    onSuccess: () => {
-      // console.log('[EventDetail] joined waitlist for event:', id);
+    onSuccess: (result: any) => {
       refetchWaitlist();
-      Alert.alert('✅ Added to Waitlist', "We'll notify you if a spot opens up!");
+      Alert.alert(
+        '✅ Added to Waitlist',
+        result?.priorityApplied
+          ? `Priority waitlist applied — you're in position #${result?.position ?? 1}.`
+          : "We'll notify you if a spot opens up!"
+      );
     },
     onError: (e: any) => {
       // console.log('[EventDetail] waitlist error:', e.message);
@@ -318,6 +328,8 @@ export default function EventDetailScreen() {
   }
 
   if (isError) {
+    const errorMessage = (error as any)?.message ?? 'Please try again in a moment.';
+    const isEarlyAccessLock = errorMessage.toLowerCase().includes('early access only');
     return (
       <View
         style={{
@@ -328,7 +340,11 @@ export default function EventDetailScreen() {
           paddingHorizontal: 28,
         }}
       >
-        <Ionicons name="cloud-offline-outline" size={42} color={theme.colors.textMuted} />
+        <Ionicons
+          name={isEarlyAccessLock ? 'lock-closed-outline' : 'cloud-offline-outline'}
+          size={42}
+          color={theme.colors.textMuted}
+        />
         <Text
           style={{
             color: theme.colors.text,
@@ -338,7 +354,7 @@ export default function EventDetailScreen() {
             marginTop: 14,
           }}
         >
-          Could not load this event
+          {isEarlyAccessLock ? 'This event is still in early access' : 'Could not load this event'}
         </Text>
         <Text
           style={{
@@ -349,12 +365,26 @@ export default function EventDetailScreen() {
             marginTop: 8,
           }}
         >
-          {(error as any)?.message ?? 'Please try again in a moment.'}
+          {errorMessage}
         </Text>
+        {isEarlyAccessLock ? (
+          <TouchableOpacity
+            onPress={() => router.push('/membership' as any)}
+            style={{
+              marginTop: 18,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: theme.colors.primary,
+            }}
+          >
+            <Text style={{ color: theme.colors.white, fontWeight: '800' }}>View membership options</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           onPress={() => refetch()}
           style={{
-            marginTop: 18,
+            marginTop: 12,
             paddingHorizontal: 18,
             paddingVertical: 12,
             borderRadius: 12,
@@ -363,7 +393,9 @@ export default function EventDetailScreen() {
             borderColor: theme.colors.border,
           }}
         >
-          <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Retry</Text>
+          <Text style={{ color: theme.colors.text, fontWeight: '800' }}>
+            {isEarlyAccessLock ? 'Check again' : 'Retry'}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -419,6 +451,18 @@ export default function EventDetailScreen() {
     const qty = selectedAddons[Number(addon.id)] ?? 0;
     return sum + parseFloat(String(addon.price ?? 0)) * qty;
   }, 0);
+  const membership = (membershipData as any)?.membership;
+  const addonDiscountPct = membership?.isEntitled
+    ? membership?.effectiveTierKey === 'inner_circle'
+      ? Number((appSettings as any)?.membership_inner_circle_addon_discount_pct ?? 15)
+      : membership?.effectiveTierKey === 'connect'
+        ? Number((appSettings as any)?.membership_connect_addon_discount_pct ?? 5)
+        : 0
+    : 0;
+  const addonMembershipDiscount = Math.min(
+    addonSubtotal,
+    addonSubtotal * (Math.max(0, addonDiscountPct) / 100)
+  );
   const promoDiscount = appliedPromo
     ? Math.min(
         getTicketPriceDollars(ticketType) + addonSubtotal,
@@ -430,7 +474,7 @@ export default function EventDetailScreen() {
     : 0;
   const subtotalBeforeCredits = Math.max(
     0,
-    getTicketPriceDollars(ticketType) + addonSubtotal - promoDiscount
+    getTicketPriceDollars(ticketType) + addonSubtotal - addonMembershipDiscount - promoDiscount
   );
 
   function getPriceForTicketType(t: TicketType) {
@@ -650,6 +694,11 @@ export default function EventDetailScreen() {
             <Text style={{ color: theme.colors.pink, fontWeight: '700', fontSize: 16 }}>
               🕐 Waitlist Position #{(waitlistPosition as any).position}
             </Text>
+            {membership?.effectiveTierKey === 'inner_circle' && membership?.isEntitled ? (
+              <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 6 }}>
+                Inner Circle priority is active on waitlists.
+              </Text>
+            ) : null}
           </View>
         );
       }
@@ -1470,6 +1519,22 @@ export default function EventDetailScreen() {
                       </Text>
                     </View>
                   )}
+                  {addonMembershipDiscount > 0 && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        {membership?.effectiveTier?.name ?? 'Membership'} add-on perk
+                      </Text>
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        - ${addonMembershipDiscount.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
                   {promoDiscount > 0 && (
                     <View
                       style={{
@@ -1493,6 +1558,26 @@ export default function EventDetailScreen() {
                     </Text>
                   </View>
                 </View>
+
+                {membership?.perkConfig?.earlyAccessHoursByTier?.[membership?.effectiveTierKey] ? (
+                  <View
+                    style={{
+                      backgroundColor: alpha(theme.colors.primary, 0.1),
+                      borderRadius: 12,
+                      padding: 12,
+                      borderWidth: 1,
+                      borderColor: alpha(theme.colors.primary, 0.18),
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 12 }}>
+                      {membership?.effectiveTier?.name} perk
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginTop: 4 }}>
+                      Includes {membership.perkConfig.earlyAccessHoursByTier[membership.effectiveTierKey]}h early-access window guidance and {addonDiscountPct > 0 ? `${addonDiscountPct}% off add-ons.` : 'membership perks.'}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {/* Volunteer add-on */}
                 <TouchableOpacity

@@ -283,6 +283,13 @@ export default function AdminMembersScreen() {
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
+  const membershipGrantMutation = trpc.membership.adminGrant.useMutation({
+    onSuccess: () => {
+      utils.admin.adminMemberDetail.invalidate();
+      Alert.alert('Updated', 'Membership updated.');
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
 
   const members = useMemo(() => (data as any[]) ?? [], [data]);
   const availableFilterGroups = useMemo(() => {
@@ -294,6 +301,7 @@ export default function AdminMembersScreen() {
   }, [members]);
   const selectedDetail: any = detail as any;
   const selectedProfile = selectedDetail?.profile;
+  const selectedMembership = (selectedProfile?.preferences as any)?.membership as any;
   const selectedUser = selectedDetail?.user;
   const selectedCredits = selectedDetail?.credits ?? [];
   const selectedReferralCodes = selectedDetail?.referralCodes ?? [];
@@ -903,6 +911,12 @@ export default function AdminMembersScreen() {
                       label="Signal"
                       value={formatLabel(selectedProfile?.signalType || 'offline')}
                       tone="warning"
+                      theme={theme}
+                    />
+                    <StatChip
+                      label="Membership"
+                      value={formatLabel(selectedMembership?.tierKey) || 'Community'}
+                      tone="primary"
                       theme={theme}
                     />
                     <StatChip
@@ -1532,6 +1546,46 @@ export default function AdminMembersScreen() {
                   >
                     Actions
                   </Text>
+                  <ActionRow
+                    icon="diamond-outline"
+                    title="Manage Membership"
+                    subtitle={`${formatLabel(selectedMembership?.tierKey) || 'Community'} · ${formatLabel(selectedMembership?.status) || 'inactive'}`}
+                    color={purpleAction}
+                    onPress={() =>
+                      Alert.alert('Membership', 'Choose membership action', [
+                        {
+                          text: 'Complimentary Connect',
+                          onPress: () =>
+                            membershipGrantMutation.mutate({
+                              userId: selectedUserId!,
+                              tierKey: 'connect',
+                              status: 'complimentary',
+                              interval: 'month',
+                            }),
+                        },
+                        {
+                          text: 'Complimentary Inner Circle',
+                          onPress: () =>
+                            membershipGrantMutation.mutate({
+                              userId: selectedUserId!,
+                              tierKey: 'inner_circle',
+                              status: 'complimentary',
+                              interval: 'month',
+                            }),
+                        },
+                        {
+                          text: 'Set Community / Inactive',
+                          onPress: () =>
+                            membershipGrantMutation.mutate({
+                              userId: selectedUserId!,
+                              tierKey: 'community',
+                              status: 'inactive',
+                            }),
+                        },
+                        { text: 'Cancel', style: 'cancel' },
+                      ])
+                    }
+                  />
                   <ActionRow
                     icon="shield-outline"
                     title="Change Role"

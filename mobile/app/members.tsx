@@ -202,6 +202,12 @@ function MemberCard({
   const canPoke = signalType === 'available';
 
   const preferences = member.preferences as any;
+  const membershipState = preferences?.membership as any;
+  const hasVipBadge =
+    (membershipState?.status === 'active' ||
+      membershipState?.status === 'trialing' ||
+      membershipState?.status === 'complimentary') &&
+    membershipState?.tierKey === 'inner_circle';
   const lookingForArr: string[] = Array.isArray(preferences?.lookingFor)
     ? preferences.lookingFor
     : [];
@@ -297,6 +303,27 @@ function MemberCard({
                 </Text>
               </View>
             )}
+            {hasVipBadge && (
+              <View
+                style={{
+                  backgroundColor: '#8B5CF622',
+                  borderRadius: 8,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#8B5CF6',
+                    fontSize: 10,
+                    fontWeight: '700',
+                    fontFamily: FONT.displaySemiBold,
+                  }}
+                >
+                  👑 VIP
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Orientation + gender */}
@@ -388,6 +415,10 @@ export default function MembersScreen() {
       ? params.returnTo
       : '/(tabs)/messages';
   const { hasToken } = useAuth();
+  const { data: membershipData } = trpc.membership.me.useQuery(undefined, {
+    enabled: hasToken,
+    staleTime: 60_000,
+  });
 
   // Search & filter state
   const [query, setQuery] = useState('');
@@ -469,6 +500,11 @@ export default function MembersScreen() {
       setLoadingMore(false);
     },
   } as any);
+
+  const membership = (membershipData as any)?.membership;
+  const searchLocked = String((error as any)?.message ?? '')
+    .toLowerCase()
+    .includes('membership required');
 
   const createConversation = trpc.messages.createConversation.useMutation({
     onSuccess: (convId: any) => {
@@ -1050,47 +1086,91 @@ export default function MembersScreen() {
           <ActivityIndicator color="#EC4899" size="large" />
         </View>
       ) : isError && displayMembers.length === 0 ? (
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
-        >
-          <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
-          <Text
-            style={{
-              color: t.text,
-              fontSize: 20,
-              fontWeight: '800',
-              textAlign: 'center',
-              marginTop: 14,
-            }}
+        searchLocked ? (
+          <View
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
           >
-            Could not load members
-          </Text>
-          <Text
-            style={{
-              color: t.muted,
-              fontSize: 14,
-              textAlign: 'center',
-              lineHeight: 21,
-              marginTop: 8,
-            }}
+            <Ionicons name="diamond-outline" size={42} color={theme.colors.primary} />
+            <Text
+              style={{
+                color: t.text,
+                fontSize: 20,
+                fontWeight: '800',
+                textAlign: 'center',
+                marginTop: 14,
+              }}
+            >
+              Upgrade to unlock search
+            </Text>
+            <Text
+              style={{
+                color: t.muted,
+                fontSize: 14,
+                textAlign: 'center',
+                lineHeight: 21,
+                marginTop: 8,
+              }}
+            >
+              {membership?.effectiveTier?.name
+                ? `${membership.effectiveTier.name} includes browsing, but member search needs Connect or higher.`
+                : 'Member search needs Connect or higher.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/membership' as any)}
+              style={{
+                marginTop: 18,
+                paddingHorizontal: 18,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: theme.colors.primary,
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '800' }}>View membership plans</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}
           >
-            {(error as any)?.message ?? 'Please try again in a moment.'}
-          </Text>
-          <TouchableOpacity
-            onPress={() => refetch()}
-            style={{
-              marginTop: 18,
-              paddingHorizontal: 18,
-              paddingVertical: 12,
-              borderRadius: 12,
-              backgroundColor: t.surface,
-              borderWidth: 1,
-              borderColor: t.border,
-            }}
-          >
-            <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+            <Ionicons name="cloud-offline-outline" size={42} color={t.muted} />
+            <Text
+              style={{
+                color: t.text,
+                fontSize: 20,
+                fontWeight: '800',
+                textAlign: 'center',
+                marginTop: 14,
+              }}
+            >
+              Could not load members
+            </Text>
+            <Text
+              style={{
+                color: t.muted,
+                fontSize: 14,
+                textAlign: 'center',
+                lineHeight: 21,
+                marginTop: 8,
+              }}
+            >
+              {(error as any)?.message ?? 'Please try again in a moment.'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => refetch()}
+              style={{
+                marginTop: 18,
+                paddingHorizontal: 18,
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: t.surface,
+                borderWidth: 1,
+                borderColor: t.border,
+              }}
+            >
+              <Text style={{ color: t.text, fontWeight: '800' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )
       ) : (
         <FlatList
           data={displayMembers}
