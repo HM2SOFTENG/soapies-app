@@ -1628,6 +1628,35 @@ export const appRouter = router({
             code: "FORBIDDEN",
             message: "You are not a participant in this conversation.",
           });
+
+        const conversation = await db.getConversationById(input.conversationId);
+        if (conversation?.type === "dm") {
+          const otherParticipant = (participants as any[]).find(
+            (p: any) => p.userId !== ctx.user.id
+          );
+          if (otherParticipant && ctx.user.role !== "admin") {
+            const [membership, otherUser, otherProfile] = await Promise.all([
+              getMembershipSnapshotForUser(ctx.user.id),
+              db.getUserById(otherParticipant.userId),
+              db.getProfileByUserId(otherParticipant.userId),
+            ]);
+            const hasPremiumDmAccess = Boolean(
+              membership.membership?.featureAccess?.relationship_tools
+            );
+            const canMessageThisRecipient =
+              otherUser?.role === "admin" ||
+              (otherProfile as any)?.memberRole === "angel";
+
+            if (!hasPremiumDmAccess && !canMessageThisRecipient) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message:
+                  "Upgrade to Connect to unlock direct messages 💗 You can still enjoy the community forum and event chats right now, and message admins or angels anytime.",
+              });
+            }
+          }
+        }
+
         const msgId = await db.createMessage({
           ...input,
           senderId: ctx.user.id,

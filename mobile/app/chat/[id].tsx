@@ -75,8 +75,17 @@ export default function ChatScreen() {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
+  const { data: membershipData } = trpc.membership.me.useQuery(undefined, {
+    staleTime: 30_000,
+  });
 
   const conversation = (conversations as any[])?.find((c: any) => c.id === conversationId);
+  const hasRelationshipTools = !!(membershipData as any)?.membership?.featureAccess?.relationship_tools;
+  const dmLockedForUpgrade =
+    conversation?.type === 'dm' &&
+    !hasRelationshipTools &&
+    conversation?.otherUserRole !== 'admin' &&
+    conversation?.otherUserMemberRole !== 'angel';
   const headerName =
     conversation?.name ??
     conversation?.participants
@@ -182,10 +191,14 @@ export default function ChatScreen() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSend = useCallback(() => {
+    if (dmLockedForUpgrade) {
+      router.push('/membership' as any);
+      return;
+    }
     const trimmed = text.trim();
     if (!trimmed) return;
     sendMutation.mutate({ conversationId, content: trimmed });
-  }, [text, conversationId, sendMutation]);
+  }, [text, conversationId, dmLockedForUpgrade, router, sendMutation]);
 
   const handleLongPress = useCallback((messageId: number) => {
     setSelectedMessageId(messageId);
@@ -373,11 +386,56 @@ export default function ChatScreen() {
             initialNumToRender={20}
             updateCellsBatchingPeriod={50}
             contentContainerStyle={styles.listContent}
+            ListHeaderComponent={
+              dmLockedForUpgrade ? (
+                <View style={styles.lockedDmWrap}>
+                  <LinearGradient
+                    colors={[alpha(colors.secondary, 0.22), alpha(colors.primary, 0.18), colors.card]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.lockedDmCard}
+                  >
+                    <View style={styles.lockedDmEyebrow}>
+                      <Ionicons name="sparkles" size={12} color={colors.primary} />
+                      <Text style={styles.lockedDmEyebrowText}>Private chemistry starts with Connect</Text>
+                    </View>
+                    <Text style={styles.lockedDmTitle}>Turn the spark into a private conversation 💗</Text>
+                    <Text style={styles.lockedDmBody}>
+                      Upgrade to Connect to flirt a little deeper, send private messages, and keep the
+                      chemistry flowing one-on-one. You still have full access to the community forum,
+                      event chats, and can message admins or angels anytime.
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => router.push('/membership' as any)}
+                      style={styles.lockedDmPrimaryBtn}
+                    >
+                      <LinearGradient
+                        colors={[colors.primary, colors.secondary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.lockedDmPrimaryBtnInner}
+                      >
+                        <Ionicons name="diamond" size={15} color={colors.white} />
+                        <Text style={styles.lockedDmPrimaryBtnText}>Unlock the private vibe</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <Text style={styles.lockedDmFootnote}>You’re still fully in the mix — the private after-hours energy lives in Connect.</Text>
+                  </LinearGradient>
+                </View>
+              ) : null
+            }
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>🌙</Text>
-                <Text style={styles.emptyTitle}>No messages yet</Text>
-                <Text style={styles.emptySubtitle}>Say hello! 👋</Text>
+                <Text style={styles.emptyEmoji}>{dmLockedForUpgrade ? '💌' : '🌙'}</Text>
+                <Text style={styles.emptyTitle}>
+                  {dmLockedForUpgrade ? 'Private chat preview' : 'No messages yet'}
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                  {dmLockedForUpgrade
+                    ? 'Upgrade to Connect to send the first flirty hello.'
+                    : 'Say hello! 👋'}
+                </Text>
               </View>
             }
           />
@@ -385,25 +443,37 @@ export default function ChatScreen() {
 
         {/* ── Input bar ── */}
         <View style={[styles.inputBar, { paddingBottom: insets.bottom + 10 }]}>
+          {dmLockedForUpgrade && (
+            <View style={styles.composerLockBar}>
+              <Ionicons name="lock-closed" size={14} color={colors.primary} />
+              <Text style={styles.composerLockBarText}>Upgrade to slip into their DMs</Text>
+            </View>
+          )}
+
           <TextInput
             value={text}
             onChangeText={setText}
-            placeholder="Message…"
+            placeholder={dmLockedForUpgrade ? 'Private messages unlock with Connect 💗' : 'Message…'}
             placeholderTextColor={colors.textMuted}
             multiline
             maxLength={2000}
-            style={styles.textInput}
+            editable={!dmLockedForUpgrade}
+            style={[styles.textInput, dmLockedForUpgrade && { opacity: 0.55 }]}
           />
           <Animated.View style={animatedSendStyle}>
             <TouchableOpacity
               onPress={handleSend}
-              disabled={!text.trim() || sendMutation.isPending}
+              disabled={(!text.trim() && !dmLockedForUpgrade) || sendMutation.isPending}
               activeOpacity={0.85}
             >
               {sendMutation.isPending ? (
                 <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
                   <ActivityIndicator color={colors.white} size="small" />
                 </View>
+              ) : dmLockedForUpgrade ? (
+                <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
+                  <Ionicons name="sparkles" size={18} color={colors.white} />
+                </LinearGradient>
               ) : text.trim() ? (
                 <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
                   <Ionicons name="send" size={18} color={colors.white} />
@@ -703,6 +773,99 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
     },
     listContent: {
       paddingVertical: 12,
+    },
+    lockedDmWrap: {
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      paddingBottom: 2,
+    },
+    lockedDmCard: {
+      borderRadius: 24,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: alpha(colors.primary, 0.24),
+      shadowColor: colors.shadow,
+      shadowOpacity: 0.14,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 6,
+      gap: 10,
+    },
+    lockedDmEyebrow: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: alpha(colors.primary, 0.12),
+      borderWidth: 1,
+      borderColor: alpha(colors.primary, 0.18),
+    },
+    lockedDmEyebrowText: {
+      color: colors.primary,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+    },
+    lockedDmTitle: {
+      color: colors.text,
+      fontSize: 22,
+      lineHeight: 26,
+      fontFamily: FONT.displayBold,
+      fontWeight: '800',
+    },
+    lockedDmBody: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      lineHeight: 21,
+    },
+    lockedDmPrimaryBtn: {
+      marginTop: 4,
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      overflow: 'hidden',
+      shadowColor: colors.primary,
+      shadowOpacity: 0.24,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+    },
+    lockedDmPrimaryBtnInner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    lockedDmPrimaryBtnText: {
+      color: colors.white,
+      fontSize: 14,
+      fontWeight: '800',
+      letterSpacing: 0.2,
+    },
+    lockedDmFootnote: {
+      color: colors.textMuted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
+    composerLockBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 10,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: alpha(colors.primary, 0.1),
+      borderWidth: 1,
+      borderColor: alpha(colors.primary, 0.18),
+    },
+    composerLockBarText: {
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: '700',
     },
     emptyState: {
       flex: 1,

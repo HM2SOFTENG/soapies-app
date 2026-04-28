@@ -1478,6 +1478,8 @@ export async function getUserConversations(userId: number) {
             displayName: profiles.displayName,
             avatarUrl: profiles.avatarUrl,
             name: users.name,
+            role: users.role,
+            memberRole: profiles.memberRole,
           })
           .from(conversationParticipants)
           .leftJoin(
@@ -1503,6 +1505,8 @@ export async function getUserConversations(userId: number) {
               `Chat #${conv.id}`,
             otherUserAvatarUrl: other.avatarUrl ?? null,
             otherUserId: other.userId,
+            otherUserRole: other.role ?? null,
+            otherUserMemberRole: other.memberRole ?? null,
           };
         }
       } catch {
@@ -1598,6 +1602,17 @@ export async function findExistingDm(
     .limit(1);
 
   return match[0]?.conversationId ?? null;
+}
+
+export async function getConversationById(conversationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 export async function createConversation(data: any, participantIds: number[]) {

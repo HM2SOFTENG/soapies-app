@@ -73,13 +73,18 @@ async function startServer() {
   });
 
   // API general limit — generous, just prevents abuse
+  // Important: skip auth procedures here because they already have their own stricter limiter.
   const apiLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Too many requests. Please slow down." },
-    skip: (req) => process.env.NODE_ENV === "development",
+    skip: (req) => {
+      if (process.env.NODE_ENV === "development") return true;
+      const path = String((req as any).path ?? req.url ?? "");
+      return path.startsWith("/auth.");
+    },
   });
 
   // Apply rate limits

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedScreen from '../components/ThemedScreen';
 import { useTheme } from '../lib/theme';
 import { trpc } from '../lib/trpc';
@@ -39,6 +40,7 @@ function formatStatus(status?: string | null) {
 export default function MembershipScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const membershipQuery = trpc.membership.me.useQuery();
   const checkoutMutation = trpc.membership.createCheckoutSession.useMutation();
   const portalMutation = trpc.membership.createBillingPortalSession.useMutation();
@@ -78,18 +80,26 @@ export default function MembershipScreen() {
   }
 
   return (
-    <ThemedScreen scroll contentContainerStyle={{ paddingBottom: 32 }}>
+    <ThemedScreen
+      scroll
+      edges={['top', 'bottom']}
+      contentContainerStyle={{ paddingBottom: 32 }}
+    >
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 20,
-          paddingTop: 18,
+          paddingTop: Math.max(insets.top, 12),
           paddingBottom: 8,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ padding: 4, zIndex: 2 }}
+        >
           <Ionicons name="chevron-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: '800' }}>
