@@ -37,6 +37,7 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [selectedMessageId, setSelectedMessageId] = useState<number | null>(null);
   const [showReactions, setShowReactions] = useState(false);
+  const lastMarkedConversationId = useRef<number | null>(null);
   const sendScale = useRef(new Animated.Value(0.85)).current;
   const animatedSendStyle = useMemo(() => ({ transform: [{ scale: sendScale }] }), [sendScale]);
 
@@ -176,10 +177,13 @@ export default function ChatScreen() {
     ]);
   }
 
-  // Mark conversation as read on mount
+  // Mark conversation as read once per conversation open
   React.useEffect(() => {
-    if (conversationId) markRead.mutate({ conversationId });
-  }, [conversationId, markRead]);
+    if (!conversationId) return;
+    if (lastMarkedConversationId.current === conversationId) return;
+    lastMarkedConversationId.current = conversationId;
+    markRead.mutate({ conversationId });
+  }, [conversationId]);
 
   const msgList = useMemo(() => (messages as any[]) ?? [], [messages]);
 
