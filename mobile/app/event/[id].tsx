@@ -49,6 +49,11 @@ export default function EventDetailScreen() {
   const [isQueerPlay, setIsQueerPlay] = useState(false);
   const [isVolunteer, setIsVolunteer] = useState(false);
   const [useCredits, setUseCredits] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
+  const [promoFeedback, setPromoFeedback] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>({});
 
   // Waiver gate (P1-4 / ITEM-025). Bump this when the waiver text materially changes.
   const WAIVER_VERSION = '2026-04';
@@ -70,6 +75,10 @@ export default function EventDetailScreen() {
   const { data: creditBalanceData } = trpc.credits.balance.useQuery(undefined, {
     staleTime: 60_000,
   });
+  const { data: eventAddons } = trpc.eventAddons.list.useQuery(
+    { eventId: Number(id) },
+    { enabled: !!id, staleTime: 60_000 }
+  );
   // Credits stored as dollars (e.g. 105.00 = $105.00)
   const creditBalanceDollars =
     typeof creditBalanceData === 'number'
@@ -403,18 +412,74 @@ export default function EventDetailScreen() {
     }
   }
 
+  const activeAddons = ((eventAddons as any[]) ?? []).filter(
+    (addon: any) => addon?.isActive !== false
+  );
+  const addonSubtotal = activeAddons.reduce((sum: number, addon: any) => {
+    const qty = selectedAddons[Number(addon.id)] ?? 0;
+    return sum + parseFloat(String(addon.price ?? 0)) * qty;
+  }, 0);
+  const promoDiscount = appliedPromo
+    ? Math.min(
+        getTicketPriceDollars(ticketType) + addonSubtotal,
+        appliedPromo.discountType === 'percentage'
+          ? (getTicketPriceDollars(ticketType) + addonSubtotal) *
+              (parseFloat(String(appliedPromo.discountValue ?? 0)) / 100)
+          : parseFloat(String(appliedPromo.discountValue ?? 0))
+      )
+    : 0;
+  const subtotalBeforeCredits = Math.max(
+    0,
+    getTicketPriceDollars(ticketType) + addonSubtotal - promoDiscount
+  );
+
   function getPriceForTicketType(t: TicketType) {
     const priceDollars = getTicketPriceDollars(t);
     if (priceDollars === 0) return 'Free';
-    if (useCredits && creditBalanceDollars > 0) {
-      const creditsApplied = Math.min(creditBalanceDollars, priceDollars);
-      const remaining = priceDollars - creditsApplied;
+    if (useCredits && t === ticketType && creditBalanceDollars > 0) {
+      const creditsApplied = Math.min(creditBalanceDollars, subtotalBeforeCredits);
+      const remaining = subtotalBeforeCredits - creditsApplied;
       const creditsDisplay = `$${creditsApplied.toFixed(2)} credits`;
       return remaining === 0
         ? `Free (${creditsDisplay})`
         : `$${remaining.toFixed(2)} + ${creditsDisplay}`;
     }
     return `$${priceDollars.toFixed(0)}`;
+  }
+
+  function toggleAddon(addonId: number) {
+    setSelectedAddons((prev) => {
+      const next = { ...prev };
+      if (next[addonId]) delete next[addonId];
+      else next[addonId] = 1;
+      return next;
+    });
+  }
+
+  async function applyPromoCode() {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code) {
+      setAppliedPromo(null);
+      setPromoFeedback(null);
+      return;
+    }
+    try {
+      setIsApplyingPromo(true);
+      const result = await utils.promoCodes.validate.fetch({ code, eventId: Number(id) });
+      if (!(result as any)?.valid) {
+        setAppliedPromo(null);
+        setPromoFeedback((result as any)?.reason ?? 'Invalid promo code');
+        return;
+      }
+      setAppliedPromo((result as any).promo);
+      setPromoCodeInput(code);
+      setPromoFeedback(`Promo applied: ${code}`);
+    } catch (error: any) {
+      setAppliedPromo(null);
+      setPromoFeedback(error?.message ?? 'Could not validate promo code');
+    } finally {
+      setIsApplyingPromo(false);
+    }
   }
 
   function handleVolunteerToggle() {
@@ -435,10 +500,9 @@ export default function EventDetailScreen() {
   // Actual reservation mutation call — separated so the waiver gate can
   // defer it, then re-invoke post-sign without re-entering the modal flow.
   function doReserve() {
-    const priceDollars = ev ? getTicketPriceDollars(ticketType) : 0;
+    const priceDollars = subtotalBeforeCredits;
     const creditsApplied = useCredits ? Math.min(creditBalanceDollars, priceDollars) : 0;
     const remaining = priceDollars - creditsApplied;
-    // Server expects creditsUsed in cents (multiply back)
     const creditsUsedCents = Math.round(creditsApplied * 100);
     reserveMutation.mutate({
       eventId: Number(id),
@@ -451,6 +515,11 @@ export default function EventDetailScreen() {
       isQueerPlay,
       orientationSignal: isQueerPlay ? 'queer' : 'straight',
       isVolunteer,
+      promoCode: appliedPromo?.code ?? undefined,
+      addonSelections: Object.entries(selectedAddons).map(([addonId, quantity]) => ({
+        addonId: Number(addonId),
+        quantity: Number(quantity),
+      })),
     });
   }
 
@@ -474,6 +543,10 @@ export default function EventDetailScreen() {
     setPartnerSearch('');
     setPartnerManuallyCleared(false);
     setShowPartnerPicker(false);
+    setPromoCodeInput('');
+    setAppliedPromo(null);
+    setPromoFeedback(null);
+    setSelectedAddons({});
     setShowTicketModal(true);
   }
 
@@ -1213,6 +1286,213 @@ export default function EventDetailScreen() {
                     </View>
                   </TouchableOpacity>
                 )}
+
+                {activeAddons.length > 0 && (
+                  <View
+                    style={{
+                      backgroundColor: theme.colors.card,
+                      borderRadius: 12,
+                      padding: 14,
+                      borderColor: theme.colors.border,
+                      borderWidth: 1,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.text, fontWeight: '700', marginBottom: 6 }}>
+                      Add-ons
+                    </Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12, marginBottom: 10 }}>
+                      Optional upgrades for this reservation.
+                    </Text>
+                    {activeAddons.map((addon: any) => {
+                      const qty = selectedAddons[Number(addon.id)] ?? 0;
+                      return (
+                        <TouchableOpacity
+                          key={addon.id}
+                          onPress={() => toggleAddon(Number(addon.id))}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: theme.colors.page,
+                            borderRadius: 10,
+                            padding: 12,
+                            borderColor: qty > 0 ? theme.colors.pink : theme.colors.border,
+                            borderWidth: 1,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: theme.colors.text, fontWeight: '600' }}>
+                              {addon.name}
+                            </Text>
+                            {addon.description ? (
+                              <Text
+                                style={{
+                                  color: theme.colors.textMuted,
+                                  fontSize: 12,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {addon.description}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Text
+                            style={{ color: theme.colors.pink, fontWeight: '700', marginRight: 10 }}
+                          >
+                            ${parseFloat(String(addon.price ?? 0)).toFixed(2)}
+                          </Text>
+                          {qty > 0 ? (
+                            <TouchableOpacity
+                              onPress={() =>
+                                setSelectedAddons((prev) => ({
+                                  ...prev,
+                                  [Number(addon.id)]: Math.min(
+                                    addon.maxQuantity ?? 10,
+                                    (prev[Number(addon.id)] ?? 1) + 1
+                                  ),
+                                }))
+                              }
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 6,
+                                borderRadius: 8,
+                                backgroundColor: alpha(theme.colors.pink, 0.12),
+                              }}
+                            >
+                              <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>
+                                Qty {qty}
+                              </Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text style={{ color: theme.colors.text, fontWeight: '700', marginBottom: 6 }}>
+                    Promo Code
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      value={promoCodeInput}
+                      onChangeText={(text) => {
+                        setPromoCodeInput(text.toUpperCase());
+                        if (promoFeedback) setPromoFeedback(null);
+                      }}
+                      placeholder="Enter code"
+                      placeholderTextColor={theme.colors.textMuted}
+                      autoCapitalize="characters"
+                      style={{
+                        flex: 1,
+                        backgroundColor: theme.colors.page,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: theme.colors.border,
+                        color: theme.colors.text,
+                        paddingHorizontal: 12,
+                        paddingVertical: 12,
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={applyPromoCode}
+                      style={{
+                        paddingHorizontal: 14,
+                        borderRadius: 10,
+                        backgroundColor: alpha(theme.colors.pink, 0.12),
+                        borderWidth: 1,
+                        borderColor: alpha(theme.colors.pink, 0.25),
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.pink, fontWeight: '700' }}>
+                        {isApplyingPromo ? '...' : 'Apply'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {promoFeedback ? (
+                    <Text
+                      style={{
+                        color: appliedPromo ? theme.colors.success : theme.colors.danger,
+                        fontSize: 12,
+                        marginTop: 8,
+                      }}
+                    >
+                      {promoFeedback}
+                    </Text>
+                  ) : null}
+                </View>
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 12,
+                    padding: 14,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    marginBottom: 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      marginBottom: 6,
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Ticket</Text>
+                    <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                      ${getTicketPriceDollars(ticketType).toFixed(2)}
+                    </Text>
+                  </View>
+                  {addonSubtotal > 0 && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>Add-ons</Text>
+                      <Text style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+                        ${addonSubtotal.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  {promoDiscount > 0 && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        Promo discount
+                      </Text>
+                      <Text style={{ color: theme.colors.success, fontSize: 12 }}>
+                        - ${promoDiscount.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: theme.colors.text, fontWeight: '800' }}>Subtotal</Text>
+                    <Text style={{ color: theme.colors.text, fontWeight: '800' }}>
+                      ${subtotalBeforeCredits.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
 
                 {/* Volunteer add-on */}
                 <TouchableOpacity

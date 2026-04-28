@@ -917,6 +917,15 @@ export const appRouter = router({
           partnerUserId: z.number().optional(),
           testResultUrl: z.string().optional(),
           creditsUsed: z.number().optional(), // cents to apply from credit balance
+          promoCode: z.string().trim().max(64).optional(),
+          addonSelections: z
+            .array(
+              z.object({
+                addonId: z.number(),
+                quantity: z.number().int().min(1).max(25),
+              })
+            )
+            .optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -985,6 +994,8 @@ export const appRouter = router({
           ...input,
           userId: ctx.user.id,
           creditsUsedCents: creditsToUse,
+          promoCode: input.promoCode,
+          addonSelections: input.addonSelections,
           notes: input.isVolunteer ? "volunteer" : undefined,
         });
 
@@ -1339,18 +1350,9 @@ export const appRouter = router({
           });
         }
 
-        // Ticket price in cents — use live event prices when available
-        const amounts: Record<string, number> = {
-          single_female: Math.round(
-            parseFloat(event.priceSingleFemale ?? "40") * 100
-          ),
-          couple: Math.round(parseFloat(event.priceCouple ?? "130") * 100),
-          single_male: Math.round(
-            parseFloat(event.priceSingleMale ?? "145") * 100
-          ),
-          volunteer: 0,
-        };
-        const fullAmount = amounts[res.ticketType ?? ""] ?? 0;
+        const reservationSubtotal = Math.round(
+          parseFloat(String(res.totalAmount ?? "0")) * 100
+        );
         const creditsApplied = Math.round(
           parseFloat(String(res.creditsUsed ?? "0")) * 100
         );
@@ -1359,7 +1361,7 @@ export const appRouter = router({
         );
         const amount = Math.max(
           0,
-          fullAmount - creditsApplied - amountAlreadyPaid
+          reservationSubtotal - creditsApplied - amountAlreadyPaid
         );
         if (amount === 0)
           throw new TRPCError({
@@ -2041,10 +2043,12 @@ export const appRouter = router({
         return db.getEventPromoCodes(input.eventId);
       }),
     validate: protectedProcedure
-      .input(z.object({ code: z.string() }))
+      .input(z.object({ code: z.string(), eventId: z.number().optional() }))
       .query(async ({ input }) => {
         const promo = await db.getPromoCodeByCode(input.code);
         if (!promo) return { valid: false, reason: "Code not found" };
+        if (input.eventId && Number(promo.eventId) !== Number(input.eventId))
+          return { valid: false, reason: "Code is not valid for this event" };
         if (!promo.isActive)
           return { valid: false, reason: "Code is inactive" };
         if (promo.maxUses && (promo.currentUses ?? 0) >= promo.maxUses)

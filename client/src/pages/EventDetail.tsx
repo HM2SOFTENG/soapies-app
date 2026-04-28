@@ -1,4 +1,4 @@
-import { createEvent } from 'ics';
+import { createEvent } from "ics";
 import PageWrapper from "@/components/PageWrapper";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useProfileStatus } from "@/hooks/useProfileStatus";
@@ -7,15 +7,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Calendar, MapPin, Users, Clock, ArrowLeft, Loader2, Ticket,
-  Star, Minus, Plus, ShoppingCart, Sparkles, Heart, Shield,
-  ChevronDown, PartyPopper, Music, Waves, X, Check, Copy, Share2,
-  AlertCircle, CreditCard, DollarSign, AlertTriangle, BadgeCheck,
-  ChevronRight, Search, FlaskConical,
+  Calendar,
+  MapPin,
+  Users,
+  Clock,
+  ArrowLeft,
+  Loader2,
+  Ticket,
+  Star,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Sparkles,
+  Heart,
+  Shield,
+  ChevronDown,
+  PartyPopper,
+  Music,
+  Waves,
+  X,
+  Check,
+  Copy,
+  Share2,
+  AlertCircle,
+  CreditCard,
+  DollarSign,
+  AlertTriangle,
+  BadgeCheck,
+  ChevronRight,
+  Search,
+  FlaskConical,
 } from "lucide-react";
 import { createEvent as createIcsEvent } from "ics";
 import { Link, useParams, useLocation } from "wouter";
-import { format, isFuture, isPast, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from "date-fns";
+import {
+  format,
+  isFuture,
+  isPast,
+  differenceInDays,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInSeconds,
+} from "date-fns";
 import { toast } from "sonner";
 import { getLoginUrl } from "@/const";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -60,7 +93,8 @@ const TICKET_TYPES = [
     bgColor: "bg-amber-50",
     borderColor: "border-amber-300",
     textColor: "text-amber-700",
-    description: "Help run the event. Volunteer duties required — funds may be withheld if duties not fulfilled.",
+    description:
+      "Help run the event. Volunteer duties required — funds may be withheld if duties not fulfilled.",
     isVolunteer: true,
   },
 ];
@@ -68,8 +102,10 @@ const TICKET_TYPES = [
 // ─── EVENT TYPE ICONS ───────────────────────────────────────────────────────
 function getEventTypeIcon(title: string) {
   const lower = title.toLowerCase();
-  if (lower.includes("rave") || lower.includes("glow")) return <Music className="h-5 w-5" />;
-  if (lower.includes("beach") || lower.includes("pool")) return <Waves className="h-5 w-5" />;
+  if (lower.includes("rave") || lower.includes("glow"))
+    return <Music className="h-5 w-5" />;
+  if (lower.includes("beach") || lower.includes("pool"))
+    return <Waves className="h-5 w-5" />;
   return <PartyPopper className="h-5 w-5" />;
 }
 
@@ -162,11 +198,15 @@ function EventHero({ event }: { event: any }) {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full border border-white/30">
               {getEventTypeIcon(event.title)}
-              <span className="text-sm font-bold text-white">{getEventTypeLabel(event.title)}</span>
+              <span className="text-sm font-bold text-white">
+                {getEventTypeLabel(event.title)}
+              </span>
             </div>
             {!isFuture(new Date(event.startDate)) && (
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 backdrop-blur-sm rounded-full border border-red-500/50">
-                <span className="text-sm font-bold text-red-100">Past Event</span>
+                <span className="text-sm font-bold text-red-100">
+                  Past Event
+                </span>
               </div>
             )}
           </motion.div>
@@ -192,7 +232,9 @@ function EventHero({ event }: { event: any }) {
           >
             <div className="flex items-center gap-2 text-white/80">
               <Calendar className="h-5 w-5 text-pink-300" />
-              <span className="text-sm font-medium">{format(new Date(event.startDate), "MMM d, yyyy · h:mm a")}</span>
+              <span className="text-sm font-medium">
+                {format(new Date(event.startDate), "MMM d, yyyy · h:mm a")}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
               <MapPin className="h-5 w-5 text-pink-300" />
@@ -241,8 +283,12 @@ function ConfettiPiece({ delay, color }: { delay: number; color: string }) {
 
 function ConfettiEffect() {
   const colors = [
-    "bg-pink-400", "bg-purple-400", "bg-yellow-400",
-    "bg-blue-400", "bg-green-400", "bg-rose-400",
+    "bg-pink-400",
+    "bg-purple-400",
+    "bg-yellow-400",
+    "bg-blue-400",
+    "bg-green-400",
+    "bg-rose-400",
   ];
   return (
     <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
@@ -258,7 +304,13 @@ function ConfettiEffect() {
 }
 
 // ─── RESERVATION FLOW ───────────────────────────────────────────────────────
-type ReservationStep = "ticket" | "orientation" | "partner" | "testresult" | "payment" | "confirm";
+type ReservationStep =
+  | "ticket"
+  | "orientation"
+  | "partner"
+  | "testresult"
+  | "payment"
+  | "confirm";
 type PaymentMethod = "stripe" | "venmo" | "credits" | "volunteer";
 
 interface ReservationFlowProps {
@@ -271,35 +323,82 @@ interface ReservationFlowProps {
     isQueerPlay?: boolean;
     partnerUserId?: number;
     testResultUrl?: string;
+    promoCode?: string;
+    addonSelections?: { addonId: number; quantity: number }[];
   }) => void;
   isSubmitting: boolean;
 }
 
-function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProps) {
+function ReservationFlow({
+  event,
+  onSuccess,
+  isSubmitting,
+}: ReservationFlowProps) {
   const [step, setStep] = useState<ReservationStep>("ticket");
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(
+    null
+  );
   const [volunteerAgreed, setVolunteerAgreed] = useState(false);
-  const [orientationSignal, setOrientationSignal] = useState<"straight" | "queer" | null>(null);
+  const [orientationSignal, setOrientationSignal] = useState<
+    "straight" | "queer" | null
+  >(null);
   const [partnerSearch, setPartnerSearch] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<any | null>(null);
   const [testResultUrl, setTestResultUrl] = useState("");
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
+  const [promoFeedback, setPromoFeedback] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>(
+    {}
+  );
 
   const { data: settings } = trpc.settings.get.useQuery();
+  const trpcUtils = trpc.useUtils();
   const { isAuthenticated } = useAuth();
-  const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
-  const { data: myProfile } = trpc.profile.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const { data: me } = trpc.auth.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
+  });
+  const { data: myProfile } = trpc.profile.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
+  });
   const { data: creditBalance } = trpc.credits.balance.useQuery(undefined, {
     enabled: isAuthenticated,
     retry: false,
   });
+  const { data: eventAddons } = trpc.eventAddons.list.useQuery(
+    { eventId: Number(event.id) },
+    { enabled: Number.isFinite(Number(event.id)) }
+  );
 
   // Gender-based ticket filtering
   // Males, trans males, non-binary → single_male, volunteer, couple
   // Women, transwomen → single_female, volunteer, couple
   const userGender = (myProfile?.gender || "").toLowerCase().trim();
-  const isMaleGender = ["male", "man", "trans male", "transmale", "trans man", "transman", "non-binary", "nonbinary", "non binary", "enby"].includes(userGender);
-  const isFemaleGender = ["female", "woman", "trans female", "transfemale", "trans woman", "transwoman", "transgender woman"].includes(userGender);
+  const isMaleGender = [
+    "male",
+    "man",
+    "trans male",
+    "transmale",
+    "trans man",
+    "transman",
+    "non-binary",
+    "nonbinary",
+    "non binary",
+    "enby",
+  ].includes(userGender);
+  const isFemaleGender = [
+    "female",
+    "woman",
+    "trans female",
+    "transfemale",
+    "trans woman",
+    "transwoman",
+    "transgender woman",
+  ].includes(userGender);
   // If gender is unknown/unset, show all tickets (don't block purchase)
   const genderKnown = isMaleGender || isFemaleGender;
 
@@ -309,7 +408,9 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
       : ["single_female", "volunteer", "couple"]
     : ["single_female", "single_male", "couple", "volunteer"]; // all if unknown
 
-  const availableTicketTypes = TICKET_TYPES.filter(t => allowedTicketIds.includes(t.id));
+  const availableTicketTypes = TICKET_TYPES.filter(t =>
+    allowedTicketIds.includes(t.id)
+  );
   const { data: partnerResults } = trpc.profile.search.useQuery(
     { query: partnerSearch },
     { enabled: partnerSearch.length >= 2 }
@@ -317,24 +418,94 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@kellen-brennan";
 
-  const getTicketPrice = useCallback((ticketId: string) => {
-    if (ticketId === "single_female") return parseFloat(event.priceSingleFemale || "0");
-    if (ticketId === "single_male") return parseFloat(event.priceSingleMale || "0");
-    if (ticketId === "couple") return parseFloat(event.priceCouple || "0");
-    if (ticketId === "volunteer") return 0;
-    return 0;
-  }, [event]);
+  const getTicketPrice = useCallback(
+    (ticketId: string) => {
+      if (ticketId === "single_female")
+        return parseFloat(event.priceSingleFemale || "0");
+      if (ticketId === "single_male")
+        return parseFloat(event.priceSingleMale || "0");
+      if (ticketId === "couple") return parseFloat(event.priceCouple || "0");
+      if (ticketId === "volunteer") return 0;
+      return 0;
+    },
+    [event]
+  );
 
   const ticketPrice = selectedTicket ? getTicketPrice(selectedTicket) : 0;
+  const activeAddons = ((eventAddons as any[]) ?? []).filter(
+    (addon: any) => addon?.isActive !== false
+  );
+  const addonSubtotal = activeAddons.reduce((sum: number, addon: any) => {
+    const qty = selectedAddons[Number(addon.id)] ?? 0;
+    return sum + parseFloat(String(addon.price ?? 0)) * qty;
+  }, 0);
+  const promoDiscount = appliedPromo
+    ? Math.min(
+        ticketPrice + addonSubtotal,
+        appliedPromo.discountType === "percentage"
+          ? (ticketPrice + addonSubtotal) *
+              (parseFloat(String(appliedPromo.discountValue ?? 0)) / 100)
+          : parseFloat(String(appliedPromo.discountValue ?? 0))
+      )
+    : 0;
+  const finalPrice = Math.max(0, ticketPrice + addonSubtotal - promoDiscount);
   // For volunteer, base price is what would have been charged (for display)
   const baseTicketPrice = useMemo(() => {
     // Show what the "equivalent" ticket would cost (use single_female as base for volunteer)
     return parseFloat(event.priceSingleFemale || "0");
   }, [event]);
 
-  const creditBalanceNum = typeof creditBalance === "number" ? creditBalance : 0;
-  const canPayWithCredits = creditBalanceNum >= ticketPrice;
+  const creditBalanceNum =
+    typeof creditBalance === "number" ? creditBalance : 0;
+  const canPayWithCredits = creditBalanceNum >= finalPrice;
   const isVolunteerTicket = selectedTicket === "volunteer";
+
+  function toggleAddon(addonId: number) {
+    setSelectedAddons(prev => {
+      const next = { ...prev };
+      if (next[addonId]) delete next[addonId];
+      else next[addonId] = 1;
+      return next;
+    });
+  }
+
+  function updateAddonQuantity(addonId: number, quantity: number) {
+    setSelectedAddons(prev => {
+      const next = { ...prev };
+      if (quantity <= 0) delete next[addonId];
+      else next[addonId] = quantity;
+      return next;
+    });
+  }
+
+  async function applyPromoCode() {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code) {
+      setAppliedPromo(null);
+      setPromoFeedback(null);
+      return;
+    }
+    try {
+      setIsApplyingPromo(true);
+      const result = await trpcUtils.promoCodes.validate.fetch({
+        code,
+        eventId: Number(event.id),
+      });
+      if (!(result as any)?.valid) {
+        setAppliedPromo(null);
+        setPromoFeedback((result as any)?.reason ?? "Invalid promo code");
+        return;
+      }
+      setAppliedPromo((result as any).promo);
+      setPromoCodeInput(code);
+      setPromoFeedback(`Promo applied: ${code}`);
+    } catch (error: any) {
+      setAppliedPromo(null);
+      setPromoFeedback(error?.message ?? "Could not validate promo code");
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  }
 
   function handleSelectTicket(ticketId: string) {
     setSelectedTicket(ticketId);
@@ -343,6 +514,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
     setOrientationSignal(null);
     setSelectedPartner(null);
     setTestResultUrl("");
+    setPromoCodeInput("");
+    setAppliedPromo(null);
+    setPromoFeedback(null);
+    setSelectedAddons({});
     // Volunteer skips orientation step
     if (ticketId === "volunteer") {
       setStep("payment");
@@ -361,7 +536,7 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
     let paymentStatus: "pending" | "paid" = "pending";
     if (selectedPayment === "credits") paymentStatus = "paid";
 
-    const totalAmount = isVolunteerTicket ? "0.00" : ticketPrice.toFixed(2);
+    const totalAmount = isVolunteerTicket ? "0.00" : finalPrice.toFixed(2);
 
     onSuccess({
       ticketType: selectedTicket,
@@ -371,6 +546,13 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
       isQueerPlay: orientationSignal === "queer",
       partnerUserId: selectedPartner?.userId ?? undefined,
       testResultUrl: testResultUrl || undefined,
+      promoCode: appliedPromo?.code ?? undefined,
+      addonSelections: Object.entries(selectedAddons).map(
+        ([addonId, quantity]) => ({
+          addonId: Number(addonId),
+          quantity: Number(quantity),
+        })
+      ),
     });
   }
 
@@ -385,10 +567,12 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
           <Ticket className="h-6 w-6 text-pink-500" /> Choose Your Ticket
         </h2>
-        <p className="text-gray-500 text-sm mb-6">Select the ticket type that applies to you</p>
+        <p className="text-gray-500 text-sm mb-6">
+          Select the ticket type that applies to you
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {availableTicketTypes.map((ticket) => {
+          {availableTicketTypes.map(ticket => {
             const price = getTicketPrice(ticket.id);
             return (
               <motion.button
@@ -410,19 +594,28 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   </div>
                 )}
                 <div className="text-3xl mb-2">{ticket.emoji}</div>
-                <h3 className={`font-bold text-base ${ticket.textColor}`}>{ticket.label}</h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">{ticket.description}</p>
+                <h3 className={`font-bold text-base ${ticket.textColor}`}>
+                  {ticket.label}
+                </h3>
+                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                  {ticket.description}
+                </p>
                 {ticket.isVolunteer ? (
                   <div className="mt-3">
-                    <span className="text-2xl font-black text-green-600">Free</span>
+                    <span className="text-2xl font-black text-green-600">
+                      Free
+                    </span>
                     {baseTicketPrice > 0 && (
                       <p className="text-xs text-amber-600 font-medium mt-1">
-                        ${baseTicketPrice.toFixed(2)} credited back after completion
+                        ${baseTicketPrice.toFixed(2)} credited back after
+                        completion
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-2xl font-black text-gray-800 mt-3">${price.toFixed(2)}</p>
+                  <p className="text-2xl font-black text-gray-800 mt-3">
+                    ${price.toFixed(2)}
+                  </p>
                 )}
                 <div className="mt-3 flex items-center gap-1 text-pink-500">
                   <span className="text-xs font-semibold">Select</span>
@@ -445,7 +638,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
       >
         <button
-          onClick={() => { setStep("ticket"); setSelectedTicket(null); }}
+          onClick={() => {
+            setStep("ticket");
+            setSelectedTicket(null);
+          }}
           className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Back to ticket selection
@@ -453,7 +649,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
           <Heart className="h-6 w-6 text-pink-500" /> Play Style
         </h2>
-        <p className="text-gray-500 text-sm mb-6">Let us know your play orientation. This helps us assign your wristband color.</p>
+        <p className="text-gray-500 text-sm mb-6">
+          Let us know your play orientation. This helps us assign your wristband
+          color.
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Straight */}
@@ -507,7 +706,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
       >
         <button
-          onClick={() => { setStep("orientation"); setSelectedPartner(null); }}
+          onClick={() => {
+            setStep("orientation");
+            setSelectedPartner(null);
+          }}
           className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Back
@@ -515,13 +717,16 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
           <Users className="h-6 w-6 text-pink-500" /> Find Your Partner
         </h2>
-        <p className="text-gray-500 text-sm mb-6">Search for your partner by display name. Partner must be opposite gender.</p>
+        <p className="text-gray-500 text-sm mb-6">
+          Search for your partner by display name. Partner must be opposite
+          gender.
+        </p>
 
         <div className="relative mb-4">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
             value={partnerSearch}
-            onChange={(e) => setPartnerSearch(e.target.value)}
+            onChange={e => setPartnerSearch(e.target.value)}
             placeholder="Search by display name..."
             className="pl-12 rounded-xl border-pink-100"
           />
@@ -544,15 +749,25 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
               >
                 <div className="flex items-center gap-3">
                   {p.avatarUrl ? (
-                    <img src={p.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    <img
+                      src={p.avatarUrl}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">{p.displayName?.[0] || "?"}</span>
+                      <span className="text-white font-bold text-sm">
+                        {p.displayName?.[0] || "?"}
+                      </span>
                     </div>
                   )}
                   <div>
-                    <p className="font-semibold text-gray-800">{p.displayName}</p>
-                    <p className="text-xs text-gray-500 capitalize">{p.gender || "No gender listed"}</p>
+                    <p className="font-semibold text-gray-800">
+                      {p.displayName}
+                    </p>
+                    <p className="text-xs text-gray-500 capitalize">
+                      {p.gender || "No gender listed"}
+                    </p>
                   </div>
                   {selectedPartner?.id === p.id && (
                     <Check className="h-5 w-5 text-pink-500 ml-auto" />
@@ -563,9 +778,12 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
           </div>
         )}
 
-        {partnerSearch.length >= 2 && (!partnerResults || partnerResults.length === 0) && (
-          <p className="text-sm text-gray-500 text-center py-4">No members found</p>
-        )}
+        {partnerSearch.length >= 2 &&
+          (!partnerResults || partnerResults.length === 0) && (
+            <p className="text-sm text-gray-500 text-center py-4">
+              No members found
+            </p>
+          )}
 
         <div className="flex gap-3 mt-4">
           <Button
@@ -596,29 +814,40 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50 mb-8"
       >
         <button
-          onClick={() => setStep(selectedTicket === "couple" ? "partner" : "orientation")}
+          onClick={() =>
+            setStep(selectedTicket === "couple" ? "partner" : "orientation")
+          }
           className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <h2 className="font-display text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
           <FlaskConical className="h-6 w-6 text-blue-500" /> Upload Test Result
-          <span className="text-sm font-normal text-gray-400 ml-1">(Optional)</span>
+          <span className="text-sm font-normal text-gray-400 ml-1">
+            (Optional)
+          </span>
         </h2>
         <p className="text-gray-500 text-sm mb-6">
-          Submit recent STI test results for a <span className="font-bold text-blue-600">Blue Wristband 💙</span>. Results must be within 30 days of the event.
+          Submit recent STI test results for a{" "}
+          <span className="font-bold text-blue-600">Blue Wristband 💙</span>.
+          Results must be within 30 days of the event.
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Test Result URL</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              Test Result URL
+            </label>
             <Input
               value={testResultUrl}
-              onChange={(e) => setTestResultUrl(e.target.value)}
+              onChange={e => setTestResultUrl(e.target.value)}
               placeholder="https://drive.google.com/... or similar"
               className="rounded-xl border-blue-100 focus:border-blue-300"
             />
-            <p className="text-xs text-gray-400 mt-2">Upload your test results to Google Drive, Dropbox, or similar and paste the link here.</p>
+            <p className="text-xs text-gray-400 mt-2">
+              Upload your test results to Google Drive, Dropbox, or similar and
+              paste the link here.
+            </p>
           </div>
 
           {testResultUrl && (
@@ -630,7 +859,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
               <p className="text-sm font-semibold text-blue-700 flex items-center gap-2">
                 <Check className="h-4 w-4" /> Test result URL added
               </p>
-              <p className="text-xs text-blue-600 mt-1">Our team will review your submission and approve your Blue Wristband 💙</p>
+              <p className="text-xs text-blue-600 mt-1">
+                Our team will review your submission and approve your Blue
+                Wristband 💙
+              </p>
             </motion.div>
           )}
         </div>
@@ -666,26 +898,157 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
       >
         {/* Back button */}
         <button
-          onClick={() => { isVolunteerTicket ? setStep("ticket") : setStep("testresult"); }}
+          onClick={() => {
+            isVolunteerTicket ? setStep("ticket") : setStep("testresult");
+          }}
           className="flex items-center gap-1 text-sm text-pink-500 font-semibold mb-5 hover:text-pink-600 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> {isVolunteerTicket ? "Back to ticket selection" : "Back"}
+          <ArrowLeft className="h-4 w-4" />{" "}
+          {isVolunteerTicket ? "Back to ticket selection" : "Back"}
         </button>
 
         {/* Summary */}
-        <div className={`p-4 rounded-2xl ${ticket.bgColor} border ${ticket.borderColor} mb-6`}>
+        <div
+          className={`p-4 rounded-2xl ${ticket.bgColor} border ${ticket.borderColor} mb-6`}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected Ticket</p>
-              <p className="font-bold text-gray-800 mt-1">{ticket.emoji} {ticket.label}</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                Selected Ticket
+              </p>
+              <p className="font-bold text-gray-800 mt-1">
+                {ticket.emoji} {ticket.label}
+              </p>
             </div>
             <div className="text-right">
               <p className="font-black text-2xl text-gray-800">
-                {isVolunteerTicket ? "Free" : `$${ticketPrice.toFixed(2)}`}
+                {isVolunteerTicket ? "Free" : `$${finalPrice.toFixed(2)}`}
               </p>
             </div>
           </div>
         </div>
+
+        {!isVolunteerTicket && (
+          <div className="space-y-4 mb-6">
+            {activeAddons.length > 0 && (
+              <div className="p-4 rounded-2xl border border-pink-100 bg-white space-y-3">
+                <div>
+                  <p className="font-bold text-gray-800">Add-ons</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Boost this reservation with extras.
+                  </p>
+                </div>
+                {activeAddons.map((addon: any) => {
+                  const qty = selectedAddons[Number(addon.id)] ?? 0;
+                  return (
+                    <div
+                      key={addon.id}
+                      className="flex items-center gap-3 rounded-xl border border-gray-100 p-3"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleAddon(Number(addon.id))}
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center ${qty > 0 ? "border-pink-500 bg-pink-500 text-white" : "border-gray-300 bg-white text-transparent"}`}
+                      >
+                        <Check className="h-3 w-3" />
+                      </button>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">
+                          {addon.name}
+                        </p>
+                        {addon.description ? (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {addon.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <p className="text-sm font-bold text-pink-600 whitespace-nowrap">
+                        ${parseFloat(String(addon.price ?? 0)).toFixed(2)}
+                      </p>
+                      {qty > 0 && (
+                        <Input
+                          type="number"
+                          min={1}
+                          max={addon.maxQuantity ?? 10}
+                          value={String(qty)}
+                          onChange={e =>
+                            updateAddonQuantity(
+                              Number(addon.id),
+                              Math.max(
+                                1,
+                                Math.trunc(Number(e.target.value || 1))
+                              )
+                            )
+                          }
+                          className="w-20 rounded-xl border-pink-100"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="p-4 rounded-2xl border border-pink-100 bg-white space-y-3">
+              <div>
+                <p className="font-bold text-gray-800">Promo code</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Apply event-specific discounts before checkout.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={promoCodeInput}
+                  onChange={e => {
+                    setPromoCodeInput(e.target.value.toUpperCase());
+                    if (promoFeedback) setPromoFeedback(null);
+                  }}
+                  placeholder="Enter code"
+                  className="rounded-xl border-pink-100"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={applyPromoCode}
+                  disabled={isApplyingPromo}
+                  className="rounded-xl"
+                >
+                  {isApplyingPromo ? "Applying..." : "Apply"}
+                </Button>
+              </div>
+              {promoFeedback ? (
+                <p
+                  className={`text-xs ${appliedPromo ? "text-emerald-600" : "text-red-500"}`}
+                >
+                  {promoFeedback}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-2">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>Ticket</span>
+                <span>${ticketPrice.toFixed(2)}</span>
+              </div>
+              {addonSubtotal > 0 && (
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>Add-ons</span>
+                  <span>${addonSubtotal.toFixed(2)}</span>
+                </div>
+              )}
+              {promoDiscount > 0 && (
+                <div className="flex items-center justify-between text-sm text-emerald-600">
+                  <span>Promo discount</span>
+                  <span>- ${promoDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-200 font-bold text-gray-800">
+                <span>Total before credits</span>
+                <span>${finalPrice.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Volunteer-only flow */}
         {isVolunteerTicket ? (
@@ -697,7 +1060,9 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
             >
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle className="h-6 w-6 text-red-500 flex-shrink-0" />
-                <h3 className="font-bold text-red-700 text-lg">Volunteer Commitment</h3>
+                <h3 className="font-bold text-red-700 text-lg">
+                  Volunteer Commitment
+                </h3>
               </div>
               <p className="text-red-800 text-sm font-medium mb-4 leading-relaxed">
                 By reserving a Volunteer Ticket, you agree to:
@@ -708,7 +1073,10 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   "Understand that failure to fulfill duties will result in forfeiture of your ticket payment.",
                   "Acknowledge that repeated no-shows may result in suspension or removal from the Soapies community.",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-red-700">
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-red-700"
+                  >
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-red-200 flex-shrink-0 flex items-center justify-center text-xs font-bold text-red-600">
                       {i + 1}
                     </span>
@@ -717,7 +1085,8 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                 ))}
               </ul>
               <p className="text-xs text-red-600 font-bold uppercase tracking-wider">
-                ⚠️ This agreement is binding. Staff will contact you with your duties.
+                ⚠️ This agreement is binding. Staff will contact you with your
+                duties.
               </p>
             </motion.div>
 
@@ -744,8 +1113,7 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Check className="h-4 w-4" />
-                    I Understand & Agree
+                    <Check className="h-4 w-4" />I Understand & Agree
                   </>
                 )}
               </motion.button>
@@ -754,7 +1122,9 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
         ) : (
           /* Normal payment options */
           <div className="space-y-4">
-            <h3 className="font-bold text-gray-700 mb-3">Choose Payment Method</h3>
+            <h3 className="font-bold text-gray-700 mb-3">
+              Choose Payment Method
+            </h3>
 
             {/* Stripe — primary card payment */}
             <motion.button
@@ -775,10 +1145,14 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <p className="font-bold text-gray-800">💳 Pay by Card</p>
-                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Recommended</span>
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                        Recommended
+                      </span>
                     </div>
                     {selectedPayment === "stripe" && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
                         className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center"
                       >
                         <Check className="h-4 w-4 text-white" />
@@ -786,7 +1160,8 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Secure payment via Stripe. Your reservation is confirmed instantly after payment.
+                    Secure payment via Stripe. Your reservation is confirmed
+                    instantly after payment.
                   </p>
                 </div>
               </div>
@@ -811,7 +1186,9 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-gray-800">Pay via Venmo</p>
                     {selectedPayment === "venmo" && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
                         className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"
                       >
                         <Check className="h-4 w-4 text-white" />
@@ -819,7 +1196,12 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                     )}
                   </div>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Send payment to <span className="font-bold text-blue-600">{venmoHandle}</span> and include your name + event name in the memo. Your reservation will be confirmed once payment is verified.
+                    Send payment to{" "}
+                    <span className="font-bold text-blue-600">
+                      {venmoHandle}
+                    </span>{" "}
+                    and include your name + event name in the memo. Your
+                    reservation will be confirmed once payment is verified.
                   </p>
                 </div>
               </div>
@@ -829,12 +1211,15 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => canPayWithCredits ? handleSelectPayment("credits") : undefined}
+              onClick={() =>
+                canPayWithCredits ? handleSelectPayment("credits") : undefined
+              }
               className={`w-full p-5 rounded-2xl border-2 text-left transition-all ${
-                !canPayWithCredits ? "opacity-60 cursor-not-allowed" :
-                selectedPayment === "credits"
-                  ? "border-green-400 bg-green-50 shadow-md shadow-green-100"
-                  : "border-gray-100 bg-white hover:border-green-200"
+                !canPayWithCredits
+                  ? "opacity-60 cursor-not-allowed"
+                  : selectedPayment === "credits"
+                    ? "border-green-400 bg-green-50 shadow-md shadow-green-100"
+                    : "border-gray-100 bg-white hover:border-green-200"
               }`}
             >
               <div className="flex items-start gap-4">
@@ -845,7 +1230,9 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-gray-800">Pay with Credits</p>
                     {selectedPayment === "credits" && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
                         className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"
                       >
                         <Check className="h-4 w-4 text-white" />
@@ -854,11 +1241,23 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   </div>
                   {canPayWithCredits ? (
                     <p className="text-xs text-gray-500 mt-1">
-                      You have <span className="font-bold text-green-600">${creditBalanceNum.toFixed(2)}</span> in credits. Use credits to reserve instantly.
+                      You have{" "}
+                      <span className="font-bold text-green-600">
+                        ${creditBalanceNum.toFixed(2)}
+                      </span>{" "}
+                      in credits. Use credits to reserve instantly.
                     </p>
                   ) : (
                     <p className="text-xs text-red-500 mt-1">
-                      Insufficient credits. You have <span className="font-bold">${creditBalanceNum.toFixed(2)}</span>, need <span className="font-bold">${ticketPrice.toFixed(2)}</span>.
+                      Insufficient credits. You have{" "}
+                      <span className="font-bold">
+                        ${creditBalanceNum.toFixed(2)}
+                      </span>
+                      , need{" "}
+                      <span className="font-bold">
+                        ${finalPrice.toFixed(2)}
+                      </span>
+                      .
                     </p>
                   )}
                 </div>
@@ -867,24 +1266,48 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
 
             {/* Submit button for Stripe */}
             {selectedPayment === "stripe" && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white">
-                <p className="text-sm font-semibold mb-1">💳 Secure Card Payment</p>
-                <p className="text-xs opacity-80">You'll be redirected to Stripe Checkout to complete payment. Your ticket QR will be generated automatically.</p>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+              >
+                <p className="text-sm font-semibold mb-1">
+                  💳 Secure Card Payment
+                </p>
+                <p className="text-xs opacity-80">
+                  You'll be redirected to Stripe Checkout to complete payment.
+                  Your ticket QR will be generated automatically.
+                </p>
               </motion.div>
             )}
 
             {/* Submit button for Venmo */}
             {selectedPayment === "venmo" && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 mb-4">
-                  <p className="text-sm font-semibold text-blue-700 mb-1">📱 Venmo Instructions</p>
-                  <p className="text-xs text-blue-600">
-                    1. Open Venmo and send <strong>${ticketPrice.toFixed(2)}</strong> to <strong>{venmoHandle}</strong><br />
-                    2. In the memo write your name + "{event.title}"<br />
-                    3. Tap "I've Sent Payment" below — your spot will be reserved pending verification
+                  <p className="text-sm font-semibold text-blue-700 mb-1">
+                    📱 Venmo Instructions
                   </p>
-                  <a href={`https://venmo.com/${(venmoHandle || 'kellen-brennan').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-[#008CFF] text-white text-sm font-bold hover:opacity-90 transition">Open Venmo →</a>
+                  <p className="text-xs text-blue-600">
+                    1. Open Venmo and send{" "}
+                    <strong>${finalPrice.toFixed(2)}</strong> to{" "}
+                    <strong>{venmoHandle}</strong>
+                    <br />
+                    2. In the memo write your name + "{event.title}"<br />
+                    3. Tap "I've Sent Payment" below — your spot will be
+                    reserved pending verification
+                  </p>
+                  <a
+                    href={`https://venmo.com/${(venmoHandle || "kellen-brennan").replace("@", "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-[#008CFF] text-white text-sm font-bold hover:opacity-90 transition"
+                  >
+                    Open Venmo →
+                  </a>
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -893,14 +1316,23 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   disabled={isSubmitting}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-blue-200/50"
                 >
-                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Check className="h-5 w-5" /> I've Sent Payment</>}
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="h-5 w-5" /> I've Sent Payment
+                    </>
+                  )}
                 </motion.button>
               </motion.div>
             )}
 
             {/* Submit button for Credits */}
             {selectedPayment === "credits" && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
@@ -908,14 +1340,23 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   disabled={isSubmitting || !canPayWithCredits}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-green-200/50"
                 >
-                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Sparkles className="h-5 w-5" /> Pay with Credits</>}
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5" /> Pay with Credits
+                    </>
+                  )}
                 </motion.button>
               </motion.div>
             )}
 
             {/* Submit button for Stripe */}
             {selectedPayment === "stripe" && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
@@ -923,7 +1364,14 @@ function ReservationFlow({ event, onSuccess, isSubmitting }: ReservationFlowProp
                   disabled={isSubmitting}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-purple-200/50"
                 >
-                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><CreditCard className="h-5 w-5" /> Pay ${ticketPrice.toFixed(2)} with Card</>}
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5" /> Pay $
+                      {finalPrice.toFixed(2)} with Card
+                    </>
+                  )}
                 </motion.button>
               </motion.div>
             )}
@@ -945,7 +1393,13 @@ interface ConfirmationProps {
   userName?: string;
 }
 
-function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandle, userName }: ConfirmationProps) {
+function ReservationConfirmation({
+  paymentMethod,
+  totalAmount,
+  event,
+  venmoHandle,
+  userName,
+}: ConfirmationProps) {
   const [, setLocation] = useLocation();
   const displayName = userName || "You";
 
@@ -998,14 +1452,24 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
                 <DollarSign className="h-4 w-4" /> Next Step: Send Payment
               </p>
               <p className="text-sm text-blue-600 leading-relaxed">
-                Send <strong>${totalAmount}</strong> to <strong>{venmoHandle}</strong> with memo:<br />
+                Send <strong>${totalAmount}</strong> to{" "}
+                <strong>{venmoHandle}</strong> with memo:
+                <br />
                 <span className="font-mono text-blue-800 bg-blue-100 px-2 py-0.5 rounded mt-1 inline-block">
                   "{displayName} - {event.title}"
                 </span>
               </p>
-              <a href={`https://venmo.com/${(venmoHandle || 'kellen-brennan').replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-[#008CFF] text-white text-sm font-bold hover:opacity-90 transition">Open Venmo →</a>
+              <a
+                href={`https://venmo.com/${(venmoHandle || "kellen-brennan").replace("@", "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-[#008CFF] text-white text-sm font-bold hover:opacity-90 transition"
+              >
+                Open Venmo →
+              </a>
               <p className="text-xs text-blue-500 mt-3">
-                ⏳ Your reservation is pending payment confirmation. We'll notify you once verified.
+                ⏳ Your reservation is pending payment confirmation. We'll
+                notify you once verified.
               </p>
             </div>
           )}
@@ -1027,7 +1491,8 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
                 <Star className="h-4 w-4" /> Volunteer Reservation Submitted
               </p>
               <p className="text-sm text-amber-600 mt-1">
-                Staff will be in touch with your duties. Thank you for helping make this event amazing!
+                Staff will be in touch with your duties. Thank you for helping
+                make this event amazing!
               </p>
             </div>
           )}
@@ -1059,7 +1524,13 @@ function ReservationConfirmation({ paymentMethod, totalAmount, event, venmoHandl
 }
 
 // ─── MAIN TICKET SECTION ────────────────────────────────────────────────────
-function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?: boolean | null }) {
+function TicketSection({
+  event,
+  waiverRequired,
+}: {
+  event: any;
+  waiverRequired?: boolean | null;
+}) {
   const { isAuthenticated } = useAuth();
   const { isApprovedMember, needsApplication } = useProfileStatus();
   const [, setLocation] = useLocation();
@@ -1070,35 +1541,53 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
   const [atCapacity, setAtCapacity] = useState(false);
   const [joinedWaitlist, setJoinedWaitlist] = useState(false);
   const { data: settings } = trpc.settings.get.useQuery();
-  const { data: me } = trpc.auth.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const { data: me } = trpc.auth.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
+  });
 
   const venmoHandle = settings?.["venmo_handle"] ?? "@kellen-brennan";
-  const { data: myReservations } = trpc.reservations.myReservations.useQuery(undefined, {
-    enabled: isAuthenticated, retry: false, staleTime: 15_000,
-  });
-  const alreadyReserved = myReservations?.some((r: any) => r.eventId === event.id && r.status !== 'cancelled');
+  const { data: myReservations } = trpc.reservations.myReservations.useQuery(
+    undefined,
+    {
+      enabled: isAuthenticated,
+      retry: false,
+      staleTime: 15_000,
+    }
+  );
+  const alreadyReserved = myReservations?.some(
+    (r: any) => r.eventId === event.id && r.status !== "cancelled"
+  );
 
-  const [pendingStripeReservationId, setPendingStripeReservationId] = useState<number | null>(null);
+  const [pendingStripeReservationId, setPendingStripeReservationId] = useState<
+    number | null
+  >(null);
 
   const checkoutSession = trpc.reservations.createCheckoutSession.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       window.location.href = data.url;
     },
     onError: (e: any) => toast.error(e.message || "Payment failed"),
   });
 
   const createReservation = trpc.reservations.create.useMutation({
-    onSuccess: (reservationId) => {
+    onSuccess: reservationId => {
       utils.events.byId.invalidate({ id: event.id });
       // If payment is stripe, redirect to Stripe Checkout
-      if (reservationData?.paymentMethod === "stripe" && typeof reservationId === "number") {
+      if (
+        reservationData?.paymentMethod === "stripe" &&
+        typeof reservationId === "number"
+      ) {
         checkoutSession.mutate({ reservationId });
       } else {
         setReserved(true);
       }
     },
     onError: (e: any) => {
-      if ((e as any)?.data?.code === "PRECONDITION_FAILED" || e.message === "This event is at capacity.") {
+      if (
+        (e as any)?.data?.code === "PRECONDITION_FAILED" ||
+        e.message === "This event is at capacity."
+      ) {
         setAtCapacity(true);
       } else {
         toast.error(e.message || "Failed to create reservation");
@@ -1107,11 +1596,13 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
   });
 
   const joinWaitlistMut = trpc.reservations.joinWaitlist.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       setJoinedWaitlist(true);
-      toast.success(`You're on the waitlist! Position: #${(data as any)?.position ?? '?'}`);
+      toast.success(
+        `You're on the waitlist! Position: #${(data as any)?.position ?? "?"}`
+      );
     },
-    onError: (e: any) => toast.error(e.message || 'Failed to join waitlist'),
+    onError: (e: any) => toast.error(e.message || "Failed to join waitlist"),
   });
 
   function handleReserve(data: {
@@ -1122,6 +1613,8 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
     isQueerPlay?: boolean;
     partnerUserId?: number;
     testResultUrl?: string;
+    promoCode?: string;
+    addonSelections?: { addonId: number; quantity: number }[];
   }) {
     if (!isAuthenticated) {
       window.location.href = getLoginUrl();
@@ -1143,6 +1636,8 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
       isQueerPlay: data.isQueerPlay,
       partnerUserId: data.partnerUserId,
       testResultUrl: data.testResultUrl,
+      promoCode: data.promoCode,
+      addonSelections: data.addonSelections,
     });
   }
 
@@ -1170,8 +1665,12 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           className="glass-strong rounded-3xl p-8 border border-emerald-200 bg-emerald-50 mb-8 text-center"
         >
           <div className="text-5xl mb-4">🎉</div>
-          <h2 className="font-display text-2xl font-bold text-emerald-800 mb-2">You're going!</h2>
-          <p className="text-emerald-700 text-sm">You already have a reservation for this event. See you there!</p>
+          <h2 className="font-display text-2xl font-bold text-emerald-800 mb-2">
+            You're going!
+          </h2>
+          <p className="text-emerald-700 text-sm">
+            You already have a reservation for this event. See you there!
+          </p>
           <Link href="/dashboard">
             <Button className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl gap-2">
               View My Reservations
@@ -1191,10 +1690,16 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
         className="glass-strong rounded-3xl p-8 border border-pink-100/50 mb-8 text-center"
       >
         <div className="text-5xl mb-4">🎟️</div>
-        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">Reserve Your Spot</h2>
-        <p className="text-gray-500 text-sm mb-6">Sign in or create an account to reserve your ticket</p>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">
+          Reserve Your Spot
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">
+          Sign in or create an account to reserve your ticket
+        </p>
         <Button
-          onClick={() => { window.location.href = getLoginUrl(); }}
+          onClick={() => {
+            window.location.href = getLoginUrl();
+          }}
           className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2 px-8 py-3"
         >
           Sign In to Reserve
@@ -1209,7 +1714,9 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
     const msg = needsApplication
       ? "You need to complete your application to reserve tickets."
       : "Your membership is pending approval. You'll be able to reserve tickets once approved.";
-    const btnLabel = needsApplication ? "Complete Application" : "Check Application Status";
+    const btnLabel = needsApplication
+      ? "Complete Application"
+      : "Check Application Status";
     const btnPath = needsApplication ? "/join" : "/pending";
     return (
       <motion.div
@@ -1218,7 +1725,9 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
         className="glass-strong rounded-3xl p-8 border border-pink-100/50 mb-8 text-center"
       >
         <div className="text-5xl mb-4">🎟️</div>
-        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">Members Only</h2>
+        <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">
+          Members Only
+        </h2>
         <p className="text-gray-500 text-sm mb-6">{msg}</p>
         <Button
           onClick={() => setLocation(btnPath)}
@@ -1238,18 +1747,24 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
         className="glass-strong rounded-3xl p-8 border border-yellow-200 bg-yellow-50 mb-8 text-center"
       >
         <div className="text-4xl mb-3">⚠️</div>
-        <h2 className="font-display text-xl font-bold text-yellow-800 mb-2">This event is at capacity.</h2>
+        <h2 className="font-display text-xl font-bold text-yellow-800 mb-2">
+          This event is at capacity.
+        </h2>
         {joinedWaitlist ? (
-          <p className="text-yellow-700 text-sm">✅ You're on the waitlist! We'll notify you if a spot opens up.</p>
+          <p className="text-yellow-700 text-sm">
+            ✅ You're on the waitlist! We'll notify you if a spot opens up.
+          </p>
         ) : (
           <>
-            <p className="text-yellow-700 text-sm mb-4">Join the waitlist? We'll notify you if a spot opens up.</p>
+            <p className="text-yellow-700 text-sm mb-4">
+              Join the waitlist? We'll notify you if a spot opens up.
+            </p>
             <Button
               onClick={() => joinWaitlistMut.mutate({ eventId: event.id })}
               disabled={joinWaitlistMut.isPending}
               className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl gap-2"
             >
-              {joinWaitlistMut.isPending ? 'Joining...' : 'Join Waitlist'}
+              {joinWaitlistMut.isPending ? "Joining..." : "Join Waitlist"}
             </Button>
           </>
         )}
@@ -1266,7 +1781,9 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
           className="glass-strong rounded-3xl p-8 border border-yellow-200 bg-yellow-50 mb-8 text-center opacity-60 pointer-events-none select-none"
         >
           <div className="text-4xl mb-2">🔒</div>
-          <p className="text-yellow-800 font-semibold">Sign the waiver above to unlock ticket selection.</p>
+          <p className="text-yellow-800 font-semibold">
+            Sign the waiver above to unlock ticket selection.
+          </p>
         </motion.div>
       ) : (
         <ReservationFlow
@@ -1283,7 +1800,9 @@ function TicketSection({ event, waiverRequired }: { event: any; waiverRequired?:
 // ─── ADD TO CALENDAR ────────────────────────────────────────────────────────
 function AddToCalendarSection({ event }: { event: any }) {
   const start = new Date(event.startDate);
-  const end = event.endDate ? new Date(event.endDate) : new Date(start.getTime() + 3 * 60 * 60 * 1000);
+  const end = event.endDate
+    ? new Date(event.endDate)
+    : new Date(start.getTime() + 3 * 60 * 60 * 1000);
 
   function toGoogleDate(d: Date) {
     return d.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
@@ -1293,7 +1812,11 @@ function AddToCalendarSection({ event }: { event: any }) {
 
   function downloadIcs() {
     const arr = (d: Date): [number, number, number, number, number] => [
-      d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes(),
+      d.getFullYear(),
+      d.getMonth() + 1,
+      d.getDate(),
+      d.getHours(),
+      d.getMinutes(),
     ];
     const { error, value } = createIcsEvent({
       title: event.title,
@@ -1370,7 +1893,9 @@ function ReferralSection() {
       <h2 className="font-display text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
         <Sparkles className="h-6 w-6 text-pink-500" /> Refer & Earn
       </h2>
-      <p className="text-gray-600 text-sm mb-4">Share your unique code and earn credits for every friend who joins!</p>
+      <p className="text-gray-600 text-sm mb-4">
+        Share your unique code and earn credits for every friend who joins!
+      </p>
 
       {referral?.code ? (
         <motion.div
@@ -1379,8 +1904,12 @@ function ReferralSection() {
           className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 cursor-pointer group"
         >
           <div className="flex-1">
-            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Your Code</p>
-            <p className="font-mono text-2xl font-black text-pink-600">{referral.code}</p>
+            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">
+              Your Code
+            </p>
+            <p className="font-mono text-2xl font-black text-pink-600">
+              {referral.code}
+            </p>
           </div>
           <Copy className="h-5 w-5 text-pink-400 group-hover:text-pink-600 transition-colors" />
         </motion.div>
@@ -1390,7 +1919,11 @@ function ReferralSection() {
           disabled={generate.isPending}
           className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2"
         >
-          {generate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {generate.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
           Generate My Code
         </Button>
       )}
@@ -1399,7 +1932,13 @@ function ReferralSection() {
 }
 
 // ─── FEEDBACK SECTION (for past events) ──────────────────────────────────────
-function FeedbackSection({ eventId, isPastEvent }: { eventId: number; isPastEvent: boolean }) {
+function FeedbackSection({
+  eventId,
+  isPastEvent,
+}: {
+  eventId: number;
+  isPastEvent: boolean;
+}) {
   const { isAuthenticated } = useAuth();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -1425,7 +1964,7 @@ function FeedbackSection({ eventId, isPastEvent }: { eventId: number; isPastEven
 
       {/* Rating */}
       <div className="flex gap-2 mb-6">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[1, 2, 3, 4, 5].map(star => (
           <motion.button
             key={star}
             whileHover={{ scale: 1.2 }}
@@ -1447,7 +1986,7 @@ function FeedbackSection({ eventId, isPastEvent }: { eventId: number; isPastEven
       {/* Comment */}
       <textarea
         value={comment}
-        onChange={(e) => setComment(e.target.value)}
+        onChange={e => setComment(e.target.value)}
         placeholder="Share your thoughts..."
         className="w-full px-4 py-3 rounded-xl border border-pink-100 text-sm outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200/50 bg-white/50 resize-none"
         rows={3}
@@ -1456,7 +1995,9 @@ function FeedbackSection({ eventId, isPastEvent }: { eventId: number; isPastEven
       {/* Existing Feedback */}
       {feedback && feedback.length > 0 && (
         <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
-          <h3 className="font-bold text-sm text-gray-700">Feedback from Others</h3>
+          <h3 className="font-bold text-sm text-gray-700">
+            Feedback from Others
+          </h3>
           {feedback.map((f: any, i: number) => (
             <motion.div
               key={f.id}
@@ -1495,15 +2036,26 @@ function EventDetailsCard({ event }: { event: any }) {
       viewport={{ once: true }}
       className="glass-strong rounded-3xl p-6 sm:p-8 border border-pink-100/50"
     >
-      <h2 className="font-display text-2xl font-bold text-gray-800 mb-6">Event Details</h2>
+      <h2 className="font-display text-2xl font-bold text-gray-800 mb-6">
+        Event Details
+      </h2>
 
       <div className="space-y-4">
         <div className="flex items-start gap-4">
           <Calendar className="h-5 w-5 text-pink-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase">Date & Time</p>
-            <p className="font-semibold text-gray-800">{format(new Date(event.startDate), "EEEE, MMMM d, yyyy")}</p>
-            <p className="text-sm text-gray-600">{format(new Date(event.startDate), "h:mm a")}{event.endDate ? ` - ${format(new Date(event.endDate), "h:mm a")}` : ""}</p>
+            <p className="text-xs font-bold text-gray-400 uppercase">
+              Date & Time
+            </p>
+            <p className="font-semibold text-gray-800">
+              {format(new Date(event.startDate), "EEEE, MMMM d, yyyy")}
+            </p>
+            <p className="text-sm text-gray-600">
+              {format(new Date(event.startDate), "h:mm a")}
+              {event.endDate
+                ? ` - ${format(new Date(event.endDate), "h:mm a")}`
+                : ""}
+            </p>
           </div>
         </div>
 
@@ -1519,21 +2071,31 @@ function EventDetailsCard({ event }: { event: any }) {
         <div className="flex items-start gap-4">
           <Users className="h-5 w-5 text-pink-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase">Capacity</p>
-            <p className="font-semibold text-gray-800">{event.capacity} guests</p>
+            <p className="text-xs font-bold text-gray-400 uppercase">
+              Capacity
+            </p>
+            <p className="font-semibold text-gray-800">
+              {event.capacity} guests
+            </p>
             <div className="w-full h-2 rounded-full bg-gray-200 mt-2">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-pink-500 to-purple-600"
-                style={{ width: `${Math.min(100, Math.round(((event.currentAttendees ?? 0) / (event.capacity || 1)) * 100))}%` }}
+                style={{
+                  width: `${Math.min(100, Math.round(((event.currentAttendees ?? 0) / (event.capacity || 1)) * 100))}%`,
+                }}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">{event.currentAttendees ?? 0} / {event.capacity} reserved</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {event.currentAttendees ?? 0} / {event.capacity} reserved
+            </p>
           </div>
         </div>
 
         {event.description && (
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">About</p>
+            <p className="text-xs font-bold text-gray-400 uppercase mb-2">
+              About
+            </p>
             <p className="text-gray-700 leading-relaxed">{event.description}</p>
           </div>
         )}
@@ -1548,19 +2110,25 @@ function downloadIcs(event: any) {
   createEvent(
     {
       title: event.title,
-      start: [start.getFullYear(), start.getMonth() + 1, start.getDate(), start.getHours(), start.getMinutes()],
+      start: [
+        start.getFullYear(),
+        start.getMonth() + 1,
+        start.getDate(),
+        start.getHours(),
+        start.getMinutes(),
+      ],
       duration: { hours: 4 },
-      location: event.venue || '',
-      description: event.description || '',
+      location: event.venue || "",
+      description: event.description || "",
       url: window.location.href,
     },
     (error: any, value: string) => {
       if (!error) {
-        const blob = new Blob([value], { type: 'text/calendar' });
+        const blob = new Blob([value], { type: "text/calendar" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = `${event.title.replace(/\s+/g, '-')}.ics`;
+        a.download = `${event.title.replace(/\s+/g, "-")}.ics`;
         a.click();
         URL.revokeObjectURL(url);
       }
@@ -1578,17 +2146,24 @@ export default function EventDetail() {
     typeof window !== "undefined" ? window.location.search : ""
   );
   const paymentResult = searchParams.get("payment"); // "success" | "cancelled" | null
-  const { data: event, isLoading, error } = trpc.events.byId.useQuery(
-    { id: parseInt(id || "0") },
-    { retry: false }
-  );
-  const { data: myProfile } = trpc.profile.me.useQuery(undefined, { enabled: isAuthenticated, retry: false });
+  const {
+    data: event,
+    isLoading,
+    error,
+  } = trpc.events.byId.useQuery({ id: parseInt(id || "0") }, { retry: false });
+  const { data: myProfile } = trpc.profile.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+    retry: false,
+  });
 
   if (isLoading) {
     return (
       <PageWrapper>
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
             <Loader2 className="h-10 w-10 text-pink-400" />
           </motion.div>
           <p className="text-sm text-gray-400 font-medium">Loading event...</p>
@@ -1601,10 +2176,18 @@ export default function EventDetail() {
     return (
       <PageWrapper>
         <div className="container px-4 max-w-4xl mx-auto py-12">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center"
+          >
             <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">Event Not Found</h2>
-            <p className="text-gray-600 mb-6">This event doesn't exist or has been removed.</p>
+            <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">
+              Event Not Found
+            </h2>
+            <p className="text-gray-600 mb-6">
+              This event doesn't exist or has been removed.
+            </p>
             <Link href="/events">
               <Button className="bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl gap-2">
                 <ArrowLeft className="h-4 w-4" /> Back to Events
@@ -1622,7 +2205,10 @@ export default function EventDetail() {
     <PageWrapper>
       <div className="container px-4 max-w-4xl mx-auto py-6 sm:py-8">
         {/* Back Button */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
           <Link href="/events">
             <button className="flex items-center gap-2 text-pink-600 hover:text-pink-700 font-semibold mb-6 transition-colors">
               <ArrowLeft className="h-4 w-4" /> Back to Events
@@ -1637,10 +2223,17 @@ export default function EventDetail() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 flex items-start gap-4"
           >
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-2xl">🎉</div>
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-2xl">
+              🎉
+            </div>
             <div className="flex-1">
-              <p className="font-bold text-green-800 text-lg">Payment confirmed!</p>
-              <p className="text-sm text-green-700 mt-1">Your ticket is reserved. Check your email for confirmation details.</p>
+              <p className="font-bold text-green-800 text-lg">
+                Payment confirmed!
+              </p>
+              <p className="text-sm text-green-700 mt-1">
+                Your ticket is reserved. Check your email for confirmation
+                details.
+              </p>
               <Link href="/tickets">
                 <Button className="mt-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl gap-2 px-6 text-sm">
                   <BadgeCheck className="h-4 w-4" /> View My Tickets
@@ -1658,7 +2251,9 @@ export default function EventDetail() {
             className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center gap-3"
           >
             <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-            <p className="text-sm text-amber-700">Payment was cancelled. You can try again below.</p>
+            <p className="text-sm text-amber-700">
+              Payment was cancelled. You can try again below.
+            </p>
           </motion.div>
         )}
 
@@ -1668,26 +2263,36 @@ export default function EventDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Waiver Gate Banner */}
-            {!isPastEvent && (event as any).requiresWaiver && myProfile && !(myProfile as any).waiverSignedAt && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 rounded-2xl bg-yellow-50 border border-yellow-300"
-              >
-                <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
-                <p className="text-sm text-yellow-800 font-medium flex-1">
-                  ⚠️ This event requires a signed waiver before you can reserve tickets.{" "}
-                  <Link href="/waiver">
-                    <span className="underline font-bold text-yellow-900 hover:text-yellow-700 cursor-pointer">Sign Waiver →</span>
-                  </Link>
-                </p>
-              </motion.div>
-            )}
+            {!isPastEvent &&
+              (event as any).requiresWaiver &&
+              myProfile &&
+              !(myProfile as any).waiverSignedAt && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-3 p-4 rounded-2xl bg-yellow-50 border border-yellow-300"
+                >
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+                  <p className="text-sm text-yellow-800 font-medium flex-1">
+                    ⚠️ This event requires a signed waiver before you can
+                    reserve tickets.{" "}
+                    <Link href="/waiver">
+                      <span className="underline font-bold text-yellow-900 hover:text-yellow-700 cursor-pointer">
+                        Sign Waiver →
+                      </span>
+                    </Link>
+                  </p>
+                </motion.div>
+              )}
             {/* Ticket / Reservation Flow */}
             {!isPastEvent && (
               <TicketSection
                 event={event}
-                waiverRequired={(event as any).requiresWaiver && myProfile && !(myProfile as any).waiverSignedAt}
+                waiverRequired={
+                  (event as any).requiresWaiver &&
+                  myProfile &&
+                  !(myProfile as any).waiverSignedAt
+                }
               />
             )}
 
@@ -1719,7 +2324,9 @@ export default function EventDetail() {
                   if (navigator.share) {
                     navigator.share({ title: event.title, text });
                   } else {
-                    navigator.clipboard.writeText(`${text} ${window.location.href}`);
+                    navigator.clipboard.writeText(
+                      `${text} ${window.location.href}`
+                    );
                     toast.success("Copied to clipboard!");
                   }
                 }}
@@ -1747,7 +2354,7 @@ export default function EventDetail() {
                   📅 Add to iCal
                 </button>
                 <a
-                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${new Date(event.startDate).toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${new Date(new Date(event.startDate).getTime() + 4 * 3600000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(event.description || '')}&location=${encodeURIComponent(event.venue || '')}`}
+                  href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${new Date(event.startDate).toISOString().replace(/[-:]/g, "").split(".")[0]}Z/${new Date(new Date(event.startDate).getTime() + 4 * 3600000).toISOString().replace(/[-:]/g, "").split(".")[0]}Z&details=${encodeURIComponent(event.description || "")}&location=${encodeURIComponent(event.venue || "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-pink-100/50 text-gray-700 hover:text-pink-600 text-sm px-4 py-2.5 rounded-xl transition w-full justify-center font-medium"
@@ -1765,20 +2372,49 @@ export default function EventDetail() {
               className="glass-strong rounded-3xl p-6 border border-pink-100/50 space-y-4"
             >
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase">Event Type</p>
-                <p className="font-semibold text-gray-800 mt-1">{getEventTypeLabel(event.title)}</p>
+                <p className="text-xs font-bold text-gray-400 uppercase">
+                  Event Type
+                </p>
+                <p className="font-semibold text-gray-800 mt-1">
+                  {getEventTypeLabel(event.title)}
+                </p>
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase">Capacity</p>
-                <p className="font-semibold text-gray-800 mt-1">{event.capacity} guests</p>
+                <p className="text-xs font-bold text-gray-400 uppercase">
+                  Capacity
+                </p>
+                <p className="font-semibold text-gray-800 mt-1">
+                  {event.capacity} guests
+                </p>
               </div>
               {event.priceSingleFemale && (
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase">Pricing</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase">
+                    Pricing
+                  </p>
                   <div className="mt-1 space-y-1 text-sm">
-                    <p className="text-gray-700">👩 Women: <span className="font-bold">${parseFloat(event.priceSingleFemale).toFixed(2)}</span></p>
-                    {event.priceCouple && <p className="text-gray-700">💑 Couple: <span className="font-bold">${parseFloat(event.priceCouple).toFixed(2)}</span></p>}
-                    {event.priceSingleMale && <p className="text-gray-700">👨 Men: <span className="font-bold">${parseFloat(event.priceSingleMale).toFixed(2)}</span></p>}
+                    <p className="text-gray-700">
+                      👩 Women:{" "}
+                      <span className="font-bold">
+                        ${parseFloat(event.priceSingleFemale).toFixed(2)}
+                      </span>
+                    </p>
+                    {event.priceCouple && (
+                      <p className="text-gray-700">
+                        💑 Couple:{" "}
+                        <span className="font-bold">
+                          ${parseFloat(event.priceCouple).toFixed(2)}
+                        </span>
+                      </p>
+                    )}
+                    {event.priceSingleMale && (
+                      <p className="text-gray-700">
+                        👨 Men:{" "}
+                        <span className="font-bold">
+                          ${parseFloat(event.priceSingleMale).toFixed(2)}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
