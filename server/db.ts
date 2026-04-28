@@ -1601,7 +1601,10 @@ export async function findExistingDm(
     )
     .limit(1);
 
-  return match[0]?.conversationId ?? null;
+  const conversationId = match[0]?.conversationId;
+  if (conversationId == null) return null;
+  const normalizedId = Number(conversationId);
+  return Number.isFinite(normalizedId) ? normalizedId : null;
 }
 
 export async function getConversationById(conversationId: number) {
@@ -1617,9 +1620,12 @@ export async function getConversationById(conversationId: number) {
 
 export async function createConversation(data: any, participantIds: number[]) {
   const db = await getDb();
-  if (!db) return;
+  if (!db) return null;
   const r = await db.insert(conversations).values(data);
-  const convId = r[0].insertId;
+  const convId = Number(r[0].insertId);
+  if (!Number.isFinite(convId)) {
+    throw new Error('Failed to create conversation: invalid conversation id returned.');
+  }
   for (const uid of participantIds) {
     await db
       .insert(conversationParticipants)

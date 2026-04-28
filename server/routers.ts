@@ -1717,6 +1717,7 @@ export const appRouter = router({
           participantIds: z.array(z.number()),
         })
       )
+      .output(z.number())
       .mutation(async ({ ctx, input }) => {
         const { participantIds, ...data } = input;
         const allParticipants = Array.from(
@@ -1729,12 +1730,20 @@ export const appRouter = router({
             ctx.user.id,
             participantIds[0]
           );
-          if (existing) return existing;
+          if (existing) return Number(existing);
         }
-        return db.createConversation(
+        const conversationId = await db.createConversation(
           { ...data, type: isDm ? "dm" : input.type, createdBy: ctx.user.id },
           allParticipants
         );
+        const normalizedId = Number(conversationId);
+        if (!Number.isFinite(normalizedId)) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Could not create conversation.",
+          });
+        }
+        return normalizedId;
       }),
 
     addReaction: protectedProcedure
