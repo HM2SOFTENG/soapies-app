@@ -450,41 +450,43 @@ export default function ChatScreen() {
             </View>
           )}
 
-          <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder={dmLockedForUpgrade ? 'Private messages unlock with Connect 💗' : 'Message…'}
-            placeholderTextColor={colors.textMuted}
-            multiline
-            maxLength={2000}
-            editable={!dmLockedForUpgrade}
-            style={[styles.textInput, dmLockedForUpgrade && { opacity: 0.55 }]}
-          />
-          <Animated.View style={animatedSendStyle}>
-            <TouchableOpacity
-              onPress={handleSend}
-              disabled={(!text.trim() && !dmLockedForUpgrade) || sendMutation.isPending}
-              activeOpacity={0.85}
-            >
-              {sendMutation.isPending ? (
-                <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
-                  <ActivityIndicator color={colors.white} size="small" />
-                </View>
-              ) : dmLockedForUpgrade ? (
-                <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
-                  <Ionicons name="sparkles" size={18} color={colors.white} />
-                </LinearGradient>
-              ) : text.trim() ? (
-                <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
-                  <Ionicons name="send" size={18} color={colors.white} />
-                </LinearGradient>
-              ) : (
-                <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
-                  <Ionicons name="send" size={18} color={colors.textMuted} />
-                </View>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
+          <View style={styles.composerRow}>
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder={dmLockedForUpgrade ? 'Private messages unlock with Connect 💗' : 'Message…'}
+              placeholderTextColor={colors.textMuted}
+              multiline
+              maxLength={2000}
+              editable={!dmLockedForUpgrade}
+              style={[styles.textInput, dmLockedForUpgrade && { opacity: 0.55 }]}
+            />
+            <Animated.View style={animatedSendStyle}>
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={(!text.trim() && !dmLockedForUpgrade) || sendMutation.isPending}
+                activeOpacity={0.85}
+              >
+                {sendMutation.isPending ? (
+                  <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
+                    <ActivityIndicator color={colors.white} size="small" />
+                  </View>
+                ) : dmLockedForUpgrade ? (
+                  <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
+                    <Ionicons name="sparkles" size={18} color={colors.white} />
+                  </LinearGradient>
+                ) : text.trim() ? (
+                  <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.sendBtn}>
+                    <Ionicons name="send" size={18} color={colors.white} />
+                  </LinearGradient>
+                ) : (
+                  <View style={[styles.sendBtn, styles.sendBtnDisabled]}>
+                    <Ionicons name="send" size={18} color={colors.textMuted} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -732,19 +734,21 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
 
     // ── Input bar
     inputBar: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
       paddingHorizontal: 12,
       paddingVertical: 10,
       borderTopColor: colors.border,
       borderTopWidth: 1,
       backgroundColor: colors.floating,
-      gap: 8,
       shadowColor: colors.shadow,
       shadowOpacity: 0.08,
       shadowRadius: 10,
       shadowOffset: { width: 0, height: -4 },
       elevation: 8,
+    },
+    composerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 8,
     },
     textInput: {
       flex: 1,
@@ -855,6 +859,7 @@ function createStyles(colors: ThemeColors, alpha: (color: string, opacity: numbe
       gap: 8,
       marginBottom: 10,
       alignSelf: 'flex-start',
+      maxWidth: '100%',
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 999,
