@@ -83,7 +83,7 @@ async function startServer() {
     skip: (req) => {
       if (process.env.NODE_ENV === "development") return true;
       const path = String((req as any).path ?? req.url ?? "");
-      return path.startsWith("/auth.");
+      return path.startsWith("/auth.") || path.startsWith("/messages.markRead");
     },
   });
 
